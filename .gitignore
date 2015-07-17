@@ -36,5 +36,6 @@ Icon
 .Trashes
 
 # Debug files
-Debug
-Debug/**
+Debug/src/
+Debug/src/*
+*.[od]
