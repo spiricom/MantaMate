@@ -55,7 +55,7 @@
  */
 
 //! Array of UHI APIs Define the list of UHI supported by USB host.
-#define USB_HOST_UHI        UHI_HID_MOUSE,UHI_MIDI
+#define USB_HOST_UHI        UHI_MIDI, UHI_HID_MOUSE
 
 //! Maximum current allowed on Vbus (mA)
 #define USB_HOST_POWER_MAX  500

@@ -20,12 +20,12 @@
     <OverrideVtor>false</OverrideVtor>
     <CacheFlash>true</CacheFlash>
     <ProgFlashFromRam>true</ProgFlashFromRam>
-    <RamSnippetAddress />
+    <RamSnippetAddress>0x20000000</RamSnippetAddress>
     <UncachedRange />
     <preserveEEPROM>true</preserveEEPROM>
-    <OverrideVtorValue />
+    <OverrideVtorValue>exception_table</OverrideVtorValue>
     <BootSegment>2</BootSegment>
-    <eraseonlaunchrule>1</eraseonlaunchrule>
+    <eraseonlaunchrule>0</eraseonlaunchrule>
     <AsfFrameworkConfig>
       <framework-data>
         <options>
@@ -134,12 +134,25 @@
         <documentation help="http://asf.atmel.com/docs/3.24.2/common.services.usb.class.hid.dual.mouse.example.evk1100/html/index.html" />
         <offline-documentation help="" />
         <dependencies>
-          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.24.2" />
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.10.1" />
         </dependencies>
         <project id="common.services.usb.class.hid.dual.mouse.example.evk1100" value="Add" config="" content-id="Atmel.ASF" />
         <board id="board.evk1100" value="Add" config="" content-id="Atmel.ASF" />
       </framework-data>
     </AsfFrameworkConfig>
+    <avrtool>com.atmel.avrdbg.tool.jtagice3plus</avrtool>
+    <avrtoolinterface>JTAG</avrtoolinterface>
+    <com_atmel_avrdbg_tool_jtagice3plus>
+      <ToolOptions>
+        <InterfaceProperties>
+          <JtagDbgClock>7500000</JtagDbgClock>
+        </InterfaceProperties>
+        <InterfaceName>JTAG</InterfaceName>
+      </ToolOptions>
+      <ToolType>com.atmel.avrdbg.tool.jtagice3plus</ToolType>
+      <ToolNumber>J30200021353</ToolNumber>
+      <ToolName>JTAGICE3</ToolName>
+    </com_atmel_avrdbg_tool_jtagice3plus>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -329,6 +342,11 @@
       <Value>../src/ASF/common/services/usb/class/MIDI/device</Value>
       <Value>../src/ASF/common/services/usb/class/MIDI/host</Value>
       <Value>../src/ASF/common/services/usb/core</Value>
+      <Value>../src/ASF/avr32/drivers/pwm</Value>
+      <Value>../src/ASF/common/services/usb/class</Value>
+      <Value>../src/ASF/common/UC3</Value>
+      <Value>../src/ASF/avr32/components/boards</Value>
+      <Value>../src/ASF/common/UC3/Template</Value>
     </ListValues>
   </avr32gcc.compiler.directories.IncludePaths>
   <avr32gcc.compiler.optimization.level>Optimize (-O1)</avr32gcc.compiler.optimization.level>
@@ -422,6 +440,7 @@
     <Folder Include="src\ASF\avr32\boards\" />
     <Folder Include="src\ASF\avr32\boards\evk1100\" />
     <Folder Include="src\ASF\avr32\components\" />
+    <Folder Include="src\ASF\avr32\components\boards\" />
     <Folder Include="src\ASF\avr32\components\display\" />
     <Folder Include="src\ASF\avr32\components\display\dip204\" />
     <Folder Include="src\ASF\avr32\components\joystick\" />
@@ -447,7 +466,7 @@
     <Folder Include="src\ASF\avr32\utils\preprocessor\" />
     <Folder Include="src\ASF\avr32\utils\startup\" />
     <Folder Include="src\ASF\common\" />
-    <Folder Include="src\ASF\common\boards\" />
+    <Folder Include="src\ASF\common\UC3" />
     <Folder Include="src\ASF\common\services\" />
     <Folder Include="src\ASF\common\services\clock\" />
     <Folder Include="src\ASF\common\services\clock\uc3a0_a1\" />
@@ -473,12 +492,16 @@
     <Folder Include="src\ASF\common\services\usb\core" />
     <Folder Include="src\ASF\common\services\usb\udc\" />
     <Folder Include="src\ASF\common\services\usb\uhc\" />
+    <Folder Include="src\ASF\common\UC3\Template" />
     <Folder Include="src\ASF\common\utils\" />
     <Folder Include="src\ASF\common\utils\interrupt\" />
     <Folder Include="src\config\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\asf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\avr32\components\boards\board.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\avr32\components\display\dip204\dip204.c">
@@ -503,6 +526,21 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\delay\delay.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Architectures.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\ArchitectureSpecific.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Attributes.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\AudioClassCommon.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\BoardTypes.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\interrupt.h">
@@ -532,7 +570,13 @@
     <Compile Include="src\ASF\common\services\usb\class\MIDI\device\udi_hid.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\midi.h">
+    <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\MIDIClassCommon.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\MIDIClassHost.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\MIDIClassHost.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c">
@@ -541,19 +585,157 @@
     <Compile Include="src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\ASF\common\services\usb\class\MIDI\MIDIClass.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\ASF\common\services\usb\class\MIDI\usb_protocol_midi.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\ASF\common\services\usb\core\pipe.c">
+    <Compile Include="src\ASF\common\services\usb\Common.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\ASF\common\services\usb\core\pipe.h">
+    <Compile Include="src\ASF\common\services\usb\CompilerSpecific.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\ConfigDescriptors.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\ConfigDescriptors.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\Device.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\DeviceStandardReq.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\DeviceStandardReq.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\Endpoint.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\Host.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\HostStandardReq.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\HostStandardReq.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\OTG.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\Pipe.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\core\PipeStream.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Endianness.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\EndpointStream.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Events.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Events.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\StdDescriptors.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\StdRequestType.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\Template_Pipe_RW.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USB.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USBController.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USBInterrupt.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USBMode.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USBTask.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\services\usb\USBTask.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\usb_atmel.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\usb_protocol.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Device_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Device_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\EndpointStream_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\EndpointStream_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Endpoint_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Endpoint_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Host_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Host_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\PipeStream_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\PipeStream_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Pipe_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Pipe_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Template\Template_Endpoint_Control_R.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Template\Template_Endpoint_Control_W.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Template\Template_Endpoint_RW.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\Template\Template_Pipe_RW.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\USBController_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\USBController_UC3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\USBInterrupt_UC3.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ASF\common\UC3\USBInterrupt_UC3.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\utils\interrupt.h">
@@ -641,9 +823,6 @@
       <SubType>compile</SubType>
     </None>
     <None Include="src\ASF\common\services\clock\sysclk.h">
-      <SubType>compile</SubType>
-    </None>
-    <None Include="src\ASF\common\boards\board.h">
       <SubType>compile</SubType>
     </None>
     <None Include="src\ASF\avr32\drivers\usbb\usbb_host.h">

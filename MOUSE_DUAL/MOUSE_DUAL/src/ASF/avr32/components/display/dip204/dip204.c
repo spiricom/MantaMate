@@ -54,14 +54,14 @@
 //#define _ASSERT_ENABLE_
 #include <stdarg.h>
 #include <stdio.h>
-#include "board.h"
+#include "C:\Users\Chloe\Documents\GitHub\MantaMate\MOUSE_DUAL\MOUSE_DUAL\src\ASF\avr32\components\boards\board.h"
 #include "conf_dip204.h"
 #include "dip204.h"
 #include "gpio.h"
 #include "compiler.h"
-#include "C:\Users\AirWolf\Documents\Atmel Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\spi\spi.h"
-#include "C:\Users\AirWolf\Documents\Atmel Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\pwm\pwm.h"
-#include "C:\Users\AirWolf\Documents\Atmel Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\common\services\delay\delay.h"
+#include "spi.h"
+#include "pwm.h"
+#include "delay.h"
 
 
 /*! Write Command start byte */

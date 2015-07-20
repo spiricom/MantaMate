@@ -130,7 +130,7 @@ enum usb_reqid {
 enum usb_device_status {
 	USB_DEV_STATUS_BUS_POWERED = 0,
 	USB_DEV_STATUS_SELF_POWERED = 1,
-	USB_DEV_STATUS_REMOTEWAKEUP = 2
+	USB_DEV_STATUS_REMOTEWAKEUP = 2,
 };
 
 /**
@@ -138,7 +138,7 @@ enum usb_device_status {
  *
  */
 enum usb_interface_status {
-	USB_IFACE_STATUS_RESERVED = 0
+	USB_IFACE_STATUS_RESERVED = 0,
 };
 
 /**
@@ -159,7 +159,7 @@ enum usb_device_feature {
 	USB_DEV_FEATURE_TEST_MODE = 2,     //!< USB test mode
 	USB_DEV_FEATURE_OTG_B_HNP_ENABLE = 3,
 	USB_DEV_FEATURE_OTG_A_HNP_SUPPORT = 4,
-	USB_DEV_FEATURE_OTG_A_ALT_HNP_SUPPORT = 5
+	USB_DEV_FEATURE_OTG_A_ALT_HNP_SUPPORT = 5,
 };
 
 /**

@@ -1,98 +1,144 @@
 /*
- * pipe.h
+             LUFA Library
+     Copyright (C) Dean Camera, 2014.
+
+  dean [at] fourwalledcubicle [dot] com
+           www.lufa-lib.org
+*/
+
+/*
+  Copyright 2014  Dean Camera (dean [at] fourwalledcubicle [dot] com)
+
+  Permission to use, copy, modify, distribute, and sell this
+  software and its documentation for any purpose is hereby granted
+  without fee, provided that the above copyright notice appear in
+  all copies and that both that the copyright notice and this
+  permission notice and warranty disclaimer appear in supporting
+  documentation, and that the name of the author not be used in
+  advertising or publicity pertaining to distribution of the
+  software without specific, written prior permission.
+
+  The author disclaims all warranties with regard to this
+  software, including all implied warranties of merchantability
+  and fitness.  In no event shall the author be liable for any
+  special, indirect or consequential damages or any damages
+  whatsoever resulting from loss of use, data or profits, whether
+  in an action of contract, negligence or other tortious action,
+  arising out of or in connection with the use or performance of
+  this software.
+*/
+
+/** \file
+ *  \brief Common USB Pipe definitions for all architectures.
+ *  \copydetails Group_PipeManagement
  *
- * Created: 7/16/2015 3:53:54 PM
- *  Author: AirWolf
- */ 
+ *  \note This file should not be included directly. It is automatically included as needed by the USB driver
+ *        dispatch header located in LUFA/Drivers/USB/USB.h.
+ */
 
+/** \ingroup Group_PipeManagement
+ *  \defgroup Group_PipeRW Pipe Data Reading and Writing
+ *  \brief Pipe data read/write definitions.
+ *
+ *  Functions, macros, variables, enums and types related to data reading and writing from and to pipes.
+ */
 
-#ifndef PIPE_H_
-#define PIPE_H_
+/** \ingroup Group_PipeRW
+ *  \defgroup Group_PipePrimitiveRW Read/Write of Primitive Data Types
+ *  \brief Pipe data primitive read/write definitions.
+ *
+ *  Functions, macros, variables, enums and types related to data reading and writing of primitive data types
+ *  from and to pipes.
+ */
 
-typedef struct
-{
-	uint8_t  address; /**< Address of the pipe to configure, or zero if the table entry is to be unused. */
-	uint16_t size; /**< Size of the pipe bank, in bytes. */
-	uint8_t  epAddress; /**< Address of the endpoint in the connected device. */
-	uint8_t  type; /**< Type of the endpoint, a \c EP_TYPE_* mask. */
-	uint8_t  banks; /**< Number of hardware banks to use for the pipe. */
-} usb_pipe_table_t;
+/** \ingroup Group_PipeManagement
+ *  \defgroup Group_PipePacketManagement Pipe Packet Management
+ *  \brief Pipe packet management definitions.
+ *
+ *  Functions, macros, variables, enums and types related to packet management of pipes.
+ */
 
-#define ATTR_ALWAYS_INLINE           __attribute__ ((always_inline))
-#define ATTR_WARN_UNUSED_RESULT      __attribute__ ((warn_unused_result))
-#define PIPE_EPNUM_MASK               0x0F
-#define USB_STREAM_TIMEOUT_MS       100
+/** \ingroup Group_PipeManagement
+ *  \defgroup Group_PipeControlReq Pipe Control Request Management
+ *  \brief Pipe control request definitions.
+ *
+ *  Module for host mode request processing. This module allows for the transmission of standard, class and
+ *  vendor control requests to the default control endpoint of an attached device while in host mode.
+ *
+ *  \see Chapter 9 of the USB 2.0 specification.
+ */
 
-/* Private Interface - For use in library only: */
-#if !defined(__DOXYGEN__)
-/* Macros: */
-#define PIPE_HSB_ADDRESS_SPACE_SIZE     (64 * 1024UL)
+/** \ingroup Group_USB
+ *  \defgroup Group_PipeManagement Pipe Management
+ *  \brief Pipe management definitions.
+ *
+ *  This module contains functions, macros and enums related to pipe management when in USB Host mode. This
+ *  module contains the pipe management macros, as well as pipe interrupt and data send/receive functions
+ *  for various data types.
+ *
+ *  @{
+ */
 
-/* External Variables: */
-extern volatile uint32_t USB_Pipe_SelectedPipe;
-extern volatile uint8_t* USB_Pipe_FIFOPos[];
-#endif
-enum Pipe_WaitUntilReady_ErrorCodes_t
+#ifndef __PIPE_H__
+#define __PIPE_H__
+
+	/* Includes: */
+		#include "Common.h"
+		#include "USBMode.h"
+
+	/* Enable C linkage for C++ Compilers: */
+		#if defined(__cplusplus)
+			extern "C" {
+		#endif
+
+	/* Preprocessor Checks: */
+		#if !defined(__INCLUDE_FROM_USB_DRIVER)
+			#error Do not include this file directly. Include LUFA/Drivers/USB/USB.h instead.
+		#endif
+
+	/* Public Interface - May be used in end-application: */
+		/* Type Defines: */
+			/** Type define for a pipe table entry, used to configure pipes in groups via
+			 *  \ref Pipe_ConfigurePipeTable().
+			 */
+			typedef struct
 			{
-				PIPE_READYWAIT_NoError                 = 0, /**< Pipe ready for next packet, no error. */
-				PIPE_READYWAIT_PipeStalled             = 1,	/**< The device stalled the pipe while waiting. */
-				PIPE_READYWAIT_DeviceDisconnected      = 2,	/**< Device was disconnected from the host while waiting. */
-				PIPE_READYWAIT_Timeout                 = 3, /**< The device failed to accept or send the next packet
-				                                             *   within the software timeout period set by the
-				                                             *   \ref USB_STREAM_TIMEOUT_MS macro.
-				                                             */
-			};
+				uint8_t  Address; /**< Address of the pipe to configure, or zero if the table entry is to be unused. */
+				uint16_t Size; /**< Size of the pipe bank, in bytes. */
+				uint8_t  EndpointAddress; /**< Address of the endpoint in the connected device. */
+				uint8_t  Type; /**< Type of the endpoint, a \c EP_TYPE_* mask. */
+				uint8_t  Banks; /**< Number of hardware banks to use for the pipe. */
+			} USB_Pipe_Table_t;
 
-static inline void Pipe_SelectPipe(const uint8_t Address) ATTR_ALWAYS_INLINE;
-static inline void Pipe_SelectPipe(const uint8_t Address)
-{
-	USB_Pipe_SelectedPipe = (Address & PIPE_EPNUM_MASK);
-}
+		/* Macros: */
+			/** Pipe address for the default control pipe, which always resides in address 0. This is
+			 *  defined for convenience to give more readable code when used with the pipe macros.
+			 */
+			#define PIPE_CONTROLPIPE                0
 
-/** Unfreezes the selected pipe, allowing it to communicate with an attached device. */
-static inline void Pipe_Unfreeze(void) ATTR_ALWAYS_INLINE;
-static inline void Pipe_Unfreeze(void)
-{
-	(&AVR32_USBB.UPCON0CLR)[USB_Pipe_SelectedPipe].pfreezec = true;
-}
+			/** Pipe number mask, for masking against pipe addresses to retrieve the pipe's numerical address
+			 *  in the device.
+			 */
+			#define PIPE_PIPENUM_MASK               0x0F
 
-static inline uint16_t Pipe_BytesInPipe(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
-static inline uint16_t Pipe_BytesInPipe(void)
-{
-	return (&AVR32_USBB.UPSTA0)[USB_Pipe_SelectedPipe].pbyct;
-}
+			/** Endpoint number mask, for masking against endpoint addresses to retrieve the endpoint's
+			 *  numerical address in the attached device.
+			 */
+			#define PIPE_EPNUM_MASK                 0x0F
 
-static inline void Pipe_ClearOUT(void) ATTR_ALWAYS_INLINE;
-static inline void Pipe_ClearOUT(void)
-{
-	(&AVR32_USBB.UPSTA0CLR)[USB_Pipe_SelectedPipe].txoutic  = true;
-	(&AVR32_USBB.UPCON0CLR)[USB_Pipe_SelectedPipe].fifoconc = true;
-	USB_Pipe_FIFOPos[USB_Pipe_SelectedPipe] = &AVR32_USBB_SLAVE[USB_Pipe_SelectedPipe * PIPE_HSB_ADDRESS_SPACE_SIZE];
-}
+	/* Architecture Includes: */
+		#if (ARCH == ARCH_AVR8)
+			#include "AVR8/Pipe_AVR8.h"
+		#elif (ARCH == ARCH_UC3)
+			#include "Pipe_UC3.h"
+		#endif
 
-uint8_t Pipe_WaitUntilReady(void);
+	/* Disable C linkage for C++ Compilers: */
+		#if defined(__cplusplus)
+			}
+		#endif
 
-static inline void Pipe_Freeze(void) ATTR_ALWAYS_INLINE;
-static inline void Pipe_Freeze(void)
-{
-	(&AVR32_USBB.UPCON0SET)[USB_Pipe_SelectedPipe].pfreezes = true;
-}
+#endif
 
-static inline bool Pipe_IsINReceived(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
-static inline bool Pipe_IsINReceived(void)
-{
-	return (&AVR32_USBB.UPSTA0)[USB_Pipe_SelectedPipe].rxini;
-}
+/** @} */
 
-static inline bool Pipe_IsOUTReady(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
-static inline bool Pipe_IsOUTReady(void)
-{
-	return (&AVR32_USBB.UPSTA0)[USB_Pipe_SelectedPipe].txouti;
-}
-
-static inline bool Pipe_IsStalled(void) ATTR_WARN_UNUSED_RESULT ATTR_ALWAYS_INLINE;
-static inline bool Pipe_IsStalled(void)
-{
-	return (&AVR32_USBB.UPSTA0)[USB_Pipe_SelectedPipe].rxstalldi;
-}
-#endif /* PIPE_H_ */

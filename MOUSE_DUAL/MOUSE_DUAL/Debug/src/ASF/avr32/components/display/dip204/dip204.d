@@ -20,7 +20,8 @@ src/ASF/avr32/components/display/dip204/dip204.d \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/machine/types.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/features.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/stdio.h \
- ../src/ASF/common/boards/board.h ../src/ASF/avr32/utils/compiler.h \
+ C:\Users\Chloe\Documents\GitHub\MantaMate\MOUSE_DUAL\MOUSE_DUAL\src\ASF\avr32\components\boards\board.h \
+ ../src/ASF/avr32/utils/compiler.h \
  ../src/ASF/avr32/utils/preprocessor/preprocessor.h \
  ../src/ASF/avr32/utils/preprocessor/tpaste.h \
  ../src/ASF/avr32/utils/preprocessor/stringz.h \
@@ -67,11 +68,11 @@ src/ASF/avr32/components/display/dip204/dip204.d \
  ../src/ASF/avr32/drivers/intc/intc.h \
  ../src/ASF/avr32/boards/evk1100/evk1100.h \
  ../src/ASF/avr32/boards/evk1100/led.h ../src/config/conf_dip204.h \
+ ../src/ASF/avr32/components/boards/board.h \
  ../src/ASF/avr32/components/display/dip204/dip204.h \
- ../src/ASF/avr32/drivers/gpio/gpio.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\spi\spi.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\pwm\pwm.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\common\services\delay\delay.h \
+ ../src/ASF/avr32/drivers/gpio/gpio.h ../src/ASF/avr32/drivers/spi/spi.h \
+ ../src/ASF/avr32/drivers/pwm/pwm.h \
+ ../src/ASF/common/services/delay/delay.h \
  ../src/ASF/common/services/clock/sysclk.h ../src/config/conf_clock.h \
  ../src/ASF/common/services/clock/uc3a0_a1/sysclk.h \
  ../src/ASF/common/services/clock/osc.h \
@@ -118,7 +119,7 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/stdio.h:
 
-../src/ASF/common/boards/board.h:
+C:\Users\Chloe\Documents\GitHub\MantaMate\MOUSE_DUAL\MOUSE_DUAL\src\ASF\avr32\components\boards\board.h:
 
 ../src/ASF/avr32/utils/compiler.h:
 
@@ -216,15 +217,17 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/config/conf_dip204.h:
 
+../src/ASF/avr32/components/boards/board.h:
+
 ../src/ASF/avr32/components/display/dip204/dip204.h:
 
 ../src/ASF/avr32/drivers/gpio/gpio.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\spi\spi.h:
+../src/ASF/avr32/drivers/spi/spi.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\pwm\pwm.h:
+../src/ASF/avr32/drivers/pwm/pwm.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\common\services\delay\delay.h:
+../src/ASF/common/services/delay/delay.h:
 
 ../src/ASF/common/services/clock/sysclk.h:
 

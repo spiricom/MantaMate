@@ -45,16 +45,10 @@
  */
 
 #include <asf.h>
+
+#include "Pipe.h"
 #include "conf_usb_host.h"
-#include "ui.h"
-#include "dip204.h"
-#include "spi.h"
-#include "gpio.h"
-#include "evk1100.h"
-#include "delay.h"
-#include "cycle_counter.h"
-#include "midi.h"
-#include "pipe.h"
+#include "uhi_midi.h"
 #include "main.h"
 
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
@@ -99,21 +93,23 @@ spi_options_t spiOptions12DAC =
 	.spi_mode     = 1,
 	.modfdis      = 1
 };
-
-uhi_midi_dev_t Keyboard_MIDI_Interface =
+		
+USB_ClassInfo_MIDI_Host_t Keyboard_MIDI_Interface =
 {
-	data_in_pipe = 
+	.Config =
 	{
-		.address = ((PIPE)DIR_IN | 1),
-		.banks = 1,
-	}
-	data_in_pipe =
-	{
-		.address = ((PIPE)DIR_OUT | 2),
-		.banks = 1,
-	}
+		.DataINPipe =
+		{
+			.Address        = (PIPE_DIR_IN  | 1),
+			.Banks          = 1,
+		},
+		.DataOUTPipe            =
+		{
+			.Address        = (PIPE_DIR_OUT | 2),
+			.Banks          = 1,
+		},
+	},
 };
-
 unsigned short dacouthigh = 0;
 unsigned short dacoutlow = 0;
 unsigned short DAC1outhigh = 0;
@@ -165,8 +161,8 @@ int main(void){
 	
 	while (true) {	
 		sleepmgr_enter_sleep();
-		MIDI_HostUSBTask(&Keyboard_MIDI_Interface);
-		USB_USBHostTask();
+		MIDI_Host_USBTask(&Keyboard_MIDI_Interface);
+		USB_USBTask();
 	}
 }
 
@@ -402,3 +398,93 @@ void initSPIbus(void)
 		noteoffhappened = 0;
 	}
 }*/
+
+void MIDI_Host_USBTask(USB_ClassInfo_MIDI_Host_t* const MIDIInterfaceInfo)
+{
+	if ((USB_HostState != HOST_STATE_Configured) || !(MIDIInterfaceInfo->State.IsActive))
+	  return;
+
+	#if !defined(NO_CLASS_DRIVER_AUTOFLUSH)
+	MIDI_Host_Flush(MIDIInterfaceInfo);
+	#endif
+	
+	MIDI_EventPacket_t MIDIEvent;
+	while (MIDI_Host_ReceiveEventPacket(&Keyboard_MIDI_Interface, &MIDIEvent))
+	{
+		bool NoteOnEvent  = (MIDIEvent.Event == MIDI_EVENT(0, MIDI_COMMAND_NOTE_ON));
+		bool NoteOffEvent = (MIDIEvent.Event == MIDI_EVENT(0, MIDI_COMMAND_NOTE_OFF));
+
+		/* Display note events from the host */
+		if (NoteOnEvent)// || NoteOffEvent)
+		{
+			dip204_set_cursor_position(1,1);
+			dip204_write_string("                ");
+			dip204_set_cursor_position(1,1);
+			dip204_printf_string("MIDI NOTE");
+			dip204_hide_cursor();
+			
+			/*printf_P(PSTR("MIDI Note %s - Channel %d, Pitch %d, Velocity %d\r\n"), NoteOnEvent ? "On" : "Off",
+			((MIDIEvent.Data1 & 0x0F) + 1),
+			MIDIEvent.Data2, MIDIEvent.Data3);*/
+		}
+	}
+}
+
+/*void CheckJoystickMovement(void)
+{
+	static uint8_t PrevJoystickStatus;
+
+	uint8_t MIDICommand = 0;
+	uint8_t MIDIPitch;
+
+	// Get current joystick mask, XOR with previous to detect joystick changes 
+	uint8_t JoystickStatus  = Joystick_GetStatus();
+	uint8_t JoystickChanges = (JoystickStatus ^ PrevJoystickStatus);
+
+	// Get board button status - if pressed use channel 10 (percussion), otherwise use channel 1 
+	uint8_t Channel = ((Buttons_GetStatus() & BUTTONS_BUTTON1) ? MIDI_CHANNEL(10) : MIDI_CHANNEL(1));
+
+	if (JoystickChanges & JOY_LEFT)
+	{
+		MIDICommand = ((JoystickStatus & JOY_LEFT)? MIDI_COMMAND_NOTE_ON : MIDI_COMMAND_NOTE_OFF);
+		MIDIPitch   = 0x3C;
+	}
+	else if (JoystickChanges & JOY_UP)
+	{
+		MIDICommand = ((JoystickStatus & JOY_UP)? MIDI_COMMAND_NOTE_ON : MIDI_COMMAND_NOTE_OFF);
+		MIDIPitch   = 0x3D;
+	}
+	else if (JoystickChanges & JOY_RIGHT)
+	{
+		MIDICommand = ((JoystickStatus & JOY_RIGHT)? MIDI_COMMAND_NOTE_ON : MIDI_COMMAND_NOTE_OFF);
+		MIDIPitch   = 0x3E;
+	}
+	else if (JoystickChanges & JOY_DOWN)
+	{
+		MIDICommand = ((JoystickStatus & JOY_DOWN)? MIDI_COMMAND_NOTE_ON : MIDI_COMMAND_NOTE_OFF);
+		MIDIPitch   = 0x3F;
+	}
+	else if (JoystickChanges & JOY_PRESS)
+	{
+		MIDICommand = ((JoystickStatus & JOY_PRESS)? MIDI_COMMAND_NOTE_ON : MIDI_COMMAND_NOTE_OFF);
+		MIDIPitch   = 0x3B;
+	}
+
+	if (MIDICommand)
+	{
+		MIDI_EventPacket_t MIDIEvent = (MIDI_EventPacket_t)
+		{
+			.Event       = MIDI_EVENT(0, MIDICommand),
+
+			.Data1       = MIDICommand | Channel,
+			.Data2       = MIDIPitch,
+			.Data3       = MIDI_STANDARD_VELOCITY,
+		};
+
+		MIDI_Host_SendEventPacket(&Keyboard_MIDI_Interface, &MIDIEvent);
+		MIDI_Host_Flush(&Keyboard_MIDI_Interface);
+	}
+
+	PrevJoystickStatus = JoystickStatus;
+}*/
+

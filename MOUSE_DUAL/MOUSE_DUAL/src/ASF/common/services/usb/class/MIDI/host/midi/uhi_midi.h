@@ -9,11 +9,17 @@
 #ifndef UHI_MIDI_H_
 #define UHI_MIDI_H_
 
-
+#include "USB.h"
 #include "conf_usb_host.h"
 #include "usb_protocol_midi.h"
+#include "midi.h"
 #include "uhc.h"
 #include "uhi.h"
+#include "conf_usb_host.h"
+#include "usb_protocol.h"
+#include "Pipe_UC3.h"
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +51,7 @@ extern "C" {
 uhc_enum_status_t uhi_midi_install(uhc_device_t* dev);
 // enable
 void uhi_midi_enable(uhc_device_t* dev);
-// uninstal
+// uninstall
 void uhi_midi_uninstall(uhc_device_t* dev);
 // input transfer
 bool uhi_midi_write(uint8_t * buf, iram_size_t buf_size,

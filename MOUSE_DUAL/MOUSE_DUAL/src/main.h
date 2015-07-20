@@ -47,6 +47,19 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include "MIDIClassHost.h"
+#include "USBTask.h"
+#include "ui.h"
+#include "dip204.h"
+#include "spi.h"
+#include "gpio.h"
+#include "evk1100.h"
+#include "delay.h"
+#include "cycle_counter.h"
+#include "midi.h"
+
+
+
 //function prototypes//
 void dacwait1(void);
 void dacwait2(void);

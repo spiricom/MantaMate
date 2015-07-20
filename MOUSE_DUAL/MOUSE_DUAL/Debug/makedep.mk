@@ -14,9 +14,45 @@ src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi_desc.c
 
 src\ASF\common\services\usb\class\MIDI\device\udi_hid.c
 
+src\ASF\common\services\usb\class\MIDI\host\midi\MIDIClassHost.c
+
 src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c
 
-src\ASF\common\services\usb\core\pipe.c
+src\ASF\common\services\usb\core\ConfigDescriptors.c
+
+src\ASF\common\services\usb\core\DeviceStandardReq.c
+
+src\ASF\common\services\usb\core\HostStandardReq.c
+
+src\ASF\common\services\usb\Events.c
+
+src\ASF\common\services\usb\Template_Pipe_RW.c
+
+src\ASF\common\services\usb\USBTask.c
+
+src\ASF\common\UC3\Device_UC3.c
+
+src\ASF\common\UC3\EndpointStream_UC3.c
+
+src\ASF\common\UC3\Endpoint_UC3.c
+
+src\ASF\common\UC3\Host_UC3.c
+
+src\ASF\common\UC3\PipeStream_UC3.c
+
+src\ASF\common\UC3\Pipe_UC3.c
+
+src\ASF\common\UC3\Template\Template_Endpoint_Control_R.c
+
+src\ASF\common\UC3\Template\Template_Endpoint_Control_W.c
+
+src\ASF\common\UC3\Template\Template_Endpoint_RW.c
+
+src\ASF\common\UC3\Template\Template_Pipe_RW.c
+
+src\ASF\common\UC3\USBController_UC3.c
+
+src\ASF\common\UC3\USBInterrupt_UC3.c
 
 src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c
 

@@ -1,18 +1,6 @@
-src/ASF/common/services/usb/core/pipe.d \
- src/ASF/common/services/usb/core/pipe.o \
- src/ASF/common/services/usb/core/pipe.o: \
- ../src/ASF/common/services/usb/core/pipe.c \
- ../src/ASF/common/services/usb/udc/udd.h \
- ../src/ASF/common/services/usb/usb_protocol.h \
- ../src/ASF/common/services/usb/usb_atmel.h \
- ../src/ASF/common/services/usb/udc/udc_desc.h ../src/config/conf_usb.h \
- ../src/ASF/avr32/utils/compiler.h \
- ../src/ASF/avr32/utils/preprocessor/preprocessor.h \
- ../src/ASF/avr32/utils/preprocessor/tpaste.h \
- ../src/ASF/avr32/utils/preprocessor/stringz.h \
- ../src/ASF/avr32/utils/preprocessor/mrepeat.h \
- ../src/ASF/avr32/utils/preprocessor/preprocessor.h \
- ../src/ASF/common/utils/parts.h \
+src/ASF/avr32/boards/evk1100/led.d src/ASF/avr32/boards/evk1100/led.o \
+ src/ASF/avr32/boards/evk1100/led.o: \
+ ../src/ASF/avr32/boards/evk1100/led.c \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/io.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/uc3a0512.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/core_sc0_140.h \
@@ -40,6 +28,12 @@ src/ASF/common/services/usb/core/pipe.d \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/usart_400.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/usbb_311.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/wdt_231.h \
+ ../src/ASF/avr32/utils/preprocessor/preprocessor.h \
+ ../src/ASF/avr32/utils/preprocessor/tpaste.h \
+ ../src/ASF/avr32/utils/preprocessor/stringz.h \
+ ../src/ASF/avr32/utils/preprocessor/mrepeat.h \
+ ../src/ASF/avr32/utils/preprocessor/preprocessor.h \
+ ../src/ASF/avr32/utils/compiler.h ../src/ASF/common/utils/parts.h \
  ../src/ASF/avr32/utils/header_files/uc3d_defines_fix.h \
  ../src/ASF/avr32/utils/header_files/uc3l3_l4_defines_fix.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/include/stddef.h \
@@ -63,45 +57,8 @@ src/ASF/common/services/usb/core/pipe.d \
  ../src/ASF/common/utils/interrupt/interrupt_avr32.h \
  ../src/ASF/avr32/utils/preprocessor/tpaste.h \
  ../src/ASF/avr32/drivers/intc/intc.h \
- ../src/ASF/common/services/usb/class/MIDI/device/midi/udi_midi_conf.h \
- ../src/ASF/common/services/usb/class/MIDI/device/midi/udi_midi.h \
- ../src/ui.h ../src/ASF/common/services/usb/uhc/uhc.h \
- ../src/config/conf_usb_host.h \
- ../src/ASF/common/services/usb/class/hid/host/mouse/uhi_hid_mouse.h \
- ../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h \
- ../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h \
- ../src/ASF/common/services/usb/uhc/uhd.h \
- ../src/ASF/common/services/usb/uhc/uhi.h \
- ../src/ASF/common/services/usb/uhc/uhc.h \
- ../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h \
- ../src/ASF/common/services/usb/udc/udc_desc.h \
- ../src/ASF/common/services/usb/udc/udi.h \
- ../src/ASF/common/services/usb/udc/udi.h \
- ../src/ASF/common/services/usb/core/pipe.h
-
-../src/ASF/common/services/usb/udc/udd.h:
-
-../src/ASF/common/services/usb/usb_protocol.h:
-
-../src/ASF/common/services/usb/usb_atmel.h:
-
-../src/ASF/common/services/usb/udc/udc_desc.h:
-
-../src/config/conf_usb.h:
-
-../src/ASF/avr32/utils/compiler.h:
-
-../src/ASF/avr32/utils/preprocessor/preprocessor.h:
-
-../src/ASF/avr32/utils/preprocessor/tpaste.h:
-
-../src/ASF/avr32/utils/preprocessor/stringz.h:
-
-../src/ASF/avr32/utils/preprocessor/mrepeat.h:
-
-../src/ASF/avr32/utils/preprocessor/preprocessor.h:
-
-../src/ASF/common/utils/parts.h:
+ ../src/ASF/avr32/boards/evk1100/evk1100.h \
+ ../src/ASF/avr32/boards/evk1100/led.h
 
 c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/io.h:
 
@@ -157,6 +114,20 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/avr32/wdt_231.h:
 
+../src/ASF/avr32/utils/preprocessor/preprocessor.h:
+
+../src/ASF/avr32/utils/preprocessor/tpaste.h:
+
+../src/ASF/avr32/utils/preprocessor/stringz.h:
+
+../src/ASF/avr32/utils/preprocessor/mrepeat.h:
+
+../src/ASF/avr32/utils/preprocessor/preprocessor.h:
+
+../src/ASF/avr32/utils/compiler.h:
+
+../src/ASF/common/utils/parts.h:
+
 ../src/ASF/avr32/utils/header_files/uc3d_defines_fix.h:
 
 ../src/ASF/avr32/utils/header_files/uc3l3_l4_defines_fix.h:
@@ -203,34 +174,6 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/ASF/avr32/drivers/intc/intc.h:
 
-../src/ASF/common/services/usb/class/MIDI/device/midi/udi_midi_conf.h:
+../src/ASF/avr32/boards/evk1100/evk1100.h:
 
-../src/ASF/common/services/usb/class/MIDI/device/midi/udi_midi.h:
-
-../src/ui.h:
-
-../src/ASF/common/services/usb/uhc/uhc.h:
-
-../src/config/conf_usb_host.h:
-
-../src/ASF/common/services/usb/class/hid/host/mouse/uhi_hid_mouse.h:
-
-../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h:
-
-../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h:
-
-../src/ASF/common/services/usb/uhc/uhd.h:
-
-../src/ASF/common/services/usb/uhc/uhi.h:
-
-../src/ASF/common/services/usb/uhc/uhc.h:
-
-../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h:
-
-../src/ASF/common/services/usb/udc/udc_desc.h:
-
-../src/ASF/common/services/usb/udc/udi.h:
-
-../src/ASF/common/services/usb/udc/udi.h:
-
-../src/ASF/common/services/usb/core/pipe.h:
+../src/ASF/avr32/boards/evk1100/led.h:

@@ -6,24 +6,18 @@
  */ 
 
 
-
-#include "conf_usb_host.h"
-#include "usb_protocol.h"
-#include "uhd.h"
-#include "uhc.h"
 #include "uhi_midi.h"
-#include "pipe.h"
-#include "midi.h"
+#include "uhc.h"
 #include <string.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
 #endif
+#include "led.h"
 
 #define UHI_MIDI_TIMEOUT 20000
 #define MIDI_RX_BUF_SIZE 64
 #define MIDI_TX_BUF_SIZE 64
-
 
 /**
  * \ingroup uhi_hid_mouse_group
@@ -42,19 +36,22 @@
 //@{
 typedef struct {
 	uhc_device_t *dev;
+	uint8_t *report;
+	uint8_t report_size;
 	usb_ep_t ep_in;
 	usb_ep_t ep_out;
-	usb_pipe_table_t data_in_pipe;
-	usb_pipe_table_t data_out_pipe;
+	USB_Pipe_Table_t data_in_pipe;
+	USB_Pipe_Table_t data_out_pipe;
 	bool isActive;
 	uint8_t ifaceNum;
 }uhi_midi_dev_t;
 
 static uhi_midi_dev_t uhi_midi_dev = {
 	.dev = NULL,
+	.report = NULL,
 	.ep_in = 0xf,
 	.ep_out = 0xf,
-	};
+};
 
 //@}
 
@@ -63,12 +60,12 @@ static uhi_midi_dev_t uhi_midi_dev = {
  * \name Internal routines
  */
 //@{
-//static void uhi_midi_start_trans_report(usb_add_t add);
-//static void uhi_midi_report_reception(
-//		usb_add_t add,
-//		usb_ep_t ep,
-//		uhd_trans_status_t status,
-//		iram_size_t nb_transfered);
+static void uhi_midi_start_trans_report(usb_add_t add);
+static void uhi_midi_report_reception(
+	usb_add_t add,
+	usb_ep_t ep,
+	uhd_trans_status_t status,
+	iram_size_t nb_transfered);
 //@}
 
 //static uint8_t *uhi_midi_data;
@@ -96,15 +93,17 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 
 		case USB_DT_INTERFACE:
 			USB_HostState = 0;
-			if ((ptr_iface->bInterfaceClass == AUDIO_CLASS)
-			&& (ptr_iface->bInterfaceProtocol == 0) ) {
+			if ((ptr_iface->bInterfaceClass == AUDIO_CLASS) && (ptr_iface->bInterfaceProtocol == 0) ) {
 				// USB MIDI interface found
 				// Start allocation endpoint(s)
 				USB_HostState = 11;
 				b_iface_supported = true;
 				uhi_midi_dev.ep_in = 0;
 				uhi_midi_dev.ep_out = 0;
-			} else {
+			} 
+			
+			else 
+			{
 				// Stop allocation endpoint(s)
 				b_iface_supported = false;
 			}
@@ -132,6 +131,7 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 			uhi_midi_dev.dev = dev;
 			// All endpoints of all interfaces supported allocated
 			return UHC_ENUM_SUCCESS;
+			
 		default:
 			// Ignore descriptor
 			break;
@@ -150,7 +150,7 @@ void uhi_midi_enable(uhc_device_t* dev)
 	}
 
 	// Init value
-	//uhi_midi_start_trans_report();
+	uhi_midi_start_trans_report(dev->address);
 	UHI_MIDI_CHANGE(dev, true);
 }
 
@@ -162,6 +162,13 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 	uhi_midi_dev.dev = NULL;
 	UHI_MIDI_CHANGE(dev, false);
 	USB_HostState = 0;
+}
+
+static void uhi_midi_start_trans_report(usb_add_t add)
+{
+	// Start transfer on interrupt endpoint IN
+	uhd_ep_run(add, uhi_midi_dev.ep_in, true, uhi_midi_dev.report,
+	uhi_midi_dev.report_size, 0, uhi_midi_report_reception);
 }
 //@}
 
@@ -200,9 +207,7 @@ bool uhi_midi_in_run(uint8_t * buf, iram_size_t buf_size,
 		     uhd_callback_trans_t callback) {
   return uhd_ep_run(
 		    uhi_midi_dev.dev->address,
-		    uhi_midi_dev.ep_in, 
-		    //		    false,  // shortpacket...
-		    //// TEST:
+		    uhi_midi_dev.ep_in,  //		    false,  // shortpacket... //// TEST:
 		    true, 
 		    buf, buf_size,
 		    UHI_MIDI_TIMEOUT, 
@@ -229,7 +234,27 @@ bool uhi_midi_out_run(uint8_t * buf, iram_size_t buf_size,
 		    callback);
 }
 
-uint8_t MIDI_Host_Flush(uhi_midi_dev_t* const MIDIInterfaceInfo)
+static void uhi_midi_report_reception(
+	usb_add_t add,
+	usb_ep_t ep,
+	uhd_trans_status_t status,
+	iram_size_t nb_transfered)
+
+{
+	uint8_t i;
+	unsigned short val;
+	UNUSED(ep);
+
+	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
+		uhi_midi_start_trans_report(add);
+		return; // MIDI transfer restart
+	}
+
+	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 4)) {
+		return; // MIDI transfer aborted
+	}
+}
+/*uint8_t MIDI_Host_Flush(uhi_midi_dev_t* const MIDIInterfaceInfo)
 {
 	if(USB_HostState != 11 || !(MIDIInterfaceInfo->isActive))
 		return 1;
@@ -253,15 +278,16 @@ uint8_t MIDI_Host_Flush(uhi_midi_dev_t* const MIDIInterfaceInfo)
 	Pipe_Freeze();
 
 	return PIPE_READYWAIT_NoError;
-		
 }
-
-void MIDI_HostUSBTask(uhi_midi_dev_t* const MIDIInterfaceInfo)
+*/
+/*void MIDI_HostUSBTask(uhi_midi_dev_t* const MIDIInterfaceInfo)
 {
 	if(USB_HostState != 11  || !(MIDIInterfaceInfo->isActive))
-	return;
+		return;
 	MIDI_Host_Flush(MIDIInterfaceInfo);
-}
+}*/
+
+
 
 //@}
 

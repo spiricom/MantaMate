@@ -106,6 +106,7 @@
 
 // From module: USB Host HID Mouse (Single Class support)
 #include <uhi_hid_mouse.h>
+#include <uhi_midi.h>
 
 // From module: USB Host stack core
 #include <uhc.h>

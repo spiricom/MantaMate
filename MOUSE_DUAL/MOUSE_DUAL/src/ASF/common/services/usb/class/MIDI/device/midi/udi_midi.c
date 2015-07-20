@@ -63,6 +63,7 @@ bool udi_dmidi_enable(void);
 void udi_dmidi_disable(void);
 bool udi_dmidi_device_setup(void);
 uint8_t udi_dmidi_getsetting(void);
+bool udi_dmidi_setup(void);
 
 //! Global structure which contains standard UDI interface for UDC
 UDC_DESC_STORAGE udi_api_t udi_api_midi = {
@@ -201,10 +202,10 @@ uint8_t udi_dmidi_getsetting(void)
 }
 
 
-static bool udi_dmidi_setreport(void)
+/*static bool udi_dmidi_setreport(void)
 {
 	return false;
-}
+}*/
 
 
 //--------------------------------------------

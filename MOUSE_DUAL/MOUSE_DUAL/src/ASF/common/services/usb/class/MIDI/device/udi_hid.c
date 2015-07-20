@@ -44,11 +44,12 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 
+#include "udi_hid.h"
 #include "conf_usb.h"
 #include "usb_protocol.h"
 #include "udd.h"
 #include "udc.h"
-#include "udi_hid.h"
+
 
 
 /**
