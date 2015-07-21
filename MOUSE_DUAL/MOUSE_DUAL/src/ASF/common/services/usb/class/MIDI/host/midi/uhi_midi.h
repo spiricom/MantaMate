@@ -9,10 +9,9 @@
 #ifndef UHI_MIDI_H_
 #define UHI_MIDI_H_
 
-
 #include "conf_usb_host.h"
 #include "usb_protocol_midi.h"
-#include "uhc.h"
+//#include "uhc.h"
 #include "uhi.h"
 
 #ifdef __cplusplus
@@ -27,6 +26,15 @@ extern "C" {
  * 
  * @{
  */
+
+typedef struct
+{
+	uint8_t  address; /**< Address of the pipe to configure, or zero if the table entry is to be unused. */
+	uint16_t size; /**< Size of the pipe bank, in bytes. */
+	uint8_t  epAddress; /**< Address of the endpoint in the connected device. */
+	uint8_t  type; /**< Type of the endpoint, a \c EP_TYPE_* mask. */
+	uint8_t  banks; /**< Number of hardware banks to use for the pipe. */
+} usb_pipe_table_t;
 
 //! Global define which contains standard UHI API for UHC.
 //! It must be added in USB_HOST_UHI define from conf_usb_host.h file.
@@ -45,25 +53,9 @@ extern "C" {
 uhc_enum_status_t uhi_midi_install(uhc_device_t* dev);
 // enable
 void uhi_midi_enable(uhc_device_t* dev);
-// uninstal
+// uninstall
 void uhi_midi_uninstall(uhc_device_t* dev);
-// input transfer
-bool uhi_midi_write(uint8_t * buf, iram_size_t buf_size,
-		uhd_callback_trans_t callback);
-// output transfer
-bool uhi_midi_read(uint8_t * buf, iram_size_t buf_size,
-	uhd_callback_trans_t callback);
-
-// read and spawn events (non-blocking)
-void midi_read(void);
-// write to MIDI device
-void midi_write(uint8_t* data, unsigned int bytes);
-// get string descriptions
-// void midi_get_strings(char** pManufacturer, char** pProduct, char ** Serial);
-//@}
-extern bool uhi_midi_in_run(uint8_t * buf, iram_size_t buf_size, uhd_callback_trans_t callback);
-// output transfer
-extern bool uhi_midi_out_run(uint8_t * buf, iram_size_t buf_size, uhd_callback_trans_t callback);
+void uhi_midi_sof(bool b_micro);
 
 #ifdef __cplusplus
 }

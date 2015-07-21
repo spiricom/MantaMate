@@ -115,8 +115,8 @@
  * @{
  */
 //! Interface callback definition
-#define  UDI_HID_MOUSE_ENABLE_EXT()    ui_device_midi_enable()
-#define  UDI_HID_MOUSE_DISABLE_EXT()   ui_device_midi_disable()
+#define  UDI_MIDI_ENABLE_EXT()    ui_device_midi_enable()
+#define  UDI_MIDI_DISABLE_EXT()   ui_device_midi_disable()
 //@}
 //@}
 

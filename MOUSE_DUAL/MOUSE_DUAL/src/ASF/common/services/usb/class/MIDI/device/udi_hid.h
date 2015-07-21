@@ -44,13 +44,10 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 
-#ifndef _UDI_MIDI_H_
-#define _UDI_MIDI_H_
+#ifndef _UDI_HID_MIDI_H_
+#define _UDI_HID_MIDI_H_
 
 #include "conf_usb.h"
-#include "usb_protocol.h"
-#include "usb_protocol_midi.h"
-#include "udd.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,4 +79,4 @@ bool udi_midi_setup( uint8_t *rate, uint8_t *protocol, uint8_t *report_desc, boo
 #ifdef __cplusplus
 }
 #endif
-#endif // _UDI_MIDI_H_
+#endif // _UDI_HID_MIDI_H_

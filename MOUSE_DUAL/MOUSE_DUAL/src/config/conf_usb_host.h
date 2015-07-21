@@ -128,7 +128,6 @@
 //@}
 
 #define UHI_MIDI_CHANGE(dev,b_plug)				 ui_uhi_midi_change(dev,b_plug)
-
 //@}
 
 #endif // _CONF_USB_HOST_H_

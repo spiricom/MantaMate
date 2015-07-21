@@ -47,14 +47,8 @@
 #include <asf.h>
 #include "conf_usb_host.h"
 #include "ui.h"
-#include "dip204.h"
-#include "spi.h"
-#include "gpio.h"
-#include "evk1100.h"
-#include "delay.h"
-#include "cycle_counter.h"
-#include "midi.h"
-#include "pipe.h"
+//#include "pipe.h"
+//#include "midihost.h"
 #include "main.h"
 
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
@@ -100,75 +94,26 @@ spi_options_t spiOptions12DAC =
 	.modfdis      = 1
 };
 
-uhi_midi_dev_t Keyboard_MIDI_Interface =
+/*
+static uhi_midi_dev_t Keyboard_MIDI_Interface =
 {
-	data_in_pipe = 
+	.data_in_pipe = 
 	{
-		.address = ((PIPE)DIR_IN | 1),
+		.address = (PIPE_DIR_IN | 1),
 		.banks = 1,
-	}
-	data_in_pipe =
+	},
+	.data_out_pipe =
 	{
-		.address = ((PIPE)DIR_OUT | 2),
+		.address = (PIPE_DIR_OUT | 2),
 		.banks = 1,
-	}
-};
+	},
+};*/
 
 unsigned short dacouthigh = 0;
 unsigned short dacoutlow = 0;
 unsigned short DAC1outhigh = 0;
 unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
-
-/*! \brief Main function. Execution starts here.
- */
-int main(void){
-#if SAMD21 || SAML21 || SAMDA1
-	system_init();
-#else
-	sysclk_init();
-	board_init();
-#endif
-	irq_initialize_vectors();
-	cpu_irq_enable();
-
-	// Initialize the sleep manager
-	sleepmgr_init();
-
-	ui_init();
-
-	// initialize the gates to GND
-	//initGates();
-
-	// Initialize as master
-	
-	//Initialize SPI for the Display, DIP204
-	spi_initMaster(DIP204_SPI, &DIP_spiOptions);
-	spi_selectionMode(DIP204_SPI, 0, 0, 0);
-	spi_selectChip(DIP204_SPI,0);
-	spi_setupChipReg(DIP204_SPI, &DIP_spiOptions, FOSC0);
-	spi_enable(DIP204_SPI);
-	
-	dip204_init(backlight_PWM, true);
-	dip204_clear_display();
-	//initialize the SPI bus for DAC
-	initSPIbus();
-	
-	//send the messages to the DACs to make them update without software LDAC feature
-	DACsetup();
-	
-	// Start USB host stack
-	uhc_start();
-
-	// The USB management is entirely managed by interrupts.
-	// As a consequence, the user application does only have to play with the power modes.
-	
-	while (true) {	
-		sleepmgr_enter_sleep();
-		MIDI_HostUSBTask(&Keyboard_MIDI_Interface);
-		USB_USBHostTask();
-	}
-}
 
 void DACsetup(void)
 {
@@ -402,3 +347,52 @@ void initSPIbus(void)
 		noteoffhappened = 0;
 	}
 }*/
+
+/*! \brief Main function. Execution starts here.
+ */
+int main(void){
+#if SAMD21 || SAML21 || SAMDA1
+	system_init();
+#else
+	sysclk_init();
+	board_init();
+#endif
+	irq_initialize_vectors();
+	cpu_irq_enable();
+
+	// Initialize the sleep manager
+	sleepmgr_init();
+
+	ui_init();
+
+	//initialize the SPI bus for DAC and LCD
+	initSPIbus();
+	
+	// Initialize as master
+	
+	//Initialize SPI for the Display, DIP204
+	spi_initMaster(DIP204_SPI, &DIP_spiOptions);
+	spi_selectionMode(DIP204_SPI, 0, 0, 0);
+	spi_selectChip(DIP204_SPI,0);
+	spi_setupChipReg(DIP204_SPI, &DIP_spiOptions, FOSC0);
+	spi_enable(DIP204_SPI);
+	
+	dip204_init(backlight_PWM, true);
+	dip204_clear_display();
+	dip204_set_cursor_position(1,1);
+	dip204_printf_string("Manta Mate");
+	
+	
+	//send the messages to the DACs to make them update without software LDAC feature
+	DACsetup();
+	
+	// Start USB host stack
+	uhc_start();
+
+	// The USB management is entirely managed by interrupts.
+	// As a consequence, the user application does only have to play with the power modes.
+	
+	while (true) {	
+		sleepmgr_enter_sleep();
+	}
+}
