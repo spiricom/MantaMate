@@ -555,6 +555,12 @@
     <Compile Include="src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\note_process.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\note_process.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="src\config\conf_clock.h">
       <SubType>compile</SubType>
     </None>

@@ -55,6 +55,4 @@ void dacsend(unsigned char, unsigned char, unsigned short);
 
 void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val);
 
-extern unsigned short calculateDACvalue(unsigned int noteval);
-
 #endif // _MAIN_H_

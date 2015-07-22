@@ -50,6 +50,7 @@
 //#include "pipe.h"
 //#include "midihost.h"
 #include "main.h"
+#include "note_process.h"
 
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 
@@ -371,6 +372,7 @@ int main(void){
 	// Start USB host stack
 	uhc_start();
 
+	initNoteStack();
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application does only have to play with the power modes.
 	

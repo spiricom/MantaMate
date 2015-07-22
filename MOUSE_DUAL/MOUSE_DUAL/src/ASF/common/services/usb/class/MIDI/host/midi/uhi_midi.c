@@ -14,13 +14,13 @@
 #include "uhc.h"
 #include "dip204.h"
 #include "main.h"
+#include "note_process.h"
 #include <string.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
 #endif
 
-#define UHI_MIDI_TIMEOUT 20000
 #define UHI_MIDI_BUFFER_SIZE 64
 
 /**
@@ -73,7 +73,7 @@ static void uhi_midi_rx_received(usb_add_t add, usb_ep_t ep,
 static bool uhi_midi_tx_update(uhi_midi_line_t *line);
 static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
 	uhd_trans_status_t status, iram_size_t nb_transferred);
-static void parseMIDI(void);
+static uint8_t parseMIDI(uint8_t maxBytes);
 
 /**
  * \name Functions required by UHC
@@ -191,6 +191,7 @@ void uhi_midi_enable(uhc_device_t* dev)
 	// Init value
 	uhi_midi_sof(false);
 	UHI_MIDI_CHANGE(dev, true);
+	initNoteStack();
 }
 
 void uhi_midi_uninstall(uhc_device_t* dev)
@@ -234,7 +235,9 @@ void uhi_midi_sof(bool b_micro)
 
 	// Update transfers
 	uhi_midi_rx_update(&uhi_midi_dev.line_rx);
-	uhi_midi_tx_update(&uhi_midi_dev.line_tx);
+	parseMIDI(uhi_midi_dev.line_rx.buffer[0].nb);
+	uhi_midi_dev.line_rx.buffer[0].pos = uhi_midi_dev.line_rx.buffer[0].nb;
+	//uhi_midi_tx_update(&uhi_midi_dev.line_tx);
 }
 
 static bool uhi_midi_rx_update(uhi_midi_line_t *line)
@@ -242,6 +245,9 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 	irqflags_t flags;
 	uhi_midi_buf_t *buf_nosel;
 	uhi_midi_buf_t *buf_sel;
+
+	buf_sel = &line->buffer[0];
+	buf_sel->pos = buf_sel->nb;
 
 	flags = cpu_irq_save();
 	// Check if transfer is already on-going
@@ -251,14 +257,14 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 	}
 
 	// Search an empty buffer to start a transfer
-	buf_sel = &line->buffer[line->buf_sel];
-	buf_nosel = &line->buffer[(line->buf_sel == 0)? 1 : 0];
+	buf_sel = &line->buffer[0];
+	buf_nosel = &line->buffer[0];
 	if (buf_sel->pos >= buf_sel->nb) {
 		// The current buffer has been read
 		// then reset it
 		buf_sel->pos = 0;
 		buf_sel->nb = 0;
-	}
+	}/*
 	if (!buf_sel->nb && buf_nosel->nb) {
 		// New data available then change current buffer
 		line->buf_sel = (line->buf_sel == 0)? 1 : 0;
@@ -267,30 +273,20 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 
 	if (buf_nosel->nb) {
 		// No empty buffer available to start a transfer
-		dip204_set_cursor_position(1,4);
-		dip204_printf_string("                ");
-		dip204_set_cursor_position(1,4);
-		dip204_printf_string("no empty buffers");
 		return false;
-	}
+	}*/
+	if(buf_sel->nb)
+		return false;
 
 	// Check if transfer must be delayed after the next SOF
 	if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
 		if (line->sof == uhd_get_microframe_number()) {
 			cpu_irq_restore(flags);
-			dip204_set_cursor_position(1,4);
-			dip204_printf_string("                ");
-			dip204_set_cursor_position(1,4);
-			dip204_printf_string("delay transfer");
 			return false;
 		}
 	} else {
 		if (line->sof == uhd_get_frame_number()) {
 			cpu_irq_restore(flags);
-			dip204_set_cursor_position(1,4);
-			dip204_printf_string("                ");
-			dip204_set_cursor_position(1,4);
-			dip204_printf_string("delay transfer");
 			return false;
 		}
 	}
@@ -322,10 +318,14 @@ iram_size_t nb_transferred)
 
 	// Search port corresponding at endpoint
 	line = &(uhi_midi_dev.line_rx);
-	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	buf = &line->buffer[0];
   
 	if ((UHD_TRANS_TIMEOUT == status) && nb_transferred) {
 		// Save transfered
+		dip204_set_cursor_position(1,3);
+		dip204_printf_string("            ");
+		dip204_set_cursor_position(1,3);
+		dip204_printf_string("timeout");
 	}
 	else if (UHD_TRANS_NOERROR != status) {
 		// Abort transfer
@@ -333,9 +333,6 @@ iram_size_t nb_transferred)
 		return;
 	}
 	
-	if(nb_transferred)
-		parseMIDI();
-
 	// Update SOF tag, if it is a short packet
 	if (nb_transferred != line->buffer_size) {
 		if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
@@ -344,9 +341,9 @@ iram_size_t nb_transferred)
 			line->sof = uhd_get_frame_number();
 		}
 	}
-
+	
 	// Update buffer structure
-	buf->pos = nb_transferred;
+	buf->pos = 0;
 	buf->nb = nb_transferred;
 	line->b_trans_ongoing  = false;
 	
@@ -452,7 +449,11 @@ iram_size_t nb_transferred)
 	uhi_midi_tx_update(line);
 }
 
-static void parseMIDI(void)
+uint8_t prevCtrlByte = 0;
+uint8_t prevMsgByte1 = 0;
+uint8_t prevMsgByte2 = 0;
+
+static uint8_t parseMIDI(uint8_t maxBytes)
 {
 	uhi_midi_line_t *line;
 	uhi_midi_buf_t *buf;
@@ -462,32 +463,44 @@ static void parseMIDI(void)
 	uint8_t i;
 	
 	line = &(uhi_midi_dev.line_rx);
-	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	buf = &line->buffer[0];
 	i = buf->pos;
 	
 	ctrlByte = buf->ptr[++i];
 	msgByte1 = buf->ptr[++i];
 	msgByte2 = buf->ptr[++i];
 	
-	dip204_set_cursor_position(1,1);
-	dip204_printf_string("              ");
-	dip204_set_cursor_position(1,1);
-	dip204_printf_string("control: %u",ctrlByte);
-	dip204_set_cursor_position(1,2);
-	dip204_printf_string("              ");
-	dip204_set_cursor_position(1,2);
-	dip204_printf_string("note: %u", msgByte1);
-	
-	switch(ctrlByte)
+	if(ctrlByte != prevCtrlByte || msgByte1 != prevMsgByte1)
 	{
-		case 144:
-			DAC16Send(2,0xFFFF);
-			DAC16Send(1,calculateDACvalue(msgByte1));
+		dip204_set_cursor_position(1,1);
+		dip204_printf_string("                   ");
+		dip204_set_cursor_position(1,1);
+		dip204_printf_string("control: %u",ctrlByte);
+		dip204_set_cursor_position(1,2);
+		dip204_printf_string("              ");
+		dip204_set_cursor_position(1,2);
+		dip204_printf_string("note: %u", msgByte1);
+		
+		switch(ctrlByte)
+		{
+			case 144:
+			addNote(msgByte1,msgByte2);
+			DAC16Send(1,calculateDACvalue());
+			//midiVol();
 			break;
-		case 128:
-			DAC16Send(2,0);
+			case 128:
+			removeNote(msgByte1);
+			DAC16Send(1,calculateDACvalue());
+			//midiVol();
 			break;
-		default:
+			default:
 			break;
+		}
+		prevCtrlByte = ctrlByte;
+		prevMsgByte1 = msgByte1;
+		prevMsgByte2 = msgByte2;
 	}
+	
+	
+	return i;
 }
