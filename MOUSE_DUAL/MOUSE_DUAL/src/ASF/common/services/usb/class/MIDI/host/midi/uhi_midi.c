@@ -76,24 +76,9 @@ static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
 static void parseMIDI(void);
 
 /**
- * \name Internal routines
- */
-//@{
-//static void uhi_midi_start_trans_report(usb_add_t add);
-//static void uhi_midi_report_reception(
-//		usb_add_t add,
-//		usb_ep_t ep,
-//		uhd_trans_status_t status,
-//		iram_size_t nb_transfered);
-//@}
-
-//static uint8_t *uhi_midi_data;
-/**
  * \name Functions required by UHC
  * @{
  */
-
-volatile uint8_t     USB_HostState = 0;
 
 uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 {
@@ -204,7 +189,6 @@ void uhi_midi_enable(uhc_device_t* dev)
 	uhi_midi_dev.b_enabled = true;
 
 	// Init value
-	//uhi_midi_start_trans_report();
 	uhi_midi_sof(false);
 	UHI_MIDI_CHANGE(dev, true);
 }
@@ -283,44 +267,31 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 
 	if (buf_nosel->nb) {
 		// No empty buffer available to start a transfer
-		cpu_irq_restore(flags);
-		return uhd_ep_run(
-		uhi_midi_dev.dev->address,
-		line->ep_data,
-		true,
-		buf_nosel->ptr,
-		line->buffer_size,
-		10,
-		uhi_midi_rx_received);
-		//return false;
+		dip204_set_cursor_position(1,4);
+		dip204_printf_string("                ");
+		dip204_set_cursor_position(1,4);
+		dip204_printf_string("no empty buffers");
+		return false;
 	}
 
 	// Check if transfer must be delayed after the next SOF
 	if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
 		if (line->sof == uhd_get_microframe_number()) {
 			cpu_irq_restore(flags);
-			return uhd_ep_run(
-			uhi_midi_dev.dev->address,
-			line->ep_data,
-			true,
-			buf_nosel->ptr,
-			line->buffer_size,
-			10,
-			uhi_midi_rx_received);
-			//return false;
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("                ");
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("delay transfer");
+			return false;
 		}
-		} else {
+	} else {
 		if (line->sof == uhd_get_frame_number()) {
 			cpu_irq_restore(flags);
-			return uhd_ep_run(
-			uhi_midi_dev.dev->address,
-			line->ep_data,
-			true,
-			buf_nosel->ptr,
-			line->buffer_size,
-			10,
-			uhi_midi_rx_received);
-			//return false;
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("                ");
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("delay transfer");
+			return false;
 		}
 	}
 
@@ -346,7 +317,7 @@ iram_size_t nb_transferred)
 {
 	uhi_midi_line_t *line;
 	uhi_midi_buf_t *buf;
-	//uint8_t i;
+	
 	UNUSED(add);
 
 	// Search port corresponding at endpoint
@@ -359,27 +330,11 @@ iram_size_t nb_transferred)
 	else if (UHD_TRANS_NOERROR != status) {
 		// Abort transfer
 		line->b_trans_ongoing  = false;
-		uhd_ep_run(
-		uhi_midi_dev.dev->address,
-		line->ep_data,
-		true,
-		buf->ptr,
-		line->buffer_size,
-		10,
-		uhi_midi_rx_received);
 		return;
 	}
-
-	parseMIDI();
-	// save information
-	/*
-	dip204_set_cursor_position(1,1);
-	dip204_write_string("              ");
-	dip204_set_cursor_position(1,1);
-	for(i=buf->pos; i<5; i++)
-	{
-		dip204_printf_string("%d ",buf->ptr[i]);
-	}*/
+	
+	if(nb_transferred)
+		parseMIDI();
 
 	// Update SOF tag, if it is a short packet
 	if (nb_transferred != line->buffer_size) {
@@ -394,8 +349,6 @@ iram_size_t nb_transferred)
 	buf->pos = nb_transferred;
 	buf->nb = nb_transferred;
 	line->b_trans_ongoing  = false;
-	
-
 	
 	// Manage new transfer
 	uhi_midi_rx_update(line);
@@ -515,6 +468,15 @@ static void parseMIDI(void)
 	ctrlByte = buf->ptr[++i];
 	msgByte1 = buf->ptr[++i];
 	msgByte2 = buf->ptr[++i];
+	
+	dip204_set_cursor_position(1,1);
+	dip204_printf_string("              ");
+	dip204_set_cursor_position(1,1);
+	dip204_printf_string("control: %u",ctrlByte);
+	dip204_set_cursor_position(1,2);
+	dip204_printf_string("              ");
+	dip204_set_cursor_position(1,2);
+	dip204_printf_string("note: %u", msgByte1);
 	
 	switch(ctrlByte)
 	{

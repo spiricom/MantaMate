@@ -296,20 +296,15 @@ static void uhi_hid_mouse_report_reception(
 	if(i < 52)
 	{
 		dip204_set_cursor_position(1,1);
-		dip204_write_string("                ");
+		dip204_write_string("                 ");
 		dip204_set_cursor_position(1,1);
-		dip204_printf_string("b: %u = %u",i+1,butt_states[i]);
+		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_LEFT(1);
 	}
-	else 
-	{
-		dip204_set_cursor_position(1,1);
-		dip204_write_string("              ");
+	else
 		UHI_HID_MOUSE_EVENT_BTN_LEFT(0);
-	}
-	
-
+		
 	i++;
 	
 	while(i < 52 && butt_states[i] == 0)
@@ -318,9 +313,9 @@ static void uhi_hid_mouse_report_reception(
 	if(i < 52)
 	{
 		dip204_set_cursor_position(1,2);
-		dip204_write_string("         ");
+		dip204_write_string("             ");
 		dip204_set_cursor_position(1,2);
-		dip204_printf_string("a");
+		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_RIGHT(1);
 	}

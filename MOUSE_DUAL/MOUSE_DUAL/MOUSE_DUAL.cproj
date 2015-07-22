@@ -468,8 +468,6 @@
     <Folder Include="src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\" />
     <Folder Include="src\ASF\common\services\usb\class\hid\host\" />
     <Folder Include="src\ASF\common\services\usb\class\hid\host\mouse\" />
-    <Folder Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\" />
-    <Folder Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\interrupt\" />
     <Folder Include="src\ASF\common\services\usb\class\MIDI" />
     <Folder Include="src\ASF\common\services\usb\class\MIDI\device\" />
     <Folder Include="src\ASF\common\services\usb\class\MIDI\device\midi\" />
@@ -507,15 +505,6 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\delay\delay.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\interrupt.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\interrupt\interrupt_avr32.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\ASF\common\services\usb\class\hid\host\mouse\utils\parts.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi.c">
