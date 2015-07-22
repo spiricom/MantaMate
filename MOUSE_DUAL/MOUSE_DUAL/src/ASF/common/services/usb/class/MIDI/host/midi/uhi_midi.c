@@ -13,6 +13,7 @@
 #include "uhd.h"
 #include "uhc.h"
 #include "dip204.h"
+#include "main.h"
 #include <string.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
@@ -69,9 +70,10 @@ static void uhi_midi_free_device(void);
 static bool uhi_midi_rx_update(uhi_midi_line_t *line);
 static void uhi_midi_rx_received(usb_add_t add, usb_ep_t ep,
 		uhd_trans_status_t status, iram_size_t nb_transferred);
-//static bool uhi_midi_tx_update(uhi_midi_line_t *line);
-//static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
-//	uhd_trans_status_t status, iram_size_t nb_transferred);
+static bool uhi_midi_tx_update(uhi_midi_line_t *line);
+static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
+	uhd_trans_status_t status, iram_size_t nb_transferred);
+static void parseMIDI(void);
 
 /**
  * \name Internal routines
@@ -248,7 +250,7 @@ void uhi_midi_sof(bool b_micro)
 
 	// Update transfers
 	uhi_midi_rx_update(&uhi_midi_dev.line_rx);
-	//uhi_midi_tx_update(&uhi_midi_dev.line_tx);
+	uhi_midi_tx_update(&uhi_midi_dev.line_tx);
 }
 
 static bool uhi_midi_rx_update(uhi_midi_line_t *line)
@@ -264,7 +266,7 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 		return false;
 	}
 
-	// Search a empty buffer to start a transfer
+	// Search an empty buffer to start a transfer
 	buf_sel = &line->buffer[line->buf_sel];
 	buf_nosel = &line->buffer[(line->buf_sel == 0)? 1 : 0];
 	if (buf_sel->pos >= buf_sel->nb) {
@@ -282,19 +284,43 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 	if (buf_nosel->nb) {
 		// No empty buffer available to start a transfer
 		cpu_irq_restore(flags);
-		return false;
+		return uhd_ep_run(
+		uhi_midi_dev.dev->address,
+		line->ep_data,
+		true,
+		buf_nosel->ptr,
+		line->buffer_size,
+		10,
+		uhi_midi_rx_received);
+		//return false;
 	}
 
 	// Check if transfer must be delayed after the next SOF
 	if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
 		if (line->sof == uhd_get_microframe_number()) {
 			cpu_irq_restore(flags);
-			return false;
+			return uhd_ep_run(
+			uhi_midi_dev.dev->address,
+			line->ep_data,
+			true,
+			buf_nosel->ptr,
+			line->buffer_size,
+			10,
+			uhi_midi_rx_received);
+			//return false;
 		}
 		} else {
 		if (line->sof == uhd_get_frame_number()) {
 			cpu_irq_restore(flags);
-			return false;
+			return uhd_ep_run(
+			uhi_midi_dev.dev->address,
+			line->ep_data,
+			true,
+			buf_nosel->ptr,
+			line->buffer_size,
+			10,
+			uhi_midi_rx_received);
+			//return false;
 		}
 	}
 
@@ -320,7 +346,7 @@ iram_size_t nb_transferred)
 {
 	uhi_midi_line_t *line;
 	uhi_midi_buf_t *buf;
-	static uint8_t i;
+	//uint8_t i;
 	UNUSED(add);
 
 	// Search port corresponding at endpoint
@@ -333,8 +359,27 @@ iram_size_t nb_transferred)
 	else if (UHD_TRANS_NOERROR != status) {
 		// Abort transfer
 		line->b_trans_ongoing  = false;
+		uhd_ep_run(
+		uhi_midi_dev.dev->address,
+		line->ep_data,
+		true,
+		buf->ptr,
+		line->buffer_size,
+		10,
+		uhi_midi_rx_received);
 		return;
 	}
+
+	parseMIDI();
+	// save information
+	/*
+	dip204_set_cursor_position(1,1);
+	dip204_write_string("              ");
+	dip204_set_cursor_position(1,1);
+	for(i=buf->pos; i<5; i++)
+	{
+		dip204_printf_string("%d ",buf->ptr[i]);
+	}*/
 
 	// Update SOF tag, if it is a short packet
 	if (nb_transferred != line->buffer_size) {
@@ -345,24 +390,18 @@ iram_size_t nb_transferred)
 		}
 	}
 
-	// save information
-	//dip204_clear_display();
-	dip204_printf_string("%d ",nb_transferred);
-	for(i=buf->pos; i<nb_transferred; i++)
-	{
-		dip204_printf_string("%d ",buf->ptr[i]);
-	}
-
 	// Update buffer structure
-	buf->pos = i;
+	buf->pos = nb_transferred;
 	buf->nb = nb_transferred;
 	line->b_trans_ongoing  = false;
+	
+
 	
 	// Manage new transfer
 	uhi_midi_rx_update(line);
 }
 
-/*
+
 static bool uhi_midi_tx_update(uhi_midi_line_t *line)
 {
 	irqflags_t flags;
@@ -458,4 +497,35 @@ iram_size_t nb_transferred)
 
 	// Manage new transfer
 	uhi_midi_tx_update(line);
-}*/
+}
+
+static void parseMIDI(void)
+{
+	uhi_midi_line_t *line;
+	uhi_midi_buf_t *buf;
+	uint8_t ctrlByte;
+	uint8_t msgByte1;
+	uint8_t msgByte2;
+	uint8_t i;
+	
+	line = &(uhi_midi_dev.line_rx);
+	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	i = buf->pos;
+	
+	ctrlByte = buf->ptr[++i];
+	msgByte1 = buf->ptr[++i];
+	msgByte2 = buf->ptr[++i];
+	
+	switch(ctrlByte)
+	{
+		case 144:
+			DAC16Send(2,0xFFFF);
+			DAC16Send(1,calculateDACvalue(msgByte1));
+			break;
+		case 128:
+			DAC16Send(2,0);
+			break;
+		default:
+			break;
+	}
+}

@@ -116,7 +116,7 @@ static void uhi_hid_mouse_report_reception(
 		iram_size_t nb_transfered);
 		
 static unsigned char calculateNoteStack(void);
-static unsigned short calculateDACvalue(unsigned int noteval);
+unsigned short calculateDACvalue(unsigned int noteval);
 
 //@}
 		
@@ -133,7 +133,7 @@ unsigned int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,2
 unsigned int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
 18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 	
-enum maps_t whichmap = HARMONIC;
+enum maps_t whichmap = NO_MAP;
 unsigned long scaledoctaveDACvalue = 54612;
 unsigned char tuning = 0;
 signed char transpose = 0;

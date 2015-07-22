@@ -94,21 +94,6 @@ spi_options_t spiOptions12DAC =
 	.modfdis      = 1
 };
 
-/*
-static uhi_midi_dev_t Keyboard_MIDI_Interface =
-{
-	.data_in_pipe = 
-	{
-		.address = (PIPE_DIR_IN | 1),
-		.banks = 1,
-	},
-	.data_out_pipe =
-	{
-		.address = (PIPE_DIR_OUT | 2),
-		.banks = 1,
-	},
-};*/
-
 unsigned short dacouthigh = 0;
 unsigned short dacoutlow = 0;
 unsigned short DAC1outhigh = 0;
@@ -351,12 +336,9 @@ void initSPIbus(void)
 /*! \brief Main function. Execution starts here.
  */
 int main(void){
-#if SAMD21 || SAML21 || SAMDA1
-	system_init();
-#else
 	sysclk_init();
 	board_init();
-#endif
+	
 	irq_initialize_vectors();
 	cpu_irq_enable();
 
@@ -381,7 +363,7 @@ int main(void){
 	dip204_clear_display();
 	dip204_set_cursor_position(1,1);
 	dip204_printf_string("Manta Mate");
-	
+	dip204_hide_cursor();
 	
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
