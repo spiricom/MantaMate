@@ -240,7 +240,7 @@ static void uhi_hid_mouse_report_reception(
 	uint8_t i;
 	unsigned short val;
 	UNUSED(ep);
-
+	
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
 		uhi_hid_mouse_start_trans_report(add);
 		return; // HID mouse transfer restart
@@ -249,21 +249,22 @@ static void uhi_hid_mouse_report_reception(
 	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 4)) {
 		return; // HID mouse transfer aborted
 	}
+	
 	// Decode buttons
-	for(i=0; i<52; i++)
-		butt_states[i] = uhi_hid_mouse_dev.report[i+1] + 0x80;		
+	for(i=0; i<48; i++)
+		butt_states[i] = uhi_hid_mouse_dev.report[i+1] + 0x80;	
 	for(i=0; i<4; i++)
 		sliders[i] = uhi_hid_mouse_dev.report[i+53] + 0x80;
 		
     i = 0;
 	
-	while(i < 52 && butt_states[i] == 0)
+	while(i < 48 && butt_states[i] == 0)
 		i++;
 		
-	if(i < 52)
+	if(i < 48)
 	{
 		dip204_set_cursor_position(1,1);
-		dip204_write_string("                 ");
+		dip204_write_string("                   ");
 		dip204_set_cursor_position(1,1);
 		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
@@ -274,13 +275,13 @@ static void uhi_hid_mouse_report_reception(
 		
 	i++;
 	
-	while(i < 52 && butt_states[i] == 0)
+	while(i < 48 && butt_states[i] == 0)
 		i++;
 	
-	if(i < 52)
+	if(i < 48)
 	{
 		dip204_set_cursor_position(1,2);
-		dip204_write_string("             ");
+		dip204_write_string("               ");
 		dip204_set_cursor_position(1,2);
 		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
@@ -311,9 +312,11 @@ static void uhi_hid_mouse_report_reception(
 	}
 	
 	processKeys();
-	mantaVol(butt_states);
+	//mantaVol(butt_states);
 	val  = calculateDACvalue();
-	DAC16Send(2, val);
+	DAC16Send(1, val);
+	
+	uhi_hid_mouse_start_trans_report(add);
 }
 
 static void processKeys(void)
