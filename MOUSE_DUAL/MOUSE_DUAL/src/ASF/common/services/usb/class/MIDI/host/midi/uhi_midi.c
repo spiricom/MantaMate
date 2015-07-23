@@ -476,6 +476,7 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 	i = buf->pos;
 	
 	ctrlByte = buf->ptr[++i];
+	buf->ptr[i]=0;  // mark as read
 	msgByte1 = buf->ptr[++i];
 	msgByte2 = buf->ptr[++i];
 
@@ -489,16 +490,12 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 		return 0;
 	}
 	
-	
-	if(ctrlByte != prevCtrlByte || msgByte1 != prevMsgByte1)
+	if(ctrlByte != 0)
 	{
-		if(ctrlByte != 0)
-		{
-			prevCtrlByte = ctrlByte;
-			prevMsgByte1 = msgByte1;
-			prevMsgByte2 = msgByte2;
-			i++;
-		}
+		prevCtrlByte = ctrlByte;
+		prevMsgByte1 = msgByte1;
+		prevMsgByte2 = msgByte2;
+		i++;
 		do
 		{
 			handleKey(ctrlByte,msgByte1,msgByte2);
@@ -507,6 +504,8 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 			msgByte2 = buf->ptr[++i];
 			i++;
 		} while(ctrlByte != 0 && i < maxBytes);
+		dip204_set_cursor_position(i/2,4);
+		dip204_printf_string("%u",i);
 	}
 	
 	return i;
@@ -529,12 +528,12 @@ static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 		case 144:
 		addNote(msgByte1,msgByte2);
 		DAC16Send(1,calculateDACvalue());
-		//midiVol();
+		midiVol();
 		break;
 		case 128:
 		removeNote(msgByte1);
 		DAC16Send(1,calculateDACvalue());
-		//midiVol();
+		midiVol();
 		break;
 		default:
 		break;

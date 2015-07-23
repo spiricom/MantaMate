@@ -136,6 +136,8 @@ void removeNote(uint8_t noteVal)
 				if (k == ((numnotes - j) - 1))
 					notestack[k + j + 1][0] = -1;
 			}
+			// in case it got put on the stack multiple times
+			j--;
 			numnotes--;
 			notehappened = 1;
 			noteoffhappened = 1;
