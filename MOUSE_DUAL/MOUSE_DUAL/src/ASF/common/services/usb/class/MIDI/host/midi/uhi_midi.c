@@ -241,8 +241,8 @@ void uhi_midi_sof(bool b_micro)
 	// Update transfers
 	uhi_midi_line_t *line = &uhi_midi_dev.line_rx;
 	uhi_midi_rx_update(line);
-	uhi_midi_buf_t *buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
-	//uhi_midi_buf_t *buf = &line->buffer[0];
+	//uhi_midi_buf_t *buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	uhi_midi_buf_t *buf = &line->buffer[0];
 	parseMIDI(buf->nb);
 	buf->pos = buf->nb;
 	//uhi_midi_tx_update(&uhi_midi_dev.line_tx);
@@ -262,10 +262,10 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 	}
 
 	// Search an empty buffer to start a transfer
-	buf_sel = &line->buffer[line->buf_sel];
-	buf_nosel = &line->buffer[(line->buf_sel == 0)? 1 : 0];
-	//buf_sel = &line->buffer[0];
-	//buf_nosel = &line->buffer[0];
+	//buf_sel = &line->buffer[line->buf_sel];
+	//buf_nosel = &line->buffer[(line->buf_sel == 0)? 1 : 0];
+	buf_sel = &line->buffer[0];
+	buf_nosel = &line->buffer[0];
 	if (buf_sel->pos >= buf_sel->nb) {
 		// The current buffer has been read
 		// then reset it
@@ -276,7 +276,7 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 		// New data available then change current buffer
 		line->buf_sel = (line->buf_sel == 0)? 1 : 0;
 		buf_nosel = buf_sel;
-	}					]	]
+	}					
 
 	if (buf_nosel->nb) {
 		// No empty buffer available to start a transfer
@@ -349,8 +349,8 @@ iram_size_t nb_transferred)
 	}
 	
 	// Update buffer structure
-	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
-	//buf = &line->buffer[0];
+	//buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	buf = &line->buffer[0];
 	buf->pos = 0;
 	buf->nb = nb_transferred;
 	line->b_trans_ongoing  = false;
@@ -470,9 +470,12 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 	uint8_t msgByte2;
 	uint8_t i;
 	
+	//if (maxBytes < 4)
+	//	return 0;
+	
 	line = &(uhi_midi_dev.line_rx);
-	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
-	//buf = &line->buffer[0];
+	//buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
+	buf = &line->buffer[0];
 	i = buf->pos;
 	
 	ctrlByte = buf->ptr[++i];
@@ -503,9 +506,16 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 			msgByte1 = buf->ptr[++i];
 			msgByte2 = buf->ptr[++i];
 			i++;
-		} while(ctrlByte != 0 && i < maxBytes);
-		dip204_set_cursor_position(i/2,4);
-		dip204_printf_string("%u",i);
+		} while(ctrlByte != 0 && i < line->buffer_size);
+		if(ctrlByte != 0)
+			handleKey(ctrlByte,msgByte1,msgByte2);
+			
+	
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("                    ");
+			dip204_set_cursor_position(1,4);
+			dip204_printf_string("%u of %u",i,maxBytes);			
+
 	}
 	
 	return i;
