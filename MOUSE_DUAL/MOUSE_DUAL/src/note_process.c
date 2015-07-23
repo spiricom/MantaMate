@@ -136,6 +136,9 @@ void removeNote(uint8_t noteVal)
 				if (k == ((numnotes - j) - 1))
 					notestack[k + j + 1][0] = -1;
 			}
+			numnotes--;
+			notehappened = 1;
+			noteoffhappened = 1;
 		}
 	}
 
@@ -151,9 +154,6 @@ void removeNote(uint8_t noteVal)
 	}*/
 			
 	//remove it from the notestack and decrement numnotes
-	numnotes--;
-	notehappened = 1;
-	noteoffhappened = 1;
 	if (notestack[0][0] != -1)
 		currentnote = notestack[0][0];
 
