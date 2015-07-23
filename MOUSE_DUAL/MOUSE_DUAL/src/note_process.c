@@ -39,15 +39,15 @@ unsigned char lastButtVCA = 0; //0 if you want to turn this off
 signed char notestack[48][2];
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
-//unsigned char polynum = 1;
-//unsigned char polyVoiceNote[4];
-//unsigned char polyVoiceBusy[4];
-//unsigned char changevoice[4];
+unsigned char polynum = 1;
+unsigned char polyVoiceNote[4];
+unsigned char polyVoiceBusy[4];
+unsigned char changevoice[4];
 unsigned char notehappened = 0;
 unsigned char noteoffhappened = 0;
-//unsigned char voicefound = 0;
-//unsigned char voicecounter = 0;
-//unsigned char alreadythere = 0;
+unsigned char voicefound = 0;
+unsigned char voicecounter = 0;
+unsigned char alreadythere = 0;
 signed char checkstolen = -1;
 
 void initNoteStack(void)
@@ -83,13 +83,13 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	notestack[0][1] = vel;
 
 	//also, assign a new polyphony voice to the note on for the polyphony handling
-	/*voicefound = 0;
+	voicefound = 0;
 	voicecounter = 0;
 	for (j = 0; j < polynum; j++)
 	{
 		if ((polyVoiceBusy[j] == 0) && (voicefound == 0))
 		{
-			polyVoiceNote[j] = i;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+			polyVoiceNote[j] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
 			polyVoiceBusy[j] = 1;
 			changevoice[j] = 1;
 			voicefound = 1;
@@ -98,12 +98,12 @@ void addNote(uint8_t noteVal, uint8_t vel)
 				
 		if ((voicecounter == polynum) && (voicefound == 0))
 		{
-			polyVoiceNote[(polynum - 1)] = i;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+			polyVoiceNote[(polynum - 1)] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
 			polyVoiceBusy[(polynum - 1)] = 1;
 			changevoice[(polynum - 1)] = 1;
 			voicefound = 1;
 		}
-	}*/
+	}
 	numnotes++;
 	notehappened = 1;
 	currentnote = notestack[0][0];
@@ -145,47 +145,47 @@ void removeNote(uint8_t noteVal)
 	}
 
 	//also, remove that note from the polyphony array if it's there.
-	/*for (j = 0; j < polynum; j++)
+	for (j = 0; j < polynum; j++)
 	{
-		if (polyVoiceNote[j] == i)
+		if (polyVoiceNote[j] == noteVal)
 		{
 			polyVoiceBusy[j] = 0;
 			changevoice[j] = 1;
 			checkstolen = j;
 		}
-	}*/
+	}
 			
 	//remove it from the notestack and decrement numnotes
 	if (notestack[0][0] != -1)
 		currentnote = notestack[0][0];
 
 	// if we removed a note from the polyphony array
-	/*if (checkstolen != -1)
+	if (checkstolen != -1)
 	{
 		//now check if there are any polyphony voices waiting that got stolen.
 		for (j = 0; j < numnotes; j++)
 		{
 			//if you find a held note in the notestack
-			if (notestack[j] != -1)
+			if (notestack[j][0] != -1)
 			{
 				//check if it has no voice associated with it
 				alreadythere = 0;
 				for (k = 0; k < polynum; k++)
 				{
-					if ((polyVoiceNote[k] == notestack[j]) && (polyVoiceBusy[k] == 1))
+					if ((polyVoiceNote[k] == notestack[j][0]) && (polyVoiceBusy[k] == 1))
 						alreadythere = 1;
 				}
 				// if you didn't find it, use the voice that was just released to sound it.
 				if (alreadythere == 0)
 				{
-					polyVoiceNote[checkstolen] = notestack[j];
+					polyVoiceNote[checkstolen] = notestack[j][0];
 					polyVoiceBusy[checkstolen] = 1;
 					changevoice[checkstolen] = 1;
 					notehappened = 1;
 				}
 			}
 		}
-	}*/
+	}
 			
 	if(numnotes == 0)
 		DAC16Send(2,0);

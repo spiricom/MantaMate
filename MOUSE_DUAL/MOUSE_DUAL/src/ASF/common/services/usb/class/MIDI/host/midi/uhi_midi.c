@@ -470,9 +470,6 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 	uint8_t msgByte2;
 	uint8_t i;
 	
-	//if (maxBytes < 4)
-	//	return 0;
-	
 	line = &(uhi_midi_dev.line_rx);
 	//buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0];
 	buf = &line->buffer[0];
@@ -510,14 +507,12 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 		if(ctrlByte != 0)
 			handleKey(ctrlByte,msgByte1,msgByte2);
 			
-	
 			dip204_set_cursor_position(1,4);
 			dip204_printf_string("                    ");
 			dip204_set_cursor_position(1,4);
 			dip204_printf_string("%u of %u",i,maxBytes);			
 
 	}
-	
 	return i;
 }
 
