@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "note_process.h"
+#include "dip204.h"
 
 enum maps_t
 {
@@ -106,6 +107,11 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	numnotes++;
 	notehappened = 1;
 	currentnote = notestack[0][0];
+	dip204_set_cursor_position(1,3);
+	dip204_write_string("                   ");
+	dip204_set_cursor_position(1,3);
+	dip204_printf_string("%u notes",numnotes);
+	dip204_hide_cursor();
 }
 
 //REMOVING A NOTE
@@ -181,6 +187,12 @@ void removeNote(uint8_t noteVal)
 			
 	if(numnotes == 0)
 		DAC16Send(2,0);
+		
+	dip204_set_cursor_position(1,3);
+	dip204_write_string("                   ");
+	dip204_set_cursor_position(1,3);
+	dip204_printf_string("%u notes",numnotes);
+	dip204_hide_cursor();
 }
 
 unsigned short calculateDACvalue(void)
