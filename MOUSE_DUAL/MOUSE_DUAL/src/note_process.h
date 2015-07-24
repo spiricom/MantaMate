@@ -21,6 +21,5 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);
 
 void noteOut(void);
-//void handleNotes(void);
 
 #endif /* NOTE_PROCESS_H_ */

@@ -299,7 +299,7 @@ void midiVol()
 			dacsend(i+2,1,(vol<<5)&0xFFF);
 		else
 			dacsend(i+2,1,0);	
-	}	
+	}
 }
 
 void controlChange(uint8_t ctrlNum, uint8_t val)
