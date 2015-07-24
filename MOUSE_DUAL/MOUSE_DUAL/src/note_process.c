@@ -272,9 +272,11 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 	
 }
 
-void programChange(uint8_t programNum)
+uint8_t programNum;
+
+void programChange(uint8_t num)
 {
-	
+	programNum = num;
 }
 
 /*

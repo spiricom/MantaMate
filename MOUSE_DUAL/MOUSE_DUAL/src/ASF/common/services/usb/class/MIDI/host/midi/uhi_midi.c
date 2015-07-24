@@ -516,13 +516,15 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 
 static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
+	uint8_t control = ctrlByte & 0xf0;
+	//uint8_t channel = ctrlByte & 0x0f;
 	
 	lcd_clear_line(1);
 	dip204_printf_string("control: %u",ctrlByte);
 	lcd_clear_line(2);
 	dip204_printf_string("note: %u", msgByte1);
 	
-	switch(ctrlByte)
+	switch(control)
 	{
 		case 144:
 			addNote(msgByte1,msgByte2);
