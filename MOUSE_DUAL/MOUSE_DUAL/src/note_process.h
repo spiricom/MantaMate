@@ -16,8 +16,11 @@ void addNote(uint8_t noteVal, uint8_t vel);
 void removeNote(uint8_t noteVal);
 void mantaVol(uint8_t *butts);
 void midiVol(void);
-unsigned short calculateDACvalue(void);
+
 void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);
+
+void noteOut(void);
+//void handleNotes(void);
 
 #endif /* NOTE_PROCESS_H_ */
