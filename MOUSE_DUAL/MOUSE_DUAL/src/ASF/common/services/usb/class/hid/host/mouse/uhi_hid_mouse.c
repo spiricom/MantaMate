@@ -313,8 +313,9 @@ static void uhi_hid_mouse_report_reception(
 	
 	processKeys();
 	//mantaVol(butt_states);
-	val  = calculateDACvalue();
-	DAC16Send(1, val);
+	/*val  = calculateDACvalue();
+	DAC16Send(1, val);*/
+	noteOut();
 	
 	uhi_hid_mouse_start_trans_report(add);
 }

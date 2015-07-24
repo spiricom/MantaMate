@@ -51,7 +51,7 @@
 void dacwait1(void);
 void dacwait2(void);
 void DACsetup(void);
-void dacsend(unsigned char, unsigned char, unsigned short);
+void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval);
 
 void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val);
 

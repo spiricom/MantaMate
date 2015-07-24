@@ -519,27 +519,29 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	
-	dip204_set_cursor_position(1,1);
+	/*dip204_set_cursor_position(1,1);
 	dip204_printf_string("               ");
 	dip204_set_cursor_position(1,1);
 	dip204_printf_string("control: %u",ctrlByte);
 	dip204_set_cursor_position(1,2);
 	dip204_printf_string("              ");
 	dip204_set_cursor_position(1,2);
-	dip204_printf_string("note: %u", msgByte1);
+	dip204_printf_string("note: %u", msgByte1);*/
 	
 	switch(ctrlByte)
 	{
 		case 144:
-		addNote(msgByte1,msgByte2);
-		DAC16Send(1,calculateDACvalue());
-		midiVol();
-		break;
+			addNote(msgByte1,msgByte2);
+			//DAC16Send(1,calculateDACvalue());
+			noteOut();
+			midiVol();
+			break;
 		case 128:
-		removeNote(msgByte1);
-		DAC16Send(1,calculateDACvalue());
-		midiVol();
-		break;
+			removeNote(msgByte1);
+			//DAC16Send(1,calculateDACvalue());
+			noteOut();
+			midiVol();
+			break;
 		default:
 		break;
 	}

@@ -39,7 +39,9 @@ unsigned char lastButtVCA = 0; //0 if you want to turn this off
 signed char notestack[48][2];
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
-unsigned char polynum = 1;
+unsigned long maxkey = 0;
+unsigned char polymode = 0; //need to implement
+unsigned char polynum = 2;
 unsigned char polyVoiceNote[4];
 unsigned char polyVoiceBusy[4];
 unsigned char changevoice[4];
@@ -49,6 +51,8 @@ unsigned char voicefound = 0;
 unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
+
+static unsigned short calculateDACvalue(uint8_t noteVal);
 
 void initNoteStack(void)
 {
@@ -68,8 +72,8 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	uint8_t j;
 	checkstolen = -1;
 	//it's a note-on -- add it to the monophonic stack
-	if(numnotes == 0)
-		DAC16Send(2,0xFFFF);
+	//if(numnotes == 0)
+	//	DAC16Send(3,0xFFFF);
 
 	//first move notes that are already in the stack one position to the right
 	for (j = numnotes; j > 0; j--)
@@ -112,6 +116,11 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	dip204_set_cursor_position(1,3);
 	dip204_printf_string("%u notes",numnotes);
 	dip204_hide_cursor();
+	for(j=0; j<polynum; j++)
+	{
+		if(polyVoiceBusy[j])
+			dacsend(j,1,0xFFF);
+	}
 }
 
 //REMOVING A NOTE
@@ -187,9 +196,14 @@ void removeNote(uint8_t noteVal)
 		}
 	}
 			
-	if(numnotes == 0)
-		DAC16Send(2,0);
-		
+	//if(numnotes == 0)
+	//DAC16Send(3,0);
+	for(k=0; k<polynum; k++)
+	{
+		if(!polyVoiceBusy[k])
+			dacsend(k,1,0);
+	}
+	
 	dip204_set_cursor_position(1,3);
 	dip204_write_string("                   ");
 	dip204_set_cursor_position(1,3);
@@ -197,7 +211,7 @@ void removeNote(uint8_t noteVal)
 	dip204_hide_cursor();
 }
 
-unsigned short calculateDACvalue(void)
+unsigned short calculateDACvalue(uint8_t noteVal)
 {
 	signed long pitchclass;
 	unsigned long templongnote = 0;
@@ -208,9 +222,9 @@ unsigned short calculateDACvalue(void)
 	
 	switch(whichmap)
 	{
-		case WICKI_HAYDEN: note = whmap[currentnote]; break;    // wicki-hayden
-		case HARMONIC: note = harmonicmap[currentnote]; break;  // harmonic
-		default: note = currentnote; break;                     // no map
+		case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
+		case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
+		default: note = noteVal; break;                     // no map
 	}
 	
 	//templong = ((noteval + offset + transpose) * 54612);  // original simple equal temperament
@@ -256,8 +270,8 @@ void mantaVol(uint8_t *butts)
 		}
 	}
 	
-	dacsend(3,2,amplitude<<4);/*
-	if(amplitude != 0)
+	dacsend(3,2,amplitude<<4);
+	/*if(amplitude != 0)
 	{
 		dip204_set_cursor_position(1,2);
 		dip204_printf_string("                    ");
@@ -272,4 +286,113 @@ void midiVol()
 	uint8_t vol = notestack[0][1];
 	dacsend(3,2,vol<<4);
 }
+
+void noteOut()
+{
+	int i;
+	unsigned short output;
+	
+	// NOTE: Max polynum = 2 (for Jeff's Synth)	
+	if (notehappened == 1)
+	{
+		if (polymode == 0) {
+			output = calculateDACvalue(notestack[0][0]);
+			DAC16Send(i+1, output);
+		}
+		
+		for (i = 0; i < polynum; i++)
+		{
+			if (changevoice[i] == 1)
+			{
+				if (polyVoiceBusy[i] == 1)
+				{
+					output = calculateDACvalue(polyVoiceNote[i]);
+					DAC16Send(i+1, output);
+				}
+				dip204_set_cursor_position(1,i+1);
+				dip204_printf_string("                       ");
+				dip204_set_cursor_position(1,i+1);
+				dip204_printf_string("note: %u busy: %u",output,polyVoiceBusy[i]);
+				changevoice[i] = 0;	
+			}
+		}
+	}
+}
+
+/*
+//need to fix MIDI functionality
+void handleNotes(void)
+{
+	if (notehappened == 1)
+	{
+		if (numnotes > 0)
+		{
+			//calculateDACvalue((unsigned int)notestack[0]);
+
+			//DAC16Send(0, DAC1val);
+			//DAC16Send(1, DAC1val);
+			
+			if (noteoffhappened == 0)
+			{
+				if (polymode == 0)
+				{
+					sendMIDInoteOn((unsigned int)notestack[0]);
+					if (lastnote != 127)
+					{
+						sendMIDInoteOff(lastnote);
+					}
+					lastnote = (notestack[0] + offset + transpose);
+					doGates(0,1);
+					doGates(1,1);
+					doTriggers(0);
+					doTriggers(1);
+				}
+				if (polymode == 1)
+				{
+					if (silencehappened == 1)
+					{
+						sendMIDInoteOn((unsigned int)notestack[0]);
+						if (lastnote != 127)
+						{
+							sendMIDInoteOff(lastnote);
+						}
+						lastnote = (notestack[0] + offset + transpose);
+						doGates(0,1);
+						doGates(1,1);
+						doTriggers(0);
+						doTriggers(1);
+					}
+				}
+			}
+			else
+			{
+				if ((polymode == 0) && ((notestack[0] + offset + transpose) != lastnote))
+				{
+					sendMIDInoteOn((unsigned int)notestack[0]);
+					if (lastnote != 127)
+					{
+						sendMIDInoteOff(lastnote);
+					}
+					lastnote = (notestack[0] + offset + transpose);
+					doGates(0,1);
+					doGates(1,1);
+					doTriggers(0);
+					doTriggers(1);
+				}
+			}
+
+			silencehappened = 0;
+		}
+		else
+		{
+			sendMIDInoteOff(lastnote);
+			lastnote = 127;
+			doGates(0,0);
+			doGates(1,0);
+			silencehappened = 1;
+		}
+		notehappened = 0;
+		noteoffhappened = 0;
+	}
+}*/
 
