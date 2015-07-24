@@ -107,9 +107,7 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	numnotes++;
 	notehappened = 1;
 	currentnote = notestack[0][0];
-	dip204_set_cursor_position(1,3);
-	dip204_write_string("                   ");
-	dip204_set_cursor_position(1,3);
+	lcd_clear_line(3);
 	dip204_printf_string("%u notes",numnotes);
 	dip204_hide_cursor();
 }
@@ -190,9 +188,7 @@ void removeNote(uint8_t noteVal)
 	if(numnotes == 0)
 		DAC16Send(2,0);
 		
-	dip204_set_cursor_position(1,3);
-	dip204_write_string("                   ");
-	dip204_set_cursor_position(1,3);
+	lcd_clear_line(3);
 	dip204_printf_string("%u notes",numnotes);
 	dip204_hide_cursor();
 }
@@ -259,9 +255,7 @@ void mantaVol(uint8_t *butts)
 	dacsend(3,2,amplitude<<4);/*
 	if(amplitude != 0)
 	{
-		dip204_set_cursor_position(1,2);
-		dip204_printf_string("                    ");
-		dip204_set_cursor_position(1,2);
+		dip204_clear_line(2);
 		dip204_printf_string("amplitude: %u", amplitude);
 		dip204_hide_cursor();
 	}*/
@@ -273,3 +267,89 @@ void midiVol()
 	dacsend(3,2,vol<<4);
 }
 
+void controlChange(uint8_t ctrlNum, uint8_t val)
+{
+	
+}
+
+void programChange(uint8_t programNum)
+{
+	
+}
+
+/*
+//need to fix MIDI functionality
+void handleNotes(void)
+{
+	if (notehappened == 1)
+	{
+		if (numnotes > 0)
+		{
+			calculateDACvalue((unsigned int)notestack[0]);
+
+			DAC16Send(0, DAC1val);
+			DAC16Send(1, DAC1val);
+			
+			if (noteoffhappened == 0)
+			{
+				if (polymode == 0)
+				{
+					sendMIDInoteOn((unsigned int)notestack[0]);
+					if (lastnote != 127)
+					{
+						sendMIDInoteOff(lastnote);
+					}
+					lastnote = (notestack[0] + offset + transpose);
+					doGates(0,1);
+					doGates(1,1);
+					doTriggers(0);
+					doTriggers(1);
+				}
+				if (polymode == 1)
+				{
+					if (silencehappened == 1)
+					{
+						sendMIDInoteOn((unsigned int)notestack[0]);
+						if (lastnote != 127)
+						{
+							sendMIDInoteOff(lastnote);
+						}
+						lastnote = (notestack[0] + offset + transpose);
+						doGates(0,1);
+						doGates(1,1);
+						doTriggers(0);
+						doTriggers(1);
+					}
+				}
+			}
+			else
+			{
+				if ((polymode == 0) && ((notestack[0] + offset + transpose) != lastnote))
+				{
+					sendMIDInoteOn((unsigned int)notestack[0]);
+					if (lastnote != 127)
+					{
+						sendMIDInoteOff(lastnote);
+					}
+					lastnote = (notestack[0] + offset + transpose);
+					doGates(0,1);
+					doGates(1,1);
+					doTriggers(0);
+					doTriggers(1);
+				}
+			}
+
+			silencehappened = 0;
+		}
+		else
+		{
+			sendMIDInoteOff(lastnote);
+			lastnote = 127;
+			doGates(0,0);
+			doGates(1,0);
+			silencehappened = 1;
+		}
+		notehappened = 0;
+		noteoffhappened = 0;
+	}
+}*/

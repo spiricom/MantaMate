@@ -47,6 +47,8 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include <stdint.h>
+
 //function prototypes//
 void dacwait1(void);
 void dacwait2(void);
@@ -55,4 +57,5 @@ void dacsend(unsigned char, unsigned char, unsigned short);
 
 void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val);
 
+void lcd_clear_line(uint8_t linenum);
 #endif // _MAIN_H_

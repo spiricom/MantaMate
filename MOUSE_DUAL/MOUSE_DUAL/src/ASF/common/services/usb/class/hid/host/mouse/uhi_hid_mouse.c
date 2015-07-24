@@ -263,9 +263,7 @@ static void uhi_hid_mouse_report_reception(
 		
 	if(i < 48)
 	{
-		dip204_set_cursor_position(1,1);
-		dip204_write_string("                   ");
-		dip204_set_cursor_position(1,1);
+		lcd_clear_line(1);
 		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_LEFT(1);
@@ -280,9 +278,7 @@ static void uhi_hid_mouse_report_reception(
 	
 	if(i < 48)
 	{
-		dip204_set_cursor_position(1,2);
-		dip204_write_string("               ");
-		dip204_set_cursor_position(1,2);
+		lcd_clear_line(2);
 		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
 		dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_RIGHT(1);
@@ -292,9 +288,7 @@ static void uhi_hid_mouse_report_reception(
 	if((sliders[0] != pastsliders[0] && sliders[0] != 255) || (sliders[1] != pastsliders[1] && sliders[1] != 255))
 	{
 		val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;/*
-		dip204_set_cursor_position(1,3);
-		dip204_write_string("                    ");
-		dip204_set_cursor_position(1,3);
+		dip204_clear_line(3);
 		dip204_printf_string("slider: %u = %u",1,val);
 		dip204_hide_cursor();*/
 		dacsend(0,2,val);
@@ -303,9 +297,7 @@ static void uhi_hid_mouse_report_reception(
 	if((sliders[2] != pastsliders[2] && sliders[2] != 255) || (sliders[3] != pastsliders[3] && sliders[3] != 255))
 	{
 		val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;/*
-		dip204_set_cursor_position(1,4);
-		dip204_write_string("                    ");
-		dip204_set_cursor_position(1,4);
+		dip204_clear_line(4);
 		dip204_printf_string("slider: %u = %u",2,val);
 		dip204_hide_cursor();*/
 		dacsend(2,2,val);

@@ -507,9 +507,7 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 		if(ctrlByte != 0)
 			handleKey(ctrlByte,msgByte1,msgByte2);
 			
-			dip204_set_cursor_position(1,4);
-			dip204_printf_string("                    ");
-			dip204_set_cursor_position(1,4);
+			lcd_clear_line(4);
 			dip204_printf_string("%u of %u",i,maxBytes);			
 
 	}
@@ -519,28 +517,31 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	
-	dip204_set_cursor_position(1,1);
-	dip204_printf_string("               ");
-	dip204_set_cursor_position(1,1);
+	lcd_clear_line(1);
 	dip204_printf_string("control: %u",ctrlByte);
-	dip204_set_cursor_position(1,2);
-	dip204_printf_string("              ");
-	dip204_set_cursor_position(1,2);
+	lcd_clear_line(2);
 	dip204_printf_string("note: %u", msgByte1);
 	
 	switch(ctrlByte)
 	{
 		case 144:
-		addNote(msgByte1,msgByte2);
-		DAC16Send(1,calculateDACvalue());
-		midiVol();
-		break;
+			addNote(msgByte1,msgByte2);
+			DAC16Send(1,calculateDACvalue());
+			midiVol();
+			break;
 		case 128:
-		removeNote(msgByte1);
-		DAC16Send(1,calculateDACvalue());
-		midiVol();
-		break;
+			removeNote(msgByte1);
+			DAC16Send(1,calculateDACvalue());
+			midiVol();
+			break;
+		// control change
+		case 176:
+			controlChange(msgByte1,msgByte2);
+			break;
+		// program change	
+		case 192:
+			programChange(msgByte1);
 		default:
-		break;
+			break;
 	}
 }
