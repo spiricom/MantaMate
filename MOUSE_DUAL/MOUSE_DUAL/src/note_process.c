@@ -60,6 +60,12 @@ void initNoteStack(void)
 	for(i=0; i<48; i++)
 		notestack[i][0] = -1;
 	numnotes = 0;
+	for(i=0; i<4; i++)
+	{
+		dacsend(i,1,0);
+		dacsend(i,2,0);
+		DAC16Send(i,0);
+	}
 }
 
 //ADDING A NOTE
@@ -296,108 +302,25 @@ void programChange(uint8_t num)
 void noteOut()
 {
 	int i;
-	unsigned short output;
 	
 	// NOTE: Max polynum = 2 (for Jeff's Synth)	
 	if (notehappened == 1)
 	{
-		if (polymode == 0) {
-			output = calculateDACvalue(notestack[0][0]);
-			DAC16Send(i+1, output);
-		}
-		
 		for (i = 0; i < polynum; i++)
 		{
 			if (changevoice[i] == 1)
 			{
+				lcd_clear_line(i+1);
 				if (polyVoiceBusy[i] == 1)
 				{
-					output = calculateDACvalue(polyVoiceNote[i]);
-					DAC16Send(i+1, output);
+					DAC16Send(i+1, calculateDACvalue(polyVoiceNote[i]));
+					dip204_printf_string("note: %u busy: %u",polyVoiceNote[i],polyVoiceBusy[i]);
 				}
-				dip204_set_cursor_position(1,i+1);
-				dip204_printf_string("                       ");
-				dip204_set_cursor_position(1,i+1);
-				dip204_printf_string("note: %u busy: %u",output,polyVoiceBusy[i]);
-				changevoice[i] = 0;	
+				
+				changevoice[i] = 0;
+				notehappened = 0;
+				noteoffhappened = 0;	
 			}
 		}
 	}
 }
-
-/*
-//need to fix MIDI functionality
-void handleNotes(void)
-{
-	if (notehappened == 1)
-	{
-		if (numnotes > 0)
-		{
-			calculateDACvalue((unsigned int)notestack[0]);
-
-			DAC16Send(0, DAC1val);
-			DAC16Send(1, DAC1val);
-			
-			if (noteoffhappened == 0)
-			{
-				if (polymode == 0)
-				{
-					sendMIDInoteOn((unsigned int)notestack[0]);
-					if (lastnote != 127)
-					{
-						sendMIDInoteOff(lastnote);
-					}
-					lastnote = (notestack[0] + offset + transpose);
-					doGates(0,1);
-					doGates(1,1);
-					doTriggers(0);
-					doTriggers(1);
-				}
-				if (polymode == 1)
-				{
-					if (silencehappened == 1)
-					{
-						sendMIDInoteOn((unsigned int)notestack[0]);
-						if (lastnote != 127)
-						{
-							sendMIDInoteOff(lastnote);
-						}
-						lastnote = (notestack[0] + offset + transpose);
-						doGates(0,1);
-						doGates(1,1);
-						doTriggers(0);
-						doTriggers(1);
-					}
-				}
-			}
-			else
-			{
-				if ((polymode == 0) && ((notestack[0] + offset + transpose) != lastnote))
-				{
-					sendMIDInoteOn((unsigned int)notestack[0]);
-					if (lastnote != 127)
-					{
-						sendMIDInoteOff(lastnote);
-					}
-					lastnote = (notestack[0] + offset + transpose);
-					doGates(0,1);
-					doGates(1,1);
-					doTriggers(0);
-					doTriggers(1);
-				}
-			}
-
-			silencehappened = 0;
-		}
-		else
-		{
-			sendMIDInoteOff(lastnote);
-			lastnote = 127;
-			doGates(0,0);
-			doGates(1,0);
-			silencehappened = 1;
-		}
-		notehappened = 0;
-		noteoffhappened = 0;
-	}
-}*/

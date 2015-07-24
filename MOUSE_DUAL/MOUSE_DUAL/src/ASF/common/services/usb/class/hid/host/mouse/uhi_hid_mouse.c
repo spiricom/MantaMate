@@ -199,6 +199,7 @@ void uhi_hid_mouse_enable(uhc_device_t* dev)
 	uhi_hid_mouse_dev.report_btn_prev = 0;
 	uhi_hid_mouse_start_trans_report(dev->address);
 	UHI_HID_MOUSE_CHANGE(dev, true);
+	initNoteStack();
 }
 
 void uhi_hid_mouse_uninstall(uhc_device_t* dev)
@@ -210,6 +211,7 @@ void uhi_hid_mouse_uninstall(uhc_device_t* dev)
 	Assert(uhi_hid_mouse_dev.report!=NULL);
 	free(uhi_hid_mouse_dev.report);
 	UHI_HID_MOUSE_CHANGE(dev, false);
+	initNoteStack();
 }
 
 /**
