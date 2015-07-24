@@ -175,8 +175,9 @@ void removeNote(uint8_t noteVal)
 	// if we removed a note from the polyphony array
 	if (checkstolen != -1)
 	{
+		j = 0;
 		//now check if there are any polyphony voices waiting that got stolen.
-		for (j = 0; j < numnotes; j++)
+		while(checkstolen && j < numnotes)
 		{
 			//if you find a held note in the notestack
 			if (notestack[j][0] != -1)
@@ -195,8 +196,10 @@ void removeNote(uint8_t noteVal)
 					polyVoiceBusy[checkstolen] = 1;
 					changevoice[checkstolen] = 1;
 					notehappened = 1;
+					checkstolen = -1;
 				}
 			}
+			j++;
 		}
 	}
 
