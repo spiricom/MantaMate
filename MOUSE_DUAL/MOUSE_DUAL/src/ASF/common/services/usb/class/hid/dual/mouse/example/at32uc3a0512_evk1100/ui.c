@@ -209,7 +209,6 @@ void ui_host_enum_event(uhc_device_t * dev, uhc_enum_status_t status)
 {
 	ui_enum_status = status;
 	if (ui_enum_status == UHC_ENUM_SUCCESS) {
-		ui_x = 0, ui_y = 0, ui_scroll = 0;
 		switch (dev->speed) {
 		case UHD_SPEED_HIGH:
 			ui_device_speed_blink = 250;

@@ -68,10 +68,9 @@ src/ASF/avr32/components/display/dip204/dip204.d \
  ../src/ASF/avr32/boards/evk1100/evk1100.h \
  ../src/ASF/avr32/boards/evk1100/led.h ../src/config/conf_dip204.h \
  ../src/ASF/avr32/components/display/dip204/dip204.h \
- ../src/ASF/avr32/drivers/gpio/gpio.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\spi\spi.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\pwm\pwm.h \
- C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\common\services\delay\delay.h \
+ ../src/ASF/avr32/drivers/gpio/gpio.h ../src/ASF/avr32/drivers/spi/spi.h \
+ ../src/ASF/avr32/drivers/pwm/pwm.h \
+ ../src/ASF/common/services/delay/delay.h \
  ../src/ASF/common/services/clock/sysclk.h ../src/config/conf_clock.h \
  ../src/ASF/common/services/clock/uc3a0_a1/sysclk.h \
  ../src/ASF/common/services/clock/osc.h \
@@ -220,11 +219,11 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/ASF/avr32/drivers/gpio/gpio.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\spi\spi.h:
+../src/ASF/avr32/drivers/spi/spi.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\avr32\drivers\pwm\pwm.h:
+../src/ASF/avr32/drivers/pwm/pwm.h:
 
-C:\Users\AirWolf\Documents\Atmel\ Studio\6.2\MOUSE_EXAMPLE1\MOUSE_EXAMPLE1\src\ASF\common\services\delay\delay.h:
+../src/ASF/common/services/delay/delay.h:
 
 ../src/ASF/common/services/clock/sysclk.h:
 

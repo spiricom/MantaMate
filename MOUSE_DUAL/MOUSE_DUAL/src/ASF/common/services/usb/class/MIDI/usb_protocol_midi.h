@@ -44,8 +44,8 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 
-#ifndef _USB_MIDI_H_
-#define _USB_MIDI_H_
+#ifndef _USB_PROTOCOL_MIDI_H_
+#define _USB_PROTOCOL_MIDI_H_
 
 #include "usb_protocol.h"
 /**
@@ -95,15 +95,6 @@ enum usb_reqid_audio {
 
 //! \brief HID USB descriptor types
 enum usb_descriptor_type_midi {
-	DTYPE_Device                    = 0x01, /**< Indicates that the descriptor is a device descriptor. */
-	DTYPE_Configuration             = 0x02, /**< Indicates that the descriptor is a configuration descriptor. */
-	DTYPE_String                    = 0x03, /**< Indicates that the descriptor is a string descriptor. */
-	DTYPE_Interface                 = 0x04, /**< Indicates that the descriptor is an interface descriptor. */
-	DTYPE_Endpoint                  = 0x05, /**< Indicates that the descriptor is an endpoint descriptor. */
-	DTYPE_DeviceQualifier           = 0x06, /**< Indicates that the descriptor is a device qualifier descriptor. */
-	DTYPE_Other                     = 0x07, /**< Indicates that the descriptor is of other type. */
-	DTYPE_InterfacePower            = 0x08, /**< Indicates that the descriptor is an interface power descriptor. */
-	DTYPE_InterfaceAssociation      = 0x0B, /**< Indicates that the descriptor is an interface association descriptor. */
 	CS_INTERFACE                    = 0x24, /**< Indicates that the descriptor is a class specific interface descriptor. */
 	CS_ENDPOINT                     = 0x25, /**< Indicates that the descriptor is a class specific endpoint descriptor. */
 };
@@ -242,4 +233,4 @@ COMPILER_PACK_RESET()
 //! Note: Always at least one i.e. Report descriptor.
 #define  USB_MIDI_NUM_DESC                     0x01
 
-#endif // _USB_MIDI_H_
+#endif // _USB_PROTOCOL_MIDI_H_

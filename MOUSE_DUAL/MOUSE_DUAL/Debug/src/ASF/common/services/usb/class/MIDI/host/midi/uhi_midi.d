@@ -69,10 +69,10 @@ src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.d \
  ../src/ASF/common/services/usb/uhc/uhi.h \
  ../src/ASF/common/services/usb/uhc/uhc.h \
  ../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h \
- ../src/ASF/common/services/usb/uhc/uhd.h \
  ../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h \
- ../src/ASF/common/services/usb/core/pipe.h \
- ../src/ASF/common/services/usb/class/MIDI/host/midi/midi.h \
+ ../src/ASF/common/services/usb/uhc/uhd.h \
+ ../src/ASF/avr32/components/display/dip204/dip204.h ../src/main.h \
+ ../src/note_process.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h \
  c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h
 
@@ -214,13 +214,15 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h:
 
-../src/ASF/common/services/usb/uhc/uhd.h:
-
 ../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h:
 
-../src/ASF/common/services/usb/core/pipe.h:
+../src/ASF/common/services/usb/uhc/uhd.h:
 
-../src/ASF/common/services/usb/class/MIDI/host/midi/midi.h:
+../src/ASF/avr32/components/display/dip204/dip204.h:
+
+../src/main.h:
+
+../src/note_process.h:
 
 c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h:
 

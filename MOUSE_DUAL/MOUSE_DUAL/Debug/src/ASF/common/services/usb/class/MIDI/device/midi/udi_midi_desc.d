@@ -65,19 +65,19 @@ src/ASF/common/services/usb/class/MIDI/device/midi/udi_midi_desc.d \
  ../src/config/conf_usb_host.h \
  ../src/ASF/common/services/usb/class/hid/host/mouse/uhi_hid_mouse.h \
  ../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h \
- ../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h \
  ../src/ASF/common/services/usb/usb_protocol.h \
  ../src/ASF/common/services/usb/usb_atmel.h \
- ../src/ASF/common/services/usb/uhc/uhd.h \
+ ../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h \
  ../src/ASF/common/services/usb/uhc/uhi.h \
  ../src/ASF/common/services/usb/uhc/uhc.h \
+ ../src/ASF/common/services/usb/uhc/uhd.h \
  ../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h \
  ../src/ASF/common/services/usb/udc/udc_desc.h \
  ../src/ASF/common/services/usb/udc/udi.h \
  ../src/ASF/common/services/usb/udc/udi.h \
  ../src/ASF/common/services/usb/udc/udd.h \
  ../src/ASF/common/services/usb/udc/udc_desc.h \
- ../src/ASF/common/services/usb/class/hid/device/udi_hid.h
+ ../src/ASF/common/services/usb/class/MIDI/device/udi_hid.h
 
 ../src/config/conf_usb.h:
 
@@ -209,17 +209,17 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/ASF/common/services/usb/class/MIDI/host/midi/uhi_midi.h:
 
-../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h:
-
 ../src/ASF/common/services/usb/usb_protocol.h:
 
 ../src/ASF/common/services/usb/usb_atmel.h:
 
-../src/ASF/common/services/usb/uhc/uhd.h:
+../src/ASF/common/services/usb/class/MIDI/usb_protocol_midi.h:
 
 ../src/ASF/common/services/usb/uhc/uhi.h:
 
 ../src/ASF/common/services/usb/uhc/uhc.h:
+
+../src/ASF/common/services/usb/uhc/uhd.h:
 
 ../src/ASF/common/services/usb/class/hid/usb_protocol_hid.h:
 
@@ -233,4 +233,4 @@ c:\program\ files\ (x86)\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1067\avr32
 
 ../src/ASF/common/services/usb/udc/udc_desc.h:
 
-../src/ASF/common/services/usb/class/hid/device/udi_hid.h:
+../src/ASF/common/services/usb/class/MIDI/device/udi_hid.h:

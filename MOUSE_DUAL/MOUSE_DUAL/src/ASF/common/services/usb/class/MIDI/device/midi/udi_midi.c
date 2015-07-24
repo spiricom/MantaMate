@@ -63,6 +63,7 @@ bool udi_dmidi_enable(void);
 void udi_dmidi_disable(void);
 bool udi_dmidi_device_setup(void);
 uint8_t udi_dmidi_getsetting(void);
+bool udi_dmidi_setup(void);
 
 //! Global structure which contains standard UDI interface for UDC
 UDC_DESC_STORAGE udi_api_t udi_api_midi = {
@@ -175,13 +176,13 @@ bool udi_dmidi_enable(void)
 	udi_hid_mouse_report_trans_ongoing = false;
 	memset(udi_hid_mouse_report, 0, UDI_HID_MOUSE_REPORT_SIZE);
 	udi_hid_mouse_b_report_valid = false;
-	return UDI_HID_MOUSE_ENABLE_EXT();
+	return UDI_MIDI_ENABLE_EXT();
 }
 
 
 void udi_dmidi_disable(void)
 {
-	UDI_HID_MOUSE_DISABLE_EXT();
+	UDI_MIDI_DISABLE_EXT();
 }
 
 
@@ -200,11 +201,6 @@ uint8_t udi_dmidi_getsetting(void)
 	return 0;
 }
 
-
-static bool udi_dmidi_setreport(void)
-{
-	return false;
-}
 
 
 //--------------------------------------------

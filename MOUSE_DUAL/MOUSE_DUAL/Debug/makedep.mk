@@ -16,9 +16,9 @@ src\ASF\common\services\usb\class\MIDI\device\udi_hid.c
 
 src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c
 
-src\ASF\common\services\usb\core\pipe.c
-
 src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c
+
+src\note_process.c
 
 src\ASF\avr32\boards\evk1100\init.c
 
