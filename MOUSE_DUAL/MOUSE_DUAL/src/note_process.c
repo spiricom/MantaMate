@@ -16,6 +16,8 @@ enum maps_t
 	HARMONIC
 };
 
+static unsigned short calculateDACvalue(uint8_t noteVal);
+
 unsigned long twelvetet[12] = {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100};
 unsigned long overtonejust[12] = {0, 111, 203, 316, 386, 498, 551, 702, 813, 884, 968, 1088};
 unsigned long kora1[12] = {0, 185, 230, 325, 405, 498, 551, 702, 885, 930, 1025, 1105};
@@ -52,7 +54,7 @@ unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
 
-static unsigned short calculateDACvalue(uint8_t noteVal);
+unsigned sysVol = 0x7F;  // should probably initialize by reading from MIDI device
 
 void initNoteStack(void)
 {
@@ -284,15 +286,59 @@ void mantaVol(uint8_t *butts)
 	}*/
 }
 
-void midiVol()
+//Some issues with smoothness, random vol glitches
+void midiVol(void)
 {
-	uint8_t vol = notestack[0][1];
-	dacsend(3,2,vol<<4);
+	uint8_t i;
+	unsigned short vol;
+	
+	vol = (notestack[0][1] * sysVol) >> 2;  // scale volume
+	
+	/*dip204_set_cursor_position(1,1);
+	dip204_printf_string("                    ");
+	dip204_set_cursor_position(1,1);
+	dip204_printf_string("vol: %u %u", vol, (vol<<5)&0xFFF);*/
+	//vol = (vol<<6)&0xFFF;
+	for(i=0; i<polynum; i++)
+	{
+		if(polyVoiceBusy[i])
+			dacsend(i+2,1,(vol)&0xFFF);
+		else
+			dacsend(i+2,1,0);	
+	}
 }
 
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
-	
+	switch (ctrlNum)
+	{
+		case 1:
+			
+			break;
+		case 2:
+		
+			break;
+		case 3:
+		
+			break;
+		case 4:
+		
+			break;
+		case 5:
+		
+			break;
+		case 6:
+		
+			break;
+		case 7:
+			sysVol = val;
+			break;
+		case 8:
+		
+			break;
+		default:
+			break;
+	}
 }
 
 uint8_t programNum;
@@ -319,7 +365,6 @@ void noteOut()
 					DAC16Send(i+1, calculateDACvalue(polyVoiceNote[i]));
 					dip204_printf_string("note: %u busy: %u",polyVoiceNote[i],polyVoiceBusy[i]);
 				}
-				
 				changevoice[i] = 0;
 				notehappened = 0;
 				noteoffhappened = 0;	

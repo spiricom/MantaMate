@@ -491,7 +491,7 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 	}
 	
 	if(ctrlByte != 0)
-	{
+	{	
 		prevCtrlByte = ctrlByte;
 		prevMsgByte1 = msgByte1;
 		prevMsgByte2 = msgByte2;
@@ -517,6 +517,7 @@ static uint8_t parseMIDI(uint8_t maxBytes)
 static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	uint8_t control = ctrlByte & 0xf0;
+
 	//uint8_t channel = ctrlByte & 0x0f;
 	
 	/*
@@ -547,6 +548,7 @@ static void handleKey(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 		// program change	
 		case 192:
 			programChange(msgByte1);
+			break;
 		default:
 			break;
 	}
