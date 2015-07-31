@@ -21,5 +21,6 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);
 
 void noteOut(void);
+void joyVol(uint16_t slider_val);
 
 #endif /* NOTE_PROCESS_H_ */

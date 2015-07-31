@@ -113,7 +113,8 @@
 #include <udi_hid.h>
 
 // From module: USB Host HID Mouse (Single Class support)
-#include <uhi_hid_mouse.h>
+#include <uhi_hid_manta.h>
+#include <uhi_hid_joystick.h>
 #include <uhi_midi.h>
 
 // From module: USB Host stack core
