@@ -47,8 +47,6 @@
 #include <asf.h>
 #include "conf_usb_host.h"
 #include "ui.h"
-//#include "pipe.h"
-//#include "midihost.h"
 #include "main.h"
 #include "note_process.h"
 

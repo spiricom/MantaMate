@@ -67,10 +67,10 @@ bool udi_dmidi_setup(void);
 
 //! Global structure which contains standard UDI interface for UDC
 UDC_DESC_STORAGE udi_api_t udi_api_midi = {
-	.enable = NULL,//(bool(*)(void))udi_dmidi_enable,
-	.disable = NULL,//(void (*)(void))udi_dmidi_disable,
-	.setup = NULL,//(bool(*)(void))udi_dmidi_setup,
-	.getsetting = NULL,//(uint8_t(*)(void))udi_dmidi_getsetting,
+	.enable = (bool(*)(void))udi_dmidi_enable,
+	.disable = (void (*)(void))udi_dmidi_disable,
+	.setup = (bool(*)(void))udi_dmidi_setup,
+	.getsetting = (uint8_t(*)(void))udi_dmidi_getsetting,
 	.sof_notify = NULL,
 };
 //@}
@@ -98,15 +98,15 @@ COMPILER_WORD_ALIGNED
 COMPILER_WORD_ALIGNED
 		static uint8_t udi_hid_mouse_protocol;
 //! To signal if a valid report is ready to send
-static bool udi_hid_mouse_b_report_valid;
+static bool udi_manta_b_report_valid;
 //! Report ready to send
-static uint8_t udi_hid_mouse_report[UDI_HID_MOUSE_REPORT_SIZE];
+static uint8_t udi_manta_report[UDI_HID_MOUSE_REPORT_SIZE];
 //! Signal if a report transfer is on going
-static bool udi_hid_mouse_report_trans_ongoing;
+static bool udi_manta_report_trans_ongoing;
 //! Buffer used to send report
 COMPILER_WORD_ALIGNED
 		static uint8_t
-		udi_hid_mouse_report_trans[UDI_HID_MOUSE_REPORT_SIZE];
+		udi_manta_report_trans[UDI_HID_MOUSE_REPORT_SIZE];
 
 /**
  * \brief Callback for set report setup request
@@ -148,7 +148,7 @@ static bool udi_hid_mouse_btn(bool b_state, uint8_t btn);
  *
  * \return \c 1 if send on going, \c 0 if delay.
  */
-static bool udi_hid_mouse_send_report(void);
+static bool udi_midi_send_report(void);
 
 /**
  * \brief Callback called when the report is sent
@@ -159,7 +159,7 @@ static bool udi_hid_mouse_send_report(void);
  *
  * \return \c 1 if function was successfully done, otherwise \c 0.
  */
-static void udi_hid_mouse_report_sent(udd_ep_status_t status,
+static void udi_midi_report_sent(udd_ep_status_t status,
 		iram_size_t nb_sent, udd_ep_id_t ep);
 
 //@}
@@ -173,9 +173,9 @@ bool udi_dmidi_enable(void)
 	// Initialize internal value
 	udi_hid_mouse_rate = 0;
 	udi_hid_mouse_protocol = 0;
-	udi_hid_mouse_report_trans_ongoing = false;
-	memset(udi_hid_mouse_report, 0, UDI_HID_MOUSE_REPORT_SIZE);
-	udi_hid_mouse_b_report_valid = false;
+	udi_manta_report_trans_ongoing = false;
+	memset(udi_manta_report, 0, UDI_HID_MOUSE_REPORT_SIZE);
+	udi_manta_b_report_valid = false;
 	return UDI_MIDI_ENABLE_EXT();
 }
 
@@ -191,7 +191,7 @@ bool udi_dmidi_setup(void)
 	return true;
 	//return udi_hid_setup(&udi_hid_mouse_rate,
 	//							&udi_hid_mouse_protocol,
-	//							(uint8_t *) &udi_hid_mouse_report_desc,
+	//							(uint8_t *) &udi_manta_report_desc,
 	//							udi_hid_mouse_setreport);
 }
 
@@ -247,17 +247,17 @@ static bool udi_hid_mouse_move(int8_t pos, uint8_t index_report)
 	irqflags_t flags = cpu_irq_save();
 
 	// Add position in HID mouse report
-	s16_newpos = (int8_t) udi_hid_mouse_report[index_report];
+	s16_newpos = (int8_t) udi_manta_report[index_report];
 	s16_newpos += pos;
 	if ((-127 > s16_newpos) || (127 < s16_newpos)) {
 		cpu_irq_restore(flags);
 		return false;	// Overflow of report
 	}
-	udi_hid_mouse_report[index_report] = (uint8_t) s16_newpos;
+	udi_manta_report[index_report] = (uint8_t) s16_newpos;
 
 	// Valid and send report
-	udi_hid_mouse_b_report_valid = true;
-	udi_hid_mouse_send_report();
+	udi_manta_b_report_valid = true;
+	udi_midi_send_report();
 
 	cpu_irq_restore(flags);
 	return true;
@@ -268,47 +268,47 @@ static bool udi_hid_mouse_btn(bool b_state, uint8_t btn)
 {
 	// Modify buttons report
 	if (HID_MOUSE_BTN_DOWN == b_state)
-		udi_hid_mouse_report[0] |= btn;
+		udi_manta_report[0] |= btn;
 	else
-		udi_hid_mouse_report[0] &= ~(unsigned)btn;
+		udi_manta_report[0] &= ~(unsigned)btn;
 	// Use mouse move routine
 	return udi_hid_mouse_move(0, 1);
 }
 
 
-static bool udi_hid_mouse_send_report(void)
+static bool udi_midi_send_report(void)
 {
-	if (udi_hid_mouse_report_trans_ongoing)
+	if (udi_manta_report_trans_ongoing)
 		return false;	// Transfer on going then send this one after transfer complete
 
 	// Copy report on other array used only for transfer
-	memcpy(udi_hid_mouse_report_trans, udi_hid_mouse_report,
+	memcpy(udi_manta_report_trans, udi_manta_report,
 			UDI_HID_MOUSE_REPORT_SIZE);
-	memset(&udi_hid_mouse_report[1], 0, 3);	// Keep status of btn for next report
-	udi_hid_mouse_b_report_valid = false;
+	memset(&udi_manta_report[1], 0, 3);	// Keep status of btn for next report
+	udi_manta_b_report_valid = false;
 
 	// Send report
-	udi_hid_mouse_report_trans_ongoing =
+	udi_manta_report_trans_ongoing =
 			udd_ep_run(	UDI_MIDI_EP_IN,
 							false,
-							udi_hid_mouse_report_trans,
+							udi_manta_report_trans,
 							UDI_HID_MOUSE_REPORT_SIZE,
-							udi_hid_mouse_report_sent);
-	return udi_hid_mouse_report_trans_ongoing;
+							udi_midi_report_sent);
+	return udi_manta_report_trans_ongoing;
 }
 
 
-static void udi_hid_mouse_report_sent(udd_ep_status_t status,
+static void udi_midi_report_sent(udd_ep_status_t status,
 		iram_size_t nb_sent, udd_ep_id_t ep)
 {
 	UNUSED(ep);
 	UNUSED(status);
 	UNUSED(nb_sent);
 	// Valid report sending
-	udi_hid_mouse_report_trans_ongoing = false;
-	if (udi_hid_mouse_b_report_valid) {
+	udi_manta_report_trans_ongoing = false;
+	if (udi_manta_b_report_valid) {
 		// Send new valid report
-		udi_hid_mouse_send_report();
+		udi_midi_send_report();
 	}
 }
 

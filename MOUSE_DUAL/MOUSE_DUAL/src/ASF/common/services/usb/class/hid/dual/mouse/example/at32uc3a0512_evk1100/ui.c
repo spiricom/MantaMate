@@ -348,7 +348,7 @@ void ui_host_hid_mouse_move(int8_t x,int8_t y,int8_t scroll)
 
 
 #define  MOUSE_MOVE_RANGE  3
-static bool ui_device_b_mouse_enable = false;
+static bool ui_device_b_midi_enable = false;
 
 void ui_test_flag_reset(void)
 {
@@ -406,13 +406,13 @@ void ui_device_remotewakeup_disable(void)
 
 bool ui_device_midi_enable(void)
 {
-	ui_device_b_mouse_enable = true;
+	ui_device_b_midi_enable = true;
 	return true;
 }
 
 void ui_device_midi_disable(void)
 {
-	ui_device_b_mouse_enable = false;
+	ui_device_b_midi_enable = false;
 }
 
 void ui_device_sof_action(void)
@@ -424,7 +424,7 @@ void ui_device_sof_action(void)
 	static bool btn_middle_last_state = HID_MOUSE_BTN_UP;
 	static uint8_t cpt_sof = 0;
 
-	if (!ui_device_b_mouse_enable)
+	if (!ui_device_b_midi_enable)
 	return;
 
 	framenumber = udd_get_frame_number();

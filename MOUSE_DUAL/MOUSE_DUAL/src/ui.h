@@ -150,6 +150,5 @@ void  ui_uhi_midi_change(uhc_device_t *dev, bool b_plug);
 void ui_test_flag_reset(void);
 void ui_test_finish(bool b_success);
 
-extern bool ui_midi_plug;
 
 #endif // _UI_H_
