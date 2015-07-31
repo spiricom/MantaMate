@@ -74,7 +74,6 @@
 typedef struct {
 	uhc_device_t *dev;
 	usb_ep_t ep_in;
-	usb_ep_t ep_out;
 	uint8_t report_size;
 	uint8_t *report;
 	uint8_t report_btn_prev;
@@ -101,43 +100,12 @@ static void uhi_hid_manta_report_reception(
 		iram_size_t nb_transfered);
 		
 static void processKeys(void);
-/**
- * \brief Send the report
- *
- * \return \c 1 if send on going, \c 0 if delay.
- */
-static bool uhi_midi_send_report(void);
-
-/**
- * \brief Callback called when the report is sent
- *
- * \param status     UDD_EP_TRANSFER_OK, if transfer finish
- * \param status     UDD_EP_TRANSFER_ABORT, if transfer aborted
- * \param nb_sent    number of data transfered
- *
- * \return \c 1 if function was successfully done, otherwise \c 0.
- */
-static void uhi_midi_report_sent(
-		usb_add_t add,
-		usb_ep_t ep,
-		uhd_trans_status_t status,
-		iram_size_t nb_transfered);
 //@}
 
 uint8_t butt_states[48];
 static uint8_t pastbutt_states[48];
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
-	
-//! To signal if a valid report is ready to send
-static bool uhi_manta_b_report_valid;
-//! Report ready to send
-static uint8_t uhi_manta_report[UHI_MANTA_EP_OUT_SIZE];
-//! Signal if a report transfer is on going
-static bool uhi_manta_report_trans_ongoing;
-//! Buffer used to send report
-static uint8_t uhi_manta_report_trans[UHI_MANTA_EP_OUT_SIZE];
-static uint8_t lights[2*HEX_BYTES+SLIDER_BYTES+FUNTION_BYTES];
 
 /**
  * \name Functions required by UHC
@@ -188,17 +156,21 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 				if (!uhd_ep_alloc(dev->address, (usb_ep_desc_t*)ptr_iface))
 					return UHC_ENUM_HARDWARE_LIMIT; // Endpoint allocation fail
 
-				if(((usb_ep_desc_t*)ptr_iface)->bEndpointAddress & USB_EP_DIR_IN)
-				{
-					uhi_hid_manta_dev.ep_in = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
-					uhi_hid_manta_dev.report_size =
-					le16_to_cpu(((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize);
-					uhi_hid_manta_dev.report = malloc(uhi_hid_manta_dev.report_size);
-					
+				Assert(((usb_ep_desc_t*)ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
+				uhi_hid_manta_dev.ep_in = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
+				uhi_hid_manta_dev.report_size =
+						le16_to_cpu(((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize);
+				uhi_hid_manta_dev.report = malloc(uhi_hid_manta_dev.report_size);
+			
+				if (uhi_hid_manta_dev.report == NULL) {
+					Assert(false);
+					return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
 				}
-				else
-					uhi_hid_manta_dev.ep_out = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
-				break;
+			
+				uhi_hid_manta_dev.dev = dev;
+				// All endpoints of all interfaces supported allocated
+				return UHC_ENUM_SUCCESS;
+
 			// Ignore descriptor
 			default: break;
 		}	
@@ -206,18 +178,6 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 		conf_desc_lgt -= ptr_iface->bLength;
 		ptr_iface = (usb_iface_desc_t*)((uint8_t*)ptr_iface + ptr_iface->bLength);
 	}
-	if (uhi_hid_manta_dev.report == NULL) {
-		Assert(false);
-		return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
-	}
-	
-	if(uhi_hid_manta_dev.ep_in != 0 && uhi_hid_manta_dev.ep_out != 0)		
-	{		
-		uhi_hid_manta_dev.dev = dev;
-		// All endpoints of all interfaces supported allocated
-		return UHC_ENUM_SUCCESS;
-	}
-	
 	return UHC_ENUM_UNSUPPORTED; // No interface supported
 }
 
@@ -228,15 +188,9 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
-	initNoteStack();
-	memset(lights,0,HEX_BYTES*2+SLIDER_BYTES);
-	lights[0] = 0x01;
-	lights[9] = 0x03;
-	lights[6] = 0x03;
-	lights[7] = 0x0A;
-	manta_light_LED(lights);
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
+	initNoteStack();
 }
 
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
@@ -373,61 +327,8 @@ static void processKeys(void)
 	}
 }
 
-static bool uhi_midi_send_report(void)
-{
-	if (uhi_manta_report_trans_ongoing)
-	return false;	// Transfer on going then send this one after transfer complete
-
-	// Copy report on other array used only for transfer
-	memcpy(uhi_manta_report_trans, uhi_manta_report, UHI_MANTA_EP_OUT_SIZE);
-	uhi_manta_b_report_valid = false;
-
-	// Send report
-	return uhi_manta_report_trans_ongoing =
-	uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_midi_report_sent);
-}
-
-static void uhi_midi_report_sent(usb_add_t add, usb_ep_t ep,
-		uhd_trans_status_t status, iram_size_t nb_transfered)
-{
-	UNUSED(ep);
-	UNUSED(status);
-	UNUSED(nb_transfered);
-	// Valid report sending
-	uhi_manta_report_trans_ongoing = false;
-	if (uhi_manta_b_report_valid) {
-		// Send new valid report
-		uhi_midi_send_report();
-	}
-}
-
-bool manta_light_LED(uint8_t *lights)
-{
-	uint8_t i;
-	irqflags_t flags = cpu_irq_save();
 
 
-	// amber lights + function button LEDs
-	for(i=0; i<HEX_BYTES+FUNTION_BYTES+SLIDER_BYTES; i++)
-		uhi_manta_report[i] = lights[i];
-	// control byte
-	uhi_manta_report[MANTA_CONTROL] = BUTTON_CTRL;
-	
-	// red lights	
-	for(; i<SLIDER_BYTES+2*HEX_BYTES; i++)
-	{
-		// don't turn on red if amber already on beacuse too much current!!!! explosions
-		uhi_manta_report[i+1] = lights[i] & (~lights[i-SLIDER_BYTES-HEX_BYTES-FUNTION_BYTES]);
-	}
-	
-	
-	// Valid and send report
-	uhi_manta_b_report_valid = true;
-	uhi_midi_send_report();
-
-	cpu_irq_restore(flags);
-	return true;
-}
 //@}
 
 //@}

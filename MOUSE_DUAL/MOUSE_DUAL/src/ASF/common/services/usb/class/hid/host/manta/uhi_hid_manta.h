@@ -64,19 +64,6 @@ extern "C" {
  *
  * @{
  */
-#define UHI_MANTA_EP_OUT_SIZE 16
-#define HEX_BYTES 6
-#define SLIDER_BYTES 2
-#define MANTA_CONTROL 9
-#define FUNTION_BYTES 1
-
-#define HEX_EXT		1		// hexagon and function button LEDs reflect the bits in the first 6 bytes of the report
-#define SLIDER_EXT	1<<1	// allows the slider LEDs to respond to computer control
-#define TURBO		1<<2	// scan only the bottom 16 sensors, and at a faster, but less accurate, scan rate
-#define RAW_MODE	1<<3	// send the actual capacitance measurements the manta is taking
-#define HI_RES		1<<4	//  scan only sensors 7 and 8, but at a slow, accurate rate, with higher resolution.)  (DEPRECATED IN 2nd ED)
-#define BUTTON_CTRL 1<<5	// only the function buttons respond to computer control
-
 
 //! Global define which contains standard UHI API for UHC
 //! It must be added in USB_HOST_UHI define from conf_usb_host.h file.
@@ -94,8 +81,6 @@ extern "C" {
 extern uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev);
 extern void uhi_hid_manta_enable(uhc_device_t* dev);
 extern void uhi_hid_manta_uninstall(uhc_device_t* dev);
-
-bool manta_light_LED(uint8_t *lights);
 //@}
 //@}
 
