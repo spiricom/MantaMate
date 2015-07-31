@@ -48,7 +48,7 @@
 #include "usb_protocol.h"
 #include "uhd.h"
 #include "uhc.h"
-#include "uhi_hid_mouse.h"
+#include "uhi_hid_manta.h"
 #include "dip204.h"
 #include "main.h"
 #include "note_process.h"
@@ -59,21 +59,12 @@
 #endif
 
 /**
- * \ingroup uhi_hid_mouse_group
- * \defgroup uhi_hid_mouse_group_internal Implementation of UHI HID Mouse
+ * \ingroup uhi_hid_manta_group
+ * \defgroup uhi_hid_manta_group_internal Implementation of UHI HID Mouse
  *
  * Class internal implementation
  * @{
  */
-
-/**
- * \name Index in HID report for usual HID mouse events
- * @{
- */
-#define UHI_HID_MOUSE_BTN        0
-#define UHI_HID_MOUSE_MOV_X      1
-#define UHI_HID_MOUSE_MOV_Y      2
-#define UHI_HID_MOUSE_MOV_SCROLL 3
 //@}
 
 /**
@@ -86,12 +77,12 @@ typedef struct {
 	uint8_t report_size;
 	uint8_t *report;
 	uint8_t report_btn_prev;
-}uhi_hid_mouse_dev_t;
+}uhi_hid_manta_dev_t;
 
-static uhi_hid_mouse_dev_t uhi_hid_mouse_dev = {
+static uhi_hid_manta_dev_t uhi_hid_manta_dev = {
 	.dev = NULL,
 	.report = NULL,
-	};
+};
 
 //@}
 
@@ -100,9 +91,9 @@ static uhi_hid_mouse_dev_t uhi_hid_mouse_dev = {
  * \name Internal routines
  */
 //@{
-static void uhi_hid_mouse_start_trans_report(usb_add_t add);
+static void uhi_hid_manta_start_trans_report(usb_add_t add);
 
-static void uhi_hid_mouse_report_reception(
+static void uhi_hid_manta_report_reception(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
@@ -121,15 +112,14 @@ uint8_t pastsliders[4] = {0,0,0,0};
  * @{
  */
 
-uhc_enum_status_t uhi_hid_mouse_install(uhc_device_t* dev)
+uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 {
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
 
-	if (uhi_hid_mouse_dev.dev != NULL)
+	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
-
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
 	ptr_iface = (usb_iface_desc_t*)dev->conf_desc;
 	b_iface_supported = false;
@@ -140,7 +130,8 @@ uhc_enum_status_t uhi_hid_mouse_install(uhc_device_t* dev)
 		{
 			case USB_DT_INTERFACE:
 				if ((ptr_iface->bInterfaceClass   == HID_CLASS)
-					&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC) ) 
+					&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)
+					&& (dev->dev_desc.idProduct == 0x2424))
 				{
 					int i;
 					// USB HID Mouse interface found
@@ -166,17 +157,17 @@ uhc_enum_status_t uhi_hid_mouse_install(uhc_device_t* dev)
 					return UHC_ENUM_HARDWARE_LIMIT; // Endpoint allocation fail
 
 				Assert(((usb_ep_desc_t*)ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
-				uhi_hid_mouse_dev.ep_in = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
-				uhi_hid_mouse_dev.report_size =
+				uhi_hid_manta_dev.ep_in = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
+				uhi_hid_manta_dev.report_size =
 						le16_to_cpu(((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize);
-				uhi_hid_mouse_dev.report = malloc(uhi_hid_mouse_dev.report_size);
+				uhi_hid_manta_dev.report = malloc(uhi_hid_manta_dev.report_size);
 			
-				if (uhi_hid_mouse_dev.report == NULL) {
+				if (uhi_hid_manta_dev.report == NULL) {
 					Assert(false);
 					return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
 				}
 			
-				uhi_hid_mouse_dev.dev = dev;
+				uhi_hid_manta_dev.dev = dev;
 				// All endpoints of all interfaces supported allocated
 				return UHC_ENUM_SUCCESS;
 
@@ -190,27 +181,27 @@ uhc_enum_status_t uhi_hid_mouse_install(uhc_device_t* dev)
 	return UHC_ENUM_UNSUPPORTED; // No interface supported
 }
 
-void uhi_hid_mouse_enable(uhc_device_t* dev)
+void uhi_hid_manta_enable(uhc_device_t* dev)
 {
-	if (uhi_hid_mouse_dev.dev != dev) 
+	if (uhi_hid_manta_dev.dev != dev) 
 		return;  // No interface to enable
 
 	// Init value
-	uhi_hid_mouse_dev.report_btn_prev = 0;
-	uhi_hid_mouse_start_trans_report(dev->address);
-	UHI_HID_MOUSE_CHANGE(dev, true);
+	uhi_hid_manta_dev.report_btn_prev = 0;
+	uhi_hid_manta_start_trans_report(dev->address);
+	UHI_HID_MANTA_CHANGE(dev, true);
 	initNoteStack();
 }
 
-void uhi_hid_mouse_uninstall(uhc_device_t* dev)
+void uhi_hid_manta_uninstall(uhc_device_t* dev)
 {
-	if (uhi_hid_mouse_dev.dev != dev) 
+	if (uhi_hid_manta_dev.dev != dev) 
 		return; // Device not enabled in this interface
 
-	uhi_hid_mouse_dev.dev = NULL;
-	Assert(uhi_hid_mouse_dev.report!=NULL);
-	free(uhi_hid_mouse_dev.report);
-	UHI_HID_MOUSE_CHANGE(dev, false);
+	uhi_hid_manta_dev.dev = NULL;
+	Assert(uhi_hid_manta_dev.report!=NULL);
+	free(uhi_hid_manta_dev.report);
+	UHI_HID_MANTA_CHANGE(dev, false);
 	initNoteStack();
 }
 
@@ -219,11 +210,11 @@ void uhi_hid_mouse_uninstall(uhc_device_t* dev)
  *
  * \param add   USB address to use
  */
-static void uhi_hid_mouse_start_trans_report(usb_add_t add)
+static void uhi_hid_manta_start_trans_report(usb_add_t add)
 {
 	// Start transfer on interrupt endpoint IN
-	uhd_ep_run(add, uhi_hid_mouse_dev.ep_in, true, uhi_hid_mouse_dev.report,
-			uhi_hid_mouse_dev.report_size, 0, uhi_hid_mouse_report_reception);
+	uhd_ep_run(add, uhi_hid_manta_dev.ep_in, true, uhi_hid_manta_dev.report,
+			uhi_hid_manta_dev.report_size, 0, uhi_hid_manta_report_reception);
 }
 
 /**
@@ -233,7 +224,7 @@ static void uhi_hid_mouse_start_trans_report(usb_add_t add)
  * \param status        Transfer status
  * \param nb_transfered Number of data transfered
  */
-static void uhi_hid_mouse_report_reception(
+static void uhi_hid_manta_report_reception(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
@@ -244,7 +235,7 @@ static void uhi_hid_mouse_report_reception(
 	UNUSED(ep);
 	
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
-		uhi_hid_mouse_start_trans_report(add);
+		uhi_hid_manta_start_trans_report(add);
 		return; // HID mouse transfer restart
 	}
 
@@ -254,9 +245,9 @@ static void uhi_hid_mouse_report_reception(
 	
 	// Decode buttons
 	for(i=0; i<48; i++)
-		butt_states[i] = uhi_hid_mouse_dev.report[i+1] + 0x80;	
+		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
 	for(i=0; i<4; i++)
-		sliders[i] = uhi_hid_mouse_dev.report[i+53] + 0x80;
+		sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
 		
     i = 0;
 	
@@ -311,7 +302,7 @@ static void uhi_hid_mouse_report_reception(
 	DAC16Send(1, val);*/
 	noteOut();
 	
-	uhi_hid_mouse_start_trans_report(add);
+	uhi_hid_manta_start_trans_report(add);
 }
 
 static void processKeys(void)

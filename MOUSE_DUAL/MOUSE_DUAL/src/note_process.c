@@ -119,9 +119,9 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	numnotes++;
 	notehappened = 1;
 	currentnote = notestack[0][0];
-	lcd_clear_line(3);
+	/*lcd_clear_line(3);
 	dip204_printf_string("%u notes",numnotes);
-	dip204_hide_cursor();
+	dip204_hide_cursor();*/
 	for(j=0; j<polynum; j++)
 	{
 		if(polyVoiceBusy[j])
@@ -213,9 +213,9 @@ void removeNote(uint8_t noteVal)
 			dacsend(k,1,0);
 	}
 	
-	lcd_clear_line(3);
+	/*lcd_clear_line(3);
 	dip204_printf_string("%u notes",numnotes);
-	dip204_hide_cursor();
+	dip204_hide_cursor();*/
 }
 
 unsigned short calculateDACvalue(uint8_t noteVal)
@@ -297,15 +297,20 @@ void midiVol(void)
 	/*dip204_set_cursor_position(1,1);
 	dip204_printf_string("                    ");
 	dip204_set_cursor_position(1,1);
-	dip204_printf_string("vol: %u %u", vol, (vol<<5)&0xFFF);*/
+	dip204_printf_string("vol: %u", vol);*/
 	//vol = (vol<<6)&0xFFF;
 	for(i=0; i<polynum; i++)
 	{
 		if(polyVoiceBusy[i])
-			dacsend(i+2,1,(vol)&0xFFF);
+			dacsend(i+2,2,(vol)&0xFFF);
 		else
-			dacsend(i+2,1,0);	
+			dacsend(i+2,2,0);	
 	}
+}
+
+void joyVol(uint16_t slider_val) {
+	dacsend(0, 2, slider_val << 4);
+	dacsend(1, 2, slider_val << 4);
 }
 
 void controlChange(uint8_t ctrlNum, uint8_t val)
@@ -363,7 +368,7 @@ void noteOut()
 				if (polyVoiceBusy[i] == 1)
 				{
 					DAC16Send(i+1, calculateDACvalue(polyVoiceNote[i]));
-					dip204_printf_string("note: %u busy: %u",polyVoiceNote[i],polyVoiceBusy[i]);
+					//dip204_printf_string("note: %u",polyVoiceNote[i]);
 				}
 				changevoice[i] = 0;
 				notehappened = 0;

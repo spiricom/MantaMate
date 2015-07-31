@@ -174,7 +174,8 @@ static uhc_enum_status_t ui_enum_status=UHC_ENUM_DISCONNECT;
 //! Blink frequency depending on device speed
 static uint16_t ui_device_speed_blink;
 //! Notify the presence of a USB device mouse
-static bool ui_hid_mouse_plug = false;
+static bool ui_hid_joy_plug = false;
+static bool ui_hid_manta_plug = false;
 //! Manages device mouse moving
 static int8_t ui_x, ui_y, ui_scroll;
 //! Notify the presence of a USB device MIDI
@@ -224,9 +225,14 @@ void ui_host_enum_event(uhc_device_t * dev, uhc_enum_status_t status)
 	}
 }
 
-void ui_uhi_hid_mouse_change(uhc_device_t * dev, bool b_plug)
+void ui_uhi_hid_joy_change(uhc_device_t * dev, bool b_plug)
 {
-	ui_hid_mouse_plug = b_plug;
+	ui_hid_joy_plug = b_plug;
+}
+
+void ui_uhi_hid_manta_change(uhc_device_t * dev, bool b_plug)
+{
+	ui_hid_manta_plug = b_plug;
 }
 
 void ui_uhi_midi_change(uhc_device_t * dev, bool b_plug)
@@ -251,12 +257,14 @@ void ui_host_sof_event(void)
 		// Display device enumerated and in active mode
 		if (++counter_sof > ui_device_speed_blink) {
 			counter_sof = 0;
-			if (ui_hid_mouse_plug) {
-				LED_Toggle(LED2);
+			if (ui_hid_joy_plug) {
+				LED_Toggle(LED7);
 			}
 			if (ui_midi_plug) {
 				LED_Toggle(LED3);
 			}
+			if (ui_hid_manta_plug)
+				LED_Toggle(LED2);
 		}
 		
 		// Scan button to enter in suspend mode

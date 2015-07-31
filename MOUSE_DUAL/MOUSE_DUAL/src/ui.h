@@ -143,8 +143,8 @@ void ui_device_midi_disable(void);
 void ui_device_sof_action(void);
 //! @}
 
-void ui_uhi_hid_mouse_change(uhc_device_t * dev, bool b_plug);
-
+void ui_uhi_hid_joy_change(uhc_device_t * dev, bool b_plug);
+void ui_uhi_hid_manta_change(uhc_device_t * dev, bool b_plug);
 void  ui_uhi_midi_change(uhc_device_t *dev, bool b_plug);
 
 void ui_test_flag_reset(void);

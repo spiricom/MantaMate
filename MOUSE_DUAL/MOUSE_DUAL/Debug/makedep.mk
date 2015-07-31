@@ -8,6 +8,10 @@ src\ASF\avr32\drivers\pwm\pwm.c
 
 src\ASF\avr32\drivers\spi\spi.c
 
+src\ASF\common\services\usb\class\hid\host\joystick\uhi_hid_joystick.c
+
+src\ASF\common\services\usb\class\hid\host\manta\uhi_hid_manta.c
+
 src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi.c
 
 src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi_desc.c
@@ -51,8 +55,6 @@ src\ASF\avr32\utils\startup\trampoline_uc3.S
 src\ASF\common\services\clock\uc3a0_a1\sysclk.c
 
 src\ASF\common\services\sleepmgr\uc3\sleepmgr.c
-
-src\ASF\common\services\usb\class\hid\host\mouse\uhi_hid_mouse.c
 
 src\ASF\common\services\usb\udc\udc.c
 
