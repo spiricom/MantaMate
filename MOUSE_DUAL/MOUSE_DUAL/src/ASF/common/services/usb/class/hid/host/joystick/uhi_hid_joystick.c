@@ -174,7 +174,8 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 
 		case USB_DT_INTERFACE:
 			if ((ptr_iface->bInterfaceClass   == HID_CLASS)
-			&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)) {
+			&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)
+			&& dev->dev_desc.idProduct != 0x2424) {
 				// USB HID Mouse interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;

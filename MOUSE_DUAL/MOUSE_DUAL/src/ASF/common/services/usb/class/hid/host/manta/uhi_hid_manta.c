@@ -149,6 +149,13 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
+	//char *product = NULL;
+
+	//product = uhc_dev_get_string(dev,dev->dev_desc.iProduct);
+	//while(product == NULL);
+	
+	lcd_clear_line(2);
+	dip204_printf_string("%x",dev->dev_desc.idProduct);
 
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
@@ -163,7 +170,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 			case USB_DT_INTERFACE:
 				if ((ptr_iface->bInterfaceClass   == HID_CLASS)
 					&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)
-					&& (dev->dev_desc.idProduct == 0x2424))
+					&& dev->dev_desc.idProduct == 0x2424)
 				{
 					int i;
 					// USB HID Mouse interface found
@@ -177,7 +184,12 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 						//notestack[i] = -1;
 					}
 				} 
-				else b_iface_supported = false; // Stop allocation endpoint(s)
+				else
+				{
+					b_iface_supported = false; // Stop allocation endpoint(s)
+					return UHC_ENUM_UNSUPPORTED; // No interface supported
+				}
+				
 			break;
 
 			case USB_DT_ENDPOINT:
