@@ -44,8 +44,8 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 
-#ifndef _UDI_HID_MIDI_H_
-#define _UDI_HID_MIDI_H_
+#ifndef _UDI_AUDIO_H_
+#define _UDI_AUDIO_H_
 
 #include "conf_usb.h"
 

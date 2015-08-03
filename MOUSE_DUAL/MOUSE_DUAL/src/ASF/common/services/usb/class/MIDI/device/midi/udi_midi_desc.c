@@ -47,7 +47,7 @@
 #include "conf_usb.h"
 #include "udd.h"
 #include "udc_desc.h"
-#include "udi_hid.h"
+#include "udi_audio.h"
 #include "usb_protocol_midi.h"
 #include "udi_midi.h"
 
@@ -63,8 +63,8 @@
  * @{
  */
 
-//! Only one interface for this device
-#define  USB_DEVICE_NB_INTERFACE       1
+//! audio control or midi streaming interface
+#define  USB_DEVICE_NB_INTERFACE       2
 
 #ifdef USB_DEVICE_LPM_SUPPORT
 # define USB_VERSION   USB_V2_1
@@ -81,11 +81,10 @@ UDC_DESC_STORAGE usb_dev_desc_t udc_midi_device_desc = {
 	.bDeviceClass              = 0,
 	.bDeviceSubClass           = 0,
 	.bDeviceProtocol           = 0,
-	.bMaxPacketSize0           = USB_DEVICE_EP_CTRL_SIZE,
+	.bMaxPacketSize0           = LE16(USB_DEVICE_EP_CTRL_SIZE),
 	.idVendor                  = LE16(USB_DEVICE_VENDOR_ID),
 	.idProduct                 = LE16(USB_DEVICE_PRODUCT_ID),
-	.bcdDevice                 = LE16((USB_DEVICE_MAJOR_VERSION << 8)
-		| USB_DEVICE_MINOR_VERSION),
+	.bcdDevice                 = LE16((USB_DEVICE_MAJOR_VERSION << 8) | USB_DEVICE_MINOR_VERSION),
 #ifdef USB_DEVICE_MANUFACTURE_NAME
 	.iManufacturer             = 1,
 #else

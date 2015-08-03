@@ -64,9 +64,8 @@
 
 //! \name Possible SubClass value
 //@{
-//! Interface subclass NO support BOOT protocol
+
 #define  AUDIO_SUBCLASS_MIDISTREAM                 0x03
-//! Interface subclass support BOOT protocol
 #define  AUDIO_SUBCLASS_AUDIOCTRL                   0x01
 //@}
 
@@ -110,6 +109,11 @@ enum usb_ms_iface_desc_subtype {
 	MIDI_IN_JACK = 0x02,
 	MIDI_OUT_JACK = 0x03,
 	ELEMENT = 0x04,
+};
+
+enum usb_ac_iface_desc_subtype {
+	AC_DESCRIPTOR_UNDEFINED = 0x00,
+	HEADER = 0x01,
 };
 
 enum usb_ms_ep_desc_subtype {

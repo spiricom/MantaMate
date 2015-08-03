@@ -62,8 +62,8 @@
 
 
 //! Endpoint number used by midi interface
-#define  UDI_MIDI_EP_IN            (2 | USB_EP_DIR_IN)
-#define  UDI_MIDI_EP_OUT            (1 | USB_EP_DIR_OUT)
+#define  UDI_MIDI_EP_IN            (1 | USB_EP_DIR_IN)
+#define  UDI_MIDI_EP_OUT           (2 | USB_EP_DIR_OUT)
 //! Interface number
 #define UDI_AUDIOCTRL_IFACE_NUMBER		 0
 #define  UDI_MIDISTREAM_IFACE_NUMBER     1   
