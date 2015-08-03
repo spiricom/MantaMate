@@ -228,7 +228,7 @@ COMPILER_PACK_RESET()
    //! @{
 //! Numeric expression identifying the HID Class
 //! Specification release (here V1.00)
-#define  USB_MIDI_BDC_V1_00                    0x0100
+#define  USB_MIDI_BDC_V1_00                    0x0001//0x0100
 //! Numeric expression specifying the number of class descriptors
 //! Note: Always at least one i.e. Report descriptor.
 #define  USB_MIDI_NUM_DESC                     0x01

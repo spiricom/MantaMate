@@ -63,8 +63,8 @@
  */
 
 //! Value for field bcdUSB
-#define  USB_V2_0    0x0200 //!< USB Specification version 2.00
-#define  USB_V2_1    0x0201 //!< USB Specification version 2.01
+#define  USB_V2_0    0x1000//0x0010 //!< USB Specification version 2.00
+#define  USB_V2_1    0x0110//0x1001 //!< USB Specification version 2.01
 
 /*! \name Generic definitions (Class, subclass and protocol)
  */
@@ -202,8 +202,8 @@ enum usb_descriptor_type {
 	USB_DT_STRING = 3,
 	USB_DT_INTERFACE = 4,
 	USB_DT_ENDPOINT = 5,
-	USB_DT_DEVICE_QUALIFIER = 6,
-	USB_DT_OTHER_SPEED_CONFIGURATION = 7,
+	USB_DT_DEVICE_QUALIFIER = 6, // only for high speed capable devices
+	USB_DT_OTHER_SPEED_CONFIGURATION = 7, // only for high speed capable devices
 	USB_DT_INTERFACE_POWER = 8,
 	USB_DT_OTG = 9,
 	USB_DT_IAD = 0x0B,
@@ -323,14 +323,14 @@ typedef struct {
 typedef struct {
 	uint8_t bLength;
 	uint8_t bDescriptorType;
-	le16_t bcdUSB;
+	uint16_t bcdUSB;
 	uint8_t bDeviceClass;
 	uint8_t bDeviceSubClass;
 	uint8_t bDeviceProtocol;
 	uint8_t bMaxPacketSize0;
-	le16_t idVendor;
-	le16_t idProduct;
-	le16_t bcdDevice;
+	uint16_t idVendor;
+	uint16_t idProduct;
+	uint16_t bcdDevice;
 	uint8_t iManufacturer;
 	uint8_t iProduct;
 	uint8_t iSerialNumber;

@@ -64,7 +64,7 @@
  */
 
 //! Only one interface for this device
-#define  USB_DEVICE_NB_INTERFACE       1
+#define  USB_DEVICE_NB_INTERFACE       2
 
 #ifdef USB_DEVICE_LPM_SUPPORT
 # define USB_VERSION   USB_V2_1
@@ -77,7 +77,7 @@ COMPILER_WORD_ALIGNED
 UDC_DESC_STORAGE usb_dev_desc_t udc_midi_device_desc = {
 	.bLength                   = sizeof(usb_dev_desc_t),
 	.bDescriptorType           = USB_DT_DEVICE,
-	.bcdUSB                    = LE16(USB_VERSION),
+	.bcdUSB                    = 0x1001, 0x0110, //LE16(USB_VERSION),
 	.bDeviceClass              = 0,
 	.bDeviceSubClass           = 0,
 	.bDeviceProtocol           = 0,

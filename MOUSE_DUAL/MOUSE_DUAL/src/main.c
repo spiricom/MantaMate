@@ -303,6 +303,9 @@ int main(void){
 	
 	// Start USB host stack
 	uhc_start();
+	
+	// Start USB device stack
+	//udc_start();
 
 	initNoteStack();
 	// The USB management is entirely managed by interrupts.

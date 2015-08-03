@@ -428,7 +428,7 @@ bool manta_light_LED(uint8_t *lights)
 	// red lights	
 	for(; i<SLIDER_BYTES+2*HEX_BYTES; i++)
 	{
-		// don't turn on red if amber already on beacuse too much current!!!! explosions
+		// don't turn on red if amber already on because too much current!!!! explosions
 		uhi_manta_report[i+1] = lights[i] & (~lights[i-SLIDER_BYTES-HEX_BYTES-FUNTION_BYTES]);
 	}
 	
