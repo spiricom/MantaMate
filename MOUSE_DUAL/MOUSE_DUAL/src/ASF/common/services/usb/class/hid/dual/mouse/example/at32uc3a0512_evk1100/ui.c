@@ -409,6 +409,7 @@ void ui_device_remotewakeup_disable(void)
 bool ui_device_midi_enable(void)
 {
 	ui_d_midi_enable = true;
+	LED_On(LED3);
 	return true;
 }
 
@@ -419,11 +420,11 @@ void ui_device_midi_disable(void)
 
 void ui_device_sof_action(void)
 {
-	bool b_btn_state;
+	//bool b_btn_state;
 	uint16_t framenumber;
-	static bool btn_left_last_state = HID_MOUSE_BTN_UP;
-	static bool btn_right_last_state = HID_MOUSE_BTN_UP;
-	static bool btn_middle_last_state = HID_MOUSE_BTN_UP;
+	//static bool btn_left_last_state = HID_MOUSE_BTN_UP;
+	//static bool btn_right_last_state = HID_MOUSE_BTN_UP;
+	//static bool btn_middle_last_state = HID_MOUSE_BTN_UP;
 	static uint8_t cpt_sof = 0;
 
 	if (!ui_d_midi_enable)
@@ -442,7 +443,7 @@ void ui_device_sof_action(void)
 	return;
 	cpt_sof = 0;
 
-	// Scan buttons on switch 0 (left), 1 (middle), 2 (right)
+	/*// Scan buttons on switch 0 (left), 1 (middle), 2 (right)
 	b_btn_state = (!gpio_get_pin_value(GPIO_PUSH_BUTTON_0)) ?
 	HID_MOUSE_BTN_DOWN : HID_MOUSE_BTN_UP;
 	if (b_btn_state != btn_left_last_state) {
@@ -463,13 +464,14 @@ void ui_device_sof_action(void)
 	}
 	// Joystick used to move mouse
 	if (is_joystick_right())
-	udi_hid_mouse_moveX(MOUSE_MOVE_RANGE);
+	LED_On(LED5);
+	//udi_hid_mouse_moveX(MOUSE_MOVE_RANGE);
 	if (is_joystick_left())
 	udi_hid_mouse_moveX(-MOUSE_MOVE_RANGE);
 	if (is_joystick_up())
 	udi_hid_mouse_moveY(-MOUSE_MOVE_RANGE);
 	if (is_joystick_down())
-	udi_hid_mouse_moveY(MOUSE_MOVE_RANGE);
+	udi_hid_mouse_moveY(MOUSE_MOVE_RANGE);*/
 }
 //! @}
 

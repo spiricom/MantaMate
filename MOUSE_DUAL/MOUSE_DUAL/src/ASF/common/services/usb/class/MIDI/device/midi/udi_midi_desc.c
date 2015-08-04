@@ -77,13 +77,13 @@ COMPILER_WORD_ALIGNED
 UDC_DESC_STORAGE usb_dev_desc_t udc_midi_device_desc = {
 	.bLength                   = sizeof(usb_dev_desc_t),
 	.bDescriptorType           = USB_DT_DEVICE,
-	.bcdUSB                    = 0x1001, 0x0110, //LE16(USB_VERSION),
+	.bcdUSB                    = LE16(USB_VERSION),
 	.bDeviceClass              = 0,
 	.bDeviceSubClass           = 0,
 	.bDeviceProtocol           = 0,
 	.bMaxPacketSize0           = USB_DEVICE_EP_CTRL_SIZE,
 	.idVendor                  = LE16(USB_DEVICE_VENDOR_ID),
-	.idProduct                 = LE16(USB_DEVICE_PRODUCT_ID),
+	.idProduct                 = LE16(USB_DEVICE_PRODUCT_ID), //0x7D developmental ID 
 	.bcdDevice                 = LE16((USB_DEVICE_MAJOR_VERSION << 8)
 		| USB_DEVICE_MINOR_VERSION),
 #ifdef USB_DEVICE_MANUFACTURE_NAME

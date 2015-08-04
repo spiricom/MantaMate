@@ -112,6 +112,11 @@ enum usb_ms_iface_desc_subtype {
 	ELEMENT = 0x04,
 };
 
+enum usb_ac_iface_desc_subtype {
+	AC_DESCRIPTOR_UNDEFINED = 0x00,
+	HEADER = 0x01,
+};
+
 enum usb_ms_ep_desc_subtype {
 	DESCRIPTOR_UNDEFINED = 0x00,
 	MS_GENERAL = 0x01,
@@ -228,9 +233,9 @@ COMPILER_PACK_RESET()
    //! @{
 //! Numeric expression identifying the HID Class
 //! Specification release (here V1.00)
-#define  USB_MIDI_BDC_V1_00                    0x0001//0x0100
+#define  USB_MIDI_BDC_V1_00                    0x0100
 //! Numeric expression specifying the number of class descriptors
 //! Note: Always at least one i.e. Report descriptor.
-#define  USB_MIDI_NUM_DESC                     0x01
+#define  USB_MIDI_NUM_DESC                     0x02
 
 #endif // _USB_PROTOCOL_MIDI_H_
