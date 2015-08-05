@@ -393,7 +393,7 @@ void ui_device_suspend_action(void)
 
 void ui_device_resume_action(void)
 {
-	LED_On(LED0);
+	LED_On(LED1);
 }
 
 void ui_device_remotewakeup_enable(void)
@@ -409,7 +409,7 @@ void ui_device_remotewakeup_disable(void)
 bool ui_device_midi_enable(void)
 {
 	ui_d_midi_enable = true;
-	LED_On(LED1);
+	LED_On(LED3);
 	return true;
 }
 
@@ -429,8 +429,6 @@ void ui_device_sof_action(void)
 
 	if (!ui_d_midi_enable)
 	return;
-	
-	LED_Toggle(LED2);
 
 	framenumber = udd_get_frame_number();
 	if ((framenumber % 1000) == 0) {

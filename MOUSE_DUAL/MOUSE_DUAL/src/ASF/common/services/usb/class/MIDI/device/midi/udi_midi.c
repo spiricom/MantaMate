@@ -49,7 +49,6 @@
 #include "udd.h"
 #include "udc.h"
 #include "udi_midi.h"
-#include "udim.h"
 #include <string.h>
 
 /**
@@ -68,10 +67,10 @@ bool udi_dmidi_setup(void);
 
 //! Global structure which contains standard UDI interface for UDC
 UDC_DESC_STORAGE udi_api_t udi_api_midi = {
-	.enable = (bool(*)(void))udi_dmidi_enable,
-	.disable = (void (*)(void))udi_dmidi_disable,
-	.setup = (bool(*)(void))udi_dmidi_setup,
-	.getsetting = (uint8_t(*)(void))udi_dmidi_getsetting,
+	.enable = NULL,//(bool(*)(void))udi_dmidi_enable,
+	.disable = NULL,//(void (*)(void))udi_dmidi_disable,
+	.setup = NULL,//(bool(*)(void))udi_dmidi_setup,
+	.getsetting = NULL,//(uint8_t(*)(void))udi_dmidi_getsetting,
 	.sof_notify = NULL,
 };
 //@}
@@ -129,9 +128,6 @@ COMPILER_WORD_ALIGNED
  * \return \c 1 if send on going, \c 0 if delay.
  */
 static bool udi_midi_send_report(void);
-static bool udi_dmidi_setreport(void);
-
-bool udi_dmidi_setup(void);
 
 /**
  * \brief Callback called when the report is sent
@@ -168,18 +164,14 @@ void udi_dmidi_disable(void)
 	UDI_MIDI_DISABLE_EXT();
 }
 
-static bool udi_dmidi_setreport(void)
-{
-	return false;
-}
 
 bool udi_dmidi_setup(void)
 {
-	//return true;
-	return udi_midi_setup(&udi_midi_rate,
-								&udi_midi_protocol,
-								NULL,
-								udi_dmidi_setreport);
+	return true;
+	//return udi_hid_setup(&udi_hid_mouse_rate,
+	//							&udi_hid_mouse_protocol,
+	//							(uint8_t *) &udi_hid_mouse_report_desc,
+	//							udi_hid_mouse_setreport);
 }
 
 

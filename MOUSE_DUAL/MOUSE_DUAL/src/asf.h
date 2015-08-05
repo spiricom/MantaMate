@@ -110,7 +110,7 @@
 #include <usb_protocol_hid.h>
 
 // From module: USB HID Library (Device)
-//#include <udi_hid.h>
+#include <udi_hid.h>
 
 // From module: USB Host HID Mouse (Single Class support)
 #include <uhi_hid_manta.h>
