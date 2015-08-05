@@ -47,7 +47,7 @@
 #include "conf_usb.h"
 #include "udd.h"
 #include "udc_desc.h"
-#include "udi_hid.h"
+#include "udim.h"
 #include "usb_protocol_midi.h"
 #include "udi_midi.h"
 

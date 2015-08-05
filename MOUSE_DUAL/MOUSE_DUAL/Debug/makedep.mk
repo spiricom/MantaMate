@@ -16,7 +16,7 @@ src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi.c
 
 src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi_desc.c
 
-src\ASF\common\services\usb\class\MIDI\device\udi_hid.c
+src\ASF\common\services\usb\class\MIDI\device\udim.c
 
 src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c
 

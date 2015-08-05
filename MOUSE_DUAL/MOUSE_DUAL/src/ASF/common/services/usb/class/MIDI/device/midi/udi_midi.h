@@ -95,8 +95,7 @@ typedef struct{
 
 //! Structure for USB Device Configuration Descriptor
 COMPILER_PACK_SET(1)
-typedef struct
-{
+typedef struct{
 	usb_conf_desc_t     config;
 	udi_midi_desc_t     midi;
 } udc_midi_conf_desc_t;
