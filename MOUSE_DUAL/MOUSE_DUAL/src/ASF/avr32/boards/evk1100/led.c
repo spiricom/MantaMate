@@ -178,7 +178,7 @@ bool LED_Test(U32 leds)
 }
 
 
-void LED_Off(U32 leds)
+void LED_On(U32 leds)
 {
   // Use the LED descriptors to get the connections of a given LED to the MCU.
   tLED_DESCRIPTOR *led_descriptor = &LED_DESCRIPTOR[0] - 1;
@@ -206,7 +206,7 @@ void LED_Off(U32 leds)
 }
 
 
-void LED_On(U32 leds)
+void LED_Off(U32 leds)
 {
   // Use the LED descriptors to get the connections of a given LED to the MCU.
   tLED_DESCRIPTOR *led_descriptor = &LED_DESCRIPTOR[0] - 1;

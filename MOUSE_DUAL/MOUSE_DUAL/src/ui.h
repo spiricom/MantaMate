@@ -49,6 +49,7 @@
 
 #include "uhc.h"
 
+
 /**
  * \name Main user interface functions
  * @{
@@ -147,9 +148,12 @@ void ui_uhi_hid_joy_change(uhc_device_t * dev, bool b_plug);
 void ui_uhi_hid_manta_change(uhc_device_t * dev, bool b_plug);
 void  ui_uhi_midi_change(uhc_device_t *dev, bool b_plug);
 
+void my_callback_midi_rx_notify(void);
+
 void ui_test_flag_reset(void);
 void ui_test_finish(bool b_success);
 
 extern bool ui_midi_plug;
+extern uint8_t my_buf[128];
 
 #endif // _UI_H_

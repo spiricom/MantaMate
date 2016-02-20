@@ -54,6 +54,7 @@
 #include "main.h"
 #include <fastmath.h>
 #include "note_process.h"
+#include "7Segment.h"
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
@@ -263,7 +264,8 @@ static void get_report_descriptor()
 			uhi_hid_joy_dev.DescSize[i], NULL, parse_report_descriptor)) 
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
-			dip204_printf_string("ERROR");
+			//dip204_printf_string("ERROR");
+			Write7Seg(77);
 			return;
 		}
 	}
@@ -699,8 +701,8 @@ static void uhi_hid_joy_report_reception(
 	if(slider_prev != slider_new )
 	{
 		uhi_hid_joy_dev.report_slider_prev = slider_new;
-		lcd_clear_line(4);
-		dip204_printf_string("slider: %lx",slider_new);
+		//lcd_clear_line(4);
+		//dip204_printf_string("slider: %lx",slider_new);
 		
 		if(butt_new & 0x01)
 			joyVol(slider_new);
@@ -732,37 +734,37 @@ static void uhi_hid_joy_report_reception(
 		
 		uhi_hid_joy_dev.report_butt_prev = butt_new;
 
-		lcd_clear_line(2);
-		dip204_printf_string("buttons: %lx",butt_new);
+		//lcd_clear_line(2);
+		//dip204_printf_string("buttons: %lx",butt_new);
 	}
 	
 	if (x_prev != x_new) {
 		uhi_hid_joy_dev.report_x_prev = x_new;
-		lcd_clear_line(1);
-		dip204_printf_string("%lx, %lx",x_new, y_new);
+		//lcd_clear_line(1);
+		//dip204_printf_string("%lx, %lx",x_new, y_new);
 		
 		DAC16Send(1, (0x3FF - x_new) << 6);
 	}
 	
 	if (y_prev != y_new) {
 		uhi_hid_joy_dev.report_y_prev = y_new;
-		lcd_clear_line(1);
-		dip204_printf_string("%lx, %lx",x_new, y_new);
+		//lcd_clear_line(1);
+		//dip204_printf_string("%lx, %lx",x_new, y_new);
 		
 		DAC16Send(2, (0x3FF - y_new) << 6);
 	}
 	
 	if(Rz_prev != Rz_new) {
 		uhi_hid_joy_dev.report_Rz_prev = Rz_new;
-		lcd_clear_line(3);
-		dip204_printf_string("Rz: %lx,",Rz_new);
+		//lcd_clear_line(3);
+		//dip204_printf_string("Rz: %lx,",Rz_new);
 		
 		DAC16Send(3, Rz_new << 8);
 	}
 	
 	if(hat_prev != hat_new) {
 		uhi_hid_joy_dev.report_hat_prev = hat_new;
-		dip204_printf_string(" hat: %lx",hat_new);
+		//dip204_printf_string(" hat: %lx",hat_new);
 	}
 	
 	// Decode moves

@@ -50,6 +50,7 @@
 #include "uhd.h"
 #include "usbb_otg.h"
 #include "usbb_host.h"
+#include "7Segment.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -381,6 +382,8 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 {
 	bool b_mode_device;
 
+// this is necessary for OTG to work as both host and device, I think --- JOS
+/*
 #ifdef USB_ID
 	if (Is_otg_id_transition()) {
 		while (!Is_otg_clock_usable());
@@ -391,10 +394,14 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 			uhc_stop(false);
 			UHC_MODE_CHANGE(false);
 			udc_start();
+			Write7Seg(1);
+			
 		} else {
 			udc_stop();
 			UHC_MODE_CHANGE(true);
 			uhc_start();
+			Write7Seg(0);
+			
 		}
 		return;
 	}
@@ -402,7 +409,8 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 #else
 	b_mode_device = Is_otg_device_mode_forced();
 #endif
-
+*/
+	b_mode_device = 0;
 	// Redirection to host or device interrupt
 	if (b_mode_device) {
 		udd_interrupt();
@@ -980,6 +988,7 @@ static void uhd_interrupt(void)
 	if (Is_uhd_sof()) {
 		uhd_ack_sof();
 		uhd_sof_interrupt();
+		//Write7Seg(0);
 		return;
 	}
 
@@ -988,11 +997,13 @@ static void uhd_interrupt(void)
 	if (pipe_int == 0) {
 		// Interrupt acked by control endpoint managed
 		uhd_ctrl_interrupt();
+		//Write7Seg(1);
 		return;
 	}
 	if (pipe_int != AVR32_USBB_EPT_NUM) {
 		// Interrupt acked by bulk/interrupt/isochronous endpoint
 		uhd_pipe_interrupt(pipe_int);
+		//Write7Seg(2);
 		return;
 	}
 	pipe_int = uhd_get_pipe_dma_interrupt_number();

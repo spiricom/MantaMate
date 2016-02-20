@@ -111,7 +111,7 @@
 //! Multiplexed pin used for USB_ID: AVR32_USBB_USB_ID_x_x.
 //! To be selected according to the AVR32_USBB_USB_ID_x_x_PIN and
 //! AVR32_USBB_USB_ID_x_x_FUNCTION definitions from <avr32/uc3axxxx.h>.
-#define USB_ID                      AVR32_USBB_USB_ID_0_0
+//#define USB_ID                      AVR32_USBB_USB_ID_0_0
 
 //! Multiplexed pin used for USB_VBOF: AVR32_USBB_USB_VBOF_x_x.
 //! To be selected according to the AVR32_USBB_USB_VBOF_x_x_PIN and
@@ -135,20 +135,32 @@
 #define REF1  	AVR32_PIN_PX38
 
 //! Number of LEDs.
-#define LED_COUNT   8
+#define LED_COUNT   6
 
 /*! \name GPIO Connections of LEDs
  */
 //! @{
-#define LED0_GPIO   AVR32_PIN_PB27
-#define LED1_GPIO   AVR32_PIN_PB28
-#define LED2_GPIO   AVR32_PIN_PB29
-#define LED3_GPIO   AVR32_PIN_PB30
-#define LED4_GPIO   AVR32_PIN_PB19
-#define LED5_GPIO   AVR32_PIN_PB20
-#define LED6_GPIO   AVR32_PIN_PB21
-#define LED7_GPIO   AVR32_PIN_PB22
+#define LED0_GPIO   AVR32_PIN_PB19
+#define LED1_GPIO   AVR32_PIN_PB20
+#define LED2_GPIO   AVR32_PIN_PB21
+#define LED3_GPIO   AVR32_PIN_PB22
+#define LED4_GPIO   AVR32_PIN_PA25
+#define LED5_GPIO   AVR32_PIN_PA26
+
+
+#define SEG1_GPIO   AVR32_PIN_PB11
+#define SEG2_GPIO   AVR32_PIN_PB10
+#define SEG3_GPIO   AVR32_PIN_PB09
+#define SEG4_GPIO   AVR32_PIN_PB08
+#define SEG5_GPIO   AVR32_PIN_PB07
+#define SEG6_GPIO   AVR32_PIN_PB06
+#define SEG7_GPIO   AVR32_PIN_PB05
+#define SEG8_GPIO   AVR32_PIN_PB04
 //! @}
+
+
+#define GPIO_USB_SWITCH   AVR32_PIN_PA11
+
 
 /*! \name PWM Channels of LEDs
  */
@@ -176,29 +188,16 @@
 #define LED7_PWM_FUNCTION   AVR32_PWM_3_FUNCTION
 //! @}
 
-/*! \name Color Identifiers of LEDs to Use with LED Functions
- */
-//! @{
-#define LED_MONO0_GREEN   LED0
-#define LED_MONO1_GREEN   LED1
-#define LED_MONO2_GREEN   LED2
-#define LED_MONO3_GREEN   LED3
-#define LED_BI0_GREEN     LED5
-#define LED_BI0_RED       LED4
-#define LED_BI1_GREEN     LED7
-#define LED_BI1_RED       LED6
-//! @}
+
 
 
 /*! \name GPIO Connections of Push Buttons
  */
 //! @{
-#define GPIO_PUSH_BUTTON_0            AVR32_PIN_PX16
+#define GPIO_PUSH_BUTTON_0            AVR32_PIN_PB02
 #define GPIO_PUSH_BUTTON_0_PRESSED    0
-#define GPIO_PUSH_BUTTON_1            AVR32_PIN_PX19
+#define GPIO_PUSH_BUTTON_1            AVR32_PIN_PB03
 #define GPIO_PUSH_BUTTON_1_PRESSED    0
-#define GPIO_PUSH_BUTTON_2            AVR32_PIN_PX22
-#define GPIO_PUSH_BUTTON_2_PRESSED    0
 //! @}
 
 

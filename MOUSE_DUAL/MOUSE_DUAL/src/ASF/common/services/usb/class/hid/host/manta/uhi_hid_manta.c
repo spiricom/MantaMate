@@ -53,6 +53,7 @@
 #include "main.h"
 #include "note_process.h"
 #include <string.h>
+#include "7Segment.h"
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
@@ -154,9 +155,9 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	//product = uhc_dev_get_string(dev,dev->dev_desc.iProduct);
 	//while(product == NULL);
 	
-	lcd_clear_line(2);
-	dip204_printf_string("%x",dev->dev_desc.idProduct);
-
+	//lcd_clear_line(2);
+	//dip204_printf_string("%x",dev->dev_desc.idProduct);
+	Write7Seg(55);
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
@@ -242,11 +243,11 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	initNoteStack();
 	memset(lights,0,HEX_BYTES*2+SLIDER_BYTES);
-	lights[0] = 0x01;
-	lights[9] = 0x03;
-	lights[6] = 0x03;
-	lights[7] = 0x0A;
-	manta_light_LED(lights);
+	//lights[0] = 0x01;
+	//lights[9] = 0x03;
+	//lights[6] = 0x03;
+	//lights[7] = 0x0A;	
+	//manta_light_LED(lights);
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
 }
@@ -306,7 +307,7 @@ static void uhi_hid_manta_report_reception(
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
 	for(i=0; i<4; i++)
 		sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
-		
+		/*
     i = 0;
 	
 	while(i < 48 && butt_states[i] == 0)
@@ -314,9 +315,9 @@ static void uhi_hid_manta_report_reception(
 		
 	if(i < 48)
 	{
-		lcd_clear_line(1);
-		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
-		dip204_hide_cursor();
+		//lcd_clear_line(1);
+		//dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
+		//dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_LEFT(1);
 	}
 	else
@@ -329,12 +330,13 @@ static void uhi_hid_manta_report_reception(
 	
 	if(i < 48)
 	{
-		lcd_clear_line(2);
-		dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
-		dip204_hide_cursor();
+		//lcd_clear_line(2);
+		//dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
+		//dip204_hide_cursor();
 		UHI_HID_MOUSE_EVENT_BTN_RIGHT(1);
 	}
 	else UHI_HID_MOUSE_EVENT_BTN_RIGHT(0);
+	*/
 	
 	if((sliders[0] != pastsliders[0] && sliders[0] != 255) || (sliders[1] != pastsliders[1] && sliders[1] != 255))
 	{
@@ -342,7 +344,7 @@ static void uhi_hid_manta_report_reception(
 		dip204_clear_line(3);
 		dip204_printf_string("slider: %u = %u",1,val);
 		dip204_hide_cursor();*/
-		dacsend(0,2,val);
+		dacsend(1,0,val);
 	}
 	
 	if((sliders[2] != pastsliders[2] && sliders[2] != 255) || (sliders[3] != pastsliders[3] && sliders[3] != 255))
@@ -351,7 +353,7 @@ static void uhi_hid_manta_report_reception(
 		dip204_clear_line(4);
 		dip204_printf_string("slider: %u = %u",2,val);
 		dip204_hide_cursor();*/
-		dacsend(2,2,val);
+		dacsend(2,0,val);
 	}
 	
 	processKeys();
@@ -366,7 +368,8 @@ static void uhi_hid_manta_report_reception(
 static void processKeys(void)
 {
 	uint8_t i;
-
+	uint8_t hex_max = 0;
+	
 	for (i = 0; i < 48; i++)
 	{
 		//if the current sensor value of a key is positive and it was zero on last count
@@ -379,7 +382,11 @@ static void processKeys(void)
 		{
 			removeNote(i);	
 		}
-
+		if (butt_states[i] > hex_max)
+		{
+			hex_max = butt_states[i];
+		}
+		dacsend(3,0,hex_max * 16); 
 		// update the past keymap array (stores the previous values of every key's sensor reading)
 		pastbutt_states[i] = butt_states[i];
 	}

@@ -2,12 +2,19 @@
  * note_process.c
  *
  * Created: 7/22/2015 4:47:37 PM
- *  Author: Elaine
+ *  Author: Elaine Chou & Jeff Snyder
  */ 
-
+#include <asf.h>
 #include "main.h"
 #include "note_process.h"
 #include "dip204.h"
+#include "7Segment.h"
+#include <math.h>
+
+#define FINGERMAX 11
+#define FINGERMIN 10
+#define FINGERMAX_SCALE (1.0/(float)(FINGERMAX-FINGERMIN))
+
 
 enum maps_t
 {
@@ -17,6 +24,13 @@ enum maps_t
 };
 
 static unsigned short calculateDACvalue(uint8_t noteVal);
+extern unsigned char preset_num;
+
+void BirlBreathPosOut(void);
+void BirlBreathNegOut(void);
+void birlPitchOut(void);
+float_t calculateBirlPitch(void);
+void controlChangeBirl(uint8_t ctrlNum, uint8_t val);
 
 unsigned long twelvetet[12] = {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100};
 unsigned long overtonejust[12] = {0, 111, 203, 316, 386, 498, 551, 702, 813, 884, 968, 1088};
@@ -30,20 +44,37 @@ unsigned int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,2
 unsigned int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
 18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 
-enum maps_t whichmap = NO_MAP;
-unsigned long scaledoctaveDACvalue = 54612;
+enum maps_t whichmap = HARMONIC;
+unsigned long scaledoctaveDACvalue = 54780; //55425
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
 uint8_t amplitude = 0;
 unsigned char lastButtVCA = 0; //0 if you want to turn this off
 
+uint16_t finger[11];
+uint8_t finger_lowbytes[11];
+uint8_t finger_highbytes[11];
+uint16_t birlBreathPos;
+uint8_t birlBreathPosHigh;
+uint8_t birlBreathPosLow1;
+uint8_t birlBreathPosLow2;
+uint16_t birlBreathNeg;
+uint8_t birlBreathNegHigh;
+uint8_t birlBreathNegLow1;
+uint8_t birlBreathNegLow2;
+
+float_t fingerFloat[11];
+
+float_t	birlOctave = 12;
+float_t	birlOffset = 23;
+
 signed char notestack[48][2];
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
 unsigned char polymode = 0; //need to implement
-unsigned char polynum = 2;
+unsigned char polynum = 1;
 unsigned char polyVoiceNote[4];
 unsigned char polyVoiceBusy[4];
 unsigned char changevoice[4];
@@ -53,6 +84,10 @@ unsigned char voicefound = 0;
 unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
+
+
+
+
 
 unsigned sysVol = 0x7F;  // should probably initialize by reading from MIDI device
 
@@ -64,10 +99,11 @@ void initNoteStack(void)
 	numnotes = 0;
 	for(i=0; i<4; i++)
 	{
-		dacsend(i,1,0);
-		dacsend(i,2,0);
+		dacsend(i,0,0);
+		dacsend(i,0,0);
 		DAC16Send(i,0);
 	}
+	//Write7Seg(0);
 }
 
 //ADDING A NOTE
@@ -122,10 +158,13 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	/*lcd_clear_line(3);
 	dip204_printf_string("%u notes",numnotes);
 	dip204_hide_cursor();*/
-	for(j=0; j<polynum; j++)
+	if (polymode == 1)
 	{
-		if(polyVoiceBusy[j])
+		for(j=0; j<polynum; j++)
+		{
+			if(polyVoiceBusy[j])
 			dacsend(j,1,0xFFF);
+		}
 	}
 }
 
@@ -235,7 +274,7 @@ unsigned short calculateDACvalue(uint8_t noteVal)
 	}
 	
 	//templong = ((noteval + offset + transpose) * 54612);  // original simple equal temperament
-	pitchclass = ((note + transpose + 21) % 12);  // add 21 to make it positive and centered on C
+	pitchclass = ((note + transpose + 24) % 12);  // add 24 to make it positive and centered on C
 	virtualnote = (note + 13 + transpose - pitchclass);
 	if (tuning == 0)
 	templongnote = (twelvetet[pitchclass] * scaledoctaveDACvalue);
@@ -254,7 +293,7 @@ unsigned short calculateDACvalue(uint8_t noteVal)
 	templongoctave = ((virtualnote + octaveoffset) * scaledoctaveDACvalue);
 	templongoctave = (templongoctave / 100);
 	DAC1val = templongnote + templongoctave;
-	return DAC1val*2;
+	return DAC1val;
 }
 
 void mantaVol(uint8_t *butts)
@@ -302,35 +341,182 @@ void midiVol(void)
 	for(i=0; i<polynum; i++)
 	{
 		if(polyVoiceBusy[i])
-			dacsend(i+2,2,(vol)&0xFFF);
+			dacsend(i+2,0,(vol)&0xFFF);
 		else
-			dacsend(i+2,2,0);	
+			dacsend(i+2,0,0);	
 	}
 }
 
 void joyVol(uint16_t slider_val) {
-	dacsend(0, 2, slider_val << 4);
-	dacsend(1, 2, slider_val << 4);
+	dacsend(0, 0, slider_val << 4);
+	dacsend(1, 0, slider_val << 4);
 }
 
+void BirlBreathPosOut(void)
+{
+	birlBreathPos = ((birlBreathPosHigh << 7) + (birlBreathPosLow1)) * 20.0 ; // * 20 to bring the 12 bit number up to 16 bit... 
+	Write7Seg(birlBreathPos / 32);
+	DAC16Send(1, birlBreathPos);
+}
+
+void BirlBreathNegOut(void)
+{
+	DAC16Send(2, birlBreathNeg);
+}
+
+		
+float_t calculateBirlPitch(void)
+{	
+		float_t pitch = 1.0;
+		
+		for(uint8_t i = 0; i < 11; i++){
+			//if (finger[i] > FINGERMAX)
+			//{
+			//	fingerFloat[i] = (float_t)(FINGERMAX - FINGERMIN) * FINGERMAX_SCALE;
+			//}
+			//if (finger[i] < FINGERMIN)
+			//{
+			//	fingerFloat[i] = 0.0;
+			//}
+			//else
+			//{
+			//	fingerFloat[i] = ((float)(finger[i] - FINGERMIN)) * FINGERMAX_SCALE;
+			//}
+			//fingerFloat[i] = (float)finger[i] * FINGERMAX_SCALE; //Scale between 0-200 to 0.-1.
+			if (finger[i] > 30)
+			{
+				fingerFloat[i] = 1.0;
+			}
+			else
+			{
+				fingerFloat[i] = 0.0;
+			}
+		}
+		/*
+		var L1 = a[0];
+		var L2 = a[1];
+		var L3 = a[2];
+		var LP1 = a[3];
+		var LP2 = a[4];
+		var Side = a[5];
+		var R1 = a[6];
+		var R2 = a[7];
+		var R3 = a[8];
+		var RP1 = a[9];
+		var RP2 = a[10];
+		*/
+
+		// L1 drops the pitch a whole step (like from C# to B)
+		pitch = pitch - (2.0 * fingerFloat[0]);
+
+		// L2 drops the pitch a half step if L1 is open, or a whole step if L1 is closed (C natural or A)
+		pitch = pitch - (fingerFloat[1] + (fingerFloat[1] * fingerFloat[0]));
+
+		// L3 drops the pitch a whole step (A to G)
+		pitch = pitch - (2.0 * fingerFloat[2]);
+
+		// R1 should drop a whole step if L2 is down, otherwise a half step (for G to F, or B to Bb)
+		pitch = (pitch - (fingerFloat[6] + (fingerFloat[6] * fingerFloat[1])));
+
+		// R2 always drops the pitch a half step (for F to E and G to F#)
+		pitch = pitch - fingerFloat[7];
+
+		// R3 should drop whole step if R2 is down (moving from E to D), but only a half step otherwise, for flute F#
+		pitch = (pitch - (fingerFloat[8] + (fingerFloat[8] * fingerFloat[7])));
+
+		pitch = (pitch + fingerFloat[3]); // Pinky key 1 goes half step up (G#, C#, Eb)  left
+		pitch = (pitch + fingerFloat[9]); // Pinky key 1 goes half step up (G#, C#, Eb)  right
+
+		pitch = (pitch - (2.0 * fingerFloat[4])); // Pinky key 2 goes whole step down (C)  left
+		pitch = (pitch - (2.0 * fingerFloat[10])); // Pinky key 2 goes whole step down (C)  right
+
+		//pitch = (pitch + (1.0 * Side)); // side key raises any pitch a whole step
+
+		return (pitch + birlOffset + birlOctave);
+		//("Final pitch:");
+
+
+}
+
+void birlPitchOut(void)
+{
+	float_t tempPitch = 0;
+	uint32_t tempDAC = 0;
+	
+	tempPitch = calculateBirlPitch();
+	
+	tempDAC = (uint32_t)(tempPitch * 54780.0);
+	
+	DAC16Send(0, ((uint16_t)(tempDAC / 100)));
+}
+ 
+//For the MIDI keyboards knobs
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
 	switch (ctrlNum)
 	{
+		
+		case 0:
+		dacsend(0, 1, val * 32);
+		break;
+		
 		case 1:
-			
-			break;
+		dacsend(1, 1, val * 32);
+		break;
+		
 		case 2:
+		dacsend(2, 1, val * 32);
+		break;
 		
-			break;
 		case 3:
-		
-			break;
+		dacsend(3, 1, val * 32);
+		break;
+				
 		case 4:
+		dacsend(1, 0, val * 32);
+		break;	
 		
-			break;
 		case 5:
+		dacsend(2, 0, val * 32);
+		break;
 		
+		case 6:
+		dacsend(3, 0, val * 32);
+		break;
+		
+		case 31:
+		
+		break;
+		case 32:
+		
+		break;
+
+		
+		default:
+		break;
+	}
+}
+//For the MIDI keyboards knobs
+void controlChangeBirl(uint8_t ctrlNum, uint8_t val)
+{
+	switch (ctrlNum)
+	{
+		
+		case 30:
+			birlBreathPosHigh = val;
+			BirlBreathPosOut();
+			break;
+		case 31:
+			birlBreathPosLow1 = val;
+			BirlBreathPosOut();
+			break;
+		case 32:
+			birlBreathNegHigh = val;
+			BirlBreathNegOut();
+			break;
+		case 33:
+			birlBreathNegLow1 = val;
+			BirlBreathNegOut();
 			break;
 		case 6:
 		
@@ -340,7 +526,189 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 			break;
 		case 8:
 		
-			break;
+		break;
+			
+		// birl touch sensors	
+		case 42:
+		finger_highbytes[0] = val;
+		finger[0] = (finger_highbytes[0] << 7) + finger_lowbytes[0];
+		birlPitchOut();
+		break;
+		
+		case 43:
+		finger_lowbytes[0] = val;
+		finger[0] = (finger_highbytes[0] << 7) + finger_lowbytes[0];
+		birlPitchOut();
+		if (finger[0] > 20)
+		{
+			LED_On(LED3);
+		}
+		else
+		{
+			LED_Off(LED3);
+		}
+		break;
+		
+		case 44:
+		finger_highbytes[1] = val;
+		finger[1] = (finger_highbytes[1] << 7) + finger_lowbytes[1];
+		birlPitchOut();
+		break;
+		
+		case 45:
+		finger_lowbytes[1] = val;
+		finger[1] = (finger_highbytes[1] << 7) + finger_lowbytes[1];
+		birlPitchOut();
+		if (finger[1] > 20)
+		{
+			LED_On(LED2);
+		}
+		else
+		{
+			LED_Off(LED2);
+		}
+		break;
+		
+		case 46:
+		finger_highbytes[2] = val;
+		finger[2] = (finger_highbytes[2] << 7) + finger_lowbytes[2];
+		birlPitchOut();
+		break;
+		
+		case 47:
+		finger_lowbytes[2] = val;
+		finger[2] = (finger_highbytes[2] << 7) + finger_lowbytes[2];
+		birlPitchOut();
+		break;
+		
+		case 48:
+		finger_highbytes[3] = val;
+		finger[3] = (finger_highbytes[3] << 7) + finger_lowbytes[3];
+		birlPitchOut();
+		break;
+		
+		case 49:
+		finger_lowbytes[3] = val;
+		finger[3] = (finger_highbytes[3] << 7) + finger_lowbytes[3];
+		birlPitchOut();
+		break;
+		
+		case 50:
+		finger_highbytes[4] = val;
+		finger[4] = (finger_highbytes[4] << 7) + finger_lowbytes[4];
+		birlPitchOut();
+		break;
+		
+		case 51:
+		finger_lowbytes[4] = val;
+		finger[4] = (finger_highbytes[4] << 7) + finger_lowbytes[4];
+		birlPitchOut();
+		break;
+		
+		case 52:
+		finger_highbytes[5] = val;
+		finger[5] = (finger_highbytes[5] << 7) + finger_lowbytes[5];
+		birlPitchOut();
+		break;
+		
+		case 53:
+		finger_lowbytes[5] = val;
+		finger[5] = (finger_highbytes[5] << 7) + finger_lowbytes[5];
+		birlPitchOut();
+		break;
+		
+		case 54:
+		finger_highbytes[6] = val;
+		finger[6] = (finger_highbytes[6] << 7) + finger_lowbytes[6];
+		birlPitchOut();
+		break;
+		
+		case 55:
+		finger_lowbytes[6] = val;
+		finger[6] = (finger_highbytes[6] << 7) + finger_lowbytes[6];
+		birlPitchOut();
+		break;
+		
+		case 56:
+		finger_highbytes[7] = val;
+		finger[7] = (finger_highbytes[7] << 7) + finger_lowbytes[7];
+		birlPitchOut();
+		break;
+		
+		case 57:
+		finger_lowbytes[7] = val;
+		finger[7] = (finger_highbytes[7] << 7) + finger_lowbytes[7];
+		birlPitchOut();
+		break;
+		
+		case 58:
+		finger_highbytes[8] = val;
+		finger[8] = (finger_highbytes[8] << 7) + finger_lowbytes[8];
+		birlPitchOut();
+		break;
+		
+		case 59:
+		finger_lowbytes[8] = val;
+		finger[8] = (finger_highbytes[8] << 7) + finger_lowbytes[8];
+		birlPitchOut();
+		break;
+		
+		case 60:
+		finger_highbytes[9] = val;
+		finger[9] = (finger_highbytes[9] << 7) + finger_lowbytes[9];
+		birlPitchOut();
+		break;
+		
+		case 61:
+		finger_lowbytes[9] = val;
+		finger[9] = (finger_highbytes[9] << 7) + finger_lowbytes[9];
+		birlPitchOut();
+		break;
+		
+		case 62:
+		finger_highbytes[10] = val;
+		finger[10] = (finger_highbytes[10] << 7) + finger_lowbytes[10];
+		birlPitchOut();
+		break;
+		
+		case 63:
+		finger_lowbytes[10] = val;
+		finger[10] = (finger_highbytes[10] << 7) + finger_lowbytes[10];
+		birlPitchOut();
+		break;
+		
+		//octave down switch
+		case 70:
+		if (val)
+		{
+			birlOctave = 0;
+			birlPitchOut();
+			LED_On(LED0);
+		}
+		else
+		{
+			birlOctave = 12;
+			birlPitchOut();
+			LED_Off(LED0);
+		}
+		break;
+		
+		//octave up switch
+		case 72:
+		if (val)
+		{
+			birlOctave = 24;
+			birlPitchOut();
+			LED_On(LED1);
+		}
+		else
+		{
+			birlOctave = 12;
+			birlPitchOut();
+			LED_Off(LED1);
+		}
+		break;
+		
 		default:
 			break;
 	}
@@ -353,27 +721,55 @@ void programChange(uint8_t num)
 	programNum = num;
 }
 
+
 void noteOut()
 {
 	int i;
-	
 	// NOTE: Max polynum = 2 (for Jeff's Synth)	
-	if (notehappened == 1)
+	
+	if (polymode == 0)
 	{
-		for (i = 0; i < polynum; i++)
+		if (notehappened || noteoffhappened)
 		{
-			if (changevoice[i] == 1)
+			if (numnotes != 0)
 			{
-				lcd_clear_line(i+1);
-				if (polyVoiceBusy[i] == 1)
+				DAC16Send(0, calculateDACvalue(notestack[0][0]));
+				Write7Seg(notestack[0][0]);
+				//cpu_delay_ms(2,66000000);
+				dacsend(0,0,0xfff);
+				LED_On(LED3);
+			}
+			else
+			{
+				//Write7Seg(numnotes);
+				dacsend(0,0,0);
+				LED_Off(LED3);
+			}
+			notehappened = 0;
+			noteoffhappened = 0;
+		}
+
+	}
+	else
+	{
+		if (notehappened == 1)
+		{
+			for (i = 0; i < polynum; i++)
+			{
+				if (changevoice[i] == 1)
 				{
-					DAC16Send(i+1, calculateDACvalue(polyVoiceNote[i]));
-					//dip204_printf_string("note: %u",polyVoiceNote[i]);
+					//lcd_clear_line(i+1);
+					if (polyVoiceBusy[i] == 1)
+					{
+						DAC16Send(i, calculateDACvalue(polyVoiceNote[i]));
+						Write7Seg(polyVoiceNote[i]);
+					}
+					changevoice[i] = 0;
+					notehappened = 0;
+					noteoffhappened = 0;
 				}
-				changevoice[i] = 0;
-				notehappened = 0;
-				noteoffhappened = 0;	
 			}
 		}
 	}
+	
 }

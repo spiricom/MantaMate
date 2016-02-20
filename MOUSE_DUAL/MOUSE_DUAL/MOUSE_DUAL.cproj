@@ -145,7 +145,17 @@
     <com_atmel_avrdbg_tool_jtagice3plus>
       <ToolOptions>
         <InterfaceProperties>
+          <JtagEnableExtResetOnStartSession>false</JtagEnableExtResetOnStartSession>
+          <JtagInChain>false</JtagInChain>
+          <JtagDevicesBefore>0</JtagDevicesBefore>
+          <JtagDevicesAfter>0</JtagDevicesAfter>
+          <JtagInstrBitsBefore>0</JtagInstrBitsBefore>
+          <JtagInstrBitsAfter>0</JtagInstrBitsAfter>
+          <JtagSelectedDeviceIndexInChain>
+          </JtagSelectedDeviceIndexInChain>
           <JtagDbgClock>7500000</JtagDbgClock>
+          <JtagDaisyChainDevices>
+          </JtagDaisyChainDevices>
         </InterfaceProperties>
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
@@ -574,10 +584,16 @@
     <Compile Include="src\ASF\common\utils\parts.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\7Segment.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\config\conf_dip204.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\7Segment.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\note_process.c">

@@ -51,6 +51,8 @@
 //#include "midihost.h"
 #include "main.h"
 #include "note_process.h"
+#include "7Segment.h"
+
 
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 
@@ -100,6 +102,7 @@ unsigned short dacoutlow = 0;
 unsigned short DAC1outhigh = 0;
 unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
+unsigned char preset_num = 0;
 
 void DACsetup(void)
 {
@@ -164,16 +167,21 @@ static void setSPI(spi_options_t spiOptions)
 void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval)
 {
 	//send a value to one of the DAC channels to be converted to analog voltage
-	//DACvoice is which of the polyphonic voices it should go to (not yet implemented) (channel number)
-	//DACnum is which type of output it goes to (1 = A, 2 = V, 3 = B)
-
+	//DACnum is which type of output it goes to (0 = B, 1 = C)
+	
+	//for now, to correct for a mistake on the panel where the jacks are upside down, we reverse the DACvoice and DACnum numbers
+	//KLUDGE
+	DACvoice = (3 - DACvoice);
+	DACnum = (1 - DACnum);
+	//KLUDGE
+	
 	SPIbusy = 1;
 	setSPI(spiOptions12DAC);
 
 	dacouthigh = (DACval >> 4) & 0xFF;
 	dacoutlow = ((DACval << 4) & 0xF0);
 
-	if (DACnum == 1)
+	if (DACnum == 0)
 	{
 		gpio_clr_gpio_pin(DAC2_CS);
 		dacwait1();
@@ -185,7 +193,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		dacwait1();
 	}
 
-	if (DACnum == 2)
+	if (DACnum == 1)
 	{
 		gpio_clr_gpio_pin(DAC3_CS);
 		dacwait1();
@@ -206,7 +214,9 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	SPIbusy = 1;
 	//set up SPI to be 16 bit for the DAC
 	setSPI(spiOptions16DAC);
-
+	
+	//for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
+	DAC16voice = (3 - DAC16voice);
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
@@ -266,6 +276,42 @@ static void initSPIbus(void)
 	sizeof(SPARE_SPI_GPIO_MAP) / sizeof(SPARE_SPI_GPIO_MAP[0]));
 }
 
+int i =0;
+uint16_t testvoltage = 0;
+uint16_t testvoltage16 = 0;
+
+void testLoop(void)
+{
+	while(1)
+	{
+		//cpu_delay_ms(1,64000000);//5
+		for(i=0; i<4; i++)
+		{
+			dacsend(i,1,testvoltage);
+			dacsend(i,0,(4096 - testvoltage));
+			DAC16Send(i,testvoltage16);
+		}
+		testvoltage++;
+		testvoltage16++;
+		if (testvoltage > 2095)
+		{
+			LED_Off(LED5);
+		}
+		if (testvoltage > 4095)
+		{
+			testvoltage = 0;
+			LED_On(LED5);
+		}
+		if (testvoltage16 > 65534)
+		{
+			testvoltage16 = 0;
+		}
+		Write7Seg(testvoltage16 / 656);
+		
+	}
+}
+
+
 /*! \brief Main function. Execution starts here.
  */
 int main(void){
@@ -283,33 +329,18 @@ int main(void){
 	//initialize the SPI bus for DAC and LCD
 	initSPIbus();
 	
-	// Initialize as master
-	
-	//Initialize SPI for the Display, DIP204
-	spi_initMaster(DIP204_SPI, &DIP_spiOptions);
-	spi_selectionMode(DIP204_SPI, 0, 0, 0);
-	spi_selectChip(DIP204_SPI,0);
-	spi_setupChipReg(DIP204_SPI, &DIP_spiOptions, FOSC0);
-	spi_enable(DIP204_SPI);
-	
-	dip204_init(backlight_PWM, true);
-	dip204_clear_display();
-	dip204_set_cursor_position(1,1);
-	dip204_printf_string("Manta Mate");
-	dip204_hide_cursor();
-	
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
-	
+	Write7Seg(56);
 	// Start USB host stack
 	uhc_start();
+	//testLoop();
 	
 	// Start USB device stack
 	//udc_start();
-
 	initNoteStack();
 	// The USB management is entirely managed by interrupts.
-	// As a consequence, the user application does only have to play with the power modes.
+	// As a consequence, the user application only has to play with the power modes.
 	
 	while (true) {	
 		sleepmgr_enter_sleep();

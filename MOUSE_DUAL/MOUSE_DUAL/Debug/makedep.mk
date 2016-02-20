@@ -20,6 +20,8 @@ src\ASF\common\services\usb\class\MIDI\device\udim.c
 
 src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c
 
+src\7Segment.c
+
 src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c
 
 src\note_process.c

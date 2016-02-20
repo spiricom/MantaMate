@@ -46,7 +46,16 @@
 
 #include <asf.h>
 #include "ui.h"
+#include "main.h"
+#include "7Segment.h"
 
+int lastbutton0 = 0;
+int lastbutton1 = 0;
+extern unsigned char preset_num;
+int howManyFilled = 0;
+uint8_t my_buf[128];
+
+	
 /**
  * \name Internal routines to manage asynchronous interrupt pin change
  * This interrupt is connected to a switch and allows to wakeup CPU in low sleep mode.
@@ -149,17 +158,15 @@ void ui_init(void)
 	LED_Off(LED1);
 	LED_Off(LED2);
 	LED_Off(LED3);
-	LED_Off(LED_BI0_GREEN);
-	LED_Off(LED_BI0_RED);
-	LED_Off(LED_BI1_GREEN);
-	LED_Off(LED_BI1_RED);
+	LED_Off(LED4);
+	LED_Off(LED5);
 }
 
 void ui_usb_mode_change(bool b_host_mode)
 {
 	ui_init();
 	if (b_host_mode) {
-		LED_On(LED0);
+		//LED_On(LED0);
 	}
 }
 //! @}
@@ -192,17 +199,18 @@ void ui_host_vbus_error(void)
 
 void ui_host_connection_event(uhc_device_t *dev, bool b_present)
 {
+	LED_Off(LED0);
 	LED_Off(LED1);
 	LED_Off(LED2);
 	LED_Off(LED3);
-	LED_Off(LED_BI0_GREEN);
-	LED_Off(LED_BI0_RED);
-	LED_Off(LED_BI1_GREEN);
-	LED_Off(LED_BI1_RED);
+	LED_Off(LED4);
+	LED_Off(LED5);
+
 	if (b_present) {
-		LED_On(LED1);
+		LED_On(LED4);
 	} else {
 		ui_enum_status = UHC_ENUM_DISCONNECT;
+		LED_Off(LED4);
 	}
 }
 
@@ -240,6 +248,18 @@ void ui_uhi_midi_change(uhc_device_t * dev, bool b_plug)
 	ui_midi_plug = b_plug;
 }
 
+void my_callback_midi_rx_notify(void)
+{
+	uint16_t bytesToRead = 0;
+	//LED_On(LED0);
+	while (uhi_midi_is_rx_ready()) {
+		 //LED_On(LED1);
+		 bytesToRead = uhi_midi_read_buf(&my_buf, 64);
+		 parseMIDI(bytesToRead);
+ 		 //Write7Seg(my_buf[1]);
+	}
+};
+
 void ui_host_wakeup_event(void)
 {
 	ui_disable_asynchronous_interrupt();
@@ -252,21 +272,37 @@ void ui_host_sof_event(void)
 	static bool btn_suspend_and_remotewakeup = false;
 	static uint16_t counter_sof = 0;
 
-	if (ui_enum_status == UHC_ENUM_SUCCESS) {
+	if (ui_enum_status == UHC_ENUM_SUCCESS) 
+	{
 
 		// Display device enumerated and in active mode
-		if (++counter_sof > ui_device_speed_blink) {
+		if (++counter_sof > ui_device_speed_blink) 
+		{
 			counter_sof = 0;
 			if (ui_hid_joy_plug) {
-				LED_Toggle(LED7);
+				//LED_Toggle(LED7);
 			}
 			if (ui_midi_plug) {
-				LED_Toggle(LED3);
+				//LED_Toggle(LED3);
 			}
-			if (ui_hid_manta_plug)
-				LED_Toggle(LED2);
+			if (ui_hid_manta_plug){
+				//LED_Toggle(LED2);
+			}
 		}
-		
+		/*
+		if ((!gpio_get_pin_value(GPIO_PUSH_BUTTON_0)) && (lastbutton0 == 0))
+		{
+			preset_num--;
+			Write7Seg(preset_num);
+		}
+		if ((!gpio_get_pin_value(GPIO_PUSH_BUTTON_1)) && (lastbutton1 == 0))
+		{
+			preset_num++;
+			Write7Seg(preset_num);
+		}
+		lastbutton0 = !gpio_get_pin_value(GPIO_PUSH_BUTTON_0);
+		lastbutton1 = !gpio_get_pin_value(GPIO_PUSH_BUTTON_1);
+		/*
 		// Scan button to enter in suspend mode
 		b_btn_state = !gpio_get_pin_value(GPIO_PUSH_BUTTON_0);
 		if (b_btn_state != btn_suspend) {
@@ -285,7 +321,8 @@ void ui_host_sof_event(void)
 				return;
 			}
 		}
-
+		*/
+	/*
 		// Scan button to enter in suspend mode and remote wakeup
 		b_btn_state = !gpio_get_pin_value(GPIO_PUSH_BUTTON_1);
 		if (b_btn_state != btn_suspend_and_remotewakeup) {
@@ -304,6 +341,7 @@ void ui_host_sof_event(void)
 				return;
 			}
 		}
+		*/
 		/*
 		if (ui_hid_mouse_plug) {
 			// Power on a LED when the mouse move
@@ -320,18 +358,18 @@ void ui_host_sof_event(void)
 void ui_host_hid_mouse_btn_left(bool b_state)
 {
 	if (b_state) {
-		LED_On(LED_BI0_GREEN);
+		//LED_On(LED_BI0_GREEN);
 		} else {
-		LED_Off(LED_BI0_GREEN);
+		//LED_Off(LED_BI0_GREEN);
 	}
 }
 
 void ui_host_hid_mouse_btn_right(bool b_state)
 {
 	if (b_state) {
-		LED_On(LED_BI0_RED);
+		//LED_On(LED_BI0_RED);
 		} else {
-		LED_Off(LED_BI0_RED);
+		//LED_Off(LED_BI0_RED);
 	}
 }
 
@@ -354,38 +392,20 @@ static bool ui_d_midi_enable = false;
 
 void ui_test_flag_reset(void)
 {
-	LED_Off(LED_BI1_GREEN);
-	LED_Off(LED_BI1_RED);
+	//LED_Off(LED_BI1_GREEN);
+	//LED_Off(LED_BI1_RED);
 }
 
 void ui_test_finish(bool b_success)
 {
 	if (b_success) {
-		LED_On(LED_BI1_GREEN);
+		//LED_On(LED_BI1_GREEN);
 	} else {
-		LED_On(LED_BI1_RED);
+		//LED_On(LED_BI1_RED);
 	}
 }
 //! @}
-/*
-//! \name Callback to show the MSC read and write access
-//! @{
-void ui_start_read(void)
-{
-}
 
-void ui_stop_read(void)
-{
-}
-
-void ui_start_write(void)
-{
-}
-
-void ui_stop_write(void)
-{
-}
-*/
 void ui_device_suspend_action(void)
 {
 	ui_init();
@@ -393,7 +413,7 @@ void ui_device_suspend_action(void)
 
 void ui_device_resume_action(void)
 {
-	LED_On(LED0);
+	//LED_On(LED0);
 }
 
 void ui_device_remotewakeup_enable(void)
@@ -409,7 +429,7 @@ void ui_device_remotewakeup_disable(void)
 bool ui_device_midi_enable(void)
 {
 	ui_d_midi_enable = true;
-	LED_On(LED1);
+	LED_On(LED5);
 	return true;
 }
 
@@ -430,14 +450,14 @@ void ui_device_sof_action(void)
 	if (!ui_d_midi_enable)
 	return;
 	
-	LED_Toggle(LED2);
+	//LED_Toggle(LED2);
 
 	framenumber = udd_get_frame_number();
 	if ((framenumber % 1000) == 0) {
-		LED_On(LED2);
+		//LED_On(LED2);
 	}
 	if ((framenumber % 1000) == 500) {
-		LED_Off(LED2);
+		//LED_Off(LED2);
 	}
 	// Scan process running each 2ms
 	cpt_sof++;

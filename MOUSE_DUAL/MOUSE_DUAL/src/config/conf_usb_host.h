@@ -132,6 +132,8 @@
 #define UHI_HID_JOY_CHANGE(dev,b_plug)			 ui_uhi_hid_joy_change(dev,b_plug)
 //@}
 
+#define UHI_MIDI_RX_NOTIFY() my_callback_midi_rx_notify();
+
 #endif // _CONF_USB_HOST_H_
 
 #include "uhi_hid_manta.h"
