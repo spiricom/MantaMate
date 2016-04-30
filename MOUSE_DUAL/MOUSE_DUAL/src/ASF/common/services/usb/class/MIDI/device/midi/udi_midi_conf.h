@@ -57,7 +57,8 @@
 #ifdef USB_DEVICE_HS_SUPPORT
 #  define  USB_DEVICE_EP_CTRL_SIZE       64
 #else
-#  define  USB_DEVICE_EP_CTRL_SIZE       8
+//I think low speed can also be 64 bytes, but this used to be 8 - JSs
+#  define  USB_DEVICE_EP_CTRL_SIZE       64
 #endif
 
 

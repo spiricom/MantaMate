@@ -158,18 +158,18 @@ typedef struct {
 typedef struct {
 	uint8_t *reportDesc;
 	uint16_t reportDesc_size;
-	uint16_t pos;
+	uint16_t pos; //
 	uint8_t item;
 	int32_t val;
-	hid_data data;
-	uint8_t offset_tab[MAX_REPORT][3];
+	hid_data data; //
+	uint8_t offset_tab[MAX_REPORT][3]; //
 	uint8_t report_count;
-	uint8_t count;
+	uint8_t count; //
 	uint16_t u_page;
-	hid_node usage_tab[USAGE_TAB_SIZE];
-	uint8_t usage_size;
-	uint8_t nobject;
-	uint8_t nreport;
+	hid_node usage_tab[USAGE_TAB_SIZE]; //
+	uint8_t usage_size; //
+	uint8_t nobject; //
+	uint8_t nreport; //
 }hid_report_parser_t;
 
 /**

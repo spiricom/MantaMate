@@ -55,6 +55,7 @@
 #include <fastmath.h>
 #include "note_process.h"
 #include "7Segment.h"
+#include <time.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
@@ -102,6 +103,10 @@ uint8_t UHI_HID_JOY_THROTTLE;
 uint8_t THROTTLE_SIZE;
 uint8_t UHI_HID_JOY_Rz; //joystick twistiness-ness
 uint8_t Rz_SIZE;
+uint8_t X_LOGICAL_MAX_BITS;
+uint8_t Y_LOGICAL_MAX_BITS;
+uint8_t Rz_LOGICAL_MAX_BITS;
+uint8_t SLIDER_LOGICAL_MAX_BITS;
 
 //@}
 
@@ -134,8 +139,11 @@ static void uhi_hid_joy_report_reception(
 static uint32_t shift(uint8_t size, uint8_t offset);
 static void findDataOffset(void);
 static void ResetParser(void);
+int find_highest_bit(int);
+static void display_joystick_sizes(void);
 //@}
 
+// initialize global report parser
 static hid_report_parser_t hid_report_parser = {
 	.pos = 0,
 	.count = 0,
@@ -144,6 +152,7 @@ static hid_report_parser_t hid_report_parser = {
 	.usage_size = 0,
 };
 
+// initialize global hid joystick struct
 static uhi_hid_joy_dev_t uhi_hid_joy_dev = {
 	.dev = NULL,
 	.report = NULL,
@@ -164,8 +173,10 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	int i;
 
 	if (uhi_hid_joy_dev.dev != NULL) {
+		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
+	Write7Seg(57);
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
 	ptr_iface = (usb_iface_desc_t*) dev->conf_desc;
 	b_iface_supported = false;
@@ -173,10 +184,10 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	while(conf_desc_lgt) {
 		switch (ptr_iface->bDescriptorType) {
 
-		case USB_DT_INTERFACE:
+		case USB_DT_INTERFACE: // if it's some kind of interface (my interpretation)
 			if ((ptr_iface->bInterfaceClass   == HID_CLASS)
 			&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)
-			&& dev->dev_desc.idProduct != 0x2424) {
+			&& dev->dev_desc.idProduct != 0x2424) { // and it's not a manta
 				// USB HID Mouse interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
@@ -190,7 +201,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 			if (!b_iface_supported) {
 				break;
 			}
-			//how many descriptors and what type
+			//how many descriptors and what type, make some space to store
 			uhi_hid_joy_dev.numDesc = ((usb_hid_descriptor_t*) ptr_iface)->bNumDescriptors;
 			uhi_hid_joy_dev.DescType = (uint8_t *) malloc(uhi_hid_joy_dev.numDesc);
 			uhi_hid_joy_dev.DescSize = (uint16_t *) malloc(2*uhi_hid_joy_dev.numDesc);
@@ -235,9 +246,15 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	
 	get_report_descriptor();
 	
+	
 	return UHC_ENUM_SUCCESS;
 }
 
+// called after uhi_hid_joy_install has run checks and after space has been allocated
+// but wtf is it actually doing?
+// this appears to step through the report, allocating space in hid_report_parser.reportDesc
+// but it also seems to be overwritten with each iteration, so it seems like nothing is kept? 
+// confused.
 static void get_report_descriptor()
 {
 	usb_setup_req_t req;
@@ -298,6 +315,7 @@ uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType)
 	return NULL;
 }
 
+
 static void ResetParser(void)
 {
 	hid_report_parser.pos=0;
@@ -328,10 +346,12 @@ static void findDataOffset(void)
 				case USAGEX:
 					UHI_HID_JOY_MOV_X = offset;
 					X_SIZE = hid_report_parser.data.size;
+					X_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
 					break;
 				case USAGEY:
 					UHI_HID_JOY_MOV_Y = offset;
 					Y_SIZE = hid_report_parser.data.size;
+					Y_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
 					break;
 				case HAT_SWITCH:
 					UHI_HID_JOY_HAT = offset;
@@ -340,10 +360,21 @@ static void findDataOffset(void)
 				case SLIDER:
 					UHI_HID_JOY_SLIDER = offset;
 					SLIDER_SIZE = hid_report_parser.data.size;
+					//fixes problem where data size defaults to 1 if not defined, we think that 8 bits must be defaults
+					if (SLIDER_SIZE == 1)
+					{
+						SLIDER_SIZE = 8;
+						SLIDER_LOGICAL_MAX_BITS = 8;
+					} else
+					{
+						SLIDER_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+					}
+					
 					break;
 				case Rz:
 					UHI_HID_JOY_Rz = offset;
 					Rz_SIZE = hid_report_parser.data.size;
+					Rz_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
 					break;
 				default:
 					break;
@@ -373,6 +404,8 @@ static void findDataOffset(void)
 }
 
 
+// i think this is where the descriptor is parsed. 
+// perhaps this will illuminate the earlier functions
 
 static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 	uint16_t nb_transfered)
@@ -637,8 +670,16 @@ static uint32_t shift(uint8_t size, uint8_t offset) {
 	return state_new;
 }
 
+int find_highest_bit(int val)
+{
+	unsigned int count = 1;
+	while (val >>= 1)
+		count++;
+	return count;
+}
+
 /**
- * \brief Decodes the HID mouse report received
+ * \brief Decodes the HID joystick report received. based on the hid mouse example by atmel
  *
  * \param add           USB address used by the transfer
  * \param status        Transfer status
@@ -674,7 +715,7 @@ static void uhi_hid_joy_report_reception(
 	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 4)) {
 		return; // HID mouse transfer aborted
 	}
-
+	
 	// Decode buttons
 	butt_prev = uhi_hid_joy_dev.report_butt_prev;
 	slider_prev = uhi_hid_joy_dev.report_slider_prev;
@@ -685,102 +726,104 @@ static void uhi_hid_joy_report_reception(
 	
 	butt_new = 0;
 	i = 0;
+	int n_total_buttons = 0;
 	
-	for(b=0;b<ibutt;b++)
+	// This combines all the "banks" of buttons into a single series of bits
+	// button 1 is the lowest bit 
+	for(b=0; b < ibutt; b++)
 	{
-		butt_new += shift(NUM_BUTTS[b]*BUTT_SIZE[b], UHI_HID_JOY_BUTT[b])<<i;
+		butt_new += shift(NUM_BUTTS[b]*BUTT_SIZE[b], UHI_HID_JOY_BUTT[b]) << i;
 		i += NUM_BUTTS[b]*BUTT_SIZE[b];
+		n_total_buttons += NUM_BUTTS[b];
 	}
+	
 	x_new = shift(X_SIZE, UHI_HID_JOY_MOV_X);
 	y_new = shift(Y_SIZE, UHI_HID_JOY_MOV_Y);
 	hat_new = shift(HAT_SIZE, UHI_HID_JOY_HAT);
 	Rz_new = shift(Rz_SIZE, UHI_HID_JOY_Rz);
 	slider_new = shift(SLIDER_SIZE, UHI_HID_JOY_SLIDER);
 	
-	
-	if(slider_prev != slider_new )
-	{
-		uhi_hid_joy_dev.report_slider_prev = slider_new;
-		//lcd_clear_line(4);
-		//dip204_printf_string("slider: %lx",slider_new);
-		
-		if(butt_new & 0x01)
-			joyVol(slider_new);
-	}
-	
-	if(butt_prev != butt_new)
-	{	
-		if ((butt_prev & 0x01) != (butt_new & 0x01)) {
-			UHI_HID_MOUSE_EVENT_BTN_LEFT((butt_new & 0x01) ? true : false);
-			if(butt_new & 0x01)
-			{
-				dacsend(2,2,0xfff);
-				dacsend(3,2,0xfff);
-				joyVol(slider_new);
-			}
-			else
-			{
-				dacsend(2,2,0);
-				dacsend(3,2,0);
-				joyVol(0);
-			}
-		}
-		if ((butt_prev & 0x02) != (butt_new & 0x02)) {
-			UHI_HID_MOUSE_EVENT_BTN_RIGHT((butt_new & 0x02) ? true : false);
-		}
-		if ((butt_prev & 0x04) != (butt_new & 0x04)) {
-			UHI_HID_MOUSE_EVENT_BTN_MIDDLE((butt_new & 0x04) ? true : false);
-		}
-		
-		uhi_hid_joy_dev.report_butt_prev = butt_new;
-
-		//lcd_clear_line(2);
-		//dip204_printf_string("buttons: %lx",butt_new);
-	}
-	
+	// We assume that there are 4 continuous controls X,Y,Rz,slider
+	// this might not be true for all controllers
 	if (x_prev != x_new) {
 		uhi_hid_joy_dev.report_x_prev = x_new;
-		//lcd_clear_line(1);
-		//dip204_printf_string("%lx, %lx",x_new, y_new);
-		
-		DAC16Send(1, (0x3FF - x_new) << 6);
+		DAC16Send(0, x_new << (16-X_LOGICAL_MAX_BITS));
 	}
 	
 	if (y_prev != y_new) {
 		uhi_hid_joy_dev.report_y_prev = y_new;
-		//lcd_clear_line(1);
-		//dip204_printf_string("%lx, %lx",x_new, y_new);
-		
-		DAC16Send(2, (0x3FF - y_new) << 6);
+		int y_value = ((2 << Y_SIZE) - 1) - y_new; // this inverts the y direction
+		DAC16Send(1, y_value << (16-Y_LOGICAL_MAX_BITS));
 	}
 	
 	if(Rz_prev != Rz_new) {
 		uhi_hid_joy_dev.report_Rz_prev = Rz_new;
-		//lcd_clear_line(3);
-		//dip204_printf_string("Rz: %lx,",Rz_new);
-		
-		DAC16Send(3, Rz_new << 8);
+		DAC16Send(2, Rz_new << (16-Rz_LOGICAL_MAX_BITS));
 	}
 	
+	if(slider_prev != slider_new )
+	{
+		uhi_hid_joy_dev.report_slider_prev = slider_new;
+		DAC16Send(3, slider_new << (16-SLIDER_LOGICAL_MAX_BITS));
+	}	
+	
+	if(butt_prev != butt_new)
+	{
+		uhi_hid_joy_dev.report_butt_prev = butt_new;
+		int my_mask = 1;
+		int n_butts_mapped_so_far = 0;
+		int n_dacs_available = 8; //TODO: magic. because we assumed 4 continuous controllers, that leaves 8 dacs available
+		
+		while ((n_butts_mapped_so_far < n_dacs_available) && (n_butts_mapped_so_far < n_total_buttons))
+		{
+			int butt_state = (butt_new >> n_butts_mapped_so_far) & my_mask;
+			dacsend(n_butts_mapped_so_far % 4, 
+					n_butts_mapped_so_far / 4,
+					butt_state * 0xFFF); 
+			
+			if (n_butts_mapped_so_far == 0)
+			{
+				Write7Seg(butt_state);
+			}
+			n_butts_mapped_so_far++;
+		}
+	}
+	
+	// unused for now
 	if(hat_prev != hat_new) {
 		uhi_hid_joy_dev.report_hat_prev = hat_new;
-		//dip204_printf_string(" hat: %lx",hat_new);
 	}
 	
-	// Decode moves
-	/*if ((uhi_hid_joy_dev.report[UHI_HID_JOY_MOV_X/8] != 0)
-			|| (uhi_hid_joy_dev.report[UHI_HID_JOY_MOV_Y/8] != 0)
-			|| (uhi_hid_joy_dev.report[UHI_HID_JOY_HAT/8] != 0)
-			|| (uhi_hid_joy_dev.report[UHI_HID_JOY_SLIDER/8] != 0)
-			|| (uhi_hid_joy_dev.report[UHI_HID_JOY_THROTTLE/8] != 0)) {
-		UHI_HID_MOUSE_EVENT_MOUVE(
-				(int8_t)uhi_hid_joy_dev.report[UHI_HID_JOY_MOV_X],  // wrong
-				(int8_t)uhi_hid_joy_dev.report[UHI_HID_JOY_MOV_Y],  // also wrong
-				(int8_t)uhi_hid_joy_dev.report[UHI_HID_JOY_HAT]);  // this is wrong too*/
-	
-	
+	// start the next transfer. this looks like it starts some crazy loop,
+	// but it follows the example code given by atmel
 	uhi_hid_joy_start_trans_report(add);
-	
 }
+
+static int loop_counter = 0;
+static void display_joystick_sizes(void)
+{
+	switch((loop_counter / 100) % 5)
+	{
+		case 0:
+			Write7Seg(UHI_HID_JOY_MOV_X);
+			break;
+		case 1:
+			Write7Seg(UHI_HID_JOY_MOV_Y);
+			break;
+		case 2:
+			Write7Seg(UHI_HID_JOY_HAT);
+			break;
+		case 3:
+			Write7Seg(UHI_HID_JOY_Rz);
+			break;
+		case 4: 
+			Write7Seg(UHI_HID_JOY_SLIDER);
+			break;
+		default:
+			Write7Seg(99);
+	}
+	loop_counter++;
+}
+
 //@}
 //@}

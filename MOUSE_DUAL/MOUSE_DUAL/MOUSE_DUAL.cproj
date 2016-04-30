@@ -134,7 +134,7 @@
         <documentation help="http://asf.atmel.com/docs/3.24.2/common.services.usb.class.hid.dual.mouse.example.evk1100/html/index.html" />
         <offline-documentation help="" />
         <dependencies>
-          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.15.0" />
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.20.1" />
         </dependencies>
         <project id="common.services.usb.class.hid.dual.mouse.example.evk1100" value="Add" config="" content-id="Atmel.ASF" />
         <board id="board.evk1100" value="Add" config="" content-id="Atmel.ASF" />
@@ -160,7 +160,7 @@
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.jtagice3plus</ToolType>
-      <ToolNumber>J30200021353</ToolNumber>
+      <ToolNumber>J30200021420</ToolNumber>
       <ToolName>JTAGICE3</ToolName>
     </com_atmel_avrdbg_tool_jtagice3plus>
     <com_atmel_avrdbg_tool_simulator>

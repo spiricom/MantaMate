@@ -44,7 +44,7 @@ unsigned int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,2
 unsigned int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
 18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 
-enum maps_t whichmap = HARMONIC;
+enum maps_t whichmap = NO_MAP;
 unsigned long scaledoctaveDACvalue = 54780; //55425
 unsigned char tuning = 0;
 signed char transpose = 0;
@@ -69,24 +69,22 @@ float_t fingerFloat[11];
 float_t	birlOctave = 12;
 float_t	birlOffset = 23;
 
+unsigned int led_map[] = {LED3, LED2, LED1, LED0}; //map the voice number to the led number
 signed char notestack[48][2];
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
-unsigned char polymode = 0; //need to implement
-unsigned char polynum = 1;
+unsigned char polymode = 1; //need to implement
+unsigned char polynum = 4;
 unsigned char polyVoiceNote[4];
 unsigned char polyVoiceBusy[4];
-unsigned char changevoice[4];
+unsigned char changevoice[4]; // flags to indicate a voice has a new note value
 unsigned char notehappened = 0;
 unsigned char noteoffhappened = 0;
-unsigned char voicefound = 0;
+unsigned char voicefound = 0; // have we found a polyphony voice slot for the incoming note?
 unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
-
-
-
 
 
 unsigned sysVol = 0x7F;  // should probably initialize by reading from MIDI device
@@ -107,10 +105,11 @@ void initNoteStack(void)
 }
 
 //ADDING A NOTE
-//first figure out how many notes are currently in the stack
-// next, take the last note in the stack and copy it into the position one index number past it
-// now, do that for each note as you go down the list
-// when you get the index number 0, after copying it, put the new note in it's place
+// move all the notes into the next higher index and put the new note in index 0
+// first figure out how many notes are currently in the stack
+// next, copy the last note in the stack from its index (k) into the next index (k+1)
+// now, do that for each note, moving from the last to the first index
+// when you get to index 0, after copying it, put the new note in index 0
 void addNote(uint8_t noteVal, uint8_t vel)
 {
 	uint8_t j;
@@ -722,6 +721,7 @@ void programChange(uint8_t num)
 }
 
 
+// reads the current state and sets output voltages, leds and 7 seg display
 void noteOut()
 {
 	int i;
@@ -762,7 +762,12 @@ void noteOut()
 					if (polyVoiceBusy[i] == 1)
 					{
 						DAC16Send(i, calculateDACvalue(polyVoiceNote[i]));
-						Write7Seg(polyVoiceNote[i]);
+						// Write7Seg(polyVoiceNote[i]);
+						LED_On(led_map[i]);
+					}
+					else
+					{
+						LED_Off(led_map[i]);
 					}
 					changevoice[i] = 0;
 					notehappened = 0;

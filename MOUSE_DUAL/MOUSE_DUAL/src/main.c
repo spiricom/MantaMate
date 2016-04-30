@@ -215,8 +215,7 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	//set up SPI to be 16 bit for the DAC
 	setSPI(spiOptions16DAC);
 	
-	//for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
-	DAC16voice = (3 - DAC16voice);
+	DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
@@ -331,9 +330,10 @@ int main(void){
 	
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
-	Write7Seg(56);
+	// Write7Seg(56);
 	// Start USB host stack
 	uhc_start();
+	
 	//testLoop();
 	
 	// Start USB device stack
