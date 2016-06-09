@@ -93,7 +93,13 @@ void initNoteStack(void)
 {
 	uint8_t i;
 	for(i=0; i<48; i++)
-		notestack[i][0] = -1;
+	{
+		if (notestack[i][0] != -1)
+		{
+			removeNote(notestack[i][0]);
+			noteOut();
+		}
+	}
 	numnotes = 0;
 	for(i=0; i<4; i++)
 	{

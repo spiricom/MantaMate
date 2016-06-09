@@ -97,15 +97,33 @@ static void eic_int_handler1(void)
 
 // interrupt handler to find the state of the HOST/DEVICE switch on the panel
 __attribute__((__interrupt__))
-static void int_handler_host_device_switch (void)
+static void int_handler_switches (void)
 {
 	
 	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
-	{		// PB2 generated the interrupt.
-		delay_us(500);
+	{		// PA11 generated the interrupt.
+		delay_us(500); // to de-bounce
 		USB_Mode_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
+	}
+	
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH1) )
+	{		
+		//down switch
+		delay_us(500); // to de-bounce
+		Preset_Switch_Check(0);
+		// Clear the interrupt flag of the pin PB2 is mapped to.
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH1);
+	}
+	
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH2) )
+	{		
+		//up switch
+		delay_us(500); // to de-bounce
+		Preset_Switch_Check(1);
+		// Clear the interrupt flag of the pin PB2 is mapped to.
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH2);
 	}
 	
 }
@@ -137,6 +155,84 @@ void USB_Mode_Switch_Check(void)
 			myUSBMode = HOSTMODE;
 
 		}
+}
+
+void Preset_Switch_Check(uint8_t whichSwitch)
+{
+	if (whichSwitch)
+	{
+		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+		{
+			if (preset_num >= 99)
+			{
+				preset_num = 99;
+			}
+			else
+			{
+				preset_num++;
+			}
+			
+		}
+	}
+	else 
+	{
+		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+		{
+			if (preset_num <= 0)
+			{
+				preset_num = 0;
+			}
+			else
+			{
+				preset_num--;
+			}
+		}
+	}
+
+
+	
+	updatePreset();
+	
+}
+
+void updatePreset(void)
+{
+	Write7Seg(preset_num);
+	switch (preset_num)
+	{
+		case 0:
+		initNoteStack();
+		noteOut();
+		polymode = 0;
+		break;
+		
+		case 1:
+
+		initNoteStack();
+		noteOut();
+		polymode = 1;
+		polynum = 2;
+		break;
+		
+		case 2:
+
+		initNoteStack();
+		noteOut();
+		polymode = 1;
+		polynum = 3;
+		break;
+		
+		case 3:
+
+		initNoteStack();
+		noteOut();
+		polymode = 1;
+		polynum = 4;
+		break;
+		
+		default: 
+		break;	
+	}
 }
 
 //SPI options for the 16 and 12 bit DACs
@@ -413,8 +509,14 @@ void setupEIC(void)
 	eic_enable_interrupt_line(&AVR32_EIC, eic_options[0].eic_line);
 	
 	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
-	INTC_register_interrupt( &int_handler_host_device_switch, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
 	  
+	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH1 , GPIO_PIN_CHANGE);	// PB02
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH1/8), AVR32_INTC_INT0);
+	
+	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PB03
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH2/8), AVR32_INTC_INT0);
+	
 	Enable_global_interrupt();
 	
 }

@@ -11,6 +11,9 @@
 
 #include <stdint.h>
 
+extern unsigned char polymode; 
+extern unsigned char polynum;
+
 void initNoteStack(void);
 void addNote(uint8_t noteVal, uint8_t vel);
 void removeNote(uint8_t noteVal);

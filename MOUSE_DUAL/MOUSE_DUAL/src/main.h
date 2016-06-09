@@ -58,10 +58,11 @@ extern uint8_t manta_mapper;
 extern uint8_t tuning_count;
 extern uint8_t glitch_count[64];
 extern uint8_t manta_data_lock;
-
+extern unsigned char preset_num;
 //set up the external interrupt for the gate input
 void setupEIC(void);
-
+void updatePreset(void);
+void Preset_Switch_Check(uint8_t whichSwitch);
 void USB_Mode_Switch_Check(void);
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.

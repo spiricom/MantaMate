@@ -77,9 +77,9 @@ void board_init(void)
 	gpio_configure_pin(SEG7_GPIO,GPIO_DIR_OUTPUT | GPIO_INIT_HIGH);
 	gpio_configure_pin(SEG8_GPIO,GPIO_DIR_OUTPUT | GPIO_INIT_HIGH);
 	
-	gpio_configure_pin(GPIO_USB_SWITCH,GPIO_DIR_INPUT | GPIO_PULL_UP);
-	gpio_configure_pin(GPIO_PUSH_BUTTON_0,GPIO_DIR_INPUT | GPIO_PULL_UP);
-	gpio_configure_pin(GPIO_PUSH_BUTTON_1,GPIO_DIR_INPUT | GPIO_PULL_UP);
+	gpio_configure_pin(GPIO_HOST_DEVICE_SWITCH,GPIO_DIR_INPUT | GPIO_PULL_UP);
+	gpio_configure_pin(GPIO_PRESET_SWITCH1,GPIO_DIR_INPUT | GPIO_PULL_UP);
+	gpio_configure_pin(GPIO_PRESET_SWITCH1,GPIO_DIR_INPUT | GPIO_PULL_UP);
 
 #if defined (CONF_BOARD_AT45DBX)
 	static const gpio_map_t AT45DBX_SPI_GPIO_MAP = {

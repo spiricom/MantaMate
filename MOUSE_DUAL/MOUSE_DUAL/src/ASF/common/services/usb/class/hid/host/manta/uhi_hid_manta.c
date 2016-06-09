@@ -317,7 +317,7 @@ static void uhi_hid_manta_report_reception(
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
 		if (uhi_hid_manta_dev.report[i+1] == 0)
 		{
-			glitch_count[i] = 2;
+			glitch_count[i]++;
 		}
 	}
 	for(i=0; i<4; i++)

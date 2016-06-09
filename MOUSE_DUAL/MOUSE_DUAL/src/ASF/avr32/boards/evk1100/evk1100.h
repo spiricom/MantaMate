@@ -159,8 +159,6 @@
 //! @}
 
 
-#define GPIO_USB_SWITCH   AVR32_PIN_PA11
-
 
 /*! \name PWM Channels of LEDs
  */
@@ -194,10 +192,10 @@
 /*! \name GPIO Connections of Push Buttons
  */
 //! @{
-#define GPIO_PUSH_BUTTON_0            AVR32_PIN_PB02
-#define GPIO_PUSH_BUTTON_0_PRESSED    0
-#define GPIO_PUSH_BUTTON_1            AVR32_PIN_PB03
-#define GPIO_PUSH_BUTTON_1_PRESSED    0
+#define GPIO_PRESET_SWITCH1           AVR32_PIN_PB02
+#define GPIO_PRESET_SWITCH1_PRESSED   0
+#define GPIO_PRESET_SWITCH2           AVR32_PIN_PB03
+#define GPIO_PRESET_SWITCH2_PRESSED
 
 #define GPIO_HOST_DEVICE_SWITCH		AVR32_PIN_PA11
 #define GPIO_HOST_DEVICE_SWITCH_PRESSED		0
