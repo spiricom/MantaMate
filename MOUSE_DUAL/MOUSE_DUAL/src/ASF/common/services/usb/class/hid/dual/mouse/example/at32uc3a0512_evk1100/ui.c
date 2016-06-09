@@ -48,6 +48,12 @@
 #include "ui.h"
 #include "main.h"
 #include "7Segment.h"
+#include "udi_cdc.h"
+#include "note_process.h"
+
+uint8_t myReceiveBuf[64];
+uint8_t mySendBuf[64];
+
 
 int lastbutton0 = 0;
 int lastbutton1 = 0;
@@ -355,37 +361,7 @@ void ui_host_sof_event(void)
 	}
 }
 
-void ui_host_hid_mouse_btn_left(bool b_state)
-{
-	if (b_state) {
-		//LED_On(LED_BI0_GREEN);
-		} else {
-		//LED_Off(LED_BI0_GREEN);
-	}
-}
 
-void ui_host_hid_mouse_btn_right(bool b_state)
-{
-	if (b_state) {
-		//LED_On(LED_BI0_RED);
-		} else {
-		//LED_Off(LED_BI0_RED);
-	}
-}
-
-void ui_host_hid_mouse_btn_middle(bool b_state)
-{
-}
-
-void ui_host_hid_mouse_move(int8_t x,int8_t y,int8_t scroll)
-{
-	ui_x = x;
-	ui_y = y;
-	ui_scroll = scroll;
-}
-
-
-#define  MOUSE_MOVE_RANGE  3
 
 
 static bool ui_d_midi_enable = false;
@@ -406,122 +382,126 @@ void ui_test_finish(bool b_success)
 }
 //! @}
 
-void ui_device_suspend_action(void)
+void ui_midi_rx_start(void)
 {
-	ui_init();
-}
-
-void ui_device_resume_action(void)
-{
-	//LED_On(LED0);
-}
-
-void ui_device_remotewakeup_enable(void)
-{
-	ui_enable_asynchronous_interrupt();
-}
-
-void ui_device_remotewakeup_disable(void)
-{
-	ui_disable_asynchronous_interrupt();
-}
-
-bool ui_device_midi_enable(void)
-{
-	ui_d_midi_enable = true;
-	LED_On(LED5);
-	return true;
-}
-
-void ui_device_midi_disable(void)
-{
-	ui_d_midi_enable = false;
-}
-
-void ui_device_sof_action(void)
-{
-	//bool b_btn_state;
-	uint16_t framenumber;
-	//static bool btn_left_last_state = HID_MOUSE_BTN_UP;
-	//static bool btn_right_last_state = HID_MOUSE_BTN_UP;
-	//static bool btn_middle_last_state = HID_MOUSE_BTN_UP;
-	static uint8_t cpt_sof = 0;
-
-	if (!ui_d_midi_enable)
-	return;
+	LED_On(LED2);
 	
-	//LED_Toggle(LED2);
-
-	framenumber = udd_get_frame_number();
-	if ((framenumber % 1000) == 0) {
-		//LED_On(LED2);
-	}
-	if ((framenumber % 1000) == 500) {
-		//LED_Off(LED2);
-	}
-	// Scan process running each 2ms
-	cpt_sof++;
-	if (2 > cpt_sof)
-	return;
-	cpt_sof = 0;
-
-	/*// Scan buttons on switch 0 (left), 1 (middle), 2 (right)
-	b_btn_state = (!gpio_get_pin_value(GPIO_PUSH_BUTTON_0)) ?
-	HID_MOUSE_BTN_DOWN : HID_MOUSE_BTN_UP;
-	if (b_btn_state != btn_left_last_state) {
-		udi_hid_mouse_btnleft(b_btn_state);
-		btn_left_last_state = b_btn_state;
-	}
-	b_btn_state = (!gpio_get_pin_value(GPIO_PUSH_BUTTON_1)) ?
-	HID_MOUSE_BTN_DOWN : HID_MOUSE_BTN_UP;
-	if (b_btn_state != btn_middle_last_state) {
-		udi_hid_mouse_btnmiddle(b_btn_state);
-		btn_middle_last_state = b_btn_state;
-	}
-	b_btn_state = (!gpio_get_pin_value(GPIO_PUSH_BUTTON_2)) ?
-	HID_MOUSE_BTN_DOWN : HID_MOUSE_BTN_UP;
-	if (b_btn_state != btn_right_last_state) {
-		udi_hid_mouse_btnright(b_btn_state);
-		btn_right_last_state = b_btn_state;
-	}
-	// Joystick used to move mouse
-	if (is_joystick_right())
-	LED_On(LED5);
-	//udi_hid_mouse_moveX(MOUSE_MOVE_RANGE);
-	if (is_joystick_left())
-	udi_hid_mouse_moveX(-MOUSE_MOVE_RANGE);
-	if (is_joystick_up())
-	udi_hid_mouse_moveY(-MOUSE_MOVE_RANGE);
-	if (is_joystick_down())
-	udi_hid_mouse_moveY(MOUSE_MOVE_RANGE);*/
+	//udi_midi_tx_send(0);
 }
-//! @}
 
-//! @}
+void ui_midi_rx_stop(void)
+{
+	LED_Off(LED2);
+}
 
-/**
- * \defgroup UI User Interface
- *
- * Human interface on EVK1100 :
- * - PWR led is on when power present
- * - Led 0 is on when USB OTG cable is plugged
- * - Led 1 is on when a device is connected
- * - Led 2 blinks when a HID mouse device is enumerated and USB in idle mode
- *   - The blink is slow (1s) with low speed device
- *   - The blink is normal (0.5s) with full speed device
- *   - The blink is fast (0.25s) with high speed device
- * - Led 3 blinks when a MIDI device is enumerated and USB in idle mode
- *   - The blink is slow (1s) with low speed device
- *   - The blink is normal (0.5s) with full speed device
- *   - The blink is fast (0.25s) with high speed device
- * - Led 4 green is on when the mouse move
- * - Led 4 red is on when a mouse button is down
- * - Led 5 green is on when a LUN test is success
- * - Led 5 red is on when a LUN test is unsuccessful
- * - Switch PB0 allows to enter the device in suspend mode
- * - Switch PB1 allows to enter the device in suspend mode with remote wakeup feature authorized
- * - Only Push joystick button can be used to wakeup USB device in suspend mode
- *
- * Note: On board the LED labels are incremented of one.
- * E.g. Led0 in software corresponding at Led1 label on board.
- */
+void ui_midi_tx_start(void)
+{
+	//LED_On(LED_AMBER1);
+}
+
+void ui_midi_tx_stop(void)
+{
+	//LED_Off(LED_AMBER1);
+}
+
+void ui_midi_error(void)
+{
+	//LED_On(LED_BI0_RED);
+}
+
+void ui_midi_overflow(void)
+{
+	//LED_On(LED_BI1_RED);
+}
+
+void ui_my_midi_receive(void)
+{
+	
+	uint16_t bytesToRead = 0;
+	
+	if (udi_midi_is_rx_ready()) {
+		int numReceivedBytes = udi_midi_get_nb_received_data();
+		udi_midi_read_buf(myReceiveBuf, numReceivedBytes);
+		for (int i = 0; i < numReceivedBytes; i++)
+		{
+			my_buf[i] = myReceiveBuf[i];
+		}
+		if(numReceivedBytes && udi_midi_is_tx_ready())
+		{
+			//udi_midi_write_buf(mySendBuf, numReceivedBytes);   /// uncomment to echo back to computer -JS
+
+			parseMIDI(numReceivedBytes);
+		}
+		} else {
+		// Fifo empty then Stop
+		;
+	}
+}
+
+void ui_my_midi_send(void)
+{
+	ui_midi_tx_start();
+	//uint8_t myValue = 0x09;
+	// Transfer UART RX fifo to CDC TX
+	if (!udi_midi_is_tx_ready()) {
+		// Fifo full
+		;
+		}else{
+		udi_midi_write_buf(mySendBuf, 4);
+	}
+	ui_midi_tx_stop();
+}
+
+uint32_t USB_frame_counter = 0;
+
+void ui_process(uint16_t framenumber)
+{
+	ui_my_midi_receive();
+	
+	
+	USB_frame_counter++;
+	
+	if (USB_frame_counter == 500) {
+
+	}
+	if (USB_frame_counter == 1000) {
+
+		USB_frame_counter = 0;
+	}
+	
+}
+
+void ui_ext_gate_in(void)
+{
+	if(eiccounter % 2 == 1)
+	{
+		LED_On(LED4);
+		
+		tuningTest(tuning_count);
+		//mySendBuf[0] = 0x09;
+		//mySendBuf[1] = 0x90;
+		//mySendBuf[2] = 0x3c;
+		//mySendBuf[3] = 0x78;
+		
+		//ui_my_midi_send();
+		//udi_midi_write_buf(mySendBuf, 4);
+	}
+	else
+	{
+		LED_Off(LED4);
+		tuningTest(tuning_count);
+		//mySendBuf[0] = 0x09;
+		//mySendBuf[1] = 0x90;
+		//mySendBuf[2] = 0x3c;
+		//mySendBuf[3] = 0x00;
+		//ui_my_midi_receive();
+		//ui_my_midi_send();
+		//udi_midi_write_buf(mySendBuf, 4);
+	}
+	tuning_count++;
+	if (tuning_count > 6)
+	{
+		tuning_count = 0;
+	}
+}
+

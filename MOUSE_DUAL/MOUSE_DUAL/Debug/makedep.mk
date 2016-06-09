@@ -12,11 +12,9 @@ src\ASF\common\services\usb\class\hid\host\joystick\uhi_hid_joystick.c
 
 src\ASF\common\services\usb\class\hid\host\manta\uhi_hid_manta.c
 
-src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi.c
+src\ASF\common\services\usb\class\MIDI\device\midi\udi_cdc.c
 
-src\ASF\common\services\usb\class\MIDI\device\midi\udi_midi_desc.c
-
-src\ASF\common\services\usb\class\MIDI\device\udim.c
+src\ASF\common\services\usb\class\MIDI\device\midi\udi_cdc_desc.c
 
 src\ASF\common\services\usb\class\MIDI\host\midi\uhi_midi.c
 

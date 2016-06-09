@@ -23,4 +23,6 @@ void programChange(uint8_t programNum);
 void noteOut(void);
 void joyVol(uint16_t slider_val);
 
+void tuningTest(uint8_t whichOct);
+
 #endif /* NOTE_PROCESS_H_ */

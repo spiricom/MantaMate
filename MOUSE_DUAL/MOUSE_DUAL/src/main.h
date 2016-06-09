@@ -50,6 +50,48 @@
 #include <stdint.h>
 
 
+#include "usb_protocol_cdc.h"
+
+//global variables that everything which includes main.h should be able to see
+extern uint32_t eiccounter;
+extern uint8_t manta_mapper;
+extern uint8_t tuning_count;
+extern uint8_t glitch_count[64];
+extern uint8_t manta_data_lock;
+
+//set up the external interrupt for the gate input
+void setupEIC(void);
+
+void USB_Mode_Switch_Check(void);
+/*! \brief Opens the communication port
+ * This is called by CDC interface when USB Host enable it.
+ *
+ * \retval true if cdc startup is successfully done
+ */
+bool main_midi_enable(void);
+
+/*! \brief Closes the communication port
+ * This is called by CDC interface when USB Host disable it.
+ */
+void main_midi_disable(void);
+
+/*! \brief Manages the leds behaviors
+ * Called when a start of frame is received on USB line each 1ms.
+ */
+void main_sof_action(void);
+
+/*! \brief Enters the application in low power mode
+ * Callback called when USB host sets USB line in suspend state
+ */
+void main_suspend_action(void);
+
+/*! \brief Turn on a led to notify active mode
+ * Called when the USB line is resumed from the suspend state
+ */
+void main_resume_action(void);
+
+
+
 //function prototypes//
 void dacwait1(void);
 void dacwait2(void);

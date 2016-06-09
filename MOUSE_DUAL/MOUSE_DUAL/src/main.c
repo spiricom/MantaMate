@@ -47,30 +47,97 @@
 #include <asf.h>
 #include "conf_usb_host.h"
 #include "ui.h"
-//#include "pipe.h"
-//#include "midihost.h"
 #include "main.h"
 #include "note_process.h"
 #include "7Segment.h"
 
 
+
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
+#define UNCONFIGUREDMODE 0
+#define HOSTMODE 1
+#define DEVICEMODE 2
+#define F_CPU 64000000UL
+#define TWELVEBIT 1
+#define SIXTEENBIT 2
 
 static void initSPIbus(void);
 static void setSPI(spi_options_t spiOptions);
 
-// add the spi options driver structure for the LCD DIP204
-spi_options_t DIP_spiOptions =
+static volatile bool main_b_midi_enable = false;
+uint32_t eiccounter = 0;
+uint8_t manta_mapper = 0;
+uint8_t tuning_count = 0;
+uint8_t glitch_count[64];
+uint8_t manta_data_lock = 0;
+uint8_t spi_mode = 0;
+
+uint32_t myUSBMode = UNCONFIGUREDMODE;
+
+// here's some interrupt stuff I added to try to get the external gate working
+#define EXT_INT_EXAMPLE_PIN_LINE1               AVR32_EIC_EXTINT_7_PIN
+#define EXT_INT_EXAMPLE_FUNCTION_LINE1          AVR32_EIC_EXTINT_7_FUNCTION
+#define EXT_INT_EXAMPLE_LINE1                   EXT_INT7 // this should be right JS
+#define EXT_INT_EXAMPLE_IRQ_LINE1               AVR32_EIC_IRQ_7 // not sure what this should be
+#define EXT_INT_EXAMPLE_NB_LINES				1
+
+//! Structure holding the configuration parameters of the EIC module.
+eic_options_t eic_options[EXT_INT_EXAMPLE_NB_LINES];
+
+
+// interrupt handler for external gate signal input from synthesizer.
+__attribute__((__interrupt__))
+static void eic_int_handler1(void)
 {
-	.reg          = DIP204_SPI_NPCS,
-	.baudrate     = 1000000,
-	.bits         = 8,
-	.spck_delay   = 0,
-	.trans_delay  = 0,
-	.stay_act     = 1,
-	.spi_mode     = 0,
-	.modfdis      = 1
-};
+	eic_clear_interrupt_line(&AVR32_EIC, EXT_INT_EXAMPLE_LINE1);
+	eiccounter++;
+	ui_ext_gate_in();
+}
+
+
+// interrupt handler to find the state of the HOST/DEVICE switch on the panel
+__attribute__((__interrupt__))
+static void int_handler_host_device_switch (void)
+{
+	
+	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
+	{		// PB2 generated the interrupt.
+		delay_us(500);
+		USB_Mode_Switch_Check();
+		// Clear the interrupt flag of the pin PB2 is mapped to.
+		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
+	}
+	
+}
+
+void USB_Mode_Switch_Check(void)
+{
+		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
+		{
+
+			//LED_On(LED1);
+			if (myUSBMode == HOSTMODE)
+			{
+				//udc_stop();
+			}
+			//uhc_start();
+			myUSBMode = DEVICEMODE;
+			
+			udc_attach();
+
+		}
+		else
+		{
+			//LED_Off(LED1);
+			if (myUSBMode == DEVICEMODE)
+			{
+				//uhc_stop(1);
+			}
+			//udc_start();
+			myUSBMode = HOSTMODE;
+
+		}
+}
 
 //SPI options for the 16 and 12 bit DACs
 spi_options_t spiOptions16DAC =
@@ -110,7 +177,8 @@ void DACsetup(void)
 	SPIbusy = 1;
 	
 	setSPI(spiOptions12DAC);
-
+	spi_mode = TWELVEBIT;
+	
 	gpio_clr_gpio_pin(DAC2_CS);
 	dacwait1();
 	dacwait1();
@@ -146,11 +214,24 @@ void DACsetup(void)
 
 void dacwait1(void)
 {
-	cpu_delay_us(12,64000000);//5
+	static uint8_t i = 0;
+	static uint8_t wastecounter = 0;
+	//cpu_delay_us(12,64000000);//5
+	for (i = 0; i < 5; i++)
+	{
+		wastecounter++;
+	}
 }
 void dacwait2(void)
 {
-	cpu_delay_us(12,64000000);//5
+	//cpu_delay_us(12,64000000);//5
+	static uint8_t i = 0;
+	static uint8_t wastecounter = 0;
+	//cpu_delay_us(12,64000000);//5
+	for (i = 0; i < 5; i++)
+	{
+		wastecounter++;
+	}
 }
 
 static void setSPI(spi_options_t spiOptions)
@@ -176,7 +257,11 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	//KLUDGE
 	
 	SPIbusy = 1;
-	setSPI(spiOptions12DAC);
+	if (spi_mode != TWELVEBIT)
+	{
+		setSPI(spiOptions12DAC);
+		spi_mode = TWELVEBIT;
+	}
 
 	dacouthigh = (DACval >> 4) & 0xFF;
 	dacoutlow = ((DACval << 4) & 0xF0);
@@ -190,7 +275,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(SPARE_SPI,dacoutlow)) != 0);
 		dacwait2();
 		gpio_set_gpio_pin(DAC2_CS);
-		dacwait1();
+		//dacwait1();
 	}
 
 	if (DACnum == 1)
@@ -213,27 +298,23 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 
 	SPIbusy = 1;
 	//set up SPI to be 16 bit for the DAC
-	setSPI(spiOptions16DAC);
+	if (spi_mode != SIXTEENBIT)
+	{
+		setSPI(spiOptions16DAC);
+		spi_mode = SIXTEENBIT;
+	}
 	
 	DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
 	gpio_clr_gpio_pin(DAC1_CS);
-	cpu_delay_us(2,64000000);
+	dacwait1();
 	spi_write(SPARE_SPI,DAC1outhigh);
 	spi_write(SPARE_SPI,DAC1outlow);
-	cpu_delay_us(12,64000000);
+	dacwait2();
 	gpio_set_gpio_pin(DAC1_CS);
 	SPIbusy = 0;
-}
-
-void lcd_clear_line(uint8_t linenum)
-{
-	dip204_set_cursor_position(1,linenum);
-	dip204_write_string("                    ");
-	dip204_set_cursor_position(1,linenum);
-	//dip204_hide_cursor();
 }
 
 static void initSPIbus(void)
@@ -311,17 +392,48 @@ void testLoop(void)
 }
 
 
+void setupEIC(void)
+{
+	// Enable edge-triggered interrupt.
+	eic_options[0].eic_mode  = EIC_MODE_EDGE_TRIGGERED;
+	// Interrupt will trigger on rising edge.
+	eic_options[0].eic_edge  = EIC_EDGE_FALLING_EDGE;
+	// Initialize in synchronous mode : interrupt is synchronized to the clock
+	eic_options[0].eic_async  = EIC_SYNCH_MODE;
+	eic_options[0].eic_filter = EIC_FILTER_ENABLED;
+	// Set the interrupt line number.
+	eic_options[0].eic_line   = EXT_INT_EXAMPLE_LINE1;
+	gpio_enable_module_pin(EXT_INT_EXAMPLE_PIN_LINE1,EXT_INT_EXAMPLE_FUNCTION_LINE1);
+	// Disable all interrupts.
+	Disable_global_interrupt();
+	INTC_init_interrupts();
+	INTC_register_interrupt(&eic_int_handler1, EXT_INT_EXAMPLE_IRQ_LINE1, AVR32_INTC_INT0);
+	eic_init(&AVR32_EIC, eic_options,EXT_INT_EXAMPLE_NB_LINES);
+	eic_enable_line(&AVR32_EIC, eic_options[0].eic_line);
+	eic_enable_interrupt_line(&AVR32_EIC, eic_options[0].eic_line);
+	
+	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
+	INTC_register_interrupt( &int_handler_host_device_switch, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
+	  
+	Enable_global_interrupt();
+	
+}
+
 /*! \brief Main function. Execution starts here.
  */
 int main(void){
-	sysclk_init();
-	board_init();
+	
 	
 	irq_initialize_vectors();
 	cpu_irq_enable();
 
 	// Initialize the sleep manager
 	sleepmgr_init();
+	setupEIC();
+
+
+	sysclk_init();
+	board_init();
 
 	ui_init();
 
@@ -331,14 +443,17 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	// Write7Seg(56);
+	
 	// Start USB host stack
 	uhc_start();
 	
+	USB_Mode_Switch_Check();
+
 	//testLoop();
 	
 	// Start USB device stack
 	//udc_start();
-	initNoteStack();
+	//initNoteStack();
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
@@ -346,3 +461,51 @@ int main(void){
 		sleepmgr_enter_sleep();
 	}
 }
+
+void main_suspend_action(void)
+{
+	//ui_powerdown();
+}
+
+void main_resume_action(void)
+{
+	//ui_wakeup();
+}
+
+void main_sof_action(void)
+{
+	if (!main_b_midi_enable)
+	return;
+	ui_process(udd_get_frame_number());
+}
+
+#ifdef USB_DEVICE_LPM_SUPPORT
+void main_suspend_lpm_action(void)
+{
+	ui_powerdown();
+}
+
+void main_remotewakeup_lpm_disable(void)
+{
+	ui_wakeup_disable();
+}
+
+void main_remotewakeup_lpm_enable(void)
+{
+	ui_wakeup_enable();
+}
+#endif
+
+bool main_midi_enable(void)
+{
+	main_b_midi_enable = true;
+	return true;
+}
+
+void main_midi_disable(void)
+{
+	main_b_midi_enable = false;
+}
+
+
+

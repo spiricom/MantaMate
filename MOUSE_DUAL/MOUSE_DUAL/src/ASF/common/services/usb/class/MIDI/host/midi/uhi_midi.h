@@ -11,7 +11,7 @@
 
 #include "conf_usb_host.h"
 #include "usb_protocol.h"
-#include "usb_protocol_midi.h"
+#include "usb_protocol_cdc.h"
 #include "uhi.h"
 
 #ifdef __cplusplus

@@ -325,6 +325,7 @@ static bool udc_iface_disable(uint8_t iface_num)
  */
 static bool udc_iface_enable(uint8_t iface_num, uint8_t setting_num)
 {
+	uint8_t interfaceHasEndpoints = 0;
 	// Select the interface descriptor
 	if (!udc_update_iface_desc(iface_num, setting_num)) {
 		return false;
@@ -350,10 +351,21 @@ static bool udc_iface_enable(uint8_t iface_num, uint8_t setting_num)
 				(ep_desc->wMaxPacketSize))) {
 			return false;
 		}
+		else
+		{
+			interfaceHasEndpoints = 1;
+		}
 	}
 #endif
 	// Enable the interface
-	return udc_ptr_conf->udi_apis[iface_num]->enable();
+	if (interfaceHasEndpoints)
+	{
+		return udc_ptr_conf->udi_apis[iface_num]->enable();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 /*! \brief Start the USB Device stack
@@ -383,11 +395,12 @@ void udc_reset(void)
 		for (iface_num = 0;
 				iface_num < udc_ptr_conf->desc->bNumInterfaces;
 				iface_num++) {
-			udc_iface_disable(iface_num);
+			udc_iface_disable(iface_num); // TODO : should this be checking whether the interface has been enabled yet? Seems to cause problems with the endpoints if it doesn't, because in udi_midi_disable it decrements the variables from 0 to -1 (255) if they haven't already been set to 1.
 		}
 	}
 	udc_num_configuration = 0;
-#if (USB_CONFIG_ATTR_REMOTE_WAKEUP == (USB_DEVICE_ATTR & USB_CONFIG_ATTR_REMOTE_WAKEUP))
+#if (USB_CONFIG_ATTR_REMOTE_WAKEUP \
+	== (USB_DEVICE_ATTR & USB_CONFIG_ATTR_REMOTE_WAKEUP))
 	if (CPU_TO_LE16(USB_DEV_STATUS_REMOTEWAKEUP) & udc_device_status) {
 		// Remote wakeup is enabled then disable it
 		UDC_REMOTEWAKEUP_DISABLE();
@@ -801,8 +814,9 @@ static bool udc_req_std_dev_get_configuration(void)
  */
 static bool udc_req_std_dev_set_configuration(void)
 {
-	uint8_t iface_num;
-
+	uint8_t numWithoutEndpoints = 0;
+	uint8_t iface_num = 0;
+	
 	// Check request length
 	if (udd_g_ctrlreq.req.wLength) {
 		return false;
@@ -849,12 +863,18 @@ static bool udc_req_std_dev_set_configuration(void)
 		udc_ptr_conf = &udc_config.conf_lsfs[udc_num_configuration - 1];
 	}
 	// Enable all interfaces of the selected configuration
+	
+	
+	// TODO: I just copied this here, thinking I had accidentally deleted it. Before copying it, the interfaces never actually got enabled.
+	// I think it's true that I accidentally deleted it, and it should be here. JS
 	for (iface_num = 0; iface_num < udc_ptr_conf->desc->bNumInterfaces;
-			iface_num++) {
+	iface_num++) {
 		if (!udc_iface_enable(iface_num, 0)) {
-			return false;
+			//return false;
+			numWithoutEndpoints++;
 		}
 	}
+// TODO : should there be something here??
 	return true;
 }
 

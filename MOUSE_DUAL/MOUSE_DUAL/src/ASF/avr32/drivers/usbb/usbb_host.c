@@ -383,7 +383,7 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 	bool b_mode_device;
 
 // this is necessary for OTG to work as both host and device, I think --- JOS
-/*
+
 #ifdef USB_ID
 	if (Is_otg_id_transition()) {
 		while (!Is_otg_clock_usable());
@@ -409,8 +409,8 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 #else
 	b_mode_device = Is_otg_device_mode_forced();
 #endif
-*/
-	b_mode_device = 0;
+
+	//b_mode_device = 0;
 	// Redirection to host or device interrupt
 	if (b_mode_device) {
 		udd_interrupt();

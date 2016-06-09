@@ -156,4 +156,49 @@ void ui_test_finish(bool b_success);
 extern bool ui_midi_plug;
 extern uint8_t my_buf[128];
 
+
+
+/*! \brief Called when communication port is opened
+ */
+void ui_midi_open(uint8_t port);
+
+/*! \brief Called when communication port is closed
+ */
+void ui_midi_close(uint8_t port);
+
+/*! \brief Called when a data is received on CDC
+ */
+void ui_midi_rx_start(void);
+
+/*! \brief Called when a data is received on port com
+ */
+void ui_midi_tx_start(void);
+
+/*! \brief Called when all data pending are sent on port com
+ */
+void ui_midi_rx_stop(void);
+
+/*! \brief Called when all data pending are sent on CDC
+ */
+void ui_midi_tx_stop(void);
+
+/*! \brief Called when a communication error occur
+ */
+void ui_midi_error(void);
+
+/*! \brief Called when a overflow occur
+ */
+void ui_midi_overflow(void);
+
+/*! \brief This process is called each 1ms
+ * It is called only if the USB interface is enabled.
+ *
+ * \param framenumber  Current frame number
+ */
+void ui_process(uint16_t framenumber);
+
+void ui_ext_gate_in(void);
+
+
+
 #endif // _UI_H_

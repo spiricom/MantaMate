@@ -77,11 +77,6 @@
 // From module: Joystick interface (5-way)
 #include <joystick.h>
 
-// From module: DIP204 LCD screen
-#include <dip204.h>
-
-#include <spi.h>
-
 // From module: PM Power Manager- UC3 A0/A1/A3/A4/B0/B1 implementation
 #include <power_clocks_lib.h>
 #include <sleep.h>
@@ -96,12 +91,6 @@
 // From module: System Clock Control - UC3 A implementation
 #include <sysclk.h>
 
-#include <delay.h>
-#include <cycle_counter.h>
-
-// From module: USB Device MIDI (Single Interface Device)
-#include <udi_midi.h>
-
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
 #include <udd.h>
@@ -110,15 +99,16 @@
 #include <usb_protocol_hid.h>
 
 // From module: USB HID Library (Device)
-//#include <udi_hid.h>
-
-// From module: USB Host HID Mouse (Single Class support)
-#include <uhi_hid_manta.h>
-#include <uhi_hid_joystick.h>
-#include <uhi_midi.h>
+#include <udi_hid.h>
 
 // From module: USB Host stack core
 #include <uhc.h>
 #include <uhd.h>
+
+#include <spi.h>
+
+#include <cycle_counter.h>
+
+#include <delay.h>
 
 #endif // ASF_H

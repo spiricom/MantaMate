@@ -174,7 +174,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					&& dev->dev_desc.idProduct == 0x2424)
 				{
 					int i;
-					// USB HID Mouse interface found
+					// USB HID Manta interface found
 					// Start allocation endpoint(s)
 					b_iface_supported = true;
 					// initialize button states to 0
@@ -236,13 +236,20 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 
 void uhi_hid_manta_enable(uhc_device_t* dev)
 {
+	uint8_t i = 0;
+	
 	if (uhi_hid_manta_dev.dev != dev) 
 		return;  // No interface to enable
 
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	initNoteStack();
+	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
 	memset(lights,0,HEX_BYTES*2+SLIDER_BYTES);
+	for (i = 0; i < 64; i++)
+	{
+		glitch_count[i] = 0;
+	}
 	//lights[0] = 0x01;
 	//lights[9] = 0x03;
 	//lights[6] = 0x03;
@@ -261,6 +268,7 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	Assert(uhi_hid_manta_dev.report!=NULL);
 	free(uhi_hid_manta_dev.report);
 	UHI_HID_MANTA_CHANGE(dev, false);
+	manta_mapper = 0;
 	initNoteStack();
 }
 
@@ -291,6 +299,7 @@ static void uhi_hid_manta_report_reception(
 {
 	uint8_t i;
 	unsigned short val;
+	uint8_t glitch = 0;
 	UNUSED(ep);
 	
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
@@ -298,66 +307,36 @@ static void uhi_hid_manta_report_reception(
 		return; // HID mouse transfer restart
 	}
 
-	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 4)) {
+	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 64)) {
 		return; // HID mouse transfer aborted
 	}
-	
+	manta_data_lock = 1;
 	// Decode buttons
 	for(i=0; i<48; i++)
+	{
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
+		if (uhi_hid_manta_dev.report[i+1] == 0)
+		{
+			glitch_count[i] = 2;
+		}
+	}
 	for(i=0; i<4; i++)
 		sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
-		/*
-    i = 0;
+	manta_data_lock = 0;
 	
-	while(i < 48 && butt_states[i] == 0)
-		i++;
-		
-	if(i < 48)
+	if(((sliders[0] != pastsliders[0]) && (sliders[0] != 255)) || ((sliders[1] != pastsliders[1]) && (sliders[1] != 255)))
 	{
-		//lcd_clear_line(1);
-		//dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
-		//dip204_hide_cursor();
-		UHI_HID_MOUSE_EVENT_BTN_LEFT(1);
-	}
-	else
-		UHI_HID_MOUSE_EVENT_BTN_LEFT(0);
-		
-	i++;
-	
-	while(i < 48 && butt_states[i] == 0)
-		i++;
-	
-	if(i < 48)
-	{
-		//lcd_clear_line(2);
-		//dip204_printf_string("button: %u = %u",i+1,butt_states[i]);
-		//dip204_hide_cursor();
-		UHI_HID_MOUSE_EVENT_BTN_RIGHT(1);
-	}
-	else UHI_HID_MOUSE_EVENT_BTN_RIGHT(0);
-	*/
-	
-	if((sliders[0] != pastsliders[0] && sliders[0] != 255) || (sliders[1] != pastsliders[1] && sliders[1] != 255))
-	{
-		val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;/*
-		dip204_clear_line(3);
-		dip204_printf_string("slider: %u = %u",1,val);
-		dip204_hide_cursor();*/
+		val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
 		dacsend(1,0,val);
 	}
-	
-	if((sliders[2] != pastsliders[2] && sliders[2] != 255) || (sliders[3] != pastsliders[3] && sliders[3] != 255))
+
+	if(((sliders[2] != pastsliders[2]) && (sliders[2] != 255)) || ((sliders[3] != pastsliders[3]) && (sliders[3] != 255)))
 	{
-		val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;/*
-		dip204_clear_line(4);
-		dip204_printf_string("slider: %u = %u",2,val);
-		dip204_hide_cursor();*/
+		val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
 		dacsend(2,0,val);
 	}
 	
 	processKeys();
-	//mantaVol(butt_states);
 	/*val  = calculateDACvalue();
 	DAC16Send(1, val);*/
 	noteOut();
@@ -369,27 +348,34 @@ static void processKeys(void)
 {
 	uint8_t i;
 	uint8_t hex_max = 0;
-	
+	uint8_t numGlitches = 0;
+
 	for (i = 0; i < 48; i++)
 	{
 		//if the current sensor value of a key is positive and it was zero on last count
-		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
+		if (manta_data_lock == 0)
 		{
-			addNote(i,butt_states[i]);
-		}
+			
+			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
+			{
+				addNote(i,butt_states[i]);
+			}
 
-		else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
-		{
-			removeNote(i);	
+			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
+			{
+				removeNote(i);	
+			}
+			if (butt_states[i] > hex_max)
+			{
+				hex_max = butt_states[i];
+			}
+
+			// update the past keymap array (stores the previous values of every key's sensor reading)
+			pastbutt_states[i] = butt_states[i];
 		}
-		if (butt_states[i] > hex_max)
-		{
-			hex_max = butt_states[i];
-		}
-		dacsend(3,0,hex_max * 16); 
-		// update the past keymap array (stores the previous values of every key's sensor reading)
-		pastbutt_states[i] = butt_states[i];
+	
 	}
+	dacsend(3,0,(hex_max * 16)); 
 }
 
 static bool uhi_midi_send_report(void)

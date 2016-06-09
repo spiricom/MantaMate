@@ -45,7 +45,7 @@ unsigned int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,1
 18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 
 enum maps_t whichmap = NO_MAP;
-unsigned long scaledoctaveDACvalue = 54780; //55425
+unsigned long scaledoctaveDACvalue = 54780; //55425 should be mathematically correct. Not sure why the amplifier overshoots things, or if something else is going on. Also need to do more precise tests of voltage output.
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
@@ -74,7 +74,7 @@ signed char notestack[48][2];
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
-unsigned char polymode = 1; //need to implement
+unsigned char polymode = 0; //need to implement
 unsigned char polynum = 4;
 unsigned char polyVoiceNote[4];
 unsigned char polyVoiceBusy[4];
@@ -265,11 +265,18 @@ unsigned short calculateDACvalue(uint8_t noteVal)
 	unsigned short DAC1val;
 	unsigned int note;
 	
-	switch(whichmap)
+	if (manta_mapper == 1)
 	{
-		case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
-		case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
-		default: note = noteVal; break;                     // no map
+		switch(whichmap)
+		{
+			case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
+			case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
+			default: note = noteVal; break;                     // no map
+		}
+	}
+	else
+	{
+		note = noteVal;
 	}
 	
 	//templong = ((noteval + offset + transpose) * 54612);  // original simple equal temperament
@@ -456,32 +463,37 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 	{
 		
 		case 0:
-		dacsend(0, 1, val * 32);
+		dacsend(0, 0, val * 32);
 		break;
 		
 		case 1:
-		dacsend(1, 1, val * 32);
+		dacsend(1, 0, val * 32);
 		break;
 		
 		case 2:
-		dacsend(2, 1, val * 32);
-		break;
-		
-		case 3:
-		dacsend(3, 1, val * 32);
-		break;
-				
-		case 4:
-		dacsend(1, 0, val * 32);
-		break;	
-		
-		case 5:
 		dacsend(2, 0, val * 32);
 		break;
 		
-		case 6:
+		case 3:
 		dacsend(3, 0, val * 32);
 		break;
+				
+		case 4:
+		dacsend(0, 1, val * 32);
+		break;	
+		
+		case 5:
+		dacsend(1, 1, val * 32);
+		break;
+		
+		case 6:
+		dacsend(2, 1, val * 32);
+		break;
+		
+		case 7:
+		dacsend(3, 1, val * 32);
+		break;
+				
 		
 		case 31:
 		
@@ -725,7 +737,7 @@ void programChange(uint8_t num)
 void noteOut()
 {
 	int i;
-	// NOTE: Max polynum = 2 (for Jeff's Synth)	
+
 	
 	if (polymode == 0)
 	{
@@ -776,5 +788,22 @@ void noteOut()
 			}
 		}
 	}
+	
+}
+
+void tuningTest(uint8_t whichOct)
+{
+
+	uint8_t numOct = 6;
+
+		
+	DAC16Send(0, calculateDACvalue(12 * whichOct));
+	DAC16Send(1, calculateDACvalue(12 * whichOct));
+	DAC16Send(2, calculateDACvalue(12 * whichOct));
+	DAC16Send(3, calculateDACvalue(12 * whichOct));
+	dacsend(0,1,0xfff);
+	dacsend(1,1,0xfff);
+	dacsend(2,1,0xfff);
+	dacsend(3,1,0xfff);
 	
 }

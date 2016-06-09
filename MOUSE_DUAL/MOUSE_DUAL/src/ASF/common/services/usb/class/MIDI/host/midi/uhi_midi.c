@@ -211,8 +211,9 @@ void uhi_midi_enable(uhc_device_t* dev)
 
 	// Init value
 	initNoteStack();
+	manta_mapper = 0; // make sure there is no weird MIDI note mapping going on if the manta was previously being communicated with.
 	//firstMsg = 1;
-	uhi_midi_sof(false); //was commented out originally when Jeff took over on this from Elaine - why? This should start the first transfer
+	//uhi_midi_sof(false); //was commented out originally when Jeff took over on this from Elaine - why? This should start the first transfer
 	UHI_MIDI_CHANGE(dev, true);
 }
 
@@ -383,7 +384,7 @@ static bool uhi_midi_rx_update(uhi_midi_line_t *line)
 */
 	///  
 	/// it appears that the ep run function gets data from the endpoint and puts it in the "nosel" buffer. Then it runs the rx_received function once this has finished.
-	// there was at one point an issue, where if it times out then it thinks it has new data. I lengthened the timeout, and also made the rx_received function ignore data in the event of a timeout.
+	// there was at one point an issue, where if it times out then it thinks it has new data. I lengthened the timeout, and also made the rx_received function ignore data in the event of a timeout. JS
 	return uhd_ep_run(
 	uhi_midi_dev.dev->address,
 	line->ep_data,
@@ -654,7 +655,15 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 	switch(control)
 	{
 		case 144:
-			addNote(msgByte1,msgByte2);
+			if (msgByte2)
+			{
+				addNote(msgByte1,msgByte2);
+			}
+			//to deal with note-offs represented as a note-on with zero velocity
+			else
+			{
+				removeNote(msgByte1);
+			}
 			noteOut();
 			midiVol();
 			break;

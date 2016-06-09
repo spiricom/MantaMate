@@ -115,17 +115,6 @@
  * USB Interface Configuration
  * @{
  */
-/**
- * Configuration of HID Mouse interface
- * @{
- */
-//#define UHI_HID_MOUSE_CHANGE(dev,b_plug)		ui_uhi_hid_mouse_change(dev,b_plug)
-#define UHI_HID_MOUSE_EVENT_BTN_LEFT(b_state)   ui_host_hid_mouse_btn_left(b_state)
-#define UHI_HID_MOUSE_EVENT_BTN_RIGHT(b_state)  ui_host_hid_mouse_btn_right(b_state)
-#define UHI_HID_MOUSE_EVENT_BTN_MIDDLE(b_state) ui_host_hid_mouse_btn_middle(b_state)
-#define UHI_HID_MOUSE_EVENT_MOUVE(x,y,scroll)   ui_host_hid_mouse_move(x,y,scroll)
-//@}
-//@}
 
 #define UHI_MIDI_CHANGE(dev,b_plug)				 ui_uhi_midi_change(dev,b_plug)
 #define UHI_HID_MANTA_CHANGE(dev,b_plug)		 ui_uhi_hid_manta_change(dev,b_plug)

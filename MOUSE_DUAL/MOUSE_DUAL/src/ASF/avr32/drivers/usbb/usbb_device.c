@@ -51,6 +51,7 @@
 #include "udd.h"
 #include "usbb_otg.h"
 #include "usbb_device.h"
+#include "ui.h"
 #include <string.h>
 
 // Fix the fact that, for some IAR header files, the AVR32_USBB_IRQ_GROUP define
@@ -117,7 +118,7 @@
  *
  * \section Power mode management
  * The Sleep modes authorized :
- * - in USB IDLE state, the USBB needs of USB clock and authorizes up to IDLE mode
+ * - in IDLE state, the USBB needs of USB clock and authorizes up to IDLE mode
  * - in USB SUSPEND state, the USBB no needs USB clock but requests a minimum
  *   clock restart timing. Thus, it authorizes up to STATIC or STANDBY mode.
  * - Vbus monitoring used in USB Self-Power mode authorizes up to STOP mode
@@ -603,7 +604,8 @@ void udd_enable(void)
 
 	flags = cpu_irq_save();
 
-#ifdef UHD_ENABLE
+
+#ifdef UHD_ENABLE //TODO: I messed this up just to see what happens JS
 	//* DUAL ROLE INITIALIZATION
 	if (otg_dual_enable()) {
 		// The current mode has been started by otg_dual_enable()
@@ -611,6 +613,7 @@ void udd_enable(void)
 		return;
 	}
 #else
+
 	//* SINGLE DEVICE MODE INITIALIZATION
 	sysclk_enable_usb();
 

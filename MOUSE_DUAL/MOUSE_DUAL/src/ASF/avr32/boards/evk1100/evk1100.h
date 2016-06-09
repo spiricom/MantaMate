@@ -111,7 +111,7 @@
 //! Multiplexed pin used for USB_ID: AVR32_USBB_USB_ID_x_x.
 //! To be selected according to the AVR32_USBB_USB_ID_x_x_PIN and
 //! AVR32_USBB_USB_ID_x_x_FUNCTION definitions from <avr32/uc3axxxx.h>.
-//#define USB_ID                      AVR32_USBB_USB_ID_0_0
+#define USB_ID                      AVR32_USBB_USB_ID_0_0
 
 //! Multiplexed pin used for USB_VBOF: AVR32_USBB_USB_VBOF_x_x.
 //! To be selected according to the AVR32_USBB_USB_VBOF_x_x_PIN and
@@ -198,6 +198,9 @@
 #define GPIO_PUSH_BUTTON_0_PRESSED    0
 #define GPIO_PUSH_BUTTON_1            AVR32_PIN_PB03
 #define GPIO_PUSH_BUTTON_1_PRESSED    0
+
+#define GPIO_HOST_DEVICE_SWITCH		AVR32_PIN_PA11
+#define GPIO_HOST_DEVICE_SWITCH_PRESSED		0
 //! @}
 
 
