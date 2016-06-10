@@ -6,6 +6,7 @@
  */ 
 #include "asf.h"
 #include "main.h"
+#include "note_process.h"
 
 uint8_t previous_hex = 0;
 
@@ -29,7 +30,7 @@ void sequencerStep(void)
 	manta_send_LED(); // now write that data to the manta
 	previous_hex = dummycounter % 48;
 	
-
+	//tuningTest(dummycounter % 6);
 	dummycounter++;
 
 }

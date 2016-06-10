@@ -49,8 +49,8 @@ signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,
 signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 
-enum maps_t whichmap = PIANO;
-unsigned long scaledoctaveDACvalue = 54780; //55425 should be mathematically correct. Not sure why the amplifier overshoots things, or if something else is going on. Also need to do more precise tests of voltage output.
+enum maps_t whichmap = NO_MAP;
+unsigned long scaledoctaveDACvalue = 54660; //was 54780, 55425 should be mathematically correct. Not sure why the amplifier overshoots things, or if something else is going on. Also need to do more precise tests of voltage output.
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
