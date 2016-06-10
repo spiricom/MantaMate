@@ -323,7 +323,7 @@ static void uhi_hid_manta_report_reception(
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
 		if (uhi_hid_manta_dev.report[i+1] == 0)
 		{
-			glitch_count[i]++;
+			//this is what happens if there's that weird glitch - I think it's solved. Also could happen in normal useage if the sensors output the value 128, but shouldn't happen when the manta isn't touched;
 		}
 	}
 	for(i=0; i<4; i++)
@@ -388,6 +388,20 @@ static void processKeys(void)
 	}
 	dacsend(3,0,(hex_max * 16)); 
 	noteOut();
+}
+
+void uhi_hid_manta_sof(bool b_micro)
+{
+	UNUSED(b_micro);
+
+	if (clock_speed != 0)
+	{
+		if (USB_frame_counter == clock_speed) {
+			clockHappened();
+			USB_frame_counter = 0;
+		}
+	}
+		
 }
 
 static bool uhi_manta_send_report(void)

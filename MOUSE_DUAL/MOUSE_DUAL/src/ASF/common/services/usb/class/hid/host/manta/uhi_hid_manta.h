@@ -84,7 +84,7 @@ extern "C" {
 	.install = uhi_hid_manta_install, \
 	.enable = uhi_hid_manta_enable, \
 	.uninstall = uhi_hid_manta_uninstall, \
-	.sof_notify = NULL, \
+	.sof_notify = uhi_hid_manta_sof \
 }
 
 /**
@@ -94,6 +94,7 @@ extern "C" {
 extern uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev);
 extern void uhi_hid_manta_enable(uhc_device_t* dev);
 extern void uhi_hid_manta_uninstall(uhc_device_t* dev);
+extern void uhi_hid_manta_sof(bool);
 
 bool manta_light_LED(uint8_t *lights);
 //@}

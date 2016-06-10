@@ -4,11 +4,24 @@
  * Created: 6/10/2016 1:44:39 PM
  *  Author: Jeff Snyder
  */ 
-
+#include "asf.h"
+#include "main.h"
 
 void sequencerStep(void)
 {
 	// Hey Reid, put some sequencer stuff in here! This should take every metronome click or gate signal in and decide what to do (i.e., skip this step, or compute an output)
+	// right now, every sequencer clock it will toggle the red light on the MantaMate on or off.
+
+	if(dummycounter % 2 == 1)
+	{
+		LED_On(LED5);
+	}
+	else
+	{
+		LED_Off(LED5);
+	}
+	dummycounter++;
+
 }
 
 void processSequencer(void)

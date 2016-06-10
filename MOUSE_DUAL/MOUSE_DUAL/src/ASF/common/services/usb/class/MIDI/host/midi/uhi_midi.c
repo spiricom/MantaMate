@@ -259,6 +259,15 @@ void uhi_midi_sof(bool b_micro)
 		return; // Interface not enabled
 	}
 
+	USB_frame_counter++;
+	
+	if (clock_speed != 0)
+	{
+		if (USB_frame_counter == clock_speed) {
+			clockHappened();
+			USB_frame_counter = 0;
+		}
+	}
 	// Update transfers
 	//JS - seems like this function checks whether the currently selected buffer is done reading, and it resets it if so
 	// then, it starts the EP transfer if there is an available buffer

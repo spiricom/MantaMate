@@ -452,7 +452,7 @@ void ui_my_midi_send(void)
 	ui_midi_tx_stop();
 }
 
-uint32_t USB_frame_counter = 0;
+
 
 void ui_process(uint16_t framenumber)
 {
@@ -470,7 +470,7 @@ void ui_process(uint16_t framenumber)
 
 void ui_ext_gate_in(void)
 {
-	if(eiccounter % 2 == 1)
+	if(dummycounter % 2 == 1)
 	{
 		//LED_On(LED4);
 		

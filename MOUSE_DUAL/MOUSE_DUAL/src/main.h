@@ -53,14 +53,15 @@
 #include "usb_protocol_cdc.h"
 
 //global variables that everything which includes main.h should be able to see
-extern uint32_t eiccounter;
+extern uint32_t dummycounter;
 extern uint8_t manta_mapper;
 extern uint8_t tuning_count;
-extern uint8_t glitch_count[64];
+
 extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
 extern uint32_t clock_speed;
 extern uint8_t sequencer_mode;
+extern uint32_t USB_frame_counter;
 
 //set up the external interrupt for the gate input
 void setupEIC(void);
