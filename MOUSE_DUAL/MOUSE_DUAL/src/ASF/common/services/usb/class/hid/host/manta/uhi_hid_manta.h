@@ -77,6 +77,14 @@ extern "C" {
 #define HI_RES		1<<4	//  scan only sensors 7 and 8, but at a slow, accurate rate, with higher resolution.)  (DEPRECATED IN 2nd ED)
 #define BUTTON_CTRL 1<<5	// only the function buttons respond to computer control
 
+#define LOCAL_CONTROL 0
+#define HOST_CONTROL_FULL 1
+#define HOST_CONTROL_BUTTON 2
+#define HOST_CONTROL_SLIDER 3
+#define HOST_CONTROL_HEX_AND_BUTTON 4
+#define AMBER 1
+#define RED 2
+#define OFF 0
 
 //! Global define which contains standard UHI API for UHC
 //! It must be added in USB_HOST_UHI define from conf_usb_host.h file.
@@ -95,6 +103,12 @@ extern uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev);
 extern void uhi_hid_manta_enable(uhc_device_t* dev);
 extern void uhi_hid_manta_uninstall(uhc_device_t* dev);
 extern void uhi_hid_manta_sof(bool);
+extern void manta_LED_set_mode(uint8_t mode);
+extern void manta_set_LED_hex(uint8_t hex, uint8_t color);
+extern void manta_set_LED_slider(uint8_t whichSlider, uint8_t value);
+extern void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t value);
+extern void manta_set_LED_button(uint8_t button, uint8_t color);
+extern void manta_send_LED(void);
 
 bool manta_light_LED(uint8_t *lights);
 //@}

@@ -459,11 +459,15 @@ void ui_process(uint16_t framenumber)
 	ui_my_midi_receive();
 	
 	
-	USB_frame_counter++;
-	
-	if (USB_frame_counter == clock_speed) {
-		clockHappened();
-		USB_frame_counter = 0;
+
+	if (clock_speed != 0)
+	{
+		if (USB_frame_counter == clock_speed) 
+		{
+			clockHappened();
+			USB_frame_counter = 0;
+		}
+		USB_frame_counter++;
 	}
 	
 }

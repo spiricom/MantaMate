@@ -7,19 +7,29 @@
 #include "asf.h"
 #include "main.h"
 
+uint8_t previous_hex = 0;
+
 void sequencerStep(void)
 {
 	// Hey Reid, put some sequencer stuff in here! This should take every metronome click or gate signal in and decide what to do (i.e., skip this step, or compute an output)
-	// right now, every sequencer clock it will toggle the red light on the MantaMate on or off.
+	// right now, every sequencer clock it will toggle the red light on the MantaMate on or off, and advance a red led on the manta one step further.
 
-	if(dummycounter % 2 == 1)
-	{
-		LED_On(LED5);
-	}
-	else
-	{
-		LED_Off(LED5);
-	}
+
+	LED_Toggle(LED5); // turn on the red mantamate panel light
+	manta_set_LED_hex((dummycounter % 48), RED);  
+	manta_set_LED_hex(((dummycounter + 1) % 48), AMBER);  
+	//turn off the previous LED
+	manta_set_LED_hex(previous_hex, OFF);  
+
+	manta_set_LED_slider(0,(dummycounter % 8) + 1); // add one to the slider values because a zero turns them off
+	manta_set_LED_slider(1,(7 - (dummycounter % 8)) + 1); // add one to the slider values because a zero turns them off - this one goes backwards
+	
+	manta_set_LED_button(((dummycounter + 1) % 4),AMBER);
+	manta_set_LED_button((dummycounter % 4),OFF);
+	manta_send_LED(); // now write that data to the manta
+	previous_hex = dummycounter % 48;
+	
+
 	dummycounter++;
 
 }
