@@ -57,9 +57,13 @@
 #define UNCONFIGUREDMODE 0
 #define HOSTMODE 1
 #define DEVICEMODE 2
-#define F_CPU 64000000UL
 #define TWELVEBIT 1
 #define SIXTEENBIT 2
+
+#define EEPROM_ADDRESS        0x50        // EEPROM's TWI address
+#define EEPROM_ADDR_LGT       3           // Address length of the EEPROM memory
+#define VIRTUALMEM_ADDR_START 0x123456    // Address of the virtual mem in the EEPROM
+#define TWI_SPEED             100000       // Speed of TWI
 
 static void initSPIbus(void);
 static void setSPI(spi_options_t spiOptions);
@@ -81,10 +85,26 @@ uint32_t myUSBMode = UNCONFIGUREDMODE;
 #define EXT_INT_EXAMPLE_IRQ_LINE1               AVR32_EIC_IRQ_7 // not sure what this should be
 #define EXT_INT_EXAMPLE_NB_LINES				1
 
+#define  PATTERN_TEST_LENGTH        (sizeof(test_pattern)/sizeof(U8))
+
 //! Structure holding the configuration parameters of the EIC module.
 eic_options_t eic_options[EXT_INT_EXAMPLE_NB_LINES];
 
+twi_options_t my_opt;
+twi_package_t I2Cpacket_sent, I2Cpacket_received;
 
+const U8 test_pattern[] =  {
+	0xAA,
+	0x55,
+	0xA5,
+	0x5A,
+	0x77,
+0x99};
+
+U8 data_received[PATTERN_TEST_LENGTH];
+
+
+  
 // interrupt handler for external gate signal input from synthesizer.
 __attribute__((__interrupt__))
 static void eic_int_handler1(void)
@@ -207,7 +227,6 @@ void updatePreset(void)
 		break;
 		
 		case 1:
-
 		initNoteStack();
 		noteOut();
 		polymode = 1;
@@ -215,7 +234,6 @@ void updatePreset(void)
 		break;
 		
 		case 2:
-
 		initNoteStack();
 		noteOut();
 		polymode = 1;
@@ -223,7 +241,6 @@ void updatePreset(void)
 		break;
 		
 		case 3:
-
 		initNoteStack();
 		noteOut();
 		polymode = 1;
@@ -233,6 +250,21 @@ void updatePreset(void)
 		default: 
 		break;	
 	}
+}
+
+void initI2C(void)
+{
+	U8 status = 0;
+	// I2C options settings
+	my_opt.pba_hz = 33000000;
+	my_opt.speed = TWI_SPEED;
+	my_opt.chip = EEPROM_ADDRESS;
+	status = twi_master_init(&AVR32_TWI, &my_opt);
+}
+
+void sendI2CtoEEPROM(void)
+{
+	//this will be to send preset data to the EEPROM chip.
 }
 
 //SPI options for the 16 and 12 bit DACs
@@ -313,7 +345,7 @@ void dacwait1(void)
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
 	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < 9; i++) //number arrived at by testing when the timing makes the DAC fail
 	{
 		wastecounter++;
 	}
@@ -324,7 +356,7 @@ void dacwait2(void)
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
 	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < 2; i++)
 	{
 		wastecounter++;
 	}
@@ -369,7 +401,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(SPARE_SPI,DACvoice)) != 0);
 		while((spi_write(SPARE_SPI,dacouthigh)) !=0);
 		while((spi_write(SPARE_SPI,dacoutlow)) != 0);
-		dacwait2();
+		dacwait1();
 		gpio_set_gpio_pin(DAC2_CS);
 		//dacwait1();
 	}
@@ -381,7 +413,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(SPARE_SPI,DACvoice)) != 0);
 		while((spi_write(SPARE_SPI,dacouthigh)) !=0);
 		while((spi_write(SPARE_SPI,dacoutlow)) != 0);
-		dacwait2();
+		dacwait1();
 		gpio_set_gpio_pin(DAC3_CS);
 		dacwait1();
 	}
@@ -405,7 +437,7 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
 	gpio_clr_gpio_pin(DAC1_CS);
-	dacwait1();
+	dacwait2();
 	spi_write(SPARE_SPI,DAC1outhigh);
 	spi_write(SPARE_SPI,DAC1outlow);
 	dacwait2();
@@ -535,11 +567,12 @@ int main(void){
 
 
 	sysclk_init();
+	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
 	board_init();
 
 	ui_init();
 
-	//initialize the SPI bus for DAC and LCD
+	//initialize the SPI bus for DAC
 	initSPIbus();
 	
 	//send the messages to the DACs to make them update without software LDAC feature
@@ -549,6 +582,7 @@ int main(void){
 	// Start USB host stack
 	uhc_start();
 	
+	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 
 	//testLoop();

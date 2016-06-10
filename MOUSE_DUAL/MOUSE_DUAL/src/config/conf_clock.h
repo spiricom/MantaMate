@@ -49,14 +49,14 @@
 
 // ===== System Clock Source Options
 //#define CONFIG_SYSCLK_SOURCE        SYSCLK_SRC_RCSYS
-#define CONFIG_SYSCLK_SOURCE          SYSCLK_SRC_OSC0
-//#define CONFIG_SYSCLK_SOURCE        SYSCLK_SRC_PLL0
+//#define CONFIG_SYSCLK_SOURCE          SYSCLK_SRC_OSC0
+#define CONFIG_SYSCLK_SOURCE        SYSCLK_SRC_PLL0
 
 // ===== PLL0 Options
-//#define CONFIG_PLL0_SOURCE          PLL_SRC_OSC0
+#define CONFIG_PLL0_SOURCE          PLL_SRC_OSC0
 //#define CONFIG_PLL0_SOURCE          PLL_SRC_OSC1
-//#define CONFIG_PLL0_MUL             4 /* Fpll = (Fclk * PLL_mul) / PLL_div */
-//#define CONFIG_PLL0_DIV             1 /* Fpll = (Fclk * PLL_mul) / PLL_div */
+#define CONFIG_PLL0_MUL             11 /* Fpll = (Fclk * PLL_mul) / PLL_div */
+#define CONFIG_PLL0_DIV             2 /* Fpll = (Fclk * PLL_mul) / PLL_div */
 
 // ===== PLL1 Options
 #define CONFIG_PLL1_SOURCE            PLL_SRC_OSC0
@@ -66,7 +66,7 @@
 
 // ===== System Clock Bus Division Options
 //#define CONFIG_SYSCLK_CPU_DIV       0 /* Fcpu = Fsys/(2 ^ CPU_div) */
-//#define CONFIG_SYSCLK_PBA_DIV       0 /* Fpba = Fsys/(2 ^ PBA_div) */
+#define CONFIG_SYSCLK_PBA_DIV       1 /* Fpba = Fsys/(2 ^ PBA_div) */
 //#define CONFIG_SYSCLK_PBB_DIV       0 /* Fpbb = Fsys/(2 ^ PBB_div) */
 
 // ===== Peripheral Clock Management Options

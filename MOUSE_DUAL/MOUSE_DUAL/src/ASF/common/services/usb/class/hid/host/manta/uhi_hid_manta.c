@@ -107,7 +107,7 @@ static void processKeys(void);
  *
  * \return \c 1 if send on going, \c 0 if delay.
  */
-static bool uhi_midi_send_report(void);
+static bool uhi_manta_send_report(void);
 
 /**
  * \brief Callback called when the report is sent
@@ -118,7 +118,7 @@ static bool uhi_midi_send_report(void);
  *
  * \return \c 1 if function was successfully done, otherwise \c 0.
  */
-static void uhi_midi_report_sent(
+static void uhi_manta_report_sent(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
@@ -337,8 +337,6 @@ static void uhi_hid_manta_report_reception(
 	}
 	
 	processKeys();
-	/*val  = calculateDACvalue();
-	DAC16Send(1, val);*/
 	noteOut();
 	
 	uhi_hid_manta_start_trans_report(add);
@@ -378,7 +376,7 @@ static void processKeys(void)
 	dacsend(3,0,(hex_max * 16)); 
 }
 
-static bool uhi_midi_send_report(void)
+static bool uhi_manta_send_report(void)
 {
 	if (uhi_manta_report_trans_ongoing)
 	return false;	// Transfer on going then send this one after transfer complete
@@ -389,10 +387,10 @@ static bool uhi_midi_send_report(void)
 
 	// Send report
 	return uhi_manta_report_trans_ongoing =
-	uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_midi_report_sent);
+	uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_manta_report_sent);
 }
 
-static void uhi_midi_report_sent(usb_add_t add, usb_ep_t ep,
+static void uhi_manta_report_sent(usb_add_t add, usb_ep_t ep,
 		uhd_trans_status_t status, iram_size_t nb_transfered)
 {
 	UNUSED(ep);
@@ -402,7 +400,7 @@ static void uhi_midi_report_sent(usb_add_t add, usb_ep_t ep,
 	uhi_manta_report_trans_ongoing = false;
 	if (uhi_manta_b_report_valid) {
 		// Send new valid report
-		uhi_midi_send_report();
+		uhi_manta_send_report();
 	}
 }
 
@@ -428,7 +426,7 @@ bool manta_light_LED(uint8_t *lights)
 	
 	// Valid and send report
 	uhi_manta_b_report_valid = true;
-	uhi_midi_send_report();
+	uhi_manta_send_report();
 
 	cpu_irq_restore(flags);
 	return true;

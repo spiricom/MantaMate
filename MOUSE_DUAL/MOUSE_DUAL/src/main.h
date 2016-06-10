@@ -64,6 +64,11 @@ void setupEIC(void);
 void updatePreset(void);
 void Preset_Switch_Check(uint8_t whichSwitch);
 void USB_Mode_Switch_Check(void);
+
+void initI2C(void);
+
+void sendI2CtoEEPROM(void);
+
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
  *

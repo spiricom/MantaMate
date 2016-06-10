@@ -8,6 +8,8 @@ src\ASF\avr32\drivers\pwm\pwm.c
 
 src\ASF\avr32\drivers\spi\spi.c
 
+src\ASF\avr32\drivers\twi\twi.c
+
 src\ASF\common\services\usb\class\hid\host\joystick\uhi_hid_joystick.c
 
 src\ASF\common\services\usb\class\hid\host\manta\uhi_hid_manta.c

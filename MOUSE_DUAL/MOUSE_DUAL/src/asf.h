@@ -71,6 +71,9 @@
 // From module: Generic board support
 #include <board.h>
 
+// From module: INTC - Interrupt Controller
+#include <intc.h>
+
 // From module: Interrupt management - UC3 implementation
 #include <interrupt.h>
 
@@ -91,6 +94,14 @@
 // From module: System Clock Control - UC3 A implementation
 #include <sysclk.h>
 
+// From module: TWI - Two-Wire Interface
+#include <twi.h>
+
+// From module: TWI - Two-Wire Interface - UC3 A/B implementation
+#include <twi_master.h>
+#include <uc3_twi/twi_master.h>
+
+
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
 #include <udd.h>
@@ -101,14 +112,13 @@
 // From module: USB HID Library (Device)
 #include <udi_hid.h>
 
-// From module: USB Host stack core
-#include <uhc.h>
-#include <uhd.h>
+#include <delay.h>
+#include <cycle_counter.h>
 
 #include <spi.h>
 
-#include <cycle_counter.h>
-
-#include <delay.h>
+// From module: USB Host stack core
+#include <uhc.h>
+#include <uhd.h>
 
 #endif // ASF_H

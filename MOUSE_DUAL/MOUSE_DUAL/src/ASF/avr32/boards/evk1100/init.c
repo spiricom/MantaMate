@@ -54,6 +54,7 @@
 #include "conf_board.h"
 #include "gpio.h"
 #include "board.h"
+#include "flashc.h"
 
 #if defined (CONF_BOARD_AT45DBX)
 #  define AT45DBX_MEM_CNT  1
@@ -61,6 +62,8 @@
 
 void board_init(void)
 {
+
+	
 	gpio_configure_pin(LED0_GPIO,GPIO_DIR_OUTPUT | GPIO_INIT_HIGH);
 	gpio_configure_pin(LED1_GPIO,GPIO_DIR_OUTPUT | GPIO_INIT_HIGH);
 	gpio_configure_pin(LED2_GPIO,GPIO_DIR_OUTPUT | GPIO_INIT_HIGH);
@@ -118,7 +121,7 @@ void board_init(void)
 
 #endif
 
-#if defined (CONF_BOARD_TWI)
+
 	static const gpio_map_t TWI_GPIO_MAP = {
 		{AVR32_TWI_SDA_0_0_PIN, AVR32_TWI_SDA_0_0_FUNCTION},
 		{AVR32_TWI_SCL_0_0_PIN, AVR32_TWI_SCL_0_0_FUNCTION},
@@ -127,7 +130,7 @@ void board_init(void)
 	// TWI gpio pins configuration
 	gpio_enable_module(TWI_GPIO_MAP,
 			sizeof(TWI_GPIO_MAP) / sizeof(TWI_GPIO_MAP[0]));
-#endif
+
 
 #if defined (CONF_BOARD_COM_PORT)
 	// USART GPIO pin configuration.
