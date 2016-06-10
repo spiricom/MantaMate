@@ -50,7 +50,7 @@
 #include "main.h"
 #include "note_process.h"
 #include "7Segment.h"
-
+#include "sequencer_process.h"
 
 
 #  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
@@ -75,6 +75,9 @@ uint8_t tuning_count = 0;
 uint8_t glitch_count[64];
 uint8_t manta_data_lock = 0;
 uint8_t spi_mode = 0;
+uint32_t clock_speed = 500;
+
+uint8_t sequencer_mode = 0;  // Hey Reid, this is the variable to change to put it into "sequencer" mode.
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -111,7 +114,7 @@ static void eic_int_handler1(void)
 {
 	eic_clear_interrupt_line(&AVR32_EIC, EXT_INT_EXAMPLE_LINE1);
 	eiccounter++;
-	ui_ext_gate_in();
+	clockHappened();
 }
 
 
@@ -208,11 +211,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 	}
-
-
-	
 	updatePreset();
-	
 }
 
 void updatePreset(void)
@@ -251,6 +250,12 @@ void updatePreset(void)
 		break;	
 	}
 }
+
+void clockHappened(void)
+{
+	sequencerStep();
+}
+
 
 void initI2C(void)
 {

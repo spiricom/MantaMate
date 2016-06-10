@@ -54,6 +54,7 @@
 #include "note_process.h"
 #include <string.h>
 #include "7Segment.h"
+#include "sequencer_process.h"
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
@@ -246,10 +247,6 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	initNoteStack();
 	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
 	memset(lights,0,HEX_BYTES*2+SLIDER_BYTES);
-	for (i = 0; i < 64; i++)
-	{
-		glitch_count[i] = 0;
-	}
 	//lights[0] = 0x01;
 	//lights[9] = 0x03;
 	//lights[6] = 0x03;
@@ -258,6 +255,15 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
 }
+
+//manta_light_LED_hex(hex, color);
+//manta_light_LED_slider(0-8 value);
+//manta_light_LED_function(button,color);
+
+
+
+
+
 
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
 {
@@ -336,9 +342,16 @@ static void uhi_hid_manta_report_reception(
 		dacsend(2,0,val);
 	}
 	
-	processKeys();
-	noteOut();
-	
+	//check if we're in sequencer mode
+	if (sequencer_mode == 1)
+	{
+		processSequencer();
+	}
+	//if not, we're in keyboard mode
+	else
+	{
+		processKeys();
+	}
 	uhi_hid_manta_start_trans_report(add);
 }
 
@@ -374,6 +387,7 @@ static void processKeys(void)
 	
 	}
 	dacsend(3,0,(hex_max * 16)); 
+	noteOut();
 }
 
 static bool uhi_manta_send_report(void)

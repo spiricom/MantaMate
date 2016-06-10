@@ -275,7 +275,7 @@ void removeNote(uint8_t noteVal)
 				//if you find a held note in the notestack
 				if (notestack[j][0] != -1)
 				{
-					//check if it has no voice associated with it
+					//check if it has no voi   ce associated with it
 					alreadythere = 0;
 					for (k = 0; k < polynum; k++)
 					{
