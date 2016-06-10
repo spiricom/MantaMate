@@ -20,7 +20,8 @@ enum maps_t
 {
 	NO_MAP,
 	WICKI_HAYDEN,
-	HARMONIC
+	HARMONIC,
+	PIANO
 };
 
 static unsigned short calculateDACvalue(uint8_t noteVal);
@@ -39,12 +40,16 @@ unsigned long meantone[12] = {0, 117, 193, 310, 386, 503, 579, 697, 773, 890, 96
 unsigned long werckmeister1[12] = {0, 90, 192, 294, 390, 498, 588, 696, 792, 888, 996, 1092};
 unsigned long werckmeister3[12] = {0, 96, 204, 300, 396, 504, 600, 702, 792, 900, 1002, 1098};
 
-unsigned int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
+signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
 22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
-unsigned int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
+
+signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
 18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 
-enum maps_t whichmap = NO_MAP;
+signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
+14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
+
+enum maps_t whichmap = PIANO;
 unsigned long scaledoctaveDACvalue = 54780; //55425 should be mathematically correct. Not sure why the amplifier overshoots things, or if something else is going on. Also need to do more precise tests of voltage output.
 unsigned char tuning = 0;
 signed char transpose = 0;
@@ -120,55 +125,75 @@ void addNote(uint8_t noteVal, uint8_t vel)
 {
 	uint8_t j;
 	checkstolen = -1;
+	signed int mappedNote = 0;
+
 	//it's a note-on -- add it to the monophonic stack
 	//if(numnotes == 0)
 	//	DAC16Send(3,0xFFFF);
-
-	//first move notes that are already in the stack one position to the right
-	for (j = numnotes; j > 0; j--)
+		
+	// this function needs to check the incoming note value against the currently used manta map if it's for the manta, in order to know not to sensors that don't represent notes (a -1 in the noteMap)
+	// it seems inefficient to calculate this twice, so we should store this and pass it to the calculateDACvalue instead of calculating it there, too. Not sure where to do that yet, as currently sendNote is called separately, and they don't know about each other.
+	if (manta_mapper == 1)
 	{
-		notestack[j][0] = notestack[(j - 1)][0];
-		notestack[j][1] = notestack[(j - 1)][0];
-	}
-
-	//then, insert the new note into the front of the stack
-	notestack[0][0] = noteVal;
-	notestack[0][1] = vel;
-
-	//also, assign a new polyphony voice to the note on for the polyphony handling
-	voicefound = 0;
-	voicecounter = 0;
-	for (j = 0; j < polynum; j++)
-	{
-		if ((polyVoiceBusy[j] == 0) && (voicefound == 0))
+		switch(whichmap)
 		{
-			polyVoiceNote[j] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
-			polyVoiceBusy[j] = 1;
-			changevoice[j] = 1;
-			voicefound = 1;
-		}	
-		voicecounter++;
-				
-		if ((voicecounter == polynum) && (voicefound == 0))
-		{
-			polyVoiceNote[(polynum - 1)] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
-			polyVoiceBusy[(polynum - 1)] = 1;
-			changevoice[(polynum - 1)] = 1;
-			voicefound = 1;
+			case WICKI_HAYDEN: mappedNote = whmap[noteVal]; break;    // wicki-hayden
+			case HARMONIC: mappedNote = harmonicmap[noteVal]; break;  // harmonic
+			case PIANO: mappedNote = pianomap[noteVal]; break;		// piano map
+			default: mappedNote = noteVal; break;                     // no map
 		}
 	}
-	numnotes++;
-	notehappened = 1;
-	currentnote = notestack[0][0];
-	/*lcd_clear_line(3);
-	dip204_printf_string("%u notes",numnotes);
-	dip204_hide_cursor();*/
-	if (polymode == 1)
+	else
 	{
-		for(j=0; j<polynum; j++)
+		mappedNote = noteVal;
+	}
+
+	if (mappedNote >= 0)
+	{
+
+		//first move notes that are already in the stack one position to the right
+		for (j = numnotes; j > 0; j--)
 		{
-			if(polyVoiceBusy[j])
-			dacsend(j,1,0xFFF);
+			notestack[j][0] = notestack[(j - 1)][0];
+			notestack[j][1] = notestack[(j - 1)][0];
+		}
+
+		//then, insert the new note into the front of the stack
+		notestack[0][0] = noteVal;
+		notestack[0][1] = vel;
+
+		//also, assign a new polyphony voice to the note on for the polyphony handling
+		voicefound = 0;
+		voicecounter = 0;
+		for (j = 0; j < polynum; j++)
+		{
+			if ((polyVoiceBusy[j] == 0) && (voicefound == 0))
+			{
+				polyVoiceNote[j] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+				polyVoiceBusy[j] = 1;
+				changevoice[j] = 1;
+				voicefound = 1;
+			}	
+			voicecounter++;
+				
+			if ((voicecounter == polynum) && (voicefound == 0))
+			{
+				polyVoiceNote[(polynum - 1)] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+				polyVoiceBusy[(polynum - 1)] = 1;
+				changevoice[(polynum - 1)] = 1;
+				voicefound = 1;
+			}
+		}
+		numnotes++;
+		notehappened = 1;
+		currentnote = notestack[0][0];
+		if (polymode == 1)
+		{
+			for(j=0; j<polynum; j++)
+			{
+				if(polyVoiceBusy[j])
+				dacsend(j,1,0xFFF);
+			}
 		}
 	}
 }
@@ -181,85 +206,104 @@ void addNote(uint8_t noteVal, uint8_t vel)
 void removeNote(uint8_t noteVal)
 {
 	uint8_t j,k;
-	//it's a note-off, remove it from the stack
-	//go through the notes that are currently held down to find the one that released
-	for (j = 0; j < numnotes; j++)
-	{
-		//if it's the note that just got released
-		if (notestack[j][0] == noteVal)
-		{
-			for (k = 0; k < (numnotes - j); k++)
-			{
-				notestack[k + j][0] = notestack[k + j + 1][0];
-				//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
-				if (k == ((numnotes - j) - 1))
-					notestack[k + j + 1][0] = -1;
-			}
-			// in case it got put on the stack multiple times
-			j--;
-			numnotes--;
-			notehappened = 1;
-			noteoffhappened = 1;
-		}
-	}
-
-	//also, remove that note from the polyphony array if it's there.
-	for (j = 0; j < polynum; j++)
-	{
-		if (polyVoiceNote[j] == noteVal)
-		{
-			polyVoiceBusy[j] = 0;
-			changevoice[j] = 1;
-			checkstolen = j;
-		}
-	}
-			
-	//remove it from the notestack and decrement numnotes
-	if (notestack[0][0] != -1)
-		currentnote = notestack[0][0];
-
-	// if we removed a note from the polyphony array
-	if (checkstolen != -1)
-	{
-		j = 0;
-		//now check if there are any polyphony voices waiting that got stolen.
-		while(checkstolen && j < numnotes)
-		{
-			//if you find a held note in the notestack
-			if (notestack[j][0] != -1)
-			{
-				//check if it has no voice associated with it
-				alreadythere = 0;
-				for (k = 0; k < polynum; k++)
-				{
-					if ((polyVoiceNote[k] == notestack[j][0]) && (polyVoiceBusy[k] == 1))
-						alreadythere = 1;
-				}
-				// if you didn't find it, use the voice that was just released to sound it.
-				if (alreadythere == 0)
-				{
-					polyVoiceNote[checkstolen] = notestack[j][0];
-					polyVoiceBusy[checkstolen] = 1;
-					changevoice[checkstolen] = 1;
-					notehappened = 1;
-					checkstolen = -1;
-				}
-			}
-			j++;
-		}
-	}
-
-	//if(numnotes == 0)
-	//DAC16Send(3,0);
-	for(k=0; k<polynum; k++)
-	{
-		if(!polyVoiceBusy[k])
-			dacsend(k,1,0);
-	}
+	signed int mappedNote = 0;
 	
-	/*lcd_clear_line(3);
-	dip204_printf_string("%u notes",numnotes);
-	dip204_hide_cursor();*/
+
+	// this function needs to check the incoming note value against the currently used manta map if it's for the manta, in order to know not to sensors that don't represent notes (a -1 in the noteMap)
+	// it seems inefficient to calculate this twice, so we should store this and pass it to the calculateDACvalue instead of calculating it there, too.
+	if (manta_mapper == 1)
+	{
+		switch(whichmap)
+		{
+			case WICKI_HAYDEN: mappedNote = whmap[noteVal]; break;    // wicki-hayden
+			case HARMONIC: mappedNote = harmonicmap[noteVal]; break;  // harmonic
+			case PIANO: mappedNote = pianomap[noteVal]; break;		// piano map
+			default: mappedNote = noteVal; break;                     // no map
+		}
+	}
+	else
+	{
+		mappedNote = noteVal;
+	}
+
+	if (mappedNote >= 0)
+	{
+		//it's a note-off, remove it from the stack
+		//go through the notes that are currently held down to find the one that released
+		for (j = 0; j < numnotes; j++)
+		{
+			//if it's the note that just got released
+			if (notestack[j][0] == noteVal)
+			{
+				for (k = 0; k < (numnotes - j); k++)
+				{
+					notestack[k + j][0] = notestack[k + j + 1][0];
+					//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
+					if (k == ((numnotes - j) - 1))
+						notestack[k + j + 1][0] = -1;
+				}
+				// in case it got put on the stack multiple times
+				j--;
+				numnotes--;
+				notehappened = 1;
+				noteoffhappened = 1;
+			}
+		}
+
+		//also, remove that note from the polyphony array if it's there.
+		for (j = 0; j < polynum; j++)
+		{
+			if (polyVoiceNote[j] == noteVal)
+			{
+				polyVoiceBusy[j] = 0;
+				changevoice[j] = 1;
+				checkstolen = j;
+			}
+		}
+			
+		//remove it from the notestack and decrement numnotes
+		if (notestack[0][0] != -1)
+			currentnote = notestack[0][0];
+
+		// if we removed a note from the polyphony array
+		if (checkstolen != -1)
+		{
+			j = 0;
+			//now check if there are any polyphony voices waiting that got stolen.
+			while(checkstolen && j < numnotes)
+			{
+				//if you find a held note in the notestack
+				if (notestack[j][0] != -1)
+				{
+					//check if it has no voice associated with it
+					alreadythere = 0;
+					for (k = 0; k < polynum; k++)
+					{
+						if ((polyVoiceNote[k] == notestack[j][0]) && (polyVoiceBusy[k] == 1))
+							alreadythere = 1;
+					}
+					// if you didn't find it, use the voice that was just released to sound it.
+					if (alreadythere == 0)
+					{
+						polyVoiceNote[checkstolen] = notestack[j][0];
+						polyVoiceBusy[checkstolen] = 1;
+						changevoice[checkstolen] = 1;
+						notehappened = 1;
+						checkstolen = -1;
+					}
+				}
+				j++;
+			}
+		}
+
+		//if(numnotes == 0)
+		//DAC16Send(3,0);
+		for(k=0; k<polynum; k++)
+		{
+			if(!polyVoiceBusy[k])
+				dacsend(k,1,0);
+		}
+	}
 }
 
 unsigned short calculateDACvalue(uint8_t noteVal)
@@ -277,6 +321,7 @@ unsigned short calculateDACvalue(uint8_t noteVal)
 		{
 			case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
 			case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
+			case PIANO: note = pianomap[noteVal]; break;		// piano map
 			default: note = noteVal; break;                     // no map
 		}
 	}
@@ -328,7 +373,7 @@ void mantaVol(uint8_t *butts)
 		}
 	}
 	
-	dacsend(3,2,amplitude<<4);
+	//dacsend(3,2,amplitude<<4);
 	/*if(amplitude != 0)
 	{
 		dip204_clear_line(2);
@@ -337,7 +382,7 @@ void mantaVol(uint8_t *butts)
 	}*/
 }
 
-//Some issues with smoothness, random vol glitches
+//Some issues with smoothness, random vol glitches  TODO: note sure if this is useful anymore, now that we are generalizing the CC# to CV output and trying to do midi learn
 void midiVol(void)
 {
 	uint8_t i;
@@ -345,11 +390,6 @@ void midiVol(void)
 	
 	vol = (notestack[0][1] * sysVol) >> 2;  // scale volume
 	
-	/*dip204_set_cursor_position(1,1);
-	dip204_printf_string("                    ");
-	dip204_set_cursor_position(1,1);
-	dip204_printf_string("vol: %u", vol);*/
-	//vol = (vol<<6)&0xFFF;
 	for(i=0; i<polynum; i++)
 	{
 		if(polyVoiceBusy[i])
@@ -360,8 +400,8 @@ void midiVol(void)
 }
 
 void joyVol(uint16_t slider_val) {
-	dacsend(0, 0, slider_val << 4);
-	dacsend(1, 0, slider_val << 4);
+	//dacsend(0, 0, slider_val << 4);
+	//dacsend(1, 0, slider_val << 4);
 }
 
 void BirlBreathPosOut(void)
