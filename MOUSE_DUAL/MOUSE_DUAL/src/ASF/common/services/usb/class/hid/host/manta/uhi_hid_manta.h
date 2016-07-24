@@ -85,6 +85,9 @@ extern "C" {
 #define AMBER 1
 #define RED 2
 #define OFF 0
+#define AMBEROFF 4
+#define REDOFF 3
+
 
 //! Global define which contains standard UHI API for UHC
 //! It must be added in USB_HOST_UHI define from conf_usb_host.h file.
@@ -109,6 +112,9 @@ extern void manta_set_LED_slider(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_button(uint8_t button, uint8_t color);
 extern void manta_send_LED(void);
+
+extern uint8_t butt_states[48];
+extern uint8_t pastbutt_states[48];
 
 bool manta_light_LED(uint8_t *lights);
 //@}

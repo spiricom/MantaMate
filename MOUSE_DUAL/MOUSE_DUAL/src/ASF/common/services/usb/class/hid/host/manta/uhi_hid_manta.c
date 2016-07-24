@@ -104,12 +104,14 @@ static void uhi_hid_manta_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered);
 		
+		
+static void processSliders(uint8_t sliderNum, uint16_t val);
+
+static void processSliderKeys(uint8_t sliderNum, uint16_t val);
+
 static void processKeys(void);
-/**
- * \brief Send the report
- *
- * \return \c 1 if send on going, \c 0 if delay.
- */
+
+
 static bool uhi_manta_send_report(void);
 
 /**
@@ -129,7 +131,7 @@ static void uhi_manta_report_sent(
 //@}
 
 uint8_t butt_states[48];
-static uint8_t pastbutt_states[48];
+uint8_t pastbutt_states[48];
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
 	
@@ -324,7 +326,7 @@ static void uhi_hid_manta_report_reception(
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
 		if (uhi_hid_manta_dev.report[i+1] == 0)
 		{
-			//this is what happens if there's that weird glitch - I think it's solved. Also could happen in normal usage if the sensors output the value 128, but shouldn't happen when the manta isn't touched;
+			//this is what happens if there's that weird glitch - I think it's solved (it happened when the MantaMate was too busy processing things to request new data from the Manta at the proper rate). Also could happen in normal usage if the sensors output the value 128, but shouldn't happen when the manta isn't touched;
 		}
 	}
 	for(i=0; i<4; i++)
@@ -334,13 +336,13 @@ static void uhi_hid_manta_report_reception(
 	if(((sliders[0] != pastsliders[0]) && (sliders[0] != 255)) || ((sliders[1] != pastsliders[1]) && (sliders[1] != 255)))
 	{
 		val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
-		dacsend(1,0,val);
+		processSliders(0, val);
 	}
 
 	if(((sliders[2] != pastsliders[2]) && (sliders[2] != 255)) || ((sliders[3] != pastsliders[3]) && (sliders[3] != 255)))
 	{
 		val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
-		dacsend(2,0,val);
+		processSliders(1, val);
 	}
 	
 	//check if we're in sequencer mode
@@ -354,6 +356,23 @@ static void uhi_hid_manta_report_reception(
 		processKeys();
 	}
 	uhi_hid_manta_start_trans_report(add);
+}
+
+static void processSliders(uint8_t sliderNum, uint16_t val)
+{
+	if (sequencer_mode == 1)
+	{
+		processSliderSequencer(sliderNum, val);
+	}
+	else
+	{
+		processSliderKeys(sliderNum, val);
+	}
+}
+
+static void processSliderKeys(uint8_t sliderNum, uint16_t val)
+{
+	dacsend((sliderNum),0,val);
 }
 
 static void processKeys(void)
@@ -459,24 +478,36 @@ void manta_set_LED_hex(uint8_t hex, uint8_t color)
 	if (color == AMBER)
 	{
 		//turn off the red light if it's on
-		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);	
+		//uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);	
 		// then turn on the amber light
 		uhi_manta_report[whichbyte] |= 1 << whichbit;
 	}
 	else if (color == RED)
 	{
 		//turn off the amber light if it's on
-		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		//uhi_manta_report[whichbyte] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
 	}
 
 	else if (color == OFF)
 	{
-		//turn off the amber light if it's on
+		//turn off the amber light
 		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
-		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
+		// turn off the red light
 		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);
+	}
+	
+	else if (color == REDOFF)
+	{
+		// turn off the red light
+		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);
+	}
+	
+	else if (color == AMBEROFF)
+	{
+		//turn off the amber light
+		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
 	}
 
 	//

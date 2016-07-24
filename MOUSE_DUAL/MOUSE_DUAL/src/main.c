@@ -75,9 +75,9 @@ uint8_t tuning_count = 0;
 uint8_t manta_data_lock = 0; // probably not necessary, added this when I was worried about read and write happening simultaneously, but it wasn't the case.
 uint8_t spi_mode = 0;
 
-uint32_t clock_speed = 4000; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
+uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-uint8_t sequencer_mode = 0;  // Hey Reid, this is the variable to change to put it into "sequencer" mode.
+uint8_t sequencer_mode = 1;  // Hey Reid, this is the variable to change to put it into "sequencer" mode.
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -575,7 +575,7 @@ int main(void){
 	board_init();
 
 	ui_init();
-
+	initSequencer();
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	

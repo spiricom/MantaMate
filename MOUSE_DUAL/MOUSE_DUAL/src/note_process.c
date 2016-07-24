@@ -50,7 +50,7 @@ signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 
 enum maps_t whichmap = NO_MAP;
-unsigned long scaledoctaveDACvalue = 54660; //was 54780, 55425 should be mathematically correct. Not sure why the amplifier overshoots things, or if something else is going on. Also need to do more precise tests of voltage output.
+unsigned long scaledoctaveDACvalue = 54613; //was 54780, but this should be mathematically correct (65535/10/12 = numbers per semitone, * 100 to add resolution for fixed point operations)
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
