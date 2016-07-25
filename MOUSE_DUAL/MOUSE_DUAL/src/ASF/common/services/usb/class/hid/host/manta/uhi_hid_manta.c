@@ -132,6 +132,8 @@ static void uhi_manta_report_sent(
 
 uint8_t butt_states[48];
 uint8_t pastbutt_states[48];
+uint8_t func_button_states[4] = {0,0,0,0};
+uint8_t past_func_button_states[4] = {0,0,0,0};
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
 	
@@ -320,7 +322,7 @@ static void uhi_hid_manta_report_reception(
 		return; // HID mouse transfer aborted
 	}
 	manta_data_lock = 1;
-	// Decode buttons
+	// Decode hexagon buttons
 	for(i=0; i<48; i++)
 	{
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
@@ -329,8 +331,14 @@ static void uhi_hid_manta_report_reception(
 			//this is what happens if there's that weird glitch - I think it's solved (it happened when the MantaMate was too busy processing things to request new data from the Manta at the proper rate). Also could happen in normal usage if the sensors output the value 128, but shouldn't happen when the manta isn't touched;
 		}
 	}
+	//decode sliders
 	for(i=0; i<4; i++)
 		sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
+	//decode function buttons
+	for(i=0; i<4; i++)
+	{
+		func_button_states[i] = uhi_hid_manta_dev.report[i+49] + 0x80;
+	}
 	manta_data_lock = 0;
 	
 	if(((sliders[0] != pastsliders[0]) && (sliders[0] != 255)) || ((sliders[1] != pastsliders[1]) && (sliders[1] != 255)))
@@ -478,14 +486,26 @@ void manta_set_LED_hex(uint8_t hex, uint8_t color)
 	if (color == AMBER)
 	{
 		//turn off the red light if it's on
-		//uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);	
+		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);	
 		// then turn on the amber light
 		uhi_manta_report[whichbyte] |= 1 << whichbit;
 	}
 	else if (color == RED)
 	{
 		//turn off the amber light if it's on
-		//uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
+		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
+	}
+	
+	if (color == AMBERON)
+	{
+		// turn on the amber light
+		uhi_manta_report[whichbyte] |= 1 << whichbit;
+	}
+	else if (color == REDON)
+	{
+
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
 	}
@@ -543,7 +563,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 	if (color == AMBER)
 	{
 		//turn off the red light if it's on
-		uhi_manta_report[6] &= ~(1 << whichbit);
+		uhi_manta_report[6] &= ~(1 << whichbit+4);
 		// then turn on the amber light
 		uhi_manta_report[6] |= 1 << whichbit;
 	}
@@ -552,7 +572,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] |= 1 << whichbit;
+		uhi_manta_report[6] |= 1 << whichbit+4;
 	}
 
 	else if (color == OFF)
@@ -560,7 +580,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] &= ~(1 << whichbit);
+		uhi_manta_report[6] &= ~(1 << whichbit+4);
 	}
 
 	//

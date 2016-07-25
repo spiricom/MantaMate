@@ -87,6 +87,8 @@ extern "C" {
 #define OFF 0
 #define AMBEROFF 4
 #define REDOFF 3
+#define AMBERON 5
+#define REDON 6
 
 
 //! Global define which contains standard UHI API for UHC
@@ -115,7 +117,8 @@ extern void manta_send_LED(void);
 
 extern uint8_t butt_states[48];
 extern uint8_t pastbutt_states[48];
-
+extern uint8_t func_button_states[4];
+extern uint8_t past_func_button_states[4];
 bool manta_light_LED(uint8_t *lights);
 //@}
 //@}
