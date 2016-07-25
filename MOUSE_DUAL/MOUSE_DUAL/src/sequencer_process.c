@@ -117,6 +117,7 @@ void sequencerStep(void)
 			
 		dacsend(0, 0, sequencer_steps[current_step][0]);
 		dacsend(1, 0, sequencer_steps[current_step][1]);
+		dacsend(2, 0, sequencer_steps[current_step][5]);
 		// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
 		if (sequencer_steps[current_step][3])
 		{
@@ -386,13 +387,14 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			manta_send_LED();
 			if (current_step == most_recent_hex)
 			{
-				dacsend(2, 0, sequencer_steps[current_step][sliderNum+5]);
+				dacsend(2, 0, sequencer_steps[current_step][5]);
 			}
 		}
 		else
 		{
 			sequencer_steps[most_recent_hex][6] = (val/512) + 1; //step length (should be 1-8)
 			manta_set_LED_slider(sliderNum,sequencer_steps[most_recent_hex][6]); // add one to the slider values because a zero turns them off
+			manta_send_LED();
 		}
 		
 	}
