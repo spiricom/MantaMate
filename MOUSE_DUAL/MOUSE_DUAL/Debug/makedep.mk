@@ -2,6 +2,8 @@
 # Automatically-generated file. Do not edit or delete the file
 ################################################################################
 
+src\ASF\avr32\drivers\wdt\wdt.c
+
 src\sequencer_process.c
 
 src\ASF\avr32\components\display\dip204\dip204.c

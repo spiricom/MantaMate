@@ -190,6 +190,8 @@ void ui_midi_error(void);
  */
 void ui_midi_overflow(void);
 
+void ui_my_midi_receive(void);
+
 /*! \brief This process is called each 1ms
  * It is called only if the USB interface is enabled.
  *

@@ -70,7 +70,7 @@ void Preset_Switch_Check(uint8_t whichSwitch);
 void USB_Mode_Switch_Check(void);
 void clockHappened(void);
 void initI2C(void);
-
+void enterBootloader(void);
 void sendI2CtoEEPROM(void);
 
 /*! \brief Opens the communication port

@@ -68,79 +68,10 @@ uint8_t my_buf[128];
  * This wakeup the USB devices connected via a downstream resume.
  * @{
  */
-static void ui_enable_asynchronous_interrupt(void);
 static void ui_disable_asynchronous_interrupt(void);
 
-/**
- * \brief Interrupt handler for interrupt pin change
- */
-ISR(ui_wakeup_isr, AVR32_GPIO_IRQ_GROUP, 0)
-{
-	// Clear GPIO interrupt.
-	gpio_clear_pin_interrupt_flag(GPIO_JOYSTICK_PUSH);
 
-	// Clear External Interrupt Line else Wakeup event always enabled
-	eic_clear_interrupt_line(&AVR32_EIC, EXT_NMI);
 
-	ui_disable_asynchronous_interrupt();
-
-	// Wakeup host and device
-	uhc_resume();
-}
-
-/**
- * \brief Initializes and enables interrupt pin change
- */
-static void ui_enable_asynchronous_interrupt(void)
-{
-	//! Structure holding the configuration parameters of the EIC low level driver.
-	eic_options_t eic_options = {
-		// Choose External Interrupt Controller Line
-		.eic_line = EXT_NMI,
-		// Enable level-triggered interrupt.
-		.eic_mode = EIC_MODE_LEVEL_TRIGGERED,
-		// Don't care value because the chosen eic mode is level-triggered.
-		.eic_edge = 0,
-		// Interrupt will trigger on low-level.
-		.eic_level = EIC_LEVEL_LOW_LEVEL,
-		// Enable filter.
-		.eic_filter = EIC_FILTER_ENABLED,
-		// For Wake Up mode, initialize in asynchronous mode
-		.eic_async = EIC_ASYNCH_MODE
-	};
-
-	/* register joystick handler on level 0 */
-	irqflags_t flags = cpu_irq_save();
-	irq_register_handler(ui_wakeup_isr,
-			AVR32_GPIO_IRQ_0 + (GPIO_JOYSTICK_PUSH / 8), 0);
-	cpu_irq_restore(flags);
-
-	/* configure joystick to produce IT on all state change */
-	gpio_enable_pin_interrupt(GPIO_JOYSTICK_PUSH, GPIO_PIN_CHANGE);
-
-	/*
-	 * Configure pin change interrupt for asynchronous wake-up (required to
-	 * wake up from the STATIC sleep mode).
-	 *
-	 * First, map the interrupt line to the GPIO pin with the right
-	 * peripheral function.
-	 */
-	gpio_enable_module_pin(GPIO_JOYSTICK_PUSH, AVR32_EIC_EXTINT_8_FUNCTION);
-
-	/*
-	 * Enable the internal pull-up resistor on that pin (because the EIC is
-	 * configured such that the interrupt will trigger on low-level, see
-	 * eic_options.eic_level).
-	 */
-	gpio_enable_pin_pull_up(GPIO_JOYSTICK_PUSH);
-
-	// Init the EIC controller with the set options.
-	eic_init(&AVR32_EIC, &eic_options, sizeof(eic_options) /
-			sizeof(eic_options_t));
-
-	// Enable External Interrupt Controller Line
-	eic_enable_line(&AVR32_EIC, EXT_NMI);
-}
 
 /**
  * \brief Disables interrupt pin change
@@ -189,8 +120,6 @@ static uint16_t ui_device_speed_blink;
 //! Notify the presence of a USB device mouse
 static bool ui_hid_joy_plug = false;
 static bool ui_hid_manta_plug = false;
-//! Manages device mouse moving
-static int8_t ui_x, ui_y, ui_scroll;
 //! Notify the presence of a USB device MIDI
 bool ui_midi_plug = false;
 
@@ -273,9 +202,6 @@ void ui_host_wakeup_event(void)
 
 void ui_host_sof_event(void)
 {
-	bool b_btn_state;
-	static bool btn_suspend = false;
-	static bool btn_suspend_and_remotewakeup = false;
 	static uint16_t counter_sof = 0;
 
 	if (ui_enum_status == UHC_ENUM_SUCCESS) 

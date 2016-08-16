@@ -366,6 +366,20 @@ void dacwait2(void)
 	}
 }
 
+void enterBootloader(void)
+{
+	//Reset into Bootloader 
+	flashc_erase_gp_fuse_bit(31, true);
+	flashc_write_gp_fuse_bit(31, true);
+
+	cpu_irq_disable();
+	wdt_opt_t opt = {
+		.us_timeout_period = 1000000
+	};
+	wdt_enable(&opt);
+	while(1);
+}
+
 static void setSPI(spi_options_t spiOptions)
 {
 	SPIbusy = 1;
