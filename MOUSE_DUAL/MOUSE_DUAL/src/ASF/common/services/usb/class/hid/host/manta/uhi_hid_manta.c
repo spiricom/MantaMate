@@ -145,7 +145,6 @@ static uint8_t uhi_manta_report[UHI_MANTA_EP_OUT_SIZE];
 static bool uhi_manta_report_trans_ongoing;
 //! Buffer used to send report
 static uint8_t uhi_manta_report_trans[UHI_MANTA_EP_OUT_SIZE];
-static uint8_t lights[2*HEX_BYTES+SLIDER_BYTES+FUNTION_BYTES];
 
 /**
  * \name Functions required by UHC
@@ -243,8 +242,6 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 
 void uhi_hid_manta_enable(uhc_device_t* dev)
 {
-	uint8_t i = 0;
-	
 	if (uhi_hid_manta_dev.dev != dev) 
 		return;  // No interface to enable
 
@@ -310,7 +307,6 @@ static void uhi_hid_manta_report_reception(
 {
 	uint8_t i;
 	unsigned short val;
-	uint8_t glitch = 0;
 	UNUSED(ep);
 	
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
@@ -387,7 +383,6 @@ static void processKeys(void)
 {
 	uint8_t i;
 	uint8_t hex_max = 0;
-	uint8_t numGlitches = 0;
 
 	for (i = 0; i < 48; i++)
 	{
@@ -563,7 +558,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 	if (color == AMBER)
 	{
 		//turn off the red light if it's on
-		uhi_manta_report[6] &= ~(1 << whichbit+4);
+		uhi_manta_report[6] &= ~(1 << (whichbit+4));
 		// then turn on the amber light
 		uhi_manta_report[6] |= 1 << whichbit;
 	}
@@ -572,7 +567,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] |= 1 << whichbit+4;
+		uhi_manta_report[6] |= 1 << (whichbit+4);
 	}
 
 	else if (color == OFF)
@@ -580,7 +575,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] &= ~(1 << whichbit+4);
+		uhi_manta_report[6] &= ~(1 << (whichbit+4));
 	}
 
 	//
@@ -590,7 +585,6 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 
 void manta_send_LED(void)
 {
-	uint8_t i;
 	irqflags_t flags = cpu_irq_save();
 	
 	// Valid and send report
@@ -598,7 +592,7 @@ void manta_send_LED(void)
 	uhi_manta_send_report();
 
 	cpu_irq_restore(flags);
-	return true;
+	return;
 }
 //@}
 

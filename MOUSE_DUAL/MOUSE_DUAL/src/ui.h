@@ -105,13 +105,6 @@ void ui_host_sof_event(void);
  */
 void ui_host_enum_event(uhc_device_t *dev, uhc_enum_status_t status);
 
-//! \name Callback to mange the HID mouse events
-//! @{
-void ui_host_hid_mouse_btn_left(bool b_state);
-void ui_host_hid_mouse_btn_right(bool b_state);
-void ui_host_hid_mouse_btn_middle(bool b_state);
-void ui_host_hid_mouse_move(int8_t x, int8_t y, int8_t scroll);
-//! @}
 
 /**
  * \name Device mode user interface functions
