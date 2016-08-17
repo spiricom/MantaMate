@@ -60,10 +60,13 @@
 #define TWELVEBIT 1
 #define SIXTEENBIT 2
 
+
+//------------------  C O N F I G U R A T I O N S  -------------------
+
 #define EEPROM_ADDRESS        0x50        // EEPROM's TWI address
 #define EEPROM_ADDR_LGT       3           // Address length of the EEPROM memory
-#define VIRTUALMEM_ADDR_START 0x123456    // Address of the virtual mem in the EEPROM
-#define TWI_SPEED             100000       // Speed of TWI
+#define VIRTUALMEM_ADDR_START 0x123456    // Address of the virtual memory in the EEPROM
+#define TWI_SPEED             100000       // Speed of TWI  //was 100000 in my later example-JS
 
 static void initSPIbus(void);
 static void setSPI(spi_options_t spiOptions);
@@ -260,14 +263,105 @@ void initI2C(void)
 {
 	U8 status = 0;
 	// I2C options settings
-	my_opt.pba_hz = 33000000;
+	my_opt.pba_hz = 33000000; // is this correct?
 	my_opt.speed = TWI_SPEED;
 	my_opt.chip = EEPROM_ADDRESS;
 	status = twi_master_init(&AVR32_TWI, &my_opt);
+	if (status == TWI_SUCCESS)
+	{
+		// display test result to user
+		Write7Seg(77);
+	}
+	else
+	{
+		// display test result to user
+		Write7Seg(70);
+	}
+
+	static const gpio_map_t TWI_GPIO_MAP =
+	{
+		{AVR32_TWI_SDA_0_0_PIN, AVR32_TWI_SDA_0_0_FUNCTION},
+		{AVR32_TWI_SCL_0_0_PIN, AVR32_TWI_SCL_0_0_FUNCTION}
+	};
+	gpio_enable_module(TWI_GPIO_MAP,
+	sizeof(TWI_GPIO_MAP) / sizeof(TWI_GPIO_MAP[0]));
+
 }
 
 void sendI2CtoEEPROM(void)
 {
+	U8 data_received[PATTERN_TEST_LENGTH] = {0};
+	U8 status = 0;
+	U8 i = 0;
+	// TWI chip address to communicate with
+	I2Cpacket_sent.chip = EEPROM_ADDRESS;
+	// TWI address/commands to issue to the other chip (node)
+	I2Cpacket_sent.addr[0] = VIRTUALMEM_ADDR_START >> 16;
+	I2Cpacket_sent.addr[1] = VIRTUALMEM_ADDR_START >> 8;
+	I2Cpacket_sent.addr[2] = VIRTUALMEM_ADDR_START;
+	// Length of the TWI data address segment (1-3 bytes)
+	I2Cpacket_sent.addr_length = EEPROM_ADDR_LGT;
+	// Where to find the data to be written
+	I2Cpacket_sent.buffer = (void*) test_pattern;
+	// How many bytes do we want to write
+	I2Cpacket_sent.length = PATTERN_TEST_LENGTH;
+
+	// perform a write access
+	status = twi_master_write(&AVR32_TWI, &I2Cpacket_sent);
+
+	// check write result
+	if (status == TWI_SUCCESS)
+	{
+		// display test result to user
+		Write7Seg(17);
+	}
+	else
+	{
+		// display test result to user
+		Write7Seg(10);
+	}
+	delay_ms(1);
+
+	// TWI chip address to communicate with
+	I2Cpacket_received.chip = EEPROM_ADDRESS ;
+	// Length of the TWI data address segment (1-3 bytes)
+	I2Cpacket_received.addr_length = EEPROM_ADDR_LGT;
+	// How many bytes do we want to write
+	I2Cpacket_received.length = PATTERN_TEST_LENGTH;
+	// TWI address/commands to issue to the other chip (node)
+	I2Cpacket_received.addr[0] = VIRTUALMEM_ADDR_START >> 16;
+	I2Cpacket_received.addr[1] = VIRTUALMEM_ADDR_START >> 8;
+	I2Cpacket_received.addr[2] = VIRTUALMEM_ADDR_START;
+	// Where to find the data to be written
+	I2Cpacket_received.buffer = data_received;
+
+	// perform a read access
+	status = twi_master_read(&AVR32_TWI, &I2Cpacket_received);
+
+	// check read result
+	if (status == TWI_SUCCESS)
+	{
+		// display test result to user
+		Write7Seg(27);;
+	}
+	else
+	{
+		// display test result to user
+		Write7Seg(20);;
+	}
+
+	// check received data against sent data
+	for (i = 0 ; i < PATTERN_TEST_LENGTH; i++)
+	{
+		if (data_received[i] != test_pattern[i])
+		{
+			// a char isn't consistent
+			Write7Seg(30);
+		}
+	}
+
+	// everything was OK
+	Write7Seg(37);
 	//this will be to send preset data to the EEPROM chip.
 }
 
@@ -575,14 +669,12 @@ void setupEIC(void)
  */
 int main(void){
 	
-	
 	irq_initialize_vectors();
 	cpu_irq_enable();
 
 	// Initialize the sleep manager
 	sleepmgr_init();
 	setupEIC();
-
 
 	sysclk_init();
 	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
@@ -593,21 +685,25 @@ int main(void){
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	
+	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
+	initI2C();
+	
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
-	// Write7Seg(56);
+	
+	// a test write
+	sendI2CtoEEPROM();
 	
 	// Start USB host stack
 	uhc_start();
 	
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
-
-	//testLoop();
 	
-	// Start USB device stack
-	//udc_start();
-	//initNoteStack();
+	//start off on preset 0;
+	
+	updatePreset();
+
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
@@ -633,22 +729,6 @@ void main_sof_action(void)
 	ui_process(udd_get_frame_number());
 }
 
-#ifdef USB_DEVICE_LPM_SUPPORT
-void main_suspend_lpm_action(void)
-{
-	ui_powerdown();
-}
-
-void main_remotewakeup_lpm_disable(void)
-{
-	ui_wakeup_disable();
-}
-
-void main_remotewakeup_lpm_enable(void)
-{
-	ui_wakeup_enable();
-}
-#endif
 
 bool main_midi_enable(void)
 {

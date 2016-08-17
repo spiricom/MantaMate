@@ -12,8 +12,9 @@
 //names of sequencer step choice modes
 #define ORDER 1
 #define PATTERN 0
-#define CVOUTS 0
-#define STEPLENGTH 1
+#define CVOUTS1 0
+#define CVOUTS2 1
+#define STEPLENGTH 2
 #define UPPATTERN 0
 #define DOWNPATTERN 1
 #define UPDOWNPATTERN 2
@@ -31,12 +32,12 @@
 #define ARPMODE 1
 
 uint8_t previous_hex = 0;
-uint16_t sequencer_steps[32][10]; // cv1, cv2, keyboard pitch, note/rest, toggled, cv3, length, keyboard_hexagon
+uint16_t sequencer_steps[32][10]; // cv1, cv2, keyboard pitch, note/rest, toggled, cv3, cv4, octave, length, keyboard_hexagon
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 uint8_t range_vs_toggle_mode = RANGEMODE;
 uint8_t order_vs_pattern = PATTERN;
-uint8_t cvouts_vs_steplength = CVOUTS;
+uint8_t cvouts_vs_steplength = CVOUTS1;
 uint8_t pattern_type = UPPATTERN;
 uint8_t edit_vs_play = EDITMODE;
 uint8_t single_vs_dual = SINGLEMODE;
@@ -73,8 +74,10 @@ void initSequencer(void)
 		sequencer_steps[i][3] = 1;  // note, not rest
 		sequencer_steps[i][4] = 0;  // not toggled on
 		sequencer_steps[i][5] = 0;  // cv3 zero
-		sequencer_steps[i][6] = 1;  // step_length = 1
-		sequencer_steps[i][7] = 32;  // hexagon number in keyboard range
+		sequencer_steps[i][6] = 0;  // cv4 zero
+		sequencer_steps[i][7] = 3;  // octave
+		sequencer_steps[i][8] = 1;  // step_length = 1
+		sequencer_steps[i][9] = 32;  // hexagon number in keyboard range
 	}
 	for (int i = 0; i < 16; i++)
 	{
@@ -97,20 +100,40 @@ void seqwait(void)
 	}
 }
 
+
+void move_to_next_step(void)
+{
+	if (order_vs_pattern == PATTERN)
+	{
+		if (pattern_type == UPPATTERN)
+		{
+			current_step++;
+			current_step = current_step % num_steps + step_offset;
+		}
+		
+		else if (pattern_type == DOWNPATTERN)
+		{
+			current_step--;
+			if (current_step <= 0)
+			{
+				current_step = num_steps;
+			}
+			current_step += step_offset;
+		}
+	}
+	
+}
+
 void sequencerStep(void)
 {
-	// Hey Reid, put some sequencer stuff in here! This should take every metronome click or gate signal in and decide what to do (i.e., skip this step, or compute an output)
-	// right now, every sequencer clock it will toggle the red light on the MantaMate on or off, and advance a red led on the manta one step further.
-
 
 	LED_Toggle(LED5); // turn on the red mantamate panel light
 	
 	//check if you are supposed to increment yet (based on the length value of the current step)
 	step_counter++;
-	if (step_counter == sequencer_steps[current_step][6])
+	if (step_counter == sequencer_steps[current_step][8])
 	{
-		current_step++; // has to be incremented at the beginning - not the end, so that other functions know what the real current step is after this function has exited.
-		current_step = current_step % num_steps + step_offset;
+		move_to_next_step();
 		manta_set_LED_hex(prev_step, REDOFF);
 		manta_set_LED_hex(prev_step, step_states[prev_step]);
 		manta_set_LED_hex(current_step, REDON);
@@ -118,10 +141,17 @@ void sequencerStep(void)
 		dacsend(0, 0, sequencer_steps[current_step][0]);
 		dacsend(1, 0, sequencer_steps[current_step][1]);
 		dacsend(2, 0, sequencer_steps[current_step][5]);
+		
 		// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
 		if (sequencer_steps[current_step][3])
 		{
-			DAC16Send(0, ((uint32_t)sequencer_steps[current_step][2]) * 54613 / 100);
+			
+			uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
+			DACtemp += (sequencer_steps[current_step][7] * 12);
+			DACtemp *= 546125;
+			DACtemp /= 1000;
+			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+			DAC16Send(2, ((uint32_t)sequencer_steps[current_step][6] * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
 		}
 		manta_send_LED(); // now write that data to the manta
 			
@@ -134,11 +164,8 @@ void sequencerStep(void)
 		prev_step = current_step;
 		step_counter = 0;
 	}
-
-	
-	//dummycounter++;
-
 }
+
 
 void setLEDsForKeyboard(void)
 {
@@ -151,7 +178,7 @@ void setLEDsForKeyboard(void)
 				manta_set_LED_hex(j+32, AMBER);
 			}
 		}
-		manta_set_LED_hex(sequencer_steps[most_recent_hex][7], RED);
+		manta_set_LED_hex(sequencer_steps[most_recent_hex][9], RED);
 		manta_send_LED();
 	}
 	
@@ -222,15 +249,20 @@ void processSequencer(void)
 			manta_set_LED_hex(prev_recent_hex, AMBEROFF);
 			setLEDsForKeyboard();
 			prev_recent_hex = most_recent_hex;
-			if (cvouts_vs_steplength == CVOUTS)
+			if (cvouts_vs_steplength == CVOUTS1)
 			{
 				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][0]/512) + 1); // add one to the slider values because a zero turns them off
 				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][1]/512) + 1); // add one to the slider values because a zero turns them off
 			}
-			else
+			if (cvouts_vs_steplength == CVOUTS2)
 			{
 				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][5]/512) + 1); // add one to the slider values because a zero turns them off
-				manta_set_LED_slider(1,sequencer_steps[most_recent_hex][6]); // the step length is already between 1-8
+				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][6]/512) + 1); //add one to the slider values because a zero turns them off/
+			}
+			else
+			{
+				manta_set_LED_slider(0,sequencer_steps[most_recent_hex][7] + 1); // OCTAVE add one to the slider values because a zero turns them off
+				manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // the step length is already between 1-8
 			}
 			
 			//turn the amber light on for the currently selected sequencer stage hexagon
@@ -265,23 +297,29 @@ void processSequencer(void)
 		{
 			//up an octave
 			current_seq_octave += 1;
-			if (current_seq_octave > 10)
+			if (current_seq_octave > 7)
 			{
-				current_seq_octave = 10;
+				current_seq_octave = 7;
 			}
 		}
 		else
 		{
 			sequencer_steps[most_recent_hex][3] = 1;
-			sequencer_steps[most_recent_hex][2] = most_recent_pitch + (current_seq_octave * 12);
-			sequencer_steps[most_recent_hex][7] = most_recent_upper_hex;
+			sequencer_steps[most_recent_hex][2] = most_recent_pitch;
+			//sequencer_steps[most_recent_hex][2] = most_recent_pitch + (current_seq_octave * 12);
+			sequencer_steps[most_recent_hex][7] = current_seq_octave;
+			sequencer_steps[most_recent_hex][9] = most_recent_upper_hex;
 		}
 		
 		
 		if (current_step == most_recent_hex)
 		{
 			//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
-			DAC16Send(0, ((uint32_t)sequencer_steps[current_step][2]) * 546125 / 1000);
+			uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
+			DACtemp += (sequencer_steps[current_step][7] * 12);
+			DACtemp *= 546125;
+			DACtemp /= 1000;
+			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 		}
 		
 		setLEDsForKeyboard();
@@ -294,19 +332,29 @@ void processSequencer(void)
 	
 	if (new_func_button)
 	{
+		
+		//make this toggle three different possibilities
 		if (most_recent_func_button == 0)
 		{
-			if (cvouts_vs_steplength == CVOUTS)
+			if (cvouts_vs_steplength == CVOUTS1)
+			{
+				cvouts_vs_steplength = CVOUTS2;
+				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][5]/512) + 1); // add one to the slider values because a zero turns them off
+				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][6]/512) + 1); // add one to the slider values because a zero turns them off
+				manta_set_LED_button(0, AMBER);
+				manta_send_LED();
+			}
+			else if (cvouts_vs_steplength == CVOUTS2)
 			{
 				cvouts_vs_steplength = STEPLENGTH;
-				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][5]/512) + 1); // add one to the slider values because a zero turns them off
-				manta_set_LED_slider(1,sequencer_steps[most_recent_hex][6]); // the step length is already between 1-8
-				manta_set_LED_button(0, AMBER);
+				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][7]) + 1); // add one to the slider values because a zero turns them off
+				manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // the step length is already between 1-8
+				manta_set_LED_button(0, RED);
 				manta_send_LED();
 			}
 			else
 			{
-				cvouts_vs_steplength = CVOUTS;
+				cvouts_vs_steplength = CVOUTS1;
 				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][0]/512) + 1); // add one to the slider values because a zero turns them off
 				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][1]/512) + 1); // add one to the slider values because a zero turns them off
 				manta_set_LED_button(0, OFF);
@@ -368,7 +416,7 @@ void processSequencer(void)
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 {
-	if (cvouts_vs_steplength == CVOUTS)
+	if (cvouts_vs_steplength == CVOUTS1)
 	{
 		sequencer_steps[most_recent_hex][sliderNum] = val;
 		manta_set_LED_slider(sliderNum,(sequencer_steps[most_recent_hex][sliderNum]/512) + 1); // add one to the slider values because a zero turns them off
@@ -378,22 +426,39 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			dacsend(sliderNum, 0, sequencer_steps[current_step][sliderNum]);
 		}
 	}
-	else // otherwise, you're in alternate slider mode, where top slider is cv3 out and bottom slider is note length
+	// check if you're in second slider mode, where top slider is cv3 out and bottom slider is cv4 out
+	else if (cvouts_vs_steplength == CVOUTS2)
+	{
+		sequencer_steps[most_recent_hex][sliderNum + 5] = val;
+		manta_set_LED_slider(sliderNum,(sequencer_steps[most_recent_hex][sliderNum + 5]/512) + 1); // add one to the slider values because a zero turns them off
+		manta_send_LED();
+		if (current_step == most_recent_hex)
+		{
+			dacsend((sliderNum + 2), 0, sequencer_steps[current_step][sliderNum + 5]);
+		}
+	}
+	else // otherwise, you're in third slider mode, where top slider is octave and bottom slider is note length
 	{
 		if (sliderNum == 0)
 		{
-			sequencer_steps[most_recent_hex][5] = val; //cv3 out
-			manta_set_LED_slider(sliderNum,(sequencer_steps[most_recent_hex][sliderNum+5]/512) + 1); // add one to the slider values because a zero turns them off
+			uint16_t prevOct = sequencer_steps[most_recent_hex][7];
+			uint16_t newOct = (val / 512);
+			sequencer_steps[most_recent_hex][7] = newOct;
+			manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][7]) + 1); // add one to the slider values because a zero turns them off
 			manta_send_LED();
-			if (current_step == most_recent_hex)
+			if ((current_step == most_recent_hex) && (prevOct != newOct))
 			{
-				dacsend(2, 0, sequencer_steps[current_step][5]);
+				uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
+				DACtemp += (sequencer_steps[current_step][7] * 12);
+				DACtemp *= 546125;
+				DACtemp /= 1000;
+				DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 		}
 		else
 		{
-			sequencer_steps[most_recent_hex][6] = (val/512) + 1; //step length (should be 1-8)
-			manta_set_LED_slider(sliderNum,sequencer_steps[most_recent_hex][6]); // add one to the slider values because a zero turns them off
+			sequencer_steps[most_recent_hex][8] = (val/512) + 1; //step length (should be 1-8)
+			manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // add one to the slider values because a zero turns them off
 			manta_send_LED();
 		}
 		
