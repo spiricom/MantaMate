@@ -36,7 +36,7 @@ uint16_t sequencer_steps[32][10]; // cv1, cv2, keyboard pitch, note/rest, toggle
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 uint8_t range_vs_toggle_mode = RANGEMODE;
-uint8_t order_vs_pattern = PATTERN;
+uint8_t order_vs_pattern = ORDER;
 uint8_t cvouts_vs_steplength = CVOUTS1;
 uint8_t pattern_type = UPPATTERN;
 uint8_t edit_vs_play = EDITMODE;
@@ -62,6 +62,10 @@ uint8_t new_upper_hex = 0;
 uint8_t new_lower_hex = 0;
 uint8_t new_func_button = 0;
 uint8_t step_counter = 0;
+uint8_t seq_numnotes = 0;
+uint8_t seq_notestack[32];
+uint8_t position_in_notestack = 0;
+uint8_t stepGo = 1;
 
 void initSequencer(void)
 {
@@ -70,7 +74,7 @@ void initSequencer(void)
 		step_states[i] = 0; // not lit
 		sequencer_steps[i][0] = 0;  // cv1 zero
 		sequencer_steps[i][1] = 0;  // cv2 zero
-		sequencer_steps[i][2] = 48;  // keyboard pitch zero
+		sequencer_steps[i][2] = 0;  // keyboard pitch zero
 		sequencer_steps[i][3] = 1;  // note, not rest
 		sequencer_steps[i][4] = 0;  // not toggled on
 		sequencer_steps[i][5] = 0;  // cv3 zero
@@ -110,7 +114,6 @@ void move_to_next_step(void)
 			current_step++;
 			current_step = current_step % num_steps + step_offset;
 		}
-		
 		else if (pattern_type == DOWNPATTERN)
 		{
 			current_step--;
@@ -120,6 +123,36 @@ void move_to_next_step(void)
 			}
 			current_step += step_offset;
 		}
+	}
+	else // otherwise it's "order"
+	{
+		
+		if (seq_numnotes != 0) // if there is at least one note in the stack
+		{
+			if (position_in_notestack > 0) // if you're not at the most recent note (first one), then go backward in the array (moving from earliest to latest)
+			{
+				position_in_notestack--;
+			}
+			else 
+			{
+				position_in_notestack = (seq_numnotes - 1); // if you are the most recent note, go back to the earliest note in the array
+			}
+		
+			current_step = seq_notestack[position_in_notestack];
+			if (current_step == -1)
+			{
+				stepGo = 0;
+			}
+			else
+			{
+				stepGo = 1;
+			}
+		}
+		else
+		{
+			stepGo = 0;
+		}	
+		
 	}
 	
 }
@@ -134,35 +167,40 @@ void sequencerStep(void)
 	if (step_counter == sequencer_steps[current_step][8])
 	{
 		move_to_next_step();
-		manta_set_LED_hex(prev_step, REDOFF);
-		manta_set_LED_hex(prev_step, step_states[prev_step]);
-		manta_set_LED_hex(current_step, REDON);
-			
-		dacsend(0, 0, sequencer_steps[current_step][0]);
-		dacsend(1, 0, sequencer_steps[current_step][1]);
-		dacsend(2, 0, sequencer_steps[current_step][5]);
 		
-		// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
-		if (sequencer_steps[current_step][3])
+		if (stepGo)
 		{
+			manta_set_LED_hex(prev_step, REDOFF);
+			//manta_set_LED_hex(prev_step, step_states[prev_step]);
+			manta_set_LED_hex(current_step, REDON);
 			
-			uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
-			DACtemp += (sequencer_steps[current_step][7] * 12);
-			DACtemp *= 546125;
-			DACtemp /= 1000;
-			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-			DAC16Send(2, ((uint32_t)sequencer_steps[current_step][6] * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
+			dacsend(0, 0, sequencer_steps[current_step][0]);
+			dacsend(1, 0, sequencer_steps[current_step][1]);
+			dacsend(2, 0, sequencer_steps[current_step][5]);
+		
+			// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
+			if (sequencer_steps[current_step][3])
+			{
+			
+				uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
+				DACtemp += (sequencer_steps[current_step][7] * 12);
+				DACtemp *= 546125;
+				DACtemp /= 1000;
+				DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2, ((uint32_t)sequencer_steps[current_step][6] * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
+			}
+			manta_send_LED(); // now write that data to the manta
+			
+			// to make rests work, we need to have the sequencer send its own clock signal (processed from the input clock)
+			// The right way to do this is to set an output HIGH here, and then have an interrupt set it LOW after a certain point - making a nice trigger. For now, we'll set it low and wait a ms and then set it high. This wastes computation time and is not smart, but should work until an interrupt is written.
+			dacsend(3, 0, 0);
+			seqwait();
+			dacsend(3, 0, sequencer_steps[current_step][3] * 4095);
+			
+			prev_step = current_step;
 		}
-		manta_send_LED(); // now write that data to the manta
-			
-		// to make rests work, we need to have the sequencer send its own clock signal (processed from the input clock)
-		// The right way to do this is to set an output HIGH here, and then have an interrupt set it LOW after a certain point - making a nice trigger. For now, we'll set it low and wait a ms and then set it high. This wastes computation time and is not smart, but should work until an interrupt is written.
-		dacsend(3, 0, 0);
-		seqwait();
-		dacsend(3, 0, sequencer_steps[current_step][3] * 4095);
-			
-		prev_step = current_step;
-		step_counter = 0;
+	step_counter = 0;
+		
 	}
 }
 
@@ -196,6 +234,79 @@ void setLEDsForKeyboard(void)
 		manta_send_LED();
 	}
 }
+
+
+void addNoteToSequencerStack(uint8_t noteVal)
+{
+	uint8_t j;
+
+	//first move notes that are already in the stack one position to the right
+	for (j = seq_numnotes; j > 0; j--)
+	{
+		seq_notestack[j] = seq_notestack[(j - 1)];
+	}
+
+	//then, insert the new note into the front of the stack
+	seq_notestack[0] = noteVal;
+
+	seq_numnotes++;	
+}
+
+void removeNoteFromSequencerStack(uint8_t noteVal)
+{
+	uint8_t j,k;
+		
+	//it's a note-off, remove it from the stack
+	//go through the notes that are currently held down to find the one that released
+	for (j = 0; j < seq_numnotes; j++)
+	{
+		//if it's the note that just got released
+		if (seq_notestack[j] == noteVal)
+		{
+			for (k = 0; k < (seq_numnotes - j); k++)
+			{
+				seq_notestack[k + j] = seq_notestack[k + j + 1];
+				//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
+				if (k == ((seq_numnotes - j) - 1))
+				seq_notestack[k + j + 1] = -1;
+			}
+			// in case it got put on the stack multiple times
+			j--;
+			seq_numnotes--;
+		}
+	}
+}
+
+uint8_t toggleSequencerStackNote(uint8_t noteVal)
+{
+	uint8_t j,k;
+	uint8_t foundOne = 0;
+	//it's already in the stack, remove it from the stack
+	// look through the stack
+	for (j = 0; j < seq_numnotes; j++)
+	{
+		//if you found it
+		if (seq_notestack[j] == noteVal)
+		{
+			for (k = 0; k < (seq_numnotes - j); k++)
+			{
+				seq_notestack[k + j] = seq_notestack[k + j + 1];
+				//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
+				if (k == ((seq_numnotes - j) - 1))
+				seq_notestack[k + j + 1] = -1;
+			}
+			// in case it got put on the stack multiple times
+			j--;
+			seq_numnotes--;
+			foundOne = 1;
+		}
+	}
+	if (!foundOne)
+	{
+		addNoteToSequencerStack(noteVal);
+	}
+}
+
 
 void processSequencer(void)
 {
@@ -242,34 +353,59 @@ void processSequencer(void)
 	//did you find a new lower hexagon?
 	if (new_lower_hex)
 	{
-		if (prev_recent_hex != most_recent_hex)
+		
+		if (edit_vs_play == EDITMODE)
 		{
-			//turn off the amber light for the previously selected sequencer stage hexagon
-			step_states[prev_recent_hex] = AMBEROFF;
-			manta_set_LED_hex(prev_recent_hex, AMBEROFF);
-			setLEDsForKeyboard();
-			prev_recent_hex = most_recent_hex;
-			if (cvouts_vs_steplength == CVOUTS1)
+			if (prev_recent_hex != most_recent_hex)
 			{
-				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][0]/512) + 1); // add one to the slider values because a zero turns them off
-				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][1]/512) + 1); // add one to the slider values because a zero turns them off
+				//turn off the amber light for the previously selected sequencer stage hexagon
+				//step_states[prev_recent_hex] = AMBEROFF;
+				manta_set_LED_hex(prev_recent_hex, AMBEROFF);
+				setLEDsForKeyboard();
+				prev_recent_hex = most_recent_hex;
+				if (cvouts_vs_steplength == CVOUTS1)
+				{
+					manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][0]/512) + 1); // add one to the slider values because a zero turns them off
+					manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][1]/512) + 1); // add one to the slider values because a zero turns them off
+				}
+				if (cvouts_vs_steplength == CVOUTS2)
+				{
+					manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][5]/512) + 1); // add one to the slider values because a zero turns them off
+					manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][6]/512) + 1); //add one to the slider values because a zero turns them off/
+				}
+				else
+				{
+					manta_set_LED_slider(0,sequencer_steps[most_recent_hex][7] + 1); // OCTAVE add one to the slider values because a zero turns them off
+					manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // the step length is already between 1-8
+				}
+					
+				//turn the amber light on for the currently selected sequencer stage hexagon
+				//step_states[most_recent_hex] = AMBERON;
+				manta_set_LED_hex(most_recent_hex, AMBERON);
+				manta_send_LED();
 			}
-			if (cvouts_vs_steplength == CVOUTS2)
+		}
+		//otherwise we are in "play" mode and we want our touches to control which steps the sequencer can step on
+		else
+		{
+			if (arp_vs_seq == SEQMODE) // note ons should toggle sequencer steps in and out of the pattern
 			{
-				manta_set_LED_slider(0,(sequencer_steps[most_recent_hex][5]/512) + 1); // add one to the slider values because a zero turns them off
-				manta_set_LED_slider(1,(sequencer_steps[most_recent_hex][6]/512) + 1); //add one to the slider values because a zero turns them off/
+
+				{
+					toggleSequencerStackNote(most_recent_hex);
+				}
 			}
-			else
+			else  // "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down (not sure if this is useful)
 			{
-				manta_set_LED_slider(0,sequencer_steps[most_recent_hex][7] + 1); // OCTAVE add one to the slider values because a zero turns them off
-				manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // the step length is already between 1-8
+				// need to create a "note off" message in order to do this properly
 			}
-			
+							
 			//turn the amber light on for the currently selected sequencer stage hexagon
-			step_states[most_recent_hex] = AMBERON;
+			//step_states[most_recent_hex] = AMBERON;
 			manta_set_LED_hex(most_recent_hex, AMBERON);
 			manta_send_LED();
 		}
+		
 		
 		new_lower_hex = 0;
 	}

@@ -155,7 +155,7 @@ void addNote(uint8_t noteVal, uint8_t vel)
 		for (j = numnotes; j > 0; j--)
 		{
 			notestack[j][0] = notestack[(j - 1)][0];
-			notestack[j][1] = notestack[(j - 1)][0];
+			notestack[j][1] = notestack[(j - 1)][1];
 		}
 
 		//then, insert the new note into the front of the stack
