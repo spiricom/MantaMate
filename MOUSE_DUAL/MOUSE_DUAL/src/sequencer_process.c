@@ -27,7 +27,7 @@
 #define SINGLEMODE 0
 #define DUALMODE 1
 #define KEYMODE 0
-#define MODESELECT 1
+#define OPTIONMODE 1
 #define SEQMODE 0
 #define ARPMODE 1
 
@@ -35,13 +35,13 @@ uint8_t previous_hex = 0;
 uint16_t sequencer_steps[32][10]; // cv1, cv2, keyboard pitch, note/rest, toggled, cv3, cv4, octave, length, keyboard_hexagon
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
-uint8_t range_vs_toggle_mode = RANGEMODE;
+uint8_t range_vs_toggle_mode = TOGGLEMODE;
 uint8_t order_vs_pattern = ORDER;
 uint8_t cvouts_vs_steplength = CVOUTS1;
 uint8_t pattern_type = UPPATTERN;
 uint8_t edit_vs_play = EDITMODE;
 uint8_t single_vs_dual = SINGLEMODE;
-uint8_t key_vs_modeselect = KEYMODE;
+uint8_t key_vs_option = KEYMODE;
 uint8_t arp_vs_seq = SEQMODE;
 
 uint8_t most_recent_hex = 0;
@@ -52,6 +52,7 @@ uint8_t num_steps = 32;
 uint8_t step_offset = 0;
 uint8_t prev_recent_hex = 0;
 uint8_t keyboard_pattern[16] = {0,2,4,5,7,9,11,12,1,3,255,6,8,10,254,253};
+uint8_t option_pattern[16] = {2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0};
 uint8_t	most_recent_pitch = 0;
 uint8_t	prev_recent_pitch = 0;
 uint8_t current_seq_octave = 4;
@@ -90,9 +91,9 @@ void initSequencer(void)
 			manta_set_LED_hex(i+32, AMBER); 
 		}
 	}
-	
 	manta_send_LED(); // now write that data to the manta 
 }
+
 void seqwait(void)
 {
 	static uint8_t i = 0;
@@ -160,14 +161,14 @@ void move_to_next_step(void)
 void sequencerStep(void)
 {
 
-	LED_Toggle(LED5); // turn on the red mantamate panel light
+	LED_Toggle(LED1); // turn on the red mantamate panel light
 	
 	//check if you are supposed to increment yet (based on the length value of the current step)
 	step_counter++;
 	if (step_counter == sequencer_steps[current_step][8])
 	{
 		move_to_next_step();
-		
+		 
 		if (stepGo)
 		{
 			manta_set_LED_hex(prev_step, REDOFF);
@@ -299,12 +300,18 @@ uint8_t toggleSequencerStackNote(uint8_t noteVal)
 			j--;
 			seq_numnotes--;
 			foundOne = 1;
+			//turn the amber light on for the currently selected sequencer stage hexagon
+			//step_states[most_recent_hex] = AMBERON;
+			manta_set_LED_hex(noteVal, AMBEROFF);
+			
 		}
 	}
 	if (!foundOne)
 	{
 		addNoteToSequencerStack(noteVal);
+		manta_set_LED_hex(noteVal, AMBERON);
 	}
+	manta_send_LED();
 }
 
 
@@ -353,14 +360,18 @@ void processSequencer(void)
 	//did you find a new lower hexagon?
 	if (new_lower_hex)
 	{
-		
+		// if we are in edit mode, then we want to be able to touch the hexagons to edit the sequencer stages, without changing which stages will be stepped on
 		if (edit_vs_play == EDITMODE)
 		{
 			if (prev_recent_hex != most_recent_hex)
 			{
 				//turn off the amber light for the previously selected sequencer stage hexagon
 				//step_states[prev_recent_hex] = AMBEROFF;
-				manta_set_LED_hex(prev_recent_hex, AMBEROFF);
+				if (range_vs_toggle_mode == RANGEMODE)
+				{
+					manta_set_LED_hex(prev_recent_hex, AMBEROFF);
+					manta_set_LED_hex(most_recent_hex, AMBERON);
+				}
 				setLEDsForKeyboard();
 				prev_recent_hex = most_recent_hex;
 				if (cvouts_vs_steplength == CVOUTS1)
@@ -378,10 +389,6 @@ void processSequencer(void)
 					manta_set_LED_slider(0,sequencer_steps[most_recent_hex][7] + 1); // OCTAVE add one to the slider values because a zero turns them off
 					manta_set_LED_slider(1,sequencer_steps[most_recent_hex][8]); // the step length is already between 1-8
 				}
-					
-				//turn the amber light on for the currently selected sequencer stage hexagon
-				//step_states[most_recent_hex] = AMBERON;
-				manta_set_LED_hex(most_recent_hex, AMBERON);
 				manta_send_LED();
 			}
 		}
@@ -400,10 +407,7 @@ void processSequencer(void)
 				// need to create a "note off" message in order to do this properly
 			}
 							
-			//turn the amber light on for the currently selected sequencer stage hexagon
-			//step_states[most_recent_hex] = AMBERON;
-			manta_set_LED_hex(most_recent_hex, AMBERON);
-			manta_send_LED();
+
 		}
 		
 		
@@ -413,57 +417,67 @@ void processSequencer(void)
 	// did you find a new upper hexagon?
 	if (new_upper_hex)
 	{
-		most_recent_pitch = keyboard_pattern[most_recent_upper_hex-32];
+		if (key_vs_option == KEYMODE)
+		{
+			most_recent_pitch = keyboard_pattern[most_recent_upper_hex-32];
 		
-		if (most_recent_pitch == 255)
-		{
-			//make a rest
-			sequencer_steps[most_recent_hex][3] = 0;
-		}
-		else if (most_recent_pitch == 254)
-		{
-			// down an octave
-			current_seq_octave -= 1;
-			if (current_seq_octave < 0)
+			if (most_recent_pitch == 255)
 			{
-				current_seq_octave = 0;
+				//make a rest
+				sequencer_steps[most_recent_hex][3] = 0;
 			}
-		}
-		else if (most_recent_pitch == 253)
-		{
-			//up an octave
-			current_seq_octave += 1;
-			if (current_seq_octave > 7)
+			else if (most_recent_pitch == 254)
 			{
-				current_seq_octave = 7;
+				// down an octave
+				current_seq_octave -= 1;
+				if (current_seq_octave < 0)
+				{
+					current_seq_octave = 0;
+				}
 			}
+			else if (most_recent_pitch == 253)
+			{
+				//up an octave
+				current_seq_octave += 1;
+				if (current_seq_octave > 7)
+				{
+					current_seq_octave = 7;
+				}
+			}
+			else
+			{
+				sequencer_steps[most_recent_hex][3] = 1;
+				sequencer_steps[most_recent_hex][2] = most_recent_pitch;
+				//sequencer_steps[most_recent_hex][2] = most_recent_pitch + (current_seq_octave * 12);
+				sequencer_steps[most_recent_hex][7] = current_seq_octave;
+				sequencer_steps[most_recent_hex][9] = most_recent_upper_hex;
+			}
+		
+		
+			if (current_step == most_recent_hex)
+			{
+				//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
+				uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
+				DACtemp += (sequencer_steps[current_step][7] * 12);
+				DACtemp *= 546125;
+				DACtemp /= 1000;
+				DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+			}
+		
+			setLEDsForKeyboard();
+		
+			//set memory variables
+			new_upper_hex = 0;
+			prev_keyboard_hex = most_recent_upper_hex;
+			prev_recent_pitch = most_recent_pitch;
 		}
+		
+		//otherwise the upper hexagons are being used to set the alternative options
 		else
 		{
-			sequencer_steps[most_recent_hex][3] = 1;
-			sequencer_steps[most_recent_hex][2] = most_recent_pitch;
-			//sequencer_steps[most_recent_hex][2] = most_recent_pitch + (current_seq_octave * 12);
-			sequencer_steps[most_recent_hex][7] = current_seq_octave;
-			sequencer_steps[most_recent_hex][9] = most_recent_upper_hex;
+			
 		}
-		
-		
-		if (current_step == most_recent_hex)
-		{
-			//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
-			uint32_t DACtemp = (uint32_t)sequencer_steps[current_step][2];
-			DACtemp += (sequencer_steps[current_step][7] * 12);
-			DACtemp *= 546125;
-			DACtemp /= 1000;
-			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-		}
-		
-		setLEDsForKeyboard();
-		
-		//set memory variables
-		new_upper_hex = 0;
-		prev_keyboard_hex = most_recent_upper_hex;
-		prev_recent_pitch = most_recent_pitch;
+
 	}
 	
 	if (new_func_button)
@@ -516,15 +530,27 @@ void processSequencer(void)
 		}
 		else if (most_recent_func_button == 2)
 		{
-			if (key_vs_modeselect == KEYMODE)
+			if (key_vs_option == KEYMODE)
 			{
-				key_vs_modeselect = MODESELECT;
+				key_vs_option = OPTIONMODE;
+				//change the keyboard LEDs to be the MODE leds
+				for (int i = 0; i < 16; i++)
+				{
+					manta_set_LED_hex(i+32, option_pattern[i]);
+				}
 				manta_set_LED_button(2, RED);
 				manta_send_LED();
 			}
 			else
 			{
-				key_vs_modeselect = KEYMODE;
+				key_vs_option = KEYMODE;
+				for (int i = 0; i < 16; i++)
+				{
+					if (keyboard_pattern[i] < 200)
+					{
+						manta_set_LED_hex(i+32, AMBER); 
+					}
+				}
 				manta_set_LED_button(2, OFF);
 				manta_send_LED();
 			}			
@@ -534,13 +560,13 @@ void processSequencer(void)
 			if (arp_vs_seq == ARPMODE)
 			{
 				arp_vs_seq = SEQMODE;
-				manta_set_LED_button(3, RED);
+				manta_set_LED_button(3, OFF);
 				manta_send_LED();
 			}
 			else
 			{
 				arp_vs_seq = ARPMODE;
-				manta_set_LED_button(3, OFF);
+				manta_set_LED_button(3, RED);
 				manta_send_LED();
 			}			
 		}
