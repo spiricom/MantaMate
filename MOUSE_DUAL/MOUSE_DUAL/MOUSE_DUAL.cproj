@@ -177,7 +177,7 @@
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.jtagice3plus</ToolType>
-      <ToolNumber>J30200021353</ToolNumber>
+      <ToolNumber>J30200025218</ToolNumber>
       <ToolName>JTAGICE3</ToolName>
     </com_atmel_avrdbg_tool_jtagice3plus>
     <com_atmel_avrdbg_tool_simulator>
@@ -192,7 +192,7 @@
       </ToolNumber>
       <ToolName xmlns="">Simulator</ToolName>
     </com_atmel_avrdbg_tool_simulator>
-    <avrtoolserialnumber>J30200021353</avrtoolserialnumber>
+    <avrtoolserialnumber>J30200025218</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x0</avrdeviceexpectedsignature>
     <avrtoolinterfaceclock>7500000</avrtoolinterfaceclock>
   </PropertyGroup>

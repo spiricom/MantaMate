@@ -52,6 +52,32 @@
 
 #include "usb_protocol_cdc.h"
 
+//DEBUG CODE
+extern uint16_t lengthDB;
+
+typedef enum BOOL { FALSE=0, TRUE=1 } BOOL;
+	
+	
+	
+typedef struct _tStep
+{
+	uint16_t hexagon;       //[9]
+	uint16_t toggled;       //[4]
+
+	uint16_t cv1;       //[0]
+	uint16_t cv2;       //[1]		
+	uint16_t cv3;       //[5]
+	uint16_t cv4;       //[6]
+
+	uint16_t pitch;     //[2]
+	uint16_t note;          //[3]
+	uint16_t octave;    //[7]
+	uint16_t length;    //[8]
+	
+} tStep;
+
+extern tStep sequencer_steps[32];
+
 //global variables that everything which includes main.h should be able to see
 extern uint32_t dummycounter;
 extern uint8_t manta_mapper;
