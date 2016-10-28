@@ -577,7 +577,6 @@ void processSequencer(void)
 				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 				sequencer_steps[most_recent_hex].hexagon = most_recent_upper_hex;
 				
-				// manta_set_LED_hex(prev_keyboard_hex, AMBER);
 				manta_set_LED_hex(most_recent_upper_hex, RED);
 				
 				setKeyboardLEDsFor(most_recent_hex);
