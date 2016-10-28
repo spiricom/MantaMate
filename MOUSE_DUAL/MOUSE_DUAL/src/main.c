@@ -53,7 +53,7 @@
 #include "sequencer_process.h"
 
 
-#  define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
+#define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 #define UNCONFIGUREDMODE 0
 #define HOSTMODE 1
 #define DEVICEMODE 2
@@ -126,7 +126,7 @@ static void int_handler_switches (void)
 {
 	
 	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
-	{		// PA11 generated the interrupt.
+	{	// PA11 generated the interrupt.
 		delay_us(500); // to de-bounce
 		USB_Mode_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
@@ -342,12 +342,12 @@ void sendI2CtoEEPROM(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		Write7Seg(27);;
+		Write7Seg(27);
 	}
 	else
 	{
 		// display test result to user
-		Write7Seg(20);;
+		Write7Seg(20);
 	}
 
 	// check received data against sent data
@@ -596,7 +596,7 @@ static void initSPIbus(void)
 	sizeof(SPARE_SPI_GPIO_MAP) / sizeof(SPARE_SPI_GPIO_MAP[0]));
 }
 
-int i =0;
+int i = 0;
 uint16_t testvoltage = 0;
 uint16_t testvoltage16 = 0;
 
@@ -692,7 +692,7 @@ int main(void){
 	DACsetup();
 	
 	// a test write
-	sendI2CtoEEPROM();
+	//sendI2CtoEEPROM();
 	
 	// Start USB host stack
 	uhc_start();
