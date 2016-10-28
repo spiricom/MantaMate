@@ -31,7 +31,6 @@ typedef enum MantaSeqArpMode {
 }MantaSeqArpMode;
 
 
-
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
 	SelectMode,
@@ -512,6 +511,9 @@ void processSequencer(void)
 						//move_to_next_step();
 					}
 				}
+				
+				setKeyboardLEDsFor(most_recent_hex);
+				setSliderLEDsFor(most_recent_hex);
 			}
 			else  // "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down (not sure if this is useful)
 			{
