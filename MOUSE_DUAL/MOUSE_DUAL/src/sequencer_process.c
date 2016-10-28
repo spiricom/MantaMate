@@ -115,6 +115,8 @@ uint8_t seq_notestack[32];
 uint8_t position_in_notestack = 0;
 uint8_t stepGo = 1;
 
+extern uint8_t func_button_states[4];
+
 void initSequencer(void)
 {
 	for (int i = 0; i < 32; i++)
@@ -545,7 +547,13 @@ void processSequencer(void)
 					//make a rest
 					//sequencer_steps[most_recent_hex].note = 0;
 				}
-				manta_set_LED_slider(0,current_seq_octave+1);
+				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
+				// Issue seems to be func_button_states are never set to anything but 0?... - JSB
+				if (func_button_states[0] != 0)
+				{
+					manta_set_LED_slider(0, current_seq_octave+1);
+				}
+				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 			}
 			else if (most_recent_pitch == 253)
 			{
@@ -554,7 +562,12 @@ void processSequencer(void)
 				{
 					current_seq_octave = 7;
 				}
-				manta_set_LED_slider(0,current_seq_octave+1);
+				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
+				if (func_button_states[0] != 0)
+				{
+					manta_set_LED_slider(0, current_seq_octave+1);
+				}
+				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 			}
 			else
 			{
@@ -564,7 +577,7 @@ void processSequencer(void)
 				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 				sequencer_steps[most_recent_hex].hexagon = most_recent_upper_hex;
 				
-				manta_set_LED_hex(prev_keyboard_hex, AMBER);
+				// manta_set_LED_hex(prev_keyboard_hex, AMBER);
 				manta_set_LED_hex(most_recent_upper_hex, RED);
 				
 				setKeyboardLEDsFor(most_recent_hex);
