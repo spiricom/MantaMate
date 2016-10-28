@@ -9,7 +9,6 @@
 #ifndef SEQUENCER_PROCESS_H_
 #define SEQUENCER_PROCESS_H_
 
-
 void sequencerStep(void);
 void processSequencer(void);
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);

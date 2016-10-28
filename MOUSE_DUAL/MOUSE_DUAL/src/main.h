@@ -54,6 +54,7 @@
 
 //DEBUG CODE
 extern uint16_t lengthDB;
+extern int slider;
 
 typedef enum BOOL { FALSE=0, TRUE=1 } BOOL;
 	
