@@ -487,7 +487,6 @@ void processSequencer(void)
 				
 				manta_set_LED_hex(most_recent_hex, AMBEROFF);
 				manta_set_LED_hex(most_recent_hex, REDON);
-
 				manta_send_LED();
 			}
 		}	
@@ -567,6 +566,8 @@ void processSequencer(void)
 				
 				manta_set_LED_hex(prev_keyboard_hex, AMBER);
 				manta_set_LED_hex(most_recent_upper_hex, RED);
+				
+				setKeyboardLEDsFor(most_recent_hex);
 			}
 
 			if (current_step == most_recent_hex)
