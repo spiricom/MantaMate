@@ -323,7 +323,31 @@ void move_to_next_step(void)
 			}
 			else if (pattern_type == OrderTouch)
 			{
-				order_vs_pattern = ORDER;
+				if (seq_numnotes != 0) // if there is at least one note in the stack
+				{
+					if (position_in_notestack > 0) // if you're not at the most recent note (first one), then go backward in the array (moving from earliest to latest)
+					{
+						position_in_notestack--;
+					}
+					else
+					{
+						position_in_notestack = (seq_numnotes - 1); // if you are the most recent note, go back to the earliest note in the array
+					}
+					
+					current_step = seq_notestack[position_in_notestack];
+					if (current_step == -1)
+					{
+						stepGo = 0;
+					}
+					else
+					{
+						stepGo = 1;
+					}
+				}
+				else
+				{
+					stepGo = 0;
+				}
 			}
 			else 
 			{
@@ -338,33 +362,7 @@ void move_to_next_step(void)
 	}
 	else // otherwise it's "order"
 	{
-		
-		if (seq_numnotes != 0) // if there is at least one note in the stack
-		{
-			if (position_in_notestack > 0) // if you're not at the most recent note (first one), then go backward in the array (moving from earliest to latest)
-			{
-				position_in_notestack--;
-			}
-			else 
-			{
-				position_in_notestack = (seq_numnotes - 1); // if you are the most recent note, go back to the earliest note in the array
-			}
-		
-			current_step = seq_notestack[position_in_notestack];
-			if (current_step == -1)
-			{
-				stepGo = 0;
-			}
-			else
-			{
-				stepGo = 1;
-			}
-		}
-		else
-		{
-			stepGo = 0;
-		}	
-		
+		// Do we really want separate order mode?
 	}
 	
 }
