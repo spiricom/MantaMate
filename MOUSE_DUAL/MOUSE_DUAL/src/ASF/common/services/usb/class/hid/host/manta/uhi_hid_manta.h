@@ -82,6 +82,8 @@ extern "C" {
 #define HOST_CONTROL_BUTTON 2
 #define HOST_CONTROL_SLIDER 3
 #define HOST_CONTROL_HEX_AND_BUTTON 4
+
+
 #define AMBER 1
 #define RED 2
 #define OFF 0
@@ -89,6 +91,20 @@ extern "C" {
 #define REDOFF 3
 #define AMBERON 5
 #define REDON 6
+
+typedef enum MantaLEDColor 
+{
+	Off,
+	Amber,
+	Red,
+	RedOff,
+	AmberOff,
+	AmberOn,
+	RedOn,
+	MantaLEDColorNil,
+}	MantaLEDColor;
+
+
 
 
 //! Global define which contains standard UHI API for UHC
@@ -109,7 +125,7 @@ extern void uhi_hid_manta_enable(uhc_device_t* dev);
 extern void uhi_hid_manta_uninstall(uhc_device_t* dev);
 extern void uhi_hid_manta_sof(bool);
 extern void manta_LED_set_mode(uint8_t mode);
-extern void manta_set_LED_hex(uint8_t hex, uint8_t color);
+extern void manta_set_LED_hex(uint8_t hex, MantaLEDColor color);
 extern void manta_set_LED_slider(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_button(uint8_t button, uint8_t color);
