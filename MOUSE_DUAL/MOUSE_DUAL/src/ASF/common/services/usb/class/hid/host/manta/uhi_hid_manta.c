@@ -560,14 +560,14 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 {
 	uint8_t whichbit = button % 8;
 	
-	if (color == AMBER)
+	if (color == Amber)
 	{
 		//turn off the red light if it's on
 		uhi_manta_report[6] &= ~(1 << (whichbit+4));
 		// then turn on the amber light
 		uhi_manta_report[6] |= 1 << whichbit;
 	}
-	else if (color == RED)
+	else if (color == Red)
 	{
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);
@@ -575,7 +575,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		uhi_manta_report[6] |= 1 << (whichbit+4);
 	}
 
-	else if (color == OFF)
+	else if (color == Off)
 	{
 		//turn off the amber light if it's on
 		uhi_manta_report[6] &= ~(1 << whichbit);

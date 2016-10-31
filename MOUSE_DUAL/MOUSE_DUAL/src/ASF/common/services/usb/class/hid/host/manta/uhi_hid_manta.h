@@ -83,18 +83,9 @@ extern "C" {
 #define HOST_CONTROL_SLIDER 3
 #define HOST_CONTROL_HEX_AND_BUTTON 4
 
-
-#define AMBER 1
-#define RED 2
-#define OFF 0
-#define AMBEROFF 4
-#define REDOFF 3
-#define AMBERON 5
-#define REDON 6
-
 typedef enum MantaLEDColor 
 {
-	Off,
+	Off = 0,
 	Amber,
 	Red,
 	RedOff,
@@ -102,6 +93,7 @@ typedef enum MantaLEDColor
 	AmberOn,
 	RedOn,
 	MantaLEDColorNil,
+	
 }	MantaLEDColor;
 
 

@@ -20,14 +20,11 @@ typedef enum MantaEditPlayMode {
 	MantaEditPlayModeNil
 }MantaEditPlayMode;
 
-
-
 typedef enum MantaSeqArpMode {
 	SeqMode = 0,
 	ArpMode,
 	MantaSeqArpModeNil
 }MantaSeqArpMode;
-
 
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
@@ -41,7 +38,6 @@ typedef enum MantaSingleDualMode {
 	DualMode,
 	MantaSingleDualModeNil
 }MantaSingleDualMode;
-
 
 typedef enum MantaRangeToggleMode {
 	RangeMode = 0,
@@ -73,16 +69,63 @@ typedef enum MantaButtonXY {
 	ButtonTopRight = 1,
 	ButtonBottomLeft = 2,
 	ButtonBottomRight = 3,
-	ButtonOne = ButtonTopLeft,
-	ButtonTwo = ButtonTopRight,
-	ButtonThree = ButtonBottomLeft,
-	ButtonFour = ButtonBottomRight,
+	SliderModeButton = ButtonTopLeft,
+	OptionModeButton = ButtonBottomLeft,
+	EditToggleButton = ButtonTopRight,
+	PlayModeButton2 = ButtonBottomRight,
 	ButtonNil
 }MantaButton;
 
 //names of sequencer step choice modes
 #define ORDER 1
 #define PATTERN 0
+
+typedef enum SequencerPatternType {
+	LeftRightRowDown,
+	RightLeftRowDown,
+	LeftRightRowUp,
+	RightLeftRowUp,
+	LeftRightDiagDown,
+	LeftRightDiagUp,
+	RightLeftDiagDown,
+	RightLeftDiagUp,
+	LeftRightColDown,
+	LeftRightColUp,
+	RightLeftColDown,
+	RightLeftColUp,
+	RandomWalk,
+	OrderTouch,
+	RecordTouch,
+	SequencerPatternTypeNil,
+}SequencerPatternType;
+
+uint8_t prev_option_hex = 0;
+uint8_t most_recent_option_hex = 0;
+
+// Sequencer patterns to be used in the program
+#define NUM_PATTERNS 9
+SequencerPatternType patternTypes[NUM_PATTERNS] = {
+	LeftRightRowDown,
+	LeftRightRowUp,
+	LeftRightDiagDown,
+	LeftRightDiagUp,
+	LeftRightColDown,
+	RightLeftColUp,
+	RandomWalk,
+	OrderTouch,
+	RecordTouch
+};
+
+typedef enum ExtendedOptionType {
+	PatternRandomWalk = NUM_PATTERNS,
+	PatternOrderTouch,
+	PatternRecordTouch,
+	ExtendedOptionTypeNil,
+}ExtendedOptionType;
+
+SequencerPatternType pattern_type = LeftRightRowUp;
+
+#define MAX_STEPS 32
 
 #define UPPATTERN 0
 #define DOWNPATTERN 1
@@ -117,13 +160,28 @@ void addNoteToSequencerStack(uint8_t noteVal);
 // UTILITIES
 void seqwait(void);
 
+/* - - - - - - KEY PATTERNS - - - - - - - -*/
+// Upper keyboard pattern
+uint8_t keyboard_pattern[16] = {0,2,4,5,7,9,11,12,1,3,255,6,8,10,254,253};
+	
+// Additional options pattern
+uint8_t option_pattern[16] = {2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,0};
+	
+// UpDown pattern
+uint8_t pattern_col_down[32] =			{0,8,16,24,  1,9,17,25,  2,10,18,26,  3,11,19,27,  4,12,20,28,  5,13,21,29,  6,14,22,30, 7,15,23,31};
+uint8_t pattern_col_up[32] =	{24,16,8,0,  25,17,9,1,   26,18,10,2,   27,19,11,3,  28,20,12,4,  29,21,13,5,  30,22,14,6, 31,23,15,7};
+uint8_t pattern_row_reverse[32] =	{7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,23,22,21,20,19,18,17,16,31,30,29,28,27,26,25,24};
+	
+uint8_t pattern_diag[32] =			{0, 1,8,16, 2,9,17,24, 3,10,18,25, 4,11,19,26, 5,12,20,27, 6,13,21,28, 7,14,22,29, 15,23,30, 31};
+uint8_t pattern_diag_reverse[32] =	{0, 16,8,1, 24,17,9,2, 25,18,10,3, 26,19,11,4, 27,20,12,5, 28,21,13,6, 29,22,14,7, 30,23,15, 31};
 
+/* - - - - - - - - - - - - - - - - - - - - */
 
 uint8_t previous_hex = 0;
 
-tStep sequencer_steps[32];
+// The steps
+tStep sequencer_steps[MAX_STEPS];
 
-// uint16_t sequencer_steps[32][10]; // cv1, cv2, keyboard pitch, note/rest, toggled, cv3, cv4, octave, length, keyboard_hexagon
 MantaSliderMode mantaSliderMode = SliderModeOne;
 MantaButton most_recent_func_button = ButtonTopLeft;
 
@@ -131,7 +189,6 @@ uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 uint8_t range_vs_toggle_mode = TOGGLEMODE;
 uint8_t order_vs_pattern = PATTERN;
-uint8_t pattern_type = UPPATTERN;
 uint8_t edit_vs_play = EDITMODE;
 uint8_t single_vs_dual = SINGLEMODE;
 uint8_t key_vs_option = KEYMODE;
@@ -140,12 +197,12 @@ uint8_t arp_vs_seq = SEQMODE;
 uint8_t most_recent_hex = 0;
 uint8_t current_step = 0;
 uint8_t prev_step = 0;
-uint8_t step_states[32];
-uint8_t num_steps = 32;
+uint8_t step_states[MAX_STEPS];
+uint8_t num_steps = MAX_STEPS;
 uint8_t step_offset = 0;
 uint8_t prev_recent_hex = 0;
-uint8_t keyboard_pattern[16] = {0,2,4,5,7,9,11,12,1,3,255,6,8,10,254,253};
-uint8_t option_pattern[16] = {2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0};
+
+	
 uint8_t	most_recent_pitch = 0;
 uint8_t	prev_recent_pitch = 0;
 int8_t current_seq_octave = 4;
@@ -157,7 +214,7 @@ uint8_t new_lower_hex = 0;
 uint8_t new_func_button = 0;
 uint8_t step_counter = 0;
 uint8_t seq_numnotes = 0;
-uint8_t seq_notestack[32];
+uint8_t seq_notestack[MAX_STEPS];
 uint8_t position_in_notestack = 0;
 uint8_t stepGo = 1;
 
@@ -165,7 +222,7 @@ extern uint8_t func_button_states[4];
 
 void initSequencer(void)
 {
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		step_states[i] = 0; // not lit
 		sequencer_steps[i].cv1 = 0;  // cv1 zero
@@ -177,13 +234,13 @@ void initSequencer(void)
 		sequencer_steps[i].cv4 = 0;  // cv4 zero
 		sequencer_steps[i].octave = 3;  // octave
 		sequencer_steps[i].length = 1;  // step_length = 1
-		sequencer_steps[i].hexagon = 32;  // hexagon number in keyboard range
+		sequencer_steps[i].hexagon = MAX_STEPS;  // hexagon number in keyboard range
 	}
 	for (int i = 0; i < 16; i++)
 	{
 		if (keyboard_pattern[i] < 200)
 		{
-			manta_set_LED_hex(i+32, Amber);
+			manta_set_LED_hex(i+MAX_STEPS, Amber);
 		}
 	}
 	
@@ -193,30 +250,90 @@ void initSequencer(void)
 
 
 
-
+uint8_t stepPhasor = 0;
 void move_to_next_step(void)
-{
+{	
 	if (order_vs_pattern == PATTERN)
 	{
-		if (pattern_type == UPPATTERN)
-		{
-			while (seq_numnotes > 0) 
+		while (seq_numnotes > 0)
+		{	
+			if (++stepPhasor >= MAX_STEPS) stepPhasor = 0;
+			
+			if (pattern_type == LeftRightRowDown)
 			{
-				current_step = (current_step + 1) % 32;
-				if (sequencer_steps[current_step].toggled == 1)
+				current_step = stepPhasor;
+			}
+			else if (pattern_type == LeftRightRowUp)
+			{
+				current_step = pattern_row_reverse[(MAX_STEPS-1) - stepPhasor];
+			}
+			else if (pattern_type == RightLeftRowDown)
+			{
+				current_step = (MAX_STEPS-1)- stepPhasor;
+			}
+			else if (pattern_type == RightLeftRowUp)
+			{
+				current_step = pattern_row_reverse[stepPhasor];
+			} 
+			else if (pattern_type == LeftRightColDown)
+			{
+				current_step = pattern_col_down[stepPhasor];
+			}
+			else if (pattern_type == LeftRightColUp)
+			{
+				current_step = pattern_col_up[stepPhasor];
+			}
+			else if (pattern_type == RightLeftColDown)
+			{
+				current_step = pattern_col_down[(MAX_STEPS-1)- stepPhasor];
+			}
+			else if (pattern_type == RightLeftColUp)
+			{
+				current_step = pattern_col_up[(MAX_STEPS-1) - stepPhasor];
+			}
+			else if (pattern_type == LeftRightDiagDown)
+			{
+				current_step = pattern_diag_reverse[stepPhasor];
+			}
+			else if (pattern_type == LeftRightDiagUp)
+			{
+				current_step = pattern_diag[stepPhasor];
+			}
+			else if (pattern_type == RightLeftDiagDown)
+			{
+				current_step = pattern_diag_reverse[(MAX_STEPS-1) - stepPhasor];
+			}
+			else if (pattern_type == RightLeftDiagUp)
+			{
+				current_step = pattern_diag[(MAX_STEPS-1) - stepPhasor];
+			}
+			else if (pattern_type == RandomWalk)
+			{
+				int plusOrMinus;
+				plusOrMinus = rand();
+				if (plusOrMinus > 0xffff) 
 				{
-					break;
+					current_step = (stepPhasor + (plusOrMinus-0xffff)) % 32;
 				}
+				else
+				{
+					current_step = (stepPhasor - plusOrMinus) % 32;
+				} 
+				
 			}
-		}
-		else if (pattern_type == DOWNPATTERN)
-		{
-			current_step--;
-			if (current_step <= 0)
+			else if (pattern_type == OrderTouch)
 			{
-				current_step = seq_numnotes; // was % num_notes
+				order_vs_pattern = ORDER;
 			}
-			current_step += /*num_notes*/0;
+			else 
+			{
+				// Record or other options...
+			}
+			
+			if (sequencer_steps[current_step].toggled == 1)
+			{
+				break;
+			}
 		}
 	}
 	else // otherwise it's "order"
@@ -327,15 +444,9 @@ void sequencerStep(void)
 	}
 }
 
-
-
-
-
-
-
 void setKeyboardLEDsFor(uint8_t hexagon)
 {
-	if (sequencer_steps[most_recent_hex].note == 1)
+	if (sequencer_steps[hexagon].note == 1)
 	{
 		for (int j = 0; j < 16; j++)
 		{
@@ -343,9 +454,13 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 			{
 				manta_set_LED_hex(j+32, Amber);
 			}
+			if (keyboard_pattern[j] == 255)
+			{
+				manta_set_LED_hex(j+32, Off);
+			}
 		}
+		manta_set_LED_hex(sequencer_steps[hexagon].hexagon, Red);
 	}
-	
 	else
 	{
 		for (int j = 0; j < 16; j++)
@@ -354,10 +469,12 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 			{
 				manta_set_LED_hex(j+32, Red);
 			}
+			if (keyboard_pattern[j] == 255)
+			{
+				manta_set_LED_hex(j+32,Amber);
+			}
 		}
 	}
-	
-	manta_set_LED_hex(sequencer_steps[hexagon].hexagon, Red);
 }
 
 void setSliderLEDsFor(uint8_t hexagon)
@@ -460,7 +577,10 @@ void processTouchLowerHex(uint8_t hexagon)
 				manta_set_LED_hex(hexagon, AmberOn);
 			}
 			
-			setKeyboardLEDsFor(hexagon);
+			if (key_vs_option == KEYMODE)
+			{
+				setKeyboardLEDsFor(hexagon);
+			}
 			setSliderLEDsFor(hexagon);
 			
 			manta_set_LED_hex(hexagon, AmberOff);
@@ -469,7 +589,7 @@ void processTouchLowerHex(uint8_t hexagon)
 	}
 	else
 	{
-		//otherwise we are in "play" mode and we want our touches to control which steps the sequencer can step on
+		//we are in "play" mode and we want our touches to control which steps the sequencer can step on
 		if (arp_vs_seq == SEQMODE) // note ons should toggle sequencer steps in and out of the pattern
 		{
 			if (toggleSequencerStackNote(hexagon))
@@ -484,12 +604,14 @@ void processTouchLowerHex(uint8_t hexagon)
 				if (hexagon == current_step)
 				{
 					manta_set_LED_hex(hexagon, RedOff);
-					//move_to_next_step();
 				}
 			}
-			
-			setKeyboardLEDsFor(most_recent_hex);
-			setSliderLEDsFor(most_recent_hex);
+				
+			if (key_vs_option == KEYMODE)
+			{
+				setKeyboardLEDsFor(hexagon);
+			}
+			setSliderLEDsFor(hexagon);
 		}
 		else  // "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down (not sure if this is useful)
 		{
@@ -511,37 +633,50 @@ void processTouchUpperHex(uint8_t hexagon)
 		
 		if (most_recent_pitch == 255)
 		{
-			sequencer_steps[most_recent_hex].note = 0;
-			//manta_set_LED_hex(, RED);
-		}
+			if (sequencer_steps[most_recent_hex].note == 0)
+			{
+				sequencer_steps[most_recent_hex].note = 1;
+			} 
+			else
+			{
+				sequencer_steps[most_recent_hex].note = 0;
+			}		
+			
+		} 
 		else if (most_recent_pitch == 254)
 		{
-			// down an octave
-			if (--current_seq_octave < 0)
+			if(sequencer_steps[most_recent_hex].note) 
 			{
-				current_seq_octave = 0;
-				//make a rest
-				//sequencer_steps[most_recent_hex].note = 0;
+				// down an octave
+				if (--current_seq_octave < 0)
+				{
+					current_seq_octave = 0;
+					//make a rest
+					//sequencer_steps[most_recent_hex].note = 0;
+				}
+				if (mantaSliderMode == SliderModeThree)
+				{
+					manta_set_LED_slider(0, current_seq_octave+1);
+				}
+				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 			}
-			if (mantaSliderMode == SliderModeThree)
-			{
-				manta_set_LED_slider(0, current_seq_octave+1);
-			}
-			sequencer_steps[most_recent_hex].octave = current_seq_octave;
 		}
 		else if (most_recent_pitch == 253)
 		{
-			//up an octave
-			if (++current_seq_octave > 7)
+			if(sequencer_steps[most_recent_hex].note)
 			{
-				current_seq_octave = 7;
+				//up an octave
+				if (++current_seq_octave > 7)
+				{
+					current_seq_octave = 7;
+				}
+				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
+				if (mantaSliderMode == SliderModeThree)
+				{
+					manta_set_LED_slider(0, current_seq_octave+1);
+				}
+				sequencer_steps[most_recent_hex].octave = current_seq_octave;
 			}
-			// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
-			if (mantaSliderMode == SliderModeThree)
-			{
-				manta_set_LED_slider(0, current_seq_octave+1);
-			}
-			sequencer_steps[most_recent_hex].octave = current_seq_octave;
 		}
 		else
 		{
@@ -551,11 +686,10 @@ void processTouchUpperHex(uint8_t hexagon)
 
 			sequencer_steps[most_recent_hex].octave = current_seq_octave;
 			sequencer_steps[most_recent_hex].hexagon = most_recent_upper_hex;
-			
+
 			manta_set_LED_hex(hexagon, Red);
-			
-			setKeyboardLEDsFor(most_recent_hex);
 		}
+		
 
 		if (current_step == most_recent_hex)
 		{
@@ -567,6 +701,8 @@ void processTouchUpperHex(uint8_t hexagon)
 			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 		}
 		
+		setKeyboardLEDsFor(most_recent_hex);
+		
 		//set memory variables
 		new_upper_hex = 0;
 		prev_recent_pitch = most_recent_pitch;
@@ -574,7 +710,20 @@ void processTouchUpperHex(uint8_t hexagon)
 	else
 	{
 		//otherwise the upper hexagons are being used to set the alternative options
+		uint8_t whichOption = hexagon - 32;
+		if (option_pattern[whichOption] == 2 && whichOption < NUM_PATTERNS)
+		{
+			pattern_type = patternTypes[whichOption];
+		}
+		prev_option_hex = most_recent_option_hex;
+		most_recent_option_hex = whichOption;
+		manta_set_LED_hex(32 + prev_option_hex, Red);
+		manta_set_LED_hex(32 + most_recent_option_hex, Amber);
+		
+		
 	}
+	
+	
 	manta_send_LED();
 }
 
@@ -623,9 +772,7 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				manta_set_LED_hex(most_recent_hex, AmberOn);
 			}
-			
-			manta_set_LED_hex(sequencer_steps[most_recent_hex].hexagon, Amber);
-			
+				
 			manta_set_LED_button(ButtonTopRight, Amber);
 		}
 		else
@@ -643,12 +790,16 @@ void processTouchFunctionButton(MantaButton button)
 				manta_set_LED_hex(most_recent_hex, AmberOn);
 			}
 			
-			setKeyboardLEDsFor(most_recent_hex);
-			setSliderLEDsFor(most_recent_hex);
-
 			manta_set_LED_button(ButtonTopRight, Off);
 			
 		}
+		
+		if (key_vs_option == KEYMODE)
+		{
+			setKeyboardLEDsFor(most_recent_hex);
+		}
+			
+		setSliderLEDsFor(most_recent_hex);
 	}
 	else if (button == ButtonBottomLeft)
 	{
