@@ -45,6 +45,12 @@ typedef enum MantaRangeToggleMode {
 	MantaRangeToggleModeNil
 }MantaRangeToggleMode;
 
+typedef enum MantaSequencer
+{
+	SequencerOne,
+	SequencerTwo,
+	SequencerNil,
+} MantaSequencer;
 
 /* Replaced these defines with enum:
 #define CVOUTS1 0
@@ -151,6 +157,7 @@ void processTouchUpperHex(uint8_t hexagon);
 // LEDs
 void setSliderLEDsFor(uint8_t hexagon);
 void setKeyboardLEDsFor(uint8_t hexagon);
+void setModeLEDsFor(MantaSequencer seq);
 
 // NOTE STACK
 uint8_t toggleSequencerStackNote(uint8_t noteVal);
@@ -472,6 +479,27 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 				manta_set_LED_hex(j+32,Amber);
 			}
 		}
+	}
+}
+
+void setModeLEDsFor(MantaSequencer seq)
+{
+	//change the keyboard LEDs to be the MODE leds
+	for (int i = 0; i < 16; i++)
+	{
+		if (option_pattern[i] == 0)
+		{
+			manta_set_LED_hex(i+32, Off);
+		}
+		else if (option_pattern[i] == 1)
+		{
+			manta_set_LED_hex(i+32, Amber);
+		}
+		if (option_pattern[i] == 2 || option_pattern[i] == 3 )
+		{
+			manta_set_LED_hex(i+32, Red);
+		}
+		
 	}
 }
 
@@ -804,11 +832,7 @@ void processTouchFunctionButton(MantaButton button)
 		if (key_vs_option == KEYMODE)
 		{
 			key_vs_option = OPTIONMODE;
-			//change the keyboard LEDs to be the MODE leds
-			for (int i = 0; i < 16; i++)
-			{
-				manta_set_LED_hex(i+32, option_pattern[i]);
-			}
+			setModeLEDsFor(0);
 			manta_set_LED_button(ButtonBottomLeft, Red);
 		}
 		else
