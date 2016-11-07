@@ -557,6 +557,18 @@
     <None Include="src\ASF\avr32\drivers\wdt\wdt.h">
       <SubType>compile</SubType>
     </None>
+    <Compile Include="src\notestack.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\notestack.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\sequencer.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\sequencer.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\sequencer_process.c">
       <SubType>compile</SubType>
     </Compile>

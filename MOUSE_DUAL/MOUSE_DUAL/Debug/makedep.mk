@@ -4,6 +4,10 @@
 
 src\ASF\avr32\drivers\wdt\wdt.c
 
+src\notestack.c
+
+src\sequencer.c
+
 src\sequencer_process.c
 
 src\ASF\avr32\components\display\dip204\dip204.c

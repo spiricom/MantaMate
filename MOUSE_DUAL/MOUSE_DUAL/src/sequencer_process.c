@@ -8,11 +8,18 @@
 #include "main.h"
 #include "note_process.h"
 #include "uhi_hid_manta.h"
-//#include "sequencer_process.h"
+
+#include "notestack.h"
+#include "sequencer.h"
 
 // Typedef versions of Manta modes.
 
 //------------------  S T R U C T U R E S  -------------------
+typedef enum MantaSequencer {
+	SequencerOne = 0,
+	SequencerTwo,
+	SequencerNil,
+}MantaSequencer;
 	
 typedef enum MantaEditPlayMode {
 	EditMode = 0,
@@ -44,13 +51,6 @@ typedef enum MantaRangeToggleMode {
 	ToggleMode,
 	MantaRangeToggleModeNil
 }MantaRangeToggleMode;
-
-typedef enum MantaSequencer
-{
-	SequencerOne,
-	SequencerTwo,
-	SequencerNil,
-} MantaSequencer;
 
 /* Replaced these defines with enum:
 #define CVOUTS1 0
@@ -105,6 +105,14 @@ typedef enum SequencerPatternType {
 	SequencerPatternTypeNil,
 }SequencerPatternType;
 
+MantaSequencer currentSequencer;
+
+uint8_t prev_pattern_hex = 0;
+uint8_t most_recent_pattern_hex = 0;
+
+uint8_t prev_panel_hex = 0;
+uint8_t most_recent_panel_hex = 0;
+
 uint8_t prev_option_hex = 0;
 uint8_t most_recent_option_hex = 0;
 
@@ -122,12 +130,36 @@ SequencerPatternType patternTypes[NUM_PATTERNS] = {
 	RecordTouch
 };
 
-typedef enum ExtendedOptionType {
-	PatternRandomWalk = NUM_PATTERNS,
-	PatternOrderTouch,
-	PatternRecordTouch,
-	ExtendedOptionTypeNil,
-}ExtendedOptionType;
+typedef enum GlobalOptionType
+{
+	FullMode,
+	SplitMode,
+	PitchMode,
+	TriggerMode,
+} GlobalOptionType;
+
+#define NUM_GLOBAL_OPTIONS 4
+
+GlobalOptionType globalOptionTypes[NUM_GLOBAL_OPTIONS] = {
+	FullMode,
+	SplitMode,
+	PitchMode,
+	TriggerMode,
+};
+
+typedef enum PanelSwitch
+{
+	PanelRight,
+	PanelLeft,
+	PanelNil,
+} PanelSwitch;
+
+#define NUM_PANEL_MOVES
+
+PanelSwitch panelSwitch[NUM_PANEL_MOVES] = {
+	PanelLeft,
+	PanelRight,
+};
 
 SequencerPatternType pattern_type = LeftRightRowUp;
 
@@ -163,6 +195,7 @@ void setModeLEDsFor(MantaSequencer seq);
 uint8_t toggleSequencerStackNote(uint8_t noteVal);
 void removeNoteFromSequencerStack(uint8_t noteVal);
 void addNoteToSequencerStack(uint8_t noteVal);
+int moveToNextStackNote(void);
 
 // UTILITIES
 void seqwait(void);
@@ -188,6 +221,14 @@ uint8_t previous_hex = 0;
 
 // The steps
 tStep sequencer_steps[MAX_STEPS];
+
+tNoteStack32 notestack; 
+
+#if STACK_OLD
+uint8_t seq_numnotes = 0;
+uint8_t seq_notestack[MAX_STEPS];
+uint8_t position_in_notestack = 0;
+#endif
 
 MantaSliderMode mantaSliderMode = SliderModeOne;
 MantaButton most_recent_func_button = ButtonTopLeft;
@@ -220,15 +261,17 @@ uint8_t new_upper_hex = 0;
 uint8_t new_lower_hex = 0;
 uint8_t new_func_button = 0;
 uint8_t step_counter = 0;
-uint8_t seq_numnotes = 0;
-uint8_t seq_notestack[MAX_STEPS];
-uint8_t position_in_notestack = 0;
+
 uint8_t stepGo = 1;
 
 extern uint8_t func_button_states[4];
 
+
+#define STACK_OLD 0
+
 void initSequencer(void)
 {
+	tNoteStack32Init(&notestack);
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		step_states[i] = 0; // not lit
@@ -257,12 +300,13 @@ void initSequencer(void)
 
 
 
+
 uint8_t stepPhasor = 0;
 void move_to_next_step(void)
 {	
 	if (order_vs_pattern == PATTERN)
 	{
-		while (seq_numnotes > 0)
+		while (notestack.num > 0)
 		{	
 			if (++stepPhasor >= MAX_STEPS) stepPhasor = 0;
 			
@@ -330,30 +374,14 @@ void move_to_next_step(void)
 			}
 			else if (pattern_type == OrderTouch)
 			{
-				if (seq_numnotes != 0) // if there is at least one note in the stack
+				current_step = notestack.next(&notestack);
+				if (current_step == -1)
 				{
-					if (position_in_notestack > 0) // if you're not at the most recent note (first one), then go backward in the array (moving from earliest to latest)
-					{
-						position_in_notestack--;
-					}
-					else
-					{
-						position_in_notestack = (seq_numnotes - 1); // if you are the most recent note, go back to the earliest note in the array
-					}
-					
-					current_step = seq_notestack[position_in_notestack];
-					if (current_step == -1)
-					{
-						stepGo = 0;
-					}
-					else
-					{
-						stepGo = 1;
-					}
+					stepGo = 0;
 				}
 				else
 				{
-					stepGo = 0;
+					stepGo = 1;
 				}
 			}
 			else 
@@ -618,7 +646,7 @@ void processTouchLowerHex(uint8_t hexagon)
 		//we are in "play" mode and we want our touches to control which steps the sequencer can step on
 		if (arp_vs_seq == SEQMODE) // note ons should toggle sequencer steps in and out of the pattern
 		{
-			if (toggleSequencerStackNote(hexagon))
+			if (notestack.toggle(&notestack,hexagon))
 			{
 				sequencer_steps[hexagon].toggled = 1;
 				manta_set_LED_hex(hexagon, AmberOn);
@@ -740,12 +768,30 @@ void processTouchUpperHex(uint8_t hexagon)
 		if (option_pattern[whichOption] == 2 && whichOption < NUM_PATTERNS)
 		{
 			pattern_type = patternTypes[whichOption];
+			
+			prev_pattern_hex = most_recent_pattern_hex;
+			most_recent_pattern_hex = whichOption;
+			
+			manta_set_LED_hex(32 + prev_pattern_hex, Red);
+			manta_set_LED_hex(32 + most_recent_pattern_hex, Amber);
 		}
-		prev_option_hex = most_recent_option_hex;
-		most_recent_option_hex = whichOption;
-		manta_set_LED_hex(32 + prev_option_hex, Red);
-		manta_set_LED_hex(32 + most_recent_option_hex, Amber);
-		
+		else if (option_pattern[whichOption] == 1 && whichOption < NUM_GLOBAL_OPTIONS)
+		{
+			prev_option_hex = most_recent_option_hex;
+			most_recent_option_hex = whichOption;
+			
+			manta_set_LED_hex(32 + prev_option_hex, Amber);
+			manta_set_LED_hex(32 + most_recent_option_hex, Red);
+		}
+		else if (option_pattern[whichOption] == 3 && whichOption < NUM_GLOBAL_OPTIONS)
+		{
+			currentSequencer = whichOption - 14;
+			setKeyboardLEDsFor(most_recent_hex);
+			setSliderLEDsFor(most_recent_hex);
+			
+			manta_set_LED_hex(32 + prev_panel_hex, Amber);
+			manta_set_LED_hex(32 + most_recent_panel_hex, Red);
+		}
 		
 	}
 	
@@ -961,6 +1007,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 
 // STACK
+#if STACK_OLD
 void addNoteToSequencerStack(uint8_t noteVal)
 {
 	uint8_t j;
@@ -1002,6 +1049,30 @@ void removeNoteFromSequencerStack(uint8_t noteVal)
 	}
 }
 
+int moveToNextStackNote(void)
+{
+	int step = 0;
+	if (seq_numnotes != 0) // if there is at least one note in the stack
+	{
+		if (position_in_notestack > 0) // if you're not at the most recent note (first one), then go backward in the array (moving from earliest to latest)
+		{
+			position_in_notestack--;
+		}
+		else
+		{
+			position_in_notestack = (seq_numnotes - 1); // if you are the most recent note, go back to the earliest note in the array
+		}
+		
+		step = seq_notestack[position_in_notestack];
+		
+		return step;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
 uint8_t toggleSequencerStackNote(uint8_t noteVal)
 {
 	uint8_t j,k;
@@ -1033,7 +1104,7 @@ uint8_t toggleSequencerStackNote(uint8_t noteVal)
 
 	return !foundOne;
 }
-
+#endif
 // UTILITIES
 void seqwait(void)
 {
