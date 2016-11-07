@@ -265,6 +265,7 @@ void initSequencer(void)
 
 	
 	setKeyboardLEDsFor(0);
+	setSequencerLEDsFor(0);
 	
 	manta_send_LED(); // now write that data to the manta 
 }
@@ -280,13 +281,13 @@ void sequencerStep(void)
 
 	int offset = 0;
 	
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < NUM_SEQ; i++)
 	{
-		offset = i * 6;
-		
-		sequencer[i].lengthCounter += 1;
+		offset = i * 2;
 		
 		cstep = sequencer[i].currentStep;
+		
+		sequencer[i].lengthCounter += 1;
 		
 		if (sequencer[i].lengthCounter == sequencer[i].step[cstep].length)
 		{
@@ -302,11 +303,10 @@ void sequencerStep(void)
 			
 			if (sequencer[i].stepGo)
 			{
-				// SEQUENCER 1 OUT
-				
 				dacsend(offset+0, 0, sequencer[i].step[curr].cv1);
 				dacsend(offset+1, 0, sequencer[i].step[curr].cv2);
-				dacsend(offset+2, 0, sequencer[i].step[curr].cv3);
+				dacsend(offset+0, 1, sequencer[i].step[curr].cv3);
+				dacsend(offset+1, 1, sequencer[i].step[curr].cv4);
 
 				// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
 				if (sequencer[i].step[curr].note == 1)
@@ -316,15 +316,16 @@ void sequencerStep(void)
 					DACtemp *= 546125;
 					DACtemp /= 1000;
 					DAC16Send(offset+0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-					DAC16Send(offset+2, ((uint32_t)sequencer[i].step[curr].cv4 * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
+					//DAC16Send(offset+2, ((uint32_t)sequencer[i].step[curr].cv4 * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
 				}
 				
 				// to make rests work, we need to have the sequencer send its own clock signal (processed from the input clock)
 				// The right way to do this is to set an output HIGH here, and then have an interrupt set it LOW after a certain point - making a nice trigger.
 				// For now, we'll set it low and wait a ms and then set it high. This wastes computation time and is not smart, but should work until an interrupt is written.
-				dacsend(offset+3, 0, 0);
-				seqwait();
-				dacsend(offset+3, 0, sequencer[i].step[curr].note * 4095);
+				
+				//DAC16Send(offset+1, 0);
+				//seqwait();
+				//DAC16Send(offset+1, sequencer[i].step[curr].note * 65535);
 			}
 			sequencer[i].lengthCounter = 0;
 		}	
@@ -367,13 +368,35 @@ void setSequencerLEDsFor(MantaSequencer seq)
 	// Rough implementation
 	for (int i = 0; i < 32; i++)
 	{
+		manta_set_LED_hex(i,Off);
 		if (sequencer[seq].step[i].toggled == 1)
 		{
-			manta_set_LED_hex(i,Amber);
+			if (i == most_recent_hex)
+			{
+				if (i == sequencer[seq].currentStep)
+				{
+					manta_set_LED_hex(i,AmberOn);
+				}
+				else
+				{
+					manta_set_LED_hex(i,RedOn);
+				}
+			}
+			else
+			{
+				if (i == sequencer[seq].currentStep)
+				{
+					manta_set_LED_hex(i,RedOn);
+				}
+				manta_set_LED_hex(i,AmberOn);
+				
+			}
+				
+			
 		}
 		else
 		{
-			manta_set_LED_hex(i,Off);
+			manta_set_LED_hex(i,AmberOff);
 		}
 	}
 	return;
@@ -389,7 +412,7 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 			{
 				manta_set_LED_hex(j+32, Amber);
 			}
-			if (keyboard_pattern[j] == 255)
+			else
 			{
 				manta_set_LED_hex(j+32, Off);
 			}
@@ -403,13 +426,20 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 			if (keyboard_pattern[j] < 200)
 			{
 				manta_set_LED_hex(j+32, Red);
-			}
-			if (keyboard_pattern[j] == 255)
+			} 
+			else if (keyboard_pattern[j] == 255)
 			{
 				manta_set_LED_hex(j+32,Amber);
 			}
+			else
+			{
+				manta_set_LED_hex(j+32, Off);
+			}
 		}
 	}
+	
+	manta_set_LED_hex(62,Off);
+	manta_set_LED_hex(63,Off);
 }
 
 void setModeLEDsFor(MantaSequencer seq)
@@ -431,10 +461,7 @@ void setModeLEDsFor(MantaSequencer seq)
 		}
 		else if (option_pattern[i] == 3)
 		{
-			if (currentSequencer == (i-14))
-				manta_set_LED_hex(i+32,Amber);
-			else
-				manta_set_LED_hex(i+32,Red);
+			manta_set_LED_hex(i+32,Amber);
 		}
 		
 	}
@@ -695,18 +722,22 @@ void processTouchUpperHex(uint8_t hexagon)
 		}
 		else if ((option_pattern[whichHex] == 3) && ((whichHex-14) < NUM_PANEL_MOVES))
 		{
-			currentSequencer = whichHex - 14;
-			prev_step = sequencer[currentSequencer].prevStep;
-			current_step = sequencer[currentSequencer].currentStep;
+			if ((whichHex - 14) != currentSequencer)
+			{
+				currentSequencer = whichHex - 14;
 			
-			prev_panel_hex = most_recent_panel_hex;
-			most_recent_panel_hex = whichHex;
+				prev_panel_hex = most_recent_panel_hex;
+				most_recent_panel_hex = whichHex;
 			
-			setSequencerLEDsFor(currentSequencer);
-			setModeLEDsFor(currentSequencer);
-			
-			manta_set_LED_hex(32 + prev_panel_hex, Amber);
-			manta_set_LED_hex(32 + most_recent_panel_hex, Red);
+				setSequencerLEDsFor(currentSequencer);
+				//setModeLEDsFor(currentSequencer);
+				
+				prev_step = sequencer[currentSequencer].prevStep;
+				current_step = sequencer[currentSequencer].currentStep;
+				
+				manta_set_LED_hex(32 + prev_panel_hex, Amber);
+				manta_set_LED_hex(32 + most_recent_panel_hex, Red);
+			}
 		}
 
 	}
@@ -794,13 +825,7 @@ void processTouchFunctionButton(MantaButton button)
 		else
 		{
 			key_vs_option = KEYMODE;
-			for (int i = 0; i < 16; i++)
-			{
-				if (keyboard_pattern[i] < 200)
-				{
-					manta_set_LED_hex(i+32, Amber);
-				}
-			}
+			setKeyboardLEDsFor(most_recent_hex);
 			manta_set_LED_button(ButtonBottomLeft, Off);
 		}
 		
