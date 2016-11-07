@@ -9,11 +9,49 @@
 #ifndef SEQUENCER_H_
 #define SEQUENCER_H_
 
-#include "stdint.h"
+#include "stdlib.h"
 
-//#include "notestack.h"
+#include "notestack.h"
 
-	
+uint8_t pattern_col_down[32];
+uint8_t pattern_col_up[32];
+uint8_t pattern_row_reverse[32];
+
+uint8_t pattern_diag[32];
+uint8_t pattern_diag_reverse[32];
+
+typedef enum SequencerPatternType {
+	LeftRightRowDown,
+	RightLeftRowDown,
+	LeftRightRowUp,
+	RightLeftRowUp,
+	LeftRightDiagDown,
+	LeftRightDiagUp,
+	RightLeftDiagDown,
+	RightLeftDiagUp,
+	LeftRightColDown,
+	LeftRightColUp,
+	RightLeftColDown,
+	RightLeftColUp,
+	RandomWalk,
+	OrderTouch,
+	RecordTouch,
+	SequencerPatternTypeNil,
+}SequencerPatternType;
+
+typedef enum StepParameterType {
+	Hexagon,
+	Toggled,
+	CV1,
+	CV2,
+	CV3,
+	CV4,
+	Pitch,
+	Note,
+	Octave,
+	Length
+}StepParameterType;
+
 typedef struct _tStep
 {
 	uint16_t hexagon;       //[9]
@@ -35,11 +73,17 @@ typedef struct _tSequencer32
 {
 
 	tStep step[32];
-	int currentStep;
-	//tNoteStack32 notestack;
+	int currentStep,phasor;
+	tNoteStack32 notestack;
+	SequencerPatternType pattern;
+	uint8_t lengthCounter;
 	
+	int (*next)(struct _tSequencer32 *self);
+	void (*setPattern)(struct _tSequencer32 *self, SequencerPatternType type);
 	
-	void (*next)(struct _tNoteStack32 *self, uint8_t note);
+	uint16_t (*get)(struct _tSequencer32 *self, uint8_t step, StepParameterType param);
+	uint16_t (*set)(struct _tSequencer32 *self, uint8_t step, StepParameterType param, uint16_t value);
+
 	
 } tSequencer32;
 
