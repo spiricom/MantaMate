@@ -256,6 +256,7 @@ void updatePreset(void)
 void clockHappened(void)
 {
 	sequencerStep();
+
 }
 
 

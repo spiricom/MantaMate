@@ -80,12 +80,13 @@ uint16_t tSequencerGet(tSequencer32 *seq, uint8_t step, StepParameterType paramT
 	return val;	
 }
 
-int tSequencer32Next(tSequencer32 *seq)
+void tSequencer32Next(tSequencer32 *seq)
 {
 	int step = -1;
 	int plusOrMinus;
 	SequencerPatternType pat = seq->pattern;
-
+	seq->stepGo = 1;
+	
 	while (seq->notestack.num > 0)
 	{
 		if (++seq->phasor >= 32) seq->phasor = 0;
@@ -138,12 +139,28 @@ int tSequencer32Next(tSequencer32 *seq)
 			break;
 		}
 	}
-	return step;
+	
+	if (step < 0) 
+	{
+		seq->stepGo = 0;
+		seq->currentStep = 0;
+	}
+	else
+	{
+		seq->prevStep = seq->currentStep;
+		seq->currentStep = step;
+	}
+}
+
+int tSequencer32GetNumNotes(tSequencer32 *seq)
+{
+	return seq->notestack.num;
 }
 
 int tSequencer32Init(tSequencer32 *seq) 
 {
 	seq->currentStep = 0;
+	seq->prevStep = 0;
 	seq->lengthCounter = 0;
 	seq->phasor = 0;
 	seq->pattern = LeftRightRowDown;
@@ -151,6 +168,7 @@ int tSequencer32Init(tSequencer32 *seq)
 	seq->setPattern = &tSequencer32SetPattern;
 	seq->get = &tSequencerGet;
 	seq->set = &tSequencerSet;
+	seq->getNumNotes = &tSequencer32GetNumNotes;
 	
 	for (int i = 0; i < 32; i++)
 	{

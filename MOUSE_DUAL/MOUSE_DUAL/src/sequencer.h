@@ -73,13 +73,17 @@ typedef struct _tSequencer32
 {
 
 	tStep step[32];
-	int currentStep,phasor;
+	int phasor;
+	int currentStep,prevStep;
+	int stepGo;
 	tNoteStack32 notestack;
 	SequencerPatternType pattern;
 	uint8_t lengthCounter;
 	
-	int (*next)(struct _tSequencer32 *self);
+	void (*next)(struct _tSequencer32 *self);
 	void (*setPattern)(struct _tSequencer32 *self, SequencerPatternType type);
+	
+	int (*getNumNotes)(struct _tSequencer32 *self);
 	
 	uint16_t (*get)(struct _tSequencer32 *self, uint8_t step, StepParameterType param);
 	uint16_t (*set)(struct _tSequencer32 *self, uint8_t step, StepParameterType param, uint16_t value);
