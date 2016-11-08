@@ -85,16 +85,7 @@ typedef enum MantaButtonXY {
 #define ORDER 1
 #define PATTERN 0
 
-MantaSequencer currentSequencer = SequencerOne;
 
-uint8_t prev_pattern_hex = 0;
-uint8_t most_recent_pattern_hex = 0;
-
-uint8_t prev_panel_hex = 0;
-uint8_t most_recent_panel_hex = 0;
-
-uint8_t prev_option_hex = 0;
-uint8_t most_recent_option_hex = 0;
 
 // Sequencer patterns to be used in the program
 #define NUM_PATTERNS 8
@@ -167,7 +158,7 @@ tSequencer sequencer[NUM_SEQ];
 
 MantaSliderMode mantaSliderMode = SliderModeOne;
 MantaEditPlayMode edit_vs_play = EditMode;
-MantaButton most_recent_func_button = ButtonTopLeft;
+MantaButton current_func_button = ButtonTopLeft;
 
 #define RANGEMODE 0
 #define TOGGLEMODE 1
@@ -187,27 +178,33 @@ uint8_t single_vs_dual = SINGLEMODE;
 uint8_t key_vs_option = KEYMODE;
 uint8_t arp_vs_seq = SEQMODE;
 
-uint8_t most_recent_hex = 0;
-int8_t current_step = 0;
-uint8_t prev_step = 0;
-uint8_t step_states[MAX_STEPS];
-uint8_t num_steps = MAX_STEPS;
-uint8_t step_offset = 0;
-uint8_t prev_recent_hex = 0;
+/* - - - - - - - - MantaState (touch events + history) - - - */
+MantaSequencer currentSequencer = SequencerOne;
 
-	
-uint8_t	most_recent_pitch = 0;
-uint8_t	prev_recent_pitch = 0;
-int8_t current_seq_octave = 4;
-uint8_t prev_keyboard_hex = 210; // some garbage
-uint8_t most_recent_upper_hex = 0;
-
+// Flags for new inputs.
 uint8_t new_upper_hex = 0;
 uint8_t new_lower_hex = 0;
 uint8_t new_func_button = 0;
-uint8_t step_counter = 0;
 
-uint8_t stepGo = 1;
+uint8_t prev_pattern_hex = 0;
+uint8_t current_pattern_hex = 0;
+
+uint8_t prev_panel_hex = 0;
+uint8_t current_panel_hex = 0;
+
+uint8_t prev_option_hex = 0;
+uint8_t current_option_hex = 0;
+
+uint8_t current_hex = 0;
+uint8_t prev_hex = 0;
+	
+uint8_t	current_pitch = 0;
+uint8_t	prev_pitch = 0;
+
+uint8_t prev_upper_hex = 210; // some garbage
+uint8_t current_upper_hex = 0;
+
+int8_t current_seq_octave = 3;
 
 extern uint8_t func_button_states[4];
 
@@ -258,13 +255,7 @@ void sequencerStep(void)
 			sequencer[i].next(&sequencer[i]); // Move to next step, seq 1.
 			
 			curr = sequencer[i].currentStep;
-			
-			if (i == currentSequencer)
-			{
-				prev_step = sequencer[i].prevStep;
-				current_step = curr;
-			}
-			
+				
 			if (sequencer[i].stepGo)
 			{
 				dacsend(offset+0, 0, sequencer[i].step[curr].cv1);
@@ -299,30 +290,30 @@ void sequencerStep(void)
 	if (edit_vs_play == EditMode)
 	{
 		
-		if (current_step == most_recent_hex)
+		if (sequencer[currentSequencer].currentStep == current_hex)
 		{
-			manta_set_LED_hex(current_step, RedOff);
-			manta_set_LED_hex(current_step, AmberOn);
+			manta_set_LED_hex(sequencer[currentSequencer].currentStep, RedOff);
+			manta_set_LED_hex(sequencer[currentSequencer].currentStep, AmberOn);
 		}
 		else
 		{
-			manta_set_LED_hex(current_step, RedOn);
+			manta_set_LED_hex(sequencer[currentSequencer].currentStep, RedOn);
 		}
 		
-		if (prev_step == most_recent_hex)
+		if (sequencer[currentSequencer].prevStep == current_hex)
 		{
-			manta_set_LED_hex(prev_step, AmberOff);
-			manta_set_LED_hex(prev_step, RedOn);
+			manta_set_LED_hex(sequencer[currentSequencer].prevStep, AmberOff);
+			manta_set_LED_hex(sequencer[currentSequencer].prevStep, RedOn);
 		}
 		else
 		{
-			manta_set_LED_hex(prev_step, RedOff);
+			manta_set_LED_hex(sequencer[currentSequencer].prevStep, RedOff);
 		}
 	}
 	else
 	{
-		manta_set_LED_hex(prev_step, RedOff);
-		manta_set_LED_hex(current_step, RedOn);
+		manta_set_LED_hex(sequencer[currentSequencer].prevStep, RedOff);
+		manta_set_LED_hex(sequencer[currentSequencer].currentStep, RedOn);
 	}
 	manta_send_LED(); // now write that data to the manta
 }
@@ -337,19 +328,34 @@ void setSequencerLEDsFor(MantaSequencer seq)
 		{
 			manta_set_LED_hex(i,AmberOn);
 			
-			if (i == sequencer[seq].currentStep)
+			if (edit_vs_play == EditMode)
 			{
-				manta_set_LED_hex(i,RedOn);
-				if (edit_vs_play == EditMode &&  i == most_recent_hex)
+				if (i == current_hex)
 				{
-					manta_set_LED_hex(i,AmberOff);	
+					if (i == sequencer[currentSequencer].currentStep)
+					{
+						manta_set_LED_hex(i,RedOff);
+						manta_set_LED_hex(i,AmberOn);
+					}
+					else
+					{
+						manta_set_LED_hex(i,RedOn);
+						manta_set_LED_hex(i,AmberOff);
+					}
+					
 				}
-
-			}
+			}		
 		}
 		else
 		{
 			manta_set_LED_hex(i,AmberOff);
+			if (edit_vs_play == EditMode)
+			{
+				if (i == current_hex)
+				{
+					manta_set_LED_hex(i,RedOn);
+				}
+			}
 		}
 	}
 	return;
@@ -474,8 +480,8 @@ void processSequencer(void)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
-			prev_recent_hex = most_recent_hex;
-			most_recent_hex = i;
+			prev_hex = current_hex;
+			current_hex = i;
 			new_lower_hex = 1;
 		}
 		pastbutt_states[i] = butt_states[i];
@@ -487,8 +493,8 @@ void processSequencer(void)
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
 			//an upper hexagon was just pressed
-			prev_keyboard_hex = most_recent_upper_hex;
-			most_recent_upper_hex = i;
+			prev_upper_hex = current_upper_hex;
+			current_upper_hex = i;
 			new_upper_hex = 1;
 		}
 		pastbutt_states[i] = butt_states[i];
@@ -500,17 +506,17 @@ void processSequencer(void)
 		{
 			//a round function button was just pressed
 			//this code currently doesn't function correctly if two buttons are pressed within the same 6ms window of the Manta scan. TODO: we should make sure it counts how many are waiting - have a stack instead of one item of storage.
-			most_recent_func_button = i;
+			current_func_button = i;
 			new_func_button = 1;
 		}
 		past_func_button_states[i] = func_button_states[i];
 	}
 	
-	if (new_lower_hex) processTouchLowerHex(most_recent_hex);
+	if (new_lower_hex) processTouchLowerHex(current_hex);
 
-	if (new_upper_hex) processTouchUpperHex(most_recent_upper_hex);
+	if (new_upper_hex) processTouchUpperHex(current_upper_hex);
 		
-	if (new_func_button) processTouchFunctionButton(most_recent_func_button);
+	if (new_func_button) processTouchFunctionButton(current_func_button);
 
 }
 
@@ -519,22 +525,22 @@ void processTouchLowerHex(uint8_t hexagon)
 	// if we are in edit mode, then we want to be able to touch the hexagons to edit the sequencer[currentSequencer] stages, without changing which stages will be stepped on
 	if (edit_vs_play == EditMode)
 	{
-		if (prev_recent_hex != hexagon)
+		if (prev_hex != hexagon)
 		{
 			// LEDS
-			if (current_step != prev_recent_hex)
+			if (sequencer[currentSequencer].currentStep != prev_hex)
 			{
-				manta_set_LED_hex(prev_recent_hex, RedOff);
+				manta_set_LED_hex(prev_hex, RedOff);
 			}
 			
-			if (sequencer[currentSequencer].step[prev_recent_hex].toggled)
+			if (sequencer[currentSequencer].step[prev_hex].toggled)
 			{
-				manta_set_LED_hex(prev_recent_hex, AmberOn);
+				manta_set_LED_hex(prev_hex, AmberOn);
 			}
 			
 			if (range_vs_toggle_mode == RANGEMODE)
 			{
-				manta_set_LED_hex(prev_recent_hex, AmberOff);
+				manta_set_LED_hex(prev_hex, AmberOff);
 				manta_set_LED_hex(hexagon, AmberOn);
 			}
 			
@@ -562,7 +568,7 @@ void processTouchLowerHex(uint8_t hexagon)
 			{
 				sequencer[currentSequencer].step[hexagon].toggled = 0;
 				manta_set_LED_hex(hexagon, AmberOff);
-				if (hexagon == current_step)
+				if (hexagon == sequencer[currentSequencer].currentStep)
 				{
 					manta_set_LED_hex(hexagon, RedOff);
 				}
@@ -590,83 +596,75 @@ void processTouchUpperHex(uint8_t hexagon)
 {
 	if (key_vs_option == KEYMODE)
 	{
-		most_recent_pitch = keyboard_pattern[hexagon-MAX_STEPS];
+		current_pitch = keyboard_pattern[hexagon-MAX_STEPS];
 		
-		if (most_recent_pitch == 255)
+		if (current_pitch == 255)
 		{
-			if (sequencer[currentSequencer].step[most_recent_hex].note == 0)
+			if (sequencer[currentSequencer].step[current_hex].note == 0)
 			{
-				sequencer[currentSequencer].step[most_recent_hex].note = 1;
+				sequencer[currentSequencer].step[current_hex].note = 1;
 			} 
 			else
 			{
-				sequencer[currentSequencer].step[most_recent_hex].note = 0;
+				sequencer[currentSequencer].step[current_hex].note = 0;
 			}		
 			
 		} 
-		else if (most_recent_pitch == 254)
+		else if (current_pitch == 254)
 		{
-			if(sequencer[currentSequencer].step[most_recent_hex].note) 
+			if(sequencer[currentSequencer].step[current_hex].note) 
 			{
 				// down an octave
-				if (--current_seq_octave < 0)
-				{
-					current_seq_octave = 0;
-					//make a rest
-					//sequencer[currentSequencer].step[most_recent_hex].note = 0;
-				}
+				sequencer[currentSequencer].downOctave(&sequencer[currentSequencer]);
 				if (mantaSliderMode == SliderModeThree)
 				{
-					manta_set_LED_slider(0, current_seq_octave+1);
+					manta_set_LED_slider(0, sequencer[currentSequencer].octave+1);
 				}
-				sequencer[currentSequencer].step[most_recent_hex].octave = current_seq_octave;
+				sequencer[currentSequencer].step[current_hex].octave = sequencer[currentSequencer].octave;
 			}
 		}
-		else if (most_recent_pitch == 253)
+		else if (current_pitch == 253)
 		{
-			if(sequencer[currentSequencer].step[most_recent_hex].note)
+			if(sequencer[currentSequencer].step[current_hex].note)
 			{
 				//up an octave
-				if (++current_seq_octave > 7)
-				{
-					current_seq_octave = 7;
-				}
+				sequencer[currentSequencer].upOctave(&sequencer[currentSequencer]);
 				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
 				if (mantaSliderMode == SliderModeThree)
 				{
-					manta_set_LED_slider(0, current_seq_octave+1);
+					manta_set_LED_slider(0, sequencer[currentSequencer].octave+1);
 				}
-				sequencer[currentSequencer].step[most_recent_hex].octave = current_seq_octave;
+				sequencer[currentSequencer].step[current_hex].octave = sequencer[currentSequencer].octave;
 			}
 		}
 		else
 		{
-			sequencer[currentSequencer].step[most_recent_hex].note = 1;
-			sequencer[currentSequencer].step[most_recent_hex].pitch = most_recent_pitch;
-			//sequencer[currentSequencer].step[most_recent_hex][2] = most_recent_pitch + (current_seq_octave * 12);
+			sequencer[currentSequencer].step[current_hex].note = 1;
+			sequencer[currentSequencer].step[current_hex].pitch = current_pitch;
+			//sequencer[currentSequencer].step[current_hex][2] = current_pitch + (current_seq_octave * 12);
 
-			sequencer[currentSequencer].step[most_recent_hex].octave = current_seq_octave;
-			sequencer[currentSequencer].step[most_recent_hex].hexagon = most_recent_upper_hex;
+			sequencer[currentSequencer].step[current_hex].octave = current_seq_octave;
+			sequencer[currentSequencer].step[current_hex].hexagon = current_upper_hex;
 
 			manta_set_LED_hex(hexagon, Red);
 		}
 		
 
-		if (current_step == most_recent_hex)
+		if (sequencer[currentSequencer].currentStep == current_hex)
 		{
 			//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
-			uint32_t DACtemp = (uint32_t)sequencer[currentSequencer].step[current_step].pitch;
-			DACtemp += (sequencer[currentSequencer].step[current_step].octave * 12);
+			uint32_t DACtemp = (uint32_t)sequencer[currentSequencer].step[sequencer[currentSequencer].currentStep].pitch;
+			DACtemp += (sequencer[currentSequencer].step[sequencer[currentSequencer].currentStep].octave * 12);
 			DACtemp *= 546125;
 			DACtemp /= 1000;
 			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 		}
 		
-		setKeyboardLEDsFor(most_recent_hex);
+		setKeyboardLEDsFor(current_hex);
 		
 		//set memory variables
 		new_upper_hex = 0;
-		prev_recent_pitch = most_recent_pitch;
+		prev_pitch = current_pitch;
 	}
 	else
 	{
@@ -676,13 +674,13 @@ void processTouchUpperHex(uint8_t hexagon)
 		{
 			sequencer[currentSequencer].setPattern(&sequencer[currentSequencer],whichHex);
 			
-			prev_pattern_hex = most_recent_pattern_hex;
-			most_recent_pattern_hex = whichHex;
+			prev_pattern_hex = current_pattern_hex;
+			current_pattern_hex = whichHex;
 		}
 		else if ((option_pattern[whichHex] == 1) && ((whichHex-8) < NUM_GLOBAL_OPTIONS))
 		{
-			prev_option_hex = most_recent_option_hex;
-			most_recent_option_hex = whichHex;
+			prev_option_hex = current_option_hex;
+			current_option_hex = whichHex;
 		}
 		else if ((option_pattern[whichHex] == 3) && ((whichHex-14) < NUM_PANEL_MOVES))
 		{
@@ -690,13 +688,10 @@ void processTouchUpperHex(uint8_t hexagon)
 			{
 				currentSequencer = whichHex - 14;
 			
-				prev_panel_hex = most_recent_panel_hex;
-				most_recent_panel_hex = whichHex;
+				prev_panel_hex = current_panel_hex;
+				current_panel_hex = whichHex;
 			
 				setSequencerLEDsFor(currentSequencer);
-				
-				prev_step = sequencer[currentSequencer].prevStep;
-				current_step = sequencer[currentSequencer].currentStep;
 			}
 		}
 		setModeLEDsFor(currentSequencer);
@@ -730,7 +725,7 @@ void processTouchFunctionButton(MantaButton button)
 		{
 			//Should not get here.
 		}
-		setSliderLEDsFor(most_recent_hex);
+		setSliderLEDsFor(current_hex);
 	}
 	else if (button == ButtonTopRight)
 	{
@@ -738,13 +733,13 @@ void processTouchFunctionButton(MantaButton button)
 		{
 			edit_vs_play = PlayToggleMode;
 			
-			if (most_recent_hex != current_step)
+			if (current_hex != sequencer[currentSequencer].currentStep)
 			{
-				manta_set_LED_hex(most_recent_hex, RedOff);
+				manta_set_LED_hex(current_hex, RedOff);
 			}
-			if (sequencer[currentSequencer].step[most_recent_hex].toggled)
+			if (sequencer[currentSequencer].step[current_hex].toggled)
 			{
-				manta_set_LED_hex(most_recent_hex, AmberOn);
+				manta_set_LED_hex(current_hex, AmberOn);
 			}
 				
 			manta_set_LED_button(ButtonTopRight, Amber);
@@ -753,15 +748,15 @@ void processTouchFunctionButton(MantaButton button)
 		{
 			edit_vs_play = EditMode;
 			
-			if (most_recent_hex != current_step)
+			if (current_hex != sequencer[currentSequencer].currentStep)
 			{
-				manta_set_LED_hex(most_recent_hex, AmberOff);
-				manta_set_LED_hex(most_recent_hex, RedOn);
+				manta_set_LED_hex(current_hex, AmberOff);
+				manta_set_LED_hex(current_hex, RedOn);
 			}
 			else
 			{
-				manta_set_LED_hex(most_recent_hex, RedOff);
-				manta_set_LED_hex(most_recent_hex, AmberOn);
+				manta_set_LED_hex(current_hex, RedOff);
+				manta_set_LED_hex(current_hex, AmberOn);
 			}
 			
 			manta_set_LED_button(ButtonTopRight, Off);
@@ -770,10 +765,10 @@ void processTouchFunctionButton(MantaButton button)
 		
 		if (key_vs_option == KEYMODE)
 		{
-			setKeyboardLEDsFor(most_recent_hex);
+			setKeyboardLEDsFor(current_hex);
 		}
 			
-		setSliderLEDsFor(most_recent_hex);
+		setSliderLEDsFor(current_hex);
 	}
 	else if (button == ButtonBottomLeft)
 	{
@@ -786,7 +781,7 @@ void processTouchFunctionButton(MantaButton button)
 		else
 		{
 			key_vs_option = KEYMODE;
-			setKeyboardLEDsFor(most_recent_hex);
+			setKeyboardLEDsFor(current_hex);
 			manta_set_LED_button(ButtonBottomLeft, Off);
 		}
 		
@@ -822,11 +817,11 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		// Set proper internal state
 		if (sliderNum == SliderOne)	
 		{		
-			sequencer[currentSequencer].step[most_recent_hex].cv1 = val;
+			sequencer[currentSequencer].step[current_hex].cv1 = val;
 		}
 		else if (sliderNum == SliderTwo)	
 		{
-			sequencer[currentSequencer].step[most_recent_hex].cv2 = val;
+			sequencer[currentSequencer].step[current_hex].cv2 = val;
 		}
 		else 
 		{
@@ -835,7 +830,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 	
 		manta_set_LED_slider(sliderNum,(val >> 9) + 1); // add one to the slider values because a zero turns them off
 		manta_send_LED();
-		if (current_step == most_recent_hex)
+		if (sequencer[currentSequencer].currentStep == current_hex)
 		{
 			dacsend(sliderNum, 0, val);
 		}
@@ -845,11 +840,11 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		// check if you're in second slider mode, where top slider is cv3 out and bottom slider is cv4 out
 		if (sliderNum == SliderOne)
 		{
-			sequencer[currentSequencer].step[most_recent_hex].cv3 = val;
+			sequencer[currentSequencer].step[current_hex].cv3 = val;
 		}
 		else if (sliderNum == SliderTwo)
 		{
-			sequencer[currentSequencer].step[most_recent_hex].cv4 = val;
+			sequencer[currentSequencer].step[current_hex].cv4 = val;
 		}
 		else
 		{
@@ -858,7 +853,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		
 		manta_set_LED_slider(sliderNum,(val >> 9) + 1); // add one to the slider values because a zero turns them off
 		manta_send_LED();
-		if (current_step == most_recent_hex)
+		if (sequencer[currentSequencer].currentStep == current_hex)
 		{
 			// This might be wrong?
 			dacsend((sliderNum + 2), 0, val);
@@ -869,16 +864,16 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		 // otherwise, you're in third slider mode, where top slider is octave and bottom slider is note length
 		if (sliderNum == SliderOne)
 		{
-			uint16_t prevOct = sequencer[currentSequencer].step[most_recent_hex].octave;
+			uint16_t prevOct = sequencer[currentSequencer].step[current_hex].octave;
 			uint16_t newOct = (val >> 9);
-			sequencer[currentSequencer].step[most_recent_hex].octave = newOct;
+			sequencer[currentSequencer].step[current_hex].octave = newOct;
 			current_seq_octave = newOct;
 			manta_set_LED_slider(0, newOct + 1); // add one to the slider values because a zero turns them off
 			manta_send_LED();
-			if ((current_step == most_recent_hex) && (prevOct != newOct))
+			if ((sequencer[currentSequencer].currentStep == current_hex) && (prevOct != newOct))
 			{
-				uint32_t DACtemp = (uint32_t)sequencer[currentSequencer].step[current_step].pitch;
-				DACtemp += (sequencer[currentSequencer].step[current_step].octave * 12);
+				uint32_t DACtemp = (uint32_t)sequencer[currentSequencer].step[sequencer[currentSequencer].currentStep].pitch;
+				DACtemp += (sequencer[currentSequencer].step[sequencer[currentSequencer].currentStep].octave * 12);
 				DACtemp *= 546125;
 				DACtemp /= 1000;
 				DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
@@ -886,7 +881,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 		else if (sliderNum == SliderTwo)
 		{
-			sequencer[currentSequencer].step[most_recent_hex].length = (val >> 9) + 1; //step length (should be 1-8)
+			sequencer[currentSequencer].step[current_hex].length = (val >> 9) + 1; //step length (should be 1-8)
 			manta_set_LED_slider(1, (val >> 9) + 1); // add one to the slider values because a zero turns them off
 			manta_send_LED();
 		}

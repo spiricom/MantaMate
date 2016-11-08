@@ -163,6 +163,27 @@ int tSequencerSetMaxLength(tSequencer *seq, uint8_t maxLength)
 	seq->notestack.setMaxSize(&seq->notestack,maxLength);
 }
 
+void tSequencerSetOctave(tSequencer *seq, int8_t octave)
+{
+	seq->octave = octave;
+}
+
+void tSequencerDownOctave(tSequencer *seq)
+{
+	if (--seq->octave < 0)
+	{
+		seq->octave = 0;
+	}
+}
+
+void tSequencerUpOctave(tSequencer *seq)
+{
+	if (++seq->octave > 7)
+	{
+		seq->octave = 7;
+	}
+}
+
 int tSequencerInit(tSequencer *seq, uint8_t maxLength) 
 {
 	if (maxLength <= 0)
@@ -183,11 +204,16 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	seq->lengthCounter = 0;
 	seq->phasor = 0;
 	seq->pattern = LeftRightRowDown;
+	seq->octave = 3;
+	
 	
 	seq->next = &tSequencerNext;
 	seq->setPattern = &tSequencerSetPattern;
 	seq->get = &tSequencerGet;
 	seq->set = &tSequencerSet;
+	seq->setOctave = &tSequencerSetOctave;
+	seq->upOctave = &tSequencerUpOctave;
+	seq->downOctave = &tSequencerDownOctave;
 	seq->getNumNotes = &tSequencerGetNumNotes;
 	seq->setMaxLength = &tSequencerSetMaxLength;
 	

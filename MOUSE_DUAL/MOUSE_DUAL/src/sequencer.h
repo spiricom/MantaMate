@@ -80,6 +80,7 @@ typedef struct _tSequencer
 	tStep step[MAX_STEPS];
 	int maxLength;
 	int phasor;
+	int octave;
 	int currentStep,prevStep;
 	int stepGo;
 	tNoteStack notestack;
@@ -91,6 +92,9 @@ typedef struct _tSequencer
 	
 	int (*getNumNotes)(struct _tSequencer *self);
 	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);
+	void (*setOctave)(struct _tSequencer *self, int8_t octave);
+	void (*downOctave)(struct _tSequencer *self);
+	void (*upOctave)(struct _tSequencer *self);
 	
 	uint16_t (*get)(struct _tSequencer *self, uint8_t step, StepParameterType param);
 	uint16_t (*set)(struct _tSequencer *self, uint8_t step, StepParameterType param, uint16_t value);
