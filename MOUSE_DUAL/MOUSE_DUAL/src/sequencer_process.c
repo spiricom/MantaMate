@@ -133,23 +133,8 @@ PanelSwitch panelSwitch[NUM_PANEL_MOVES] = {
 
 SequencerPatternType pattern_type = LeftRightRowUp;
 
-#define MAX_STEPS 32
 
-#define UPPATTERN 0
-#define DOWNPATTERN 1
-#define UPDOWNPATTERN 2
-#define RANDOMPATTERN 3
-#define RANDOMWALKPATTERN 4
-#define EDITMODE 0
-#define PLAYMODE 1
-#define RANGEMODE 0
-#define TOGGLEMODE 1
-#define SINGLEMODE 0
-#define DUALMODE 1
-#define KEYMODE 0
-#define OPTIONMODE 1
-#define SEQMODE 0
-#define ARPMODE 1
+
 
 // INPUT
 void processTouchFunctionButton(MantaButton button);
@@ -161,12 +146,6 @@ void setSliderLEDsFor(uint8_t hexagon);
 void setKeyboardLEDsFor(uint8_t hexagon);
 void setModeLEDsFor(MantaSequencer seq);
 void setSequencerLEDsFor(MantaSequencer seq);
-
-// NOTE STACK
-uint8_t toggleSequencerStackNote(uint8_t noteVal);
-void removeNoteFromSequencerStack(uint8_t noteVal);
-void addNoteToSequencerStack(uint8_t noteVal);
-int moveToNextStackNote(void);
 
 // UTILITIES
 void seqwait(void);
@@ -181,31 +160,29 @@ uint8_t option_pattern[16] = {2,2,2,2,2,2,2,2,1,1,1,1,0,0,3,3};
 // UpDown pattern
 
 
-/* - - - - - - - - - - - - - - - - - - - - */
-
-uint8_t previous_hex = 0;
+/* - - - - - - - - MODES - - - - - - - - - - */
 
 #define NUM_SEQ 2
-tSequencer32 sequencer[NUM_SEQ]; 
-
-// The steps
-tStep sequencer_steps[MAX_STEPS];
-tNoteStack32 notestack; 
-
-#if STACK_OLD
-uint8_t seq_numnotes = 0;
-uint8_t seq_notestack[MAX_STEPS];
-uint8_t position_in_notestack = 0;
-#endif
+tSequencer sequencer[NUM_SEQ]; 
 
 MantaSliderMode mantaSliderMode = SliderModeOne;
+MantaEditPlayMode edit_vs_play = EditMode;
 MantaButton most_recent_func_button = ButtonTopLeft;
+
+#define RANGEMODE 0
+#define TOGGLEMODE 1
+#define SINGLEMODE 0
+#define DUALMODE 1
+#define KEYMODE 0
+#define OPTIONMODE 1
+#define SEQMODE 0
+#define ARPMODE 1
 
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 uint8_t range_vs_toggle_mode = TOGGLEMODE;
 uint8_t order_vs_pattern = PATTERN;
-uint8_t edit_vs_play = EDITMODE;
+
 uint8_t single_vs_dual = SINGLEMODE;
 uint8_t key_vs_option = KEYMODE;
 uint8_t arp_vs_seq = SEQMODE;
@@ -244,18 +221,15 @@ extern uint8_t func_button_states[4];
 int octave_test = 0;
 void initSequencer(void)
 {
-	//tNoteStack32Init(&notestack);
-	
 	currentSequencer = 0;
+	
 	for (int i = 0; i < NUM_SEQ; i++)
 	{
-		tSequencer32Init(&sequencer[i]);
+		tSequencerInit(&sequencer[i],32);
 	}
-	
 
-	
-	setKeyboardLEDsFor(0);
-	setSequencerLEDsFor(0);
+	setKeyboardLEDsFor(currentSequencer);
+	setSequencerLEDsFor(currentSequencer);
 	
 	manta_send_LED(); // now write that data to the manta 
 }
@@ -322,7 +296,7 @@ void sequencerStep(void)
 	}
 	
 	// UI
-	if (edit_vs_play == EDITMODE)
+	if (edit_vs_play == EditMode)
 	{
 		
 		if (current_step == most_recent_hex)
@@ -356,7 +330,7 @@ void sequencerStep(void)
 void setSequencerLEDsFor(MantaSequencer seq)
 {
 	// Rough implementation
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < sequencer[seq].maxLength; i++)
 	{
 		manta_set_LED_hex(i,Off);
 		if (sequencer[seq].step[i].toggled == 1)
@@ -366,7 +340,7 @@ void setSequencerLEDsFor(MantaSequencer seq)
 			if (i == sequencer[seq].currentStep)
 			{
 				manta_set_LED_hex(i,RedOn);
-				if (edit_vs_play == EDITMODE &&  i == most_recent_hex)
+				if (edit_vs_play == EditMode &&  i == most_recent_hex)
 				{
 					manta_set_LED_hex(i,AmberOff);	
 				}
@@ -389,11 +363,11 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 		{
 			if (keyboard_pattern[j] < 200)
 			{
-				manta_set_LED_hex(j+32, Amber);
+				manta_set_LED_hex(j+MAX_STEPS, Amber);
 			}
 			else
 			{
-				manta_set_LED_hex(j+32, Off);
+				manta_set_LED_hex(j+MAX_STEPS, Off);
 			}
 		}
 		manta_set_LED_hex(sequencer[currentSequencer].step[hexagon].hexagon, Red);
@@ -404,15 +378,15 @@ void setKeyboardLEDsFor(uint8_t hexagon)
 		{
 			if (keyboard_pattern[j] < 200)
 			{
-				manta_set_LED_hex(j+32, Red);
+				manta_set_LED_hex(j+MAX_STEPS, Red);
 			} 
 			else if (keyboard_pattern[j] == 255)
 			{
-				manta_set_LED_hex(j+32,Amber);
+				manta_set_LED_hex(j+MAX_STEPS,Amber);
 			}
 			else
 			{
-				manta_set_LED_hex(j+32, Off);
+				manta_set_LED_hex(j+MAX_STEPS, Off);
 			}
 		}
 	}
@@ -428,33 +402,33 @@ void setModeLEDsFor(MantaSequencer seq)
 	{
 		if (option_pattern[i] == 0)
 		{
-			manta_set_LED_hex(i+32, Off);
+			manta_set_LED_hex(i+MAX_STEPS, Off);
 		}
 		else if (option_pattern[i] == 1)
 		{
-			manta_set_LED_hex(i+32, Amber);
+			manta_set_LED_hex(i+MAX_STEPS, Amber);
 			
 		}
 		else if (option_pattern[i] == 2 )
 		{
 			if (i == sequencer[seq].pattern)
 			{
-				manta_set_LED_hex(i+32, Red);
+				manta_set_LED_hex(i+MAX_STEPS, Red);
 			}
 			else
 			{
-				manta_set_LED_hex(i+32, Amber);
+				manta_set_LED_hex(i+MAX_STEPS, Amber);
 			}
 		}
 		else if (option_pattern[i] == 3)
 		{
 			if ((i-14) == seq)
 			{
-				manta_set_LED_hex(i+32,Amber);
+				manta_set_LED_hex(i+MAX_STEPS,Amber);
 			}
 			else
 			{
-				manta_set_LED_hex(i+32,Red);
+				manta_set_LED_hex(i+MAX_STEPS,Red);
 			}
 			
 		}
@@ -496,7 +470,7 @@ void processSequencer(void)
 	int i = 0;
 	
 	//check the sequencer step hexagons
-	for (i = 0; i < 32; i++)
+	for (i = 0; i < MAX_STEPS; i++)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
@@ -508,7 +482,7 @@ void processSequencer(void)
 	}
 	
 	//check the upper keyboard selector notes
-	for (i = 32; i < 48; i++)
+	for (i = MAX_STEPS; i < 48; i++)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
@@ -543,7 +517,7 @@ void processSequencer(void)
 void processTouchLowerHex(uint8_t hexagon)
 {
 	// if we are in edit mode, then we want to be able to touch the hexagons to edit the sequencer[currentSequencer] stages, without changing which stages will be stepped on
-	if (edit_vs_play == EDITMODE)
+	if (edit_vs_play == EditMode)
 	{
 		if (prev_recent_hex != hexagon)
 		{
@@ -616,7 +590,7 @@ void processTouchUpperHex(uint8_t hexagon)
 {
 	if (key_vs_option == KEYMODE)
 	{
-		most_recent_pitch = keyboard_pattern[hexagon-32];
+		most_recent_pitch = keyboard_pattern[hexagon-MAX_STEPS];
 		
 		if (most_recent_pitch == 255)
 		{
@@ -697,23 +671,18 @@ void processTouchUpperHex(uint8_t hexagon)
 	else
 	{
 		//otherwise the upper hexagons are being used to set the alternative options
-		uint8_t whichHex = hexagon - 32;
+		uint8_t whichHex = hexagon - MAX_STEPS;
 		if (option_pattern[whichHex] == 2 && whichHex < NUM_PATTERNS)
 		{
 			sequencer[currentSequencer].setPattern(&sequencer[currentSequencer],whichHex);
 			
 			prev_pattern_hex = most_recent_pattern_hex;
 			most_recent_pattern_hex = whichHex;
-			
-			setModeLEDsFor(currentSequencer);
 		}
 		else if ((option_pattern[whichHex] == 1) && ((whichHex-8) < NUM_GLOBAL_OPTIONS))
 		{
 			prev_option_hex = most_recent_option_hex;
 			most_recent_option_hex = whichHex;
-			
-			manta_set_LED_hex(32 + prev_option_hex, Amber);
-			manta_set_LED_hex(32 + most_recent_option_hex, Red);
 		}
 		else if ((option_pattern[whichHex] == 3) && ((whichHex-14) < NUM_PANEL_MOVES))
 		{
@@ -725,12 +694,12 @@ void processTouchUpperHex(uint8_t hexagon)
 				most_recent_panel_hex = whichHex;
 			
 				setSequencerLEDsFor(currentSequencer);
-				setModeLEDsFor(currentSequencer);
 				
 				prev_step = sequencer[currentSequencer].prevStep;
 				current_step = sequencer[currentSequencer].currentStep;
 			}
 		}
+		setModeLEDsFor(currentSequencer);
 
 	}
 	
@@ -765,9 +734,9 @@ void processTouchFunctionButton(MantaButton button)
 	}
 	else if (button == ButtonTopRight)
 	{
-		if (edit_vs_play == EDITMODE)
+		if (edit_vs_play == EditMode)
 		{
-			edit_vs_play = PLAYMODE;
+			edit_vs_play = PlayToggleMode;
 			
 			if (most_recent_hex != current_step)
 			{
@@ -782,7 +751,7 @@ void processTouchFunctionButton(MantaButton button)
 		}
 		else
 		{
-			edit_vs_play = EDITMODE;
+			edit_vs_play = EditMode;
 			
 			if (most_recent_hex != current_step)
 			{

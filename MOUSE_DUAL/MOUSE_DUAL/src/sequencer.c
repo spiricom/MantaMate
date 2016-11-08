@@ -7,19 +7,19 @@
 
 #include "sequencer.h"
 
-uint8_t pattern_col_down[32] =			{0,8,16,24,  1,9,17,25,  2,10,18,26,  3,11,19,27,  4,12,20,28,  5,13,21,29,  6,14,22,30, 7,15,23,31};
-uint8_t pattern_col_up[32] =	{24,16,8,0,  25,17,9,1,   26,18,10,2,   27,19,11,3,  28,20,12,4,  29,21,13,5,  30,22,14,6, 31,23,15,7};
-uint8_t pattern_row_reverse[32] =	{7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,23,22,21,20,19,18,17,16,31,30,29,28,27,26,25,24};
+uint8_t pattern_col_down[MAX_STEPS] =			{0,8,16,24,  1,9,17,25,  2,10,18,26,  3,11,19,27,  4,12,20,28,  5,13,21,29,  6,14,22,30, 7,15,23,31};
+uint8_t pattern_col_up[MAX_STEPS] =	{24,16,8,0,  25,17,9,1,   26,18,10,2,   27,19,11,3,  28,20,12,4,  29,21,13,5,  30,22,14,6, 31,23,15,7};
+uint8_t pattern_row_reverse[MAX_STEPS] =	{7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,23,22,21,20,19,18,17,16,31,30,29,28,27,26,25,24};
 
-uint8_t pattern_diag[32] =			{0, 1,8,16, 2,9,17,24, 3,10,18,25, 4,11,19,26, 5,12,20,27, 6,13,21,28, 7,14,22,29, 15,23,30, 31};
-uint8_t pattern_diag_reverse[32] =	{0, 16,8,1, 24,17,9,2, 25,18,10,3, 26,19,11,4, 27,20,12,5, 28,21,13,6, 29,22,14,7, 30,23,15, 31};
+uint8_t pattern_diag[MAX_STEPS] =			{0, 1,8,16, 2,9,17,24, 3,10,18,25, 4,11,19,26, 5,12,20,27, 6,13,21,28, 7,14,22,29, 15,23,30, 31};
+uint8_t pattern_diag_reverse[MAX_STEPS] =	{0, 16,8,1, 24,17,9,2, 25,18,10,3, 26,19,11,4, 27,20,12,5, 28,21,13,6, 29,22,14,7, 30,23,15, 31};
 
-void tSequencer32SetPattern(tSequencer32 *seq, SequencerPatternType pat)
+void tSequencerSetPattern(tSequencer *seq, SequencerPatternType pat)
 {
 	seq->pattern = pat;
 }
 
-uint16_t tSequencerSet(tSequencer32 *seq, uint8_t step, StepParameterType paramType, uint16_t value)
+uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramType, uint16_t value)
 {
 	uint16_t val = 0;
 	StepParameterType param = paramType;
@@ -49,7 +49,7 @@ uint16_t tSequencerSet(tSequencer32 *seq, uint8_t step, StepParameterType paramT
 	return val;
 }
 
-uint16_t tSequencerGet(tSequencer32 *seq, uint8_t step, StepParameterType paramType)
+uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramType)
 {
 	uint16_t val = 0;
 	StepParameterType param = paramType;
@@ -80,7 +80,7 @@ uint16_t tSequencerGet(tSequencer32 *seq, uint8_t step, StepParameterType paramT
 	return val;	
 }
 
-void tSequencer32Next(tSequencer32 *seq)
+void tSequencerNext(tSequencer *seq)
 {
 	int step = -1;
 	int plusOrMinus;
@@ -89,16 +89,16 @@ void tSequencer32Next(tSequencer32 *seq)
 	
 	while (seq->notestack.num > 0)
 	{
-		if (++seq->phasor >= 32) seq->phasor = 0;
+		if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
 		
 		uint8_t stepPhasor = seq->phasor;
 		
 		if (pat == LeftRightRowDown)
 			step = stepPhasor; 
 		else if (pat == LeftRightRowUp)
-			step = pattern_row_reverse[31 - stepPhasor];
+			step = pattern_row_reverse[(seq->maxLength - 1) - stepPhasor];
 		else if (pat == RightLeftRowDown)
-			step = 31 - stepPhasor;
+			step = (seq->maxLength - 1) - stepPhasor;
 		else if (pat == RightLeftRowUp)
 			step = pattern_row_reverse[stepPhasor];
 		else if (pat == LeftRightColDown)
@@ -106,27 +106,27 @@ void tSequencer32Next(tSequencer32 *seq)
 		else if (pat == LeftRightColUp)
 			step = pattern_col_up[stepPhasor];
 		else if (pat == RightLeftColDown)
-			step = pattern_col_down[31- stepPhasor];
+			step = pattern_col_down[(seq->maxLength - 1)- stepPhasor];
 		else if (pat == RightLeftColUp)
-			step = pattern_col_up[31 - stepPhasor];
+			step = pattern_col_up[(seq->maxLength - 1) - stepPhasor];
 		else if (pat == LeftRightDiagDown)
 			step = pattern_diag_reverse[stepPhasor];
 		else if (pat == LeftRightDiagUp)
 			step = pattern_diag[stepPhasor];
 		else if (pat == RightLeftDiagDown)
-			step = pattern_diag_reverse[31 - stepPhasor];
+			step = pattern_diag_reverse[(seq->maxLength - 1) - stepPhasor];
 		else if (pat == RightLeftDiagUp)
-			step = pattern_diag[31 - stepPhasor];
+			step = pattern_diag[(seq->maxLength - 1) - stepPhasor];
 		else if (pat == RandomWalk)
 		{
 			plusOrMinus = rand();
 			if (plusOrMinus > 0xffff)
 			{
-				step = (stepPhasor + (plusOrMinus-0xffff)) % 32;
+				step = (stepPhasor + (plusOrMinus-0xffff)) % seq->maxLength;
 			}
 			else
 			{
-				step = (stepPhasor - plusOrMinus) % 32;
+				step = (stepPhasor - plusOrMinus) % seq->maxLength;
 			}
 		}
 		else if (pat == OrderTouch)
@@ -152,25 +152,46 @@ void tSequencer32Next(tSequencer32 *seq)
 	}
 }
 
-int tSequencer32GetNumNotes(tSequencer32 *seq)
+int tSequencerGetNumNotes(tSequencer *seq)
 {
 	return seq->notestack.num;
 }
 
-int tSequencer32Init(tSequencer32 *seq) 
+int tSequencerSetMaxLength(tSequencer *seq, uint8_t maxLength)
+{	
+	seq->maxLength = maxLength;
+	seq->notestack.setMaxSize(&seq->notestack,maxLength);
+}
+
+int tSequencerInit(tSequencer *seq, uint8_t maxLength) 
 {
+	if (maxLength <= 0)
+	{
+		seq->maxLength = 1;
+	}
+	else if (maxLength <= 32)
+	{
+		seq->maxLength = maxLength;
+	}
+	else
+	{
+		seq->maxLength = 32;
+	}
+	
 	seq->currentStep = 0;
 	seq->prevStep = 0;
 	seq->lengthCounter = 0;
 	seq->phasor = 0;
 	seq->pattern = LeftRightRowDown;
-	seq->next = &tSequencer32Next;
-	seq->setPattern = &tSequencer32SetPattern;
+	
+	seq->next = &tSequencerNext;
+	seq->setPattern = &tSequencerSetPattern;
 	seq->get = &tSequencerGet;
 	seq->set = &tSequencerSet;
-	seq->getNumNotes = &tSequencer32GetNumNotes;
+	seq->getNumNotes = &tSequencerGetNumNotes;
+	seq->setMaxLength = &tSequencerSetMaxLength;
 	
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		seq->step[i].cv1 = 0;  // cv1 zero
 		seq->step[i].cv2 = 0;  // cv2 zero
@@ -181,10 +202,10 @@ int tSequencer32Init(tSequencer32 *seq)
 		seq->step[i].cv4 = 0;  // cv4 zero
 		seq->step[i].octave = 3;  // octave
 		seq->step[i].length = 1;  // step_length = 1
-		seq->step[i].hexagon = 32;  // hexagon number in keyboard range
+		seq->step[i].hexagon = MAX_STEPS + 0;  // hexagon number in keyboard range
 	}
 	
-	tNoteStack32Init(&seq->notestack);
+	tNoteStackInit(&seq->notestack, maxLength);
 	
 	
 	

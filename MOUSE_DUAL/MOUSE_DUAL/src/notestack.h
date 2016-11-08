@@ -9,22 +9,28 @@
 #ifndef NOTESTACK_H_
 #define NOTESTACK_H_
 
-typedef struct _tNoteStack32
+typedef struct _tNoteStack
 {
+	// max size 32
+	
+	// -1 in unsigned notestack is actually going to represented as 255. may cause issues if we aren't careful. should change.
 	uint8_t notestack[32];
 	uint8_t pos;
 	uint8_t num;
+	uint8_t size;
 	
+	void (*setMaxSize)(struct _tNoteStack *self, uint8_t size);
 	
-	void (*add)(struct _tNoteStack32 *self, uint8_t note);
-	void (*remove)(struct _tNoteStack32 *self, uint8_t note);
+	void (*add)(struct _tNoteStack *self, uint8_t note);
+	void (*remove)(struct _tNoteStack *self, uint8_t note);
+	void (*clear)(struct _tNoteStack *self);
 	
-	int (*toggle)(struct _tNoteStack32 *self, uint8_t note);
-	int (*next)(struct _tNoteStack32 *self); 
+	int (*toggle)(struct _tNoteStack *self, uint8_t note);
+	int (*next)(struct _tNoteStack *self); 
 	
-} tNoteStack32;
+} tNoteStack;
 
-int tNoteStack32Init(tNoteStack32 *notestack);
+int tNoteStackInit(tNoteStack *notestack, uint8_t size);
 
 
 

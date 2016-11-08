@@ -7,7 +7,7 @@
 
 #include "notestack.h"
 
-void tNoteStack32Add(tNoteStack32 *ns, uint8_t noteVal)
+void tNoteStackAdd(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t j;
 
@@ -23,7 +23,8 @@ void tNoteStack32Add(tNoteStack32 *ns, uint8_t noteVal)
 	ns->num++;
 }
 
-int tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
+// Remove noteVal.
+int tNoteStackRemove(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t j,k;
 	int foundOne = 0;
@@ -37,7 +38,7 @@ int tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
 		{
 			for (k = 0; k < (ns->num - j); k++)
 			{
-				if ((k+j) == (32 - 1))
+				if ((k+j) >= (ns->size - 1))
 				{
 					ns->notestack[k + j] = -1;
 				}
@@ -60,25 +61,60 @@ int tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
 	return foundOne;
 }
 
-int tNoteStack32Toggle(tNoteStack32 *ns, uint8_t noteVal)
+// Doesn't change size of data types 
+void tNoteStackSetMaxSize(tNoteStack *ns, uint8_t size)
+{
+	if (size <= 0)
+		ns->size = 1;
+	else if (size <= 32)
+		ns->size = size;
+	else
+		ns->size = 32;
+		
+	for (int i = size; i < 32; i++)
+	{
+		if (ns->notestack != -1)
+		{
+			ns->notestack[i] = -1;
+			ns->num -= 1;
+		}
+	}
+	
+	if (ns->pos >= size)
+	{
+		ns->pos = 0;
+	}
+}
+
+int tNoteStackToggle(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t j,k;
 	uint8_t foundOne = 0;
 	//it's already in the stack, remove it from the stack
 	// look through the stack
 	
-	foundOne = tNoteStack32Remove(ns,noteVal);
+	foundOne = tNoteStackRemove(ns,noteVal);
 
 	if (!foundOne)
 	{
-		tNoteStack32Add(ns,noteVal);
+		tNoteStackAdd(ns,noteVal);
 	}
 
 	return !foundOne;
 }
 
-// Return 0-31 if should move to next step. Returns -1 otherwise.
-int tNoteStack32Next(tNoteStack32 *ns)
+int tNoteStackClear(tNoteStack *ns)
+{
+	for (int i = 0; i < 32; i++)
+	{
+		ns->notestack[i] = -1;
+	}
+	ns->pos = 0;
+	ns->num = 0;
+}
+
+// Next item in order of addition to stack. Return 0-31 if there is a next item to move to. Returns -1 otherwise.
+int tNoteStackNext(tNoteStack *ns)
 {
 	int step = 0;
 	if (ns->num != 0) // if there is at least one note in the stack
@@ -103,13 +139,15 @@ int tNoteStack32Next(tNoteStack32 *ns)
 
 
 
-int tNoteStack32Init(tNoteStack32 *ns)
+int tNoteStackInit(tNoteStack *ns, uint8_t size)
 {
 	ns->num = 0;
 	ns->pos = 0;
-	ns->add = &tNoteStack32Add;
-	ns->remove = &tNoteStack32Remove;
-	ns->toggle = &tNoteStack32Toggle;
-	ns->next = &tNoteStack32Next;
+	ns->add = &tNoteStackAdd;
+	ns->size = size;
+	ns->remove = &tNoteStackRemove;
+	ns->toggle = &tNoteStackToggle;
+	ns->next = &tNoteStackNext;
+	ns->setMaxSize = &tNoteStackSetMaxSize;
 	return 0;
 }
