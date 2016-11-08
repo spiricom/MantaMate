@@ -97,18 +97,8 @@ uint8_t prev_option_hex = 0;
 uint8_t most_recent_option_hex = 0;
 
 // Sequencer patterns to be used in the program
-#define NUM_PATTERNS 9
-SequencerPatternType patternTypes[NUM_PATTERNS] = {
-	LeftRightRowDown,
-	LeftRightRowUp,
-	LeftRightDiagDown,
-	LeftRightDiagUp,
-	LeftRightColDown,
-	RightLeftColUp,
-	RandomWalk,
-	OrderTouch,
-	RecordTouch
-};
+#define NUM_PATTERNS 8
+
 
 typedef enum GlobalOptionType
 {
@@ -371,28 +361,17 @@ void setSequencerLEDsFor(MantaSequencer seq)
 		manta_set_LED_hex(i,Off);
 		if (sequencer[seq].step[i].toggled == 1)
 		{
-			if (i == most_recent_hex)
-			{
-				if (i == sequencer[seq].currentStep)
-				{
-					manta_set_LED_hex(i,AmberOn);
-				}
-				else
-				{
-					manta_set_LED_hex(i,RedOn);
-				}
-			}
-			else
-			{
-				if (i == sequencer[seq].currentStep)
-				{
-					manta_set_LED_hex(i,RedOn);
-				}
-				manta_set_LED_hex(i,AmberOn);
-				
-			}
-				
+			manta_set_LED_hex(i,AmberOn);
 			
+			if (i == sequencer[seq].currentStep)
+			{
+				manta_set_LED_hex(i,RedOn);
+				if (edit_vs_play == EDITMODE &&  i == most_recent_hex)
+				{
+					manta_set_LED_hex(i,AmberOff);	
+				}
+
+			}
 		}
 		else
 		{
@@ -454,17 +433,34 @@ void setModeLEDsFor(MantaSequencer seq)
 		else if (option_pattern[i] == 1)
 		{
 			manta_set_LED_hex(i+32, Amber);
+			
 		}
 		else if (option_pattern[i] == 2 )
 		{
-			manta_set_LED_hex(i+32, Red);
+			if (i == sequencer[seq].pattern)
+			{
+				manta_set_LED_hex(i+32, Red);
+			}
+			else
+			{
+				manta_set_LED_hex(i+32, Amber);
+			}
 		}
 		else if (option_pattern[i] == 3)
 		{
-			manta_set_LED_hex(i+32,Amber);
+			if ((i-14) == seq)
+			{
+				manta_set_LED_hex(i+32,Amber);
+			}
+			else
+			{
+				manta_set_LED_hex(i+32,Red);
+			}
+			
 		}
 		
 	}
+	
 	
 }
 
@@ -704,13 +700,12 @@ void processTouchUpperHex(uint8_t hexagon)
 		uint8_t whichHex = hexagon - 32;
 		if (option_pattern[whichHex] == 2 && whichHex < NUM_PATTERNS)
 		{
-			sequencer[currentSequencer].setPattern(&sequencer[currentSequencer],patternTypes[whichHex]);
+			sequencer[currentSequencer].setPattern(&sequencer[currentSequencer],whichHex);
 			
 			prev_pattern_hex = most_recent_pattern_hex;
 			most_recent_pattern_hex = whichHex;
 			
-			manta_set_LED_hex(32 + prev_pattern_hex, Red);
-			manta_set_LED_hex(32 + most_recent_pattern_hex, Amber);
+			setModeLEDsFor(currentSequencer);
 		}
 		else if ((option_pattern[whichHex] == 1) && ((whichHex-8) < NUM_GLOBAL_OPTIONS))
 		{
@@ -730,13 +725,10 @@ void processTouchUpperHex(uint8_t hexagon)
 				most_recent_panel_hex = whichHex;
 			
 				setSequencerLEDsFor(currentSequencer);
-				//setModeLEDsFor(currentSequencer);
+				setModeLEDsFor(currentSequencer);
 				
 				prev_step = sequencer[currentSequencer].prevStep;
 				current_step = sequencer[currentSequencer].currentStep;
-				
-				manta_set_LED_hex(32 + prev_panel_hex, Amber);
-				manta_set_LED_hex(32 + most_recent_panel_hex, Red);
 			}
 		}
 
@@ -819,7 +811,7 @@ void processTouchFunctionButton(MantaButton button)
 		if (key_vs_option == KEYMODE)
 		{
 			key_vs_option = OPTIONMODE;
-			setModeLEDsFor(0);
+			setModeLEDsFor(currentSequencer);
 			manta_set_LED_button(ButtonBottomLeft, Red);
 		}
 		else

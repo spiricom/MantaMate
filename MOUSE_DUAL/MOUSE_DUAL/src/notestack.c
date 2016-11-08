@@ -23,9 +23,10 @@ void tNoteStack32Add(tNoteStack32 *ns, uint8_t noteVal)
 	ns->num++;
 }
 
-void tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
+int tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
 {
 	uint8_t j,k;
+	int foundOne = 0;
 	
 	//it's a note-off, remove it from the stack
 	//go through the notes that are currently held down to find the one that released
@@ -36,16 +37,27 @@ void tNoteStack32Remove(tNoteStack32 *ns, uint8_t noteVal)
 		{
 			for (k = 0; k < (ns->num - j); k++)
 			{
-				ns->notestack[k + j] = ns->notestack[k + j + 1];
-				//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
-				if (k == ((ns->num - j) - 1))
-				ns->notestack[k + j + 1] = -1;
+				if ((k+j) == (32 - 1))
+				{
+					ns->notestack[k + j] = -1;
+				}
+				else
+				{
+					ns->notestack[k + j] = ns->notestack[k + j + 1];
+					if ((k+j) == (ns->num - 1))
+					{
+						ns->notestack[k + j + 1] = -1;
+					}
+				}
+				
 			}
 			// in case it got put on the stack multiple times
 			j--;
 			ns->num--;
+			foundOne = 1;
 		}
 	}
+	return foundOne;
 }
 
 int tNoteStack32Toggle(tNoteStack32 *ns, uint8_t noteVal)
@@ -54,24 +66,9 @@ int tNoteStack32Toggle(tNoteStack32 *ns, uint8_t noteVal)
 	uint8_t foundOne = 0;
 	//it's already in the stack, remove it from the stack
 	// look through the stack
-	for (j = 0; j < ns->num; j++)
-	{
-		//if you found it
-		if (ns->notestack[j] == noteVal)
-		{
-			for (k = 0; k < (ns->num - j); k++)
-			{
-				ns->notestack[k + j] = ns->notestack[k + j + 1];
-				//if it's the last one, write negative 1 beyond it (it's already been copied to the position to the left of it)
-				if (k == ((ns->num - j) - 1))
-				ns->notestack[k + j + 1] = -1;
-			}
-			// in case it got put on the stack multiple times
-			j--;
-			ns->num--;
-			foundOne = 1;
-		}
-	}
+	
+	foundOne = tNoteStack32Remove(ns,noteVal);
+
 	if (!foundOne)
 	{
 		tNoteStack32Add(ns,noteVal);

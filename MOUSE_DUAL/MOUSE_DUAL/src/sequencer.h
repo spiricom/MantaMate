@@ -22,21 +22,24 @@ uint8_t pattern_diag_reverse[32];
 
 typedef enum SequencerPatternType {
 	LeftRightRowDown,
-	RightLeftRowDown,
 	LeftRightRowUp,
-	RightLeftRowUp,
 	LeftRightDiagDown,
 	LeftRightDiagUp,
-	RightLeftDiagDown,
-	RightLeftDiagUp,
 	LeftRightColDown,
-	LeftRightColUp,
-	RightLeftColDown,
 	RightLeftColUp,
 	RandomWalk,
 	OrderTouch,
 	RecordTouch,
+	
+	//not using atm
+	RightLeftRowDown,
+	RightLeftRowUp,
+	RightLeftDiagDown,
+	RightLeftDiagUp,
+	LeftRightColUp,
+	RightLeftColDown,
 	SequencerPatternTypeNil,
+	
 }SequencerPatternType;
 
 typedef enum StepParameterType {
