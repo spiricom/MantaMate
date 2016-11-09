@@ -170,7 +170,7 @@ uint8_t key_vs_option = KEYMODE;
 uint8_t arp_vs_seq = SEQMODE;
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
-MantaSequencer currentSequencer = SequencerOne;
+MantaSequencer currentSequencer = SequencerOne; // current Sequencer is CURRENTLY EDITING SEQUENCER
 
 // Flags for new inputs.
 uint8_t new_upper_hex = 0;
@@ -806,6 +806,33 @@ void processTouchUpperHex(uint8_t hexagon)
 		{
 			prev_option_hex = current_option_hex;
 			current_option_hex = whichHex;
+			
+			int whichFullSplit = whichHex - 8;
+			if (whichFullSplit < 2)
+			{
+				if (full_vs_split != whichFullSplit)
+				{
+					full_vs_split == whichFullSplit;
+					
+					// Not functional yet.
+					if (full_vs_split == FullMode)
+					{
+						sequencer[SequencerOne].setMaxLength(&sequencer[SequencerOne],32);
+						sequencer[SequencerTwo].setMaxLength(&sequencer[SequencerTwo],32);	
+					}
+					else
+					{
+						sequencer[SequencerOne].setMaxLength(&sequencer[SequencerOne],16);
+						sequencer[SequencerTwo].setMaxLength(&sequencer[SequencerTwo],16);
+					}
+					
+					setSequencerLEDsFor(SequencerOne);
+					setSequencerLEDsFor(SequencerTwo);
+					
+				}
+			}
+			
+			
 		}
 		else if ((option_pattern[whichHex] == 3) && ((whichHex-14) < NUM_PANEL_MOVES))
 		{	
