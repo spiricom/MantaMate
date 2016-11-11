@@ -508,9 +508,9 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 	else if (color == Off)
 	{
 		//turn off the amber light
-		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		uhi_manta_report[whichbyte]		&= ~(1 << whichbit);
 		// turn off the red light
-		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);
+		uhi_manta_report[whichbyte+10]	&= ~(1 << whichbit);
 	}
 	
 	else if (color == RedOff)

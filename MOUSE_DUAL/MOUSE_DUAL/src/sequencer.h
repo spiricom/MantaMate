@@ -89,7 +89,6 @@ typedef struct _tSequencer
 	
 	void (*next)(struct _tSequencer *self);
 	void (*setPattern)(struct _tSequencer *self, SequencerPatternType type);
-	
 	int (*getNumNotes)(struct _tSequencer *self);
 	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);
 	void (*setOctave)(struct _tSequencer *self, int8_t octave);

@@ -186,7 +186,7 @@ void tSequencerUpOctave(tSequencer *seq)
 
 int tSequencerInit(tSequencer *seq, uint8_t maxLength) 
 {
-	if (maxLength <= 0)
+	if (maxLength < 1)
 	{
 		seq->maxLength = 1;
 	}
