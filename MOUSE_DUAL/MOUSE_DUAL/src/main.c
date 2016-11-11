@@ -109,6 +109,198 @@ const U8 test_pattern[] =  {
 
 U8 data_received[PATTERN_TEST_LENGTH];
 
+// SequencerOne timer interrupt.
+__attribute__((__interrupt__))
+static void tc1_irq(void)
+{
+	// Clear the interrupt flag. This is a side effect of reading the TC SR.
+	tc_read_sr(TC1, TC1_CHANNEL);
+	
+
+	LED_Off(LED1);
+	DAC16Send(1, 0);
+	tc_stop(tc1, TC1_CHANNEL);
+}
+
+// SequencerTwo timer interrupt.
+__attribute__((__interrupt__))
+static void tc2_irq(void)
+{
+	// Clear the interrupt flag. This is a side effect of reading the TC SR.
+	tc_read_sr(TC2, TC2_CHANNEL);
+	
+
+	LED_Off(LED1);
+	DAC16Send(3, 0);
+	tc_stop(tc2, TC2_CHANNEL);
+}
+
+static void tc1_init(volatile avr32_tc_t *tc)
+{
+
+	static const tc_waveform_opt_t waveform_opt = {
+		// Channel selection.
+		.channel  = TC1_CHANNEL,
+		// Software trigger effect on TIOB.
+		.bswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOB.
+		.beevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOB.
+		.bcpc     = TC_EVT_EFFECT_NOOP,
+		// RB compare effect on TIOB.
+		.bcpb     = TC_EVT_EFFECT_NOOP,
+		// Software trigger effect on TIOA.
+		.aswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOA.
+		.aeevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOA.
+		.acpc     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * RA compare effect on TIOA.
+		 * (other possibilities are none, set and clear).
+		 */
+		.acpa     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * Waveform selection: Up mode with automatic trigger(reset)
+		 * on RC compare.
+		 */
+		.wavsel   = TC_WAVEFORM_SEL_UP_MODE_RC_TRIGGER,
+		// External event trigger enable.
+		.enetrg   = false,
+		// External event selection.
+		.eevt     = 0,
+		// External event edge selection.
+		.eevtedg  = TC_SEL_NO_EDGE,
+		// Counter disable when RC compare.
+		.cpcdis   = false,
+		// Counter clock stopped with RC compare.
+		.cpcstop  = false,
+		// Burst signal selection.
+		.burst    = false,
+		// Clock inversion.
+		.clki     = false,
+		// Internal source clock 3, connected to fPBA / 8.
+		.tcclks   = TC_CLOCK_SOURCE_TC3
+	};
+
+	// Options for enabling TC interrupts
+	static const tc_interrupt_t tc_interrupt = {
+		.etrgs = 0,
+		.ldrbs = 0,
+		.ldras = 0,
+		.cpcs  = 1, // Enable interrupt on RC compare alone
+		.cpbs  = 0,
+		.cpas  = 0,
+		.lovrs = 0,
+		.covfs = 0
+	};
+	
+	// Initialize the timer/counter.
+	tc_init_waveform(tc, &waveform_opt);
+	/*
+		* Set the compare triggers.
+		* We configure it to count every 1 milliseconds.
+		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
+		* to get an interrupt every 10 ms.
+		*/
+	tc_write_rc(tc, TC1_CHANNEL, (sysclk_get_pba_hz() / 8 / 1000)); // was 1000
+	// configure the timer interrupt
+	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
+
+	
+}
+
+static void tc2_init(volatile avr32_tc_t *tc)
+{
+
+	static const tc_waveform_opt_t waveform_opt = {
+		// Channel selection.
+		.channel  = TC2_CHANNEL,
+		// Software trigger effect on TIOB.
+		.bswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOB.
+		.beevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOB.
+		.bcpc     = TC_EVT_EFFECT_NOOP,
+		// RB compare effect on TIOB.
+		.bcpb     = TC_EVT_EFFECT_NOOP,
+		// Software trigger effect on TIOA.
+		.aswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOA.
+		.aeevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOA.
+		.acpc     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * RA compare effect on TIOA.
+		 * (other possibilities are none, set and clear).
+		 */
+		.acpa     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * Waveform selection: Up mode with automatic trigger(reset)
+		 * on RC compare.
+		 */
+		.wavsel   = TC_WAVEFORM_SEL_UP_MODE_RC_TRIGGER,
+		// External event trigger enable.
+		.enetrg   = false,
+		// External event selection.
+		.eevt     = 0,
+		// External event edge selection.
+		.eevtedg  = TC_SEL_NO_EDGE,
+		// Counter disable when RC compare.
+		.cpcdis   = false,
+		// Counter clock stopped with RC compare.
+		.cpcstop  = false,
+		// Burst signal selection.
+		.burst    = false,
+		// Clock inversion.
+		.clki     = false,
+		// Internal source clock 3, connected to fPBA / 8.
+		.tcclks   = TC_CLOCK_SOURCE_TC4
+	};
+
+	// Options for enabling TC interrupts
+	static const tc_interrupt_t tc_interrupt = {
+		.etrgs = 0,
+		.ldrbs = 0,
+		.ldras = 0,
+		.cpcs  = 1, // Enable interrupt on RC compare alone
+		.cpbs  = 0,
+		.cpas  = 0,
+		.lovrs = 0,
+		.covfs = 0
+	};
+	
+	// Initialize the timer/counter.
+	tc_init_waveform(tc, &waveform_opt);
+	/*
+		* Set the compare triggers.
+		* We configure it to count every 1 milliseconds.
+		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
+		* to get an interrupt every 10 ms.
+		*/
+	tc_write_rc(tc, TC2_CHANNEL, (sysclk_get_pba_hz() / 8 / 1000)); // was 1000
+	// configure the timer interrupt
+	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
+
+	
+}
+
+
+
+void initTimers (void)
+{
+	
+	tc1 = TC1;
+	tc2 = TC2;
+	
+	// Enable the clock to the selected example Timer/counter peripheral module.
+	sysclk_enable_peripheral_clock(TC1);
+	sysclk_enable_peripheral_clock(TC2);
+	
+	tc1_init(tc1);
+	tc2_init(tc2);
+
+};
 
   
 // interrupt handler for external gate signal input from synthesizer.
@@ -662,9 +854,14 @@ void setupEIC(void)
 	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PB03
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH2/8), AVR32_INTC_INT0);
 	
+	// Register the RTC interrupt handler to the interrupt controller.
+	INTC_register_interrupt(&tc1_irq, TC1_IRQ, TC1_IRQ_PRIORITY);
+	INTC_register_interrupt(&tc2_irq, TC2_IRQ, TC2_IRQ_PRIORITY);
+	
 	Enable_global_interrupt();
 	
 }
+
 
 /*! \brief Main function. Execution starts here.
  */
@@ -672,7 +869,7 @@ int main(void){
 	
 	irq_initialize_vectors();
 	cpu_irq_enable();
-
+	
 	// Initialize the sleep manager
 	sleepmgr_init();
 	setupEIC();

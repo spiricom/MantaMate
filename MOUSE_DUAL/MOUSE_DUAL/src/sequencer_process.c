@@ -11,6 +11,7 @@
 
 #include "sequencer.h"
 
+
 // Typedef versions of Manta modes.
 
 //------------------  S T R U C T U R E S  -------------------
@@ -126,9 +127,12 @@ void setSliderLEDsFor(MantaSequencer seq, uint8_t note);
 void setKeyboardLEDsFor(MantaSequencer seq, uint8_t note);
 void setModeLEDsFor(MantaSequencer seq);
 void setSequencerLEDsFor(MantaSequencer seq);
+void uiStep(MantaSequencer seq);
 
 // UTILITIES
 void seqwait(void);
+uint8_t uiHexToNote(uint8_t hexagon);
+uint8_t noteToHexUI(MantaSequencer seq, uint8_t noteIn);
 
 /* - - - - - - KEY PATTERNS - - - - - - - -*/
 // Upper keyboard pattern
@@ -207,94 +211,10 @@ uint8_t numSeqUI = 1; // 2 if Split mode
 
 #define toggleNoteInStack(SEQ,NOTE)	sequencer[SEQ].notestack.toggle(&sequencer[SEQ].notestack,NOTE)
 
-
-uint8_t uiHexToNote(uint8_t hexagon)
-{
-	int hex = 0;
-	if (hexagon < 0)
-	{
-		hex = 0;
-	}
-	else if (hexagon < 32)
-	{
-		hex = hexagon;
-	}
-	else
-	{
-		hex = 31;
-	}
-	
-	int note = 0;
-	
-	if (full_vs_split == SplitMode)
-	{
-		if (hex < 16)
-		{
-			note = hex;
-		}
-		else
-		{
-			note = hex - 16;
-		}
-	}
-	else
-	{
-		note = hex;
-	}
-	
-	return note;
-}
-
-uint8_t noteToHexUI(MantaSequencer seq, uint8_t noteIn)
-{
-	int hex = 0;
-	int note = 0;
-	if (full_vs_split == SplitMode)
-	{
-		if (noteIn < 0)
-		{
-			note = 0;
-		}
-		else if (noteIn < 16)
-		{
-			note = noteIn;
-		}
-		else
-		{
-			note = 15;	
-		}
-			
-		if (seq == SequencerOne)
-		{
-			hex = note;
-		}
-		else
-		{
-			hex = note + 16;
-		}
-		
-	}
-	else
-	{
-		if (noteIn < 0)
-		{
-			hex = 0;
-		}
-		else if (noteIn < 32)
-		{
-			hex = noteIn;
-		}
-		else
-		{
-			hex = 31;
-		}
-	}
-	
-	return hex;
-}
-
 void initSequencer(void)
 {
+	initTimers();
+	
 	currentSequencer = SequencerOne;
 	
 	for (int i = 0; i < NUM_SEQ; i++)
@@ -355,7 +275,7 @@ int cstep, curr, numnotes;
 void sequencerStep(void)
 {
 
-	LED_Toggle(LED1); // turn on the red mantamate panel light (should this be LED5?)
+	//LED_Toggle(LED1); // turn on the red mantamate panel light (should this be LED5?)
 	
 	//check if you are supposed to increment yet (based on the length value of the current step)
 
@@ -381,9 +301,9 @@ void sequencerStep(void)
 				dacsend(offset+1, 0, sequencer[i].step[curr].cv2);
 				dacsend(offset+0, 1, sequencer[i].step[curr].cv3);
 				dacsend(offset+1, 1, sequencer[i].step[curr].cv4);
-
+				
 				// if this step is not a rest, change the pitch  (should the cv1 and cv2 output changes also be gated by note/rest settings?)
-				if (sequencer[i].step[curr].note == 1)
+				if (sequencer[i].step[curr].note)
 				{
 					uint32_t DACtemp = ((uint32_t)sequencer[i].step[curr].pitch);
 					DACtemp += (sequencer[i].step[curr].octave * 12);
@@ -391,8 +311,20 @@ void sequencerStep(void)
 					DACtemp /= 1000;
 					DAC16Send(offset+0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 					//DAC16Send(offset+2, ((uint32_t)sequencer[i].step[curr].cv4 * 16)); // tagged CV4 on the 16bit outputs, since I want to use the 12 bits for the gate
+					
+					LED_On(LED1);
+					DAC16Send(offset+1, 65535);
+					if (i == 0)
+					{
+						tc_start(tc1, TC1_CHANNEL);
+					}
+					else
+					{
+						tc_start(tc2, TC2_CHANNEL);
+					}
+					
 				}
-				
+
 				// to make rests work, we need to have the sequencer send its own clock signal (processed from the input clock)
 				// The right way to do this is to set an output HIGH here, and then have an interrupt set it LOW after a certain point - making a nice trigger.
 				// For now, we'll set it low and wait a ms and then set it high. This wastes computation time and is not smart, but should work until an interrupt is written.
@@ -639,7 +571,14 @@ void processTouchLowerHex(uint8_t hexagon)
 	
 	if (key_vs_option == KEYMODE)
 	{
-		setKeyboardLEDsFor(currentSequencer, hexagon);
+		if (full_vs_split == SplitMode)
+		{
+			setKeyboardLEDsFor(currentSequencer, uiHexToNote(hexagon));
+		}
+		else
+		{
+			setKeyboardLEDsFor(currentSequencer, hexagon);
+		}	
 	}
 	else
 	{
@@ -1060,6 +999,92 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 }
 
 // UTILITIES
+
+uint8_t uiHexToNote(uint8_t hexagon)
+{
+	int hex = 0;
+	if (hexagon < 0)
+	{
+		hex = 0;
+	}
+	else if (hexagon < 32)
+	{
+		hex = hexagon;
+	}
+	else
+	{
+		hex = 31;
+	}
+	
+	int note = 0;
+	
+	if (full_vs_split == SplitMode)
+	{
+		if (hex < 16)
+		{
+			note = hex;
+		}
+		else
+		{
+			note = hex - 16;
+		}
+	}
+	else
+	{
+		note = hex;
+	}
+	
+	return note;
+}
+
+uint8_t noteToHexUI(MantaSequencer seq, uint8_t noteIn)
+{
+	int hex = 0;
+	int note = 0;
+	if (full_vs_split == SplitMode)
+	{
+		if (noteIn < 0)
+		{
+			note = 0;
+		}
+		else if (noteIn < 16)
+		{
+			note = noteIn;
+		}
+		else
+		{
+			note = 15;
+		}
+		
+		if (seq == SequencerOne)
+		{
+			hex = note;
+		}
+		else
+		{
+			hex = note + 16;
+		}
+		
+	}
+	else
+	{
+		if (noteIn < 0)
+		{
+			hex = 0;
+		}
+		else if (noteIn < 32)
+		{
+			hex = noteIn;
+		}
+		else
+		{
+			hex = 31;
+		}
+	}
+	
+	return hex;
+}
+
 void seqwait(void)
 {
 	static uint8_t i = 0;

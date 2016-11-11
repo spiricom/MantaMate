@@ -49,8 +49,33 @@
 
 #include <stdint.h>
 
-
 #include "usb_protocol_cdc.h"
+
+// TIMER 
+volatile avr32_tc_t *tc1;
+volatile avr32_tc_t *tc2;
+
+#define TIMERS 1
+
+#define TC1                 (&AVR32_TC)
+#define TC1_CHANNEL         0
+#define TC1_IRQ             AVR32_TC_IRQ0
+#define TC1_IRQ_GROUP       AVR32_TC_IRQ_GROUP
+#define TC1_IRQ_PRIORITY    AVR32_INTC_INT0
+
+#define TC2                 (&AVR32_TC)
+#define TC2_CHANNEL         1
+#define TC2_IRQ             AVR32_TC_IRQ1
+#define TC2_IRQ_GROUP       AVR32_TC_IRQ_GROUP
+#define TC2_IRQ_PRIORITY    AVR32_INTC_INT0
+
+static void tc1_irq(void);
+static void tc2_irq(void);
+
+static void tc2_init(volatile avr32_tc_t *tc);
+static void tc1_init(volatile avr32_tc_t *tc);
+
+void initTimers (void);
 
 //DEBUG CODE
 extern uint16_t lengthDB;

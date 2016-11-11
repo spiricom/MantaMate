@@ -2,6 +2,8 @@
 # Automatically-generated file. Do not edit or delete the file
 ################################################################################
 
+src\ASF\avr32\drivers\tc\tc.c
+
 src\ASF\avr32\drivers\wdt\wdt.c
 
 src\notestack.c

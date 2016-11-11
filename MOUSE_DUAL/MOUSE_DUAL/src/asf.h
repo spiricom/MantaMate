@@ -71,6 +71,8 @@
 // From module: Generic board support
 #include <board.h>
 
+#include <delay.h>
+
 // From module: INTC - Interrupt Controller
 #include <intc.h>
 
@@ -94,6 +96,11 @@
 // From module: System Clock Control - UC3 A implementation
 #include <sysclk.h>
 
+#include <spi.h>
+
+// From module: TC - Timer/Counter
+#include <tc.h>
+
 // From module: TWI - Two-Wire Interface
 #include <twi.h>
 
@@ -101,6 +108,8 @@
 #include <twi_master.h>
 #include <uc3_twi/twi_master.h>
 
+// From module: USB Device HID Mouse (Single Interface Device)
+//#include <udi_hid_mouse.h>
 
 // From module: USB Device Stack Core (Common API)
 #include <udc.h>
@@ -112,17 +121,12 @@
 // From module: USB HID Library (Device)
 #include <udi_hid.h>
 
-#include <delay.h>
-#include <cycle_counter.h>
-
-#include <spi.h>
-
-#include <7Segment.h>
+// From module: USB Host HID Mouse (Single Class support)
+//#include <uhi_hid_mouse.h>
 
 // From module: USB Host stack core
 #include <uhc.h>
 #include <uhd.h>
-
 
 // From module: WDT Watchdog Timer - UC3 A0/A1/A3/A4/B0/B1 implementation
 #include <wdt.h>
