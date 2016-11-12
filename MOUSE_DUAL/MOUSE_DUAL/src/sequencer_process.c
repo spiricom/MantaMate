@@ -641,7 +641,6 @@ void processTouchLowerHex(uint8_t hexagon)
 	
 	manta_send_LED();
 	new_lower_hex = 0;
-	
 }
 
 void processTouchUpperHex(uint8_t hexagon)
@@ -716,9 +715,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		
 		setKeyboardLEDsFor(currentSequencer, note);
 		
-		//set memory variables
-		new_upper_hex = 0;
-		prev_pitch = current_pitch;
+		
 	}
 	else
 	{
@@ -788,6 +785,10 @@ void processTouchUpperHex(uint8_t hexagon)
 	}
 	
 	manta_send_LED();
+	
+	//set memory variables
+	new_upper_hex = 0;
+	prev_pitch = current_pitch;
 }
 
 void processTouchFunctionButton(MantaButton button)
@@ -813,7 +814,7 @@ void processTouchFunctionButton(MantaButton button)
 		else
 		{
 			//Should not get here.
-	}	
+		}	
 		setSliderLEDsFor(currentSequencer, currentHexUI);
 	}
 	else if (button == ButtonTopRight)
