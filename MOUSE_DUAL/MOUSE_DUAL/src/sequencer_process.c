@@ -277,17 +277,14 @@ void uiStep(MantaSequencer seq)
 	manta_send_LED();
 }
 
-int lencounter = 0;
-int lenToMatch = 0;
-int cstep, curr, numnotes;
 void sequencerStep(void)
 {
 
-	LED_Toggle(LED5); // turn on the red mantamate panel light (should this be LED5?)
+	LED_Toggle(LED5); 
 	
 	//check if you are supposed to increment yet (based on the length value of the current step)
 
-	int offset = 0;
+	int offset,lengthToMatch,cstep,curr; 
 	
 	for (int i = 0; i < NUM_SEQ; i++)
 	{
@@ -296,8 +293,9 @@ void sequencerStep(void)
 		cstep = sequencer[i].currentStep;
 		
 		sequencer[i].lengthCounter += 1;
+		lengthToMatch = sequencer[i].step[cstep].length;
 		
-		if (sequencer[i].lengthCounter == sequencer[i].step[cstep].length)
+		if (sequencer[i].lengthCounter >= lengthToMatch)
 		{
 			sequencer[i].next(&sequencer[i]); // Move to next step, seq 1.
 			
