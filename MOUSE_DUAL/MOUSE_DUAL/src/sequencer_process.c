@@ -155,7 +155,7 @@ tSequencer *sequencer;
 
 MantaSliderMode mantaSliderMode = SliderModeOne;
 MantaEditPlayMode edit_vs_play = EditMode;
-MantaButton current_func_button = ButtonTopLeft;
+MantaButton currentFunctionButton = ButtonTopLeft;
 GlobalOptionType full_vs_split = FullMode;
 GlobalOptionType pitch_vs_trigger = PitchMode;
 
@@ -200,8 +200,9 @@ uint8_t prevHexUI = 0;
 uint8_t	current_pitch = 0;
 uint8_t	prev_pitch = 0;
 
-uint8_t prev_upper_hex = 210; // some garbage
-uint8_t current_upper_hex = 0;
+uint8_t prevUpperHex = 210;
+uint8_t currentUpperHex = 0;
+
 
 int8_t current_seq_octave = 3;
 
@@ -495,14 +496,14 @@ void processSequencer(void)
 	// the manta data is in a global array called butt_states[i]
 	// look at processKeys() for an example of how to find changes in the data. This function will get called even when nothing is different about the data the manta is sending - it hasn't parsed it yet to know whether there is a significant change (i.e a new hexagon button press)
 	int i = 0;
+	uint8_t newHexUI = 0;
 	
 	//check the sequencer step hexagons
 	for (i = 0; i < MAX_STEPS; i++)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
-			prevHexUI = currentHexUI;
-			currentHexUI = i;
+			newHexUI = i;
 			new_lower_hex = 1;
 		}
 		pastbutt_states[i] = butt_states[i];
@@ -514,8 +515,8 @@ void processSequencer(void)
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
 			//an upper hexagon was just pressed
-			prev_upper_hex = current_upper_hex;
-			current_upper_hex = i;
+			prevUpperHex = currentUpperHex;
+			currentUpperHex = i;
 			new_upper_hex = 1;
 		}
 		pastbutt_states[i] = butt_states[i];
@@ -527,22 +528,26 @@ void processSequencer(void)
 		{
 			//a round function button was just pressed
 			//this code currently doesn't function correctly if two buttons are pressed within the same 6ms window of the Manta scan. TODO: we should make sure it counts how many are waiting - have a stack instead of one item of storage.
-			current_func_button = i;
+			currentFunctionButton = i;
 			new_func_button = 1;
 		}
 		past_func_button_states[i] = func_button_states[i];
 	}
 	
-	if (new_lower_hex) processTouchLowerHex(currentHexUI);
+	if (new_lower_hex) processTouchLowerHex(newHexUI);
 
-	if (new_upper_hex) processTouchUpperHex(current_upper_hex);
+	if (new_upper_hex) processTouchUpperHex(currentUpperHex);
 		
-	if (new_func_button) processTouchFunctionButton(current_func_button);
+	if (new_func_button) processTouchFunctionButton(currentFunctionButton);
 
 }
 
 void processTouchLowerHex(uint8_t hexagon)
 {
+	// Set hexUIs for this processing frame. 
+	prevHexUI = currentHexUI;
+	currentHexUI = hexagon;
+	
 	int prevSequencer = currentSequencer;
 	if (full_vs_split == SplitMode)
 	{
@@ -693,7 +698,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			//sequencer[currentSequencer].step[currentHexUI][2] = current_pitch + (current_seq_octave * 12);
 
 			sequencer[currentSequencer].step[note].octave = current_seq_octave;
-			sequencer[currentSequencer].step[note].hexagon = current_upper_hex;
+			sequencer[currentSequencer].step[note].hexagon = currentUpperHex;
 
 			manta_set_LED_hex(hexagon, Red);
 		}
@@ -733,7 +738,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			
 			currentHexUI = 0;
 			
-			current_upper_hex = 0;
+			currentUpperHex = 0;
 			
 			currentSequencer = SequencerOne;
 			
