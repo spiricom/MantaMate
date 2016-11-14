@@ -23,7 +23,7 @@ void tNoteStackAdd(tNoteStack *ns, uint8_t noteVal)
 	ns->num++;
 }
 
-// Remove noteVal.
+// Remove noteVal. return 1 if removed, 0 if not
 int tNoteStackRemove(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t j,k;
@@ -86,23 +86,6 @@ void tNoteStackSetMaxSize(tNoteStack *ns, uint8_t size)
 	}
 }
 
-int tNoteStackToggle(tNoteStack *ns, uint8_t noteVal)
-{
-	uint8_t j,k;
-	uint8_t foundOne = 0;
-	//it's already in the stack, remove it from the stack
-	// look through the stack
-	
-	foundOne = tNoteStackRemove(ns,noteVal);
-
-	if (!foundOne)
-	{
-		tNoteStackAdd(ns,noteVal);
-	}
-
-	return !foundOne;
-}
-
 int tNoteStackClear(tNoteStack *ns)
 {
 	for (int i = 0; i < 32; i++)
@@ -146,7 +129,6 @@ int tNoteStackInit(tNoteStack *ns, uint8_t size)
 	ns->add = &tNoteStackAdd;
 	ns->size = size;
 	ns->remove = &tNoteStackRemove;
-	ns->toggle = &tNoteStackToggle;
 	ns->next = &tNoteStackNext;
 	ns->setMaxSize = &tNoteStackSetMaxSize;
 	return 0;

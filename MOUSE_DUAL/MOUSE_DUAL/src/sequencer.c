@@ -184,6 +184,27 @@ void tSequencerUpOctave(tSequencer *seq)
 	}
 }
 
+int tSequencerStepToggle(tSequencer *seq, uint8_t step)
+{
+	uint8_t j,k;
+	uint8_t foundOne = 0;
+	
+	foundOne = seq->notestack.remove(&seq->notestack,step);
+	
+
+	if (!foundOne)
+	{
+		seq->step[step].toggled = 1;
+		seq->notestack.add(&seq->notestack,step);
+	}
+	else
+	{
+		seq->step[step].toggled = 0;
+	}
+
+	return !foundOne;
+}
+
 int tSequencerInit(tSequencer *seq, uint8_t maxLength) 
 {
 	if (maxLength < 1)
@@ -206,7 +227,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	seq->pattern = LeftRightRowDown;
 	seq->octave = 3;
 	
-	
+	seq->toggle = &tSequencerStepToggle;
 	seq->next = &tSequencerNext;
 	seq->setPattern = &tSequencerSetPattern;
 	seq->get = &tSequencerGet;

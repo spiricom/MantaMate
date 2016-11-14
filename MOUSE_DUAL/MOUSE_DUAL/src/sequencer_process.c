@@ -212,7 +212,7 @@ uint8_t numSeqUI = 1; // 2 if Split mode
 #define sequencerGet(SEQ,STEP,PARAM)		SEQ.get(&SEQ,STEP,PARAM)
 #define sequencerSet(SEQ,STEP,PARAM,VAL)	SEQ.get(&SEQ,STEP,PARAM,VAL)
 
-#define toggleNoteInStack(SEQ,NOTE)			sequencer[SEQ].notestack.toggle(&sequencer[SEQ].notestack,NOTE)
+#define toggleSequencerStep(SEQ,STEP)			sequencer[SEQ].toggle(&sequencer[SEQ], STEP)
 
 
 void initSequencer(void)
@@ -283,7 +283,7 @@ int cstep, curr, numnotes;
 void sequencerStep(void)
 {
 
-	//LED_Toggle(LED1); // turn on the red mantamate panel light (should this be LED5?)
+	LED_Toggle(LED5); // turn on the red mantamate panel light (should this be LED5?)
 	
 	//check if you are supposed to increment yet (based on the length value of the current step)
 
@@ -616,14 +616,12 @@ void processTouchLowerHex(uint8_t hexagon)
 		{
 			
 			
-			if (sequencer[currentSequencer].notestack.toggle(&sequencer[currentSequencer].notestack, step))
+			if (sequencer[currentSequencer].toggle(&sequencer[currentSequencer], step))
 			{
-				sequencer[currentSequencer].step[step].toggled = 1;
 				manta_set_LED_hex(hexagon, AmberOn);
 			}
 			else
 			{
-				sequencer[currentSequencer].step[step].toggled = 0;
 				manta_set_LED_hex(hexagon, AmberOff);
 				if (hexagon == uiHexCurrentStep)
 				{
