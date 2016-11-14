@@ -54,6 +54,7 @@
 // TIMER 
 volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
+volatile avr32_tc_t *tc3;
 
 #define TIMERS 1
 
@@ -69,11 +70,11 @@ volatile avr32_tc_t *tc2;
 #define TC2_IRQ_GROUP       AVR32_TC_IRQ_GROUP
 #define TC2_IRQ_PRIORITY    AVR32_INTC_INT0
 
-static void tc1_irq(void);
-static void tc2_irq(void);
-
-static void tc2_init(volatile avr32_tc_t *tc);
-static void tc1_init(volatile avr32_tc_t *tc);
+#define TC3                 (&AVR32_TC)
+#define TC3_CHANNEL         2
+#define TC3_IRQ             AVR32_TC_IRQ2
+#define TC3_IRQ_GROUP       AVR32_TC_IRQ_GROUP
+#define TC3_IRQ_PRIORITY    AVR32_INTC_INT0
 
 void initTimers (void);
 
@@ -81,7 +82,6 @@ void initTimers (void);
 extern uint16_t lengthDB;
 extern int slider;
 
-typedef enum BOOL { FALSE=0, TRUE=1 } BOOL;
 
 //global variables that everything which includes main.h should be able to see
 extern uint32_t dummycounter;

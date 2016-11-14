@@ -23,16 +23,11 @@ uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 {
 	uint16_t val = 0;
 	StepParameterType param = paramType;
+	
 	if (param == Toggled)
 		seq->step[step].toggled = value;
-	else if (param == Note)
-		seq->step[step].note = value;
-	else if (param == Hexagon)
-		val = seq->step[step].hexagon;
-	else if (param == Pitch)
-		seq->step[step].pitch = value;
-	else if (param == Octave)
-		seq->step[step].octave = value;
+	else if (param == Length)
+		seq->step[step].length = value;
 	else if (param == CV1)
 		seq->step[step].cv1 = value;
 	else if (param == CV2)
@@ -41,8 +36,22 @@ uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 		seq->step[step].cv3 = value;
 	else if (param == CV4)
 		seq->step[step].cv4 = value;
-	else if (param == Length) 
-		seq->step[step].length = value;
+	else if (param == Pitch)
+		seq->step[step].pitch = value;
+	else if (param == Octave)
+		seq->step[step].octave = value;
+	else if (param == Note)
+		seq->step[step].note = value;
+	else if (param == KbdHex)
+		val = seq->step[step].kbdhex;
+	else if (param == On1)
+		seq->step[step].on[PanelOne] = value;
+	else if (param == On2)
+		seq->step[step].on[PanelTwo] = value;
+	else if (param == On3)
+		seq->step[step].on[PanelThree] = value;
+	else if (param == On4)
+		seq->step[step].on[PanelFour] = value;
 	else 
 		; // Other
 
@@ -56,14 +65,8 @@ uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 	
 	if (param == Toggled)
 		val = seq->step[step].toggled;
-	else if (param == Note)
-		val = seq->step[step].note;
-	else if (param == Hexagon)
-		val = seq->step[step].hexagon;
-	else if (param == Pitch)
-		val = seq->step[step].pitch;
-	else if (param == Octave)
-		val = seq->step[step].octave;
+	else if (param == Length)
+		val = seq->step[step].length;
 	else if (param == CV1)
 		val = seq->step[step].cv1;
 	else if (param == CV2)
@@ -72,13 +75,28 @@ uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 		val = seq->step[step].cv3;
 	else if (param == CV4)
 		val = seq->step[step].cv4;
-	else if (param == Length)
-		val = seq->step[step].length;
+	else if (param == Pitch)
+		val = seq->step[step].pitch;
+	else if (param == Octave)
+		val = seq->step[step].octave;
+	else if (param == Note)
+		val = seq->step[step].note;
+	else if (param == KbdHex)
+		val = seq->step[step].kbdhex;
+	else if (param == On1)
+		val = seq->step[step].on[PanelOne];
+	else if (param == On2)
+		val = seq->step[step].on[PanelTwo];
+	else if (param == On3)
+		val = seq->step[step].on[PanelThree];
+	else if (param == On4)
+		val = seq->step[step].on[PanelFour];
 	else
 		; // Other
 		
 	return val;	
 }
+
 
 void tSequencerNext(tSequencer *seq)
 {
@@ -240,22 +258,31 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
+		// Pitch and Trigger parameters
+		seq->step[i].toggled = 0;  // not toggled on
+		seq->step[i].length = 1;  // step_length = 1
 		seq->step[i].cv1 = 0;  // cv1 zero
 		seq->step[i].cv2 = 0;  // cv2 zero
-		seq->step[i].pitch = 0;  // keyboard pitch zero
-		seq->step[i].note = 1;  // note, not rest
-		seq->step[i].toggled = 0;  // not toggled on
+		
+		// Pitch only
 		seq->step[i].cv3 = 0;  // cv3 zero
 		seq->step[i].cv4 = 0;  // cv4 zero
+		seq->step[i].note = 1;  // note, not rest
+		seq->step[i].pitch = 0;  // keyboard pitch zero
 		seq->step[i].octave = 3;  // octave
-		seq->step[i].length = 1;  // step_length = 1
-		seq->step[i].hexagon = MAX_STEPS + 0;  // hexagon number in keyboard range
+		seq->step[i].kbdhex = MAX_STEPS + 0;  // hexagon number in keyboard range
+		
+		// Trigger only
+		for (int j = 0; j < 4; j++)
+		{
+			seq->step[i].on[j] = 0;
+		}
 	}
 	
 	tNoteStackInit(&seq->notestack, maxLength);
-	
-	
-	
+
 	return 0;
 }
+
+
 

@@ -322,10 +322,6 @@ static void uhi_hid_manta_report_reception(
 	for(i=0; i<48; i++)
 	{
 		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
-		if (uhi_hid_manta_dev.report[i+1] == 0)
-		{
-			//this is what happens if there's that weird glitch - I think it's solved (it happened when the MantaMate was too busy processing things to request new data from the Manta at the proper rate). Also could happen in normal usage if the sensors output the value 128, but shouldn't happen when the manta isn't touched;
-		}
 	}
 	//decode sliders
 	for(i=0; i<4; i++)

@@ -221,69 +221,6 @@ void ui_host_sof_event(void)
 				//LED_Toggle(LED2);
 			}
 		}
-		/*
-		if ((!gpio_get_pin_value(GPIO_PUSH_BUTTON_0)) && (lastbutton0 == 0))
-		{
-			preset_num--;
-			Write7Seg(preset_num);
-		}
-		if ((!gpio_get_pin_value(GPIO_PUSH_BUTTON_1)) && (lastbutton1 == 0))
-		{
-			preset_num++;
-			Write7Seg(preset_num);
-		}
-		lastbutton0 = !gpio_get_pin_value(GPIO_PUSH_BUTTON_0);
-		lastbutton1 = !gpio_get_pin_value(GPIO_PUSH_BUTTON_1);
-		/*
-		// Scan button to enter in suspend mode
-		b_btn_state = !gpio_get_pin_value(GPIO_PUSH_BUTTON_0);
-		if (b_btn_state != btn_suspend) {
-			// Button have changed
-			btn_suspend = b_btn_state;
-			if (b_btn_state) {
-				// Button has been pressed
-				LED_Off(LED2);
-				LED_Off(LED3);
-				LED_Off(LED_BI0_GREEN);
-				LED_Off(LED_BI0_RED);
-				LED_Off(LED_BI1_GREEN);
-				LED_Off(LED_BI1_RED);
-				ui_enable_asynchronous_interrupt();
-				uhc_suspend(false);
-				return;
-			}
-		}
-		*/
-	/*
-		// Scan button to enter in suspend mode and remote wakeup
-		b_btn_state = !gpio_get_pin_value(GPIO_PUSH_BUTTON_1);
-		if (b_btn_state != btn_suspend_and_remotewakeup) {
-			// Button have changed
-			btn_suspend_and_remotewakeup = b_btn_state;
-			if (b_btn_state) {
-				// Button has been pressed
-				LED_Off(LED2);
-				LED_Off(LED3);
-				LED_Off(LED_BI0_GREEN);
-				LED_Off(LED_BI0_RED);
-				LED_Off(LED_BI1_GREEN);
-				LED_Off(LED_BI1_RED);
-				ui_enable_asynchronous_interrupt();
-				uhc_suspend(true);
-				return;
-			}
-		}
-		*/
-		/*
-		if (ui_hid_mouse_plug) {
-			// Power on a LED when the mouse move
-			if (!ui_x && !ui_y && !ui_scroll) {
-				LED_Off(LED_BI0_GREEN);
-			}else{
-				ui_x = ui_y = ui_scroll = 0;
-				LED_On(LED_BI0_GREEN);
-			}
-		}*/
 	}
 }
 
