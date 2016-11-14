@@ -355,6 +355,8 @@ static void uhi_hid_manta_report_reception(
 	{
 		processKeys();
 	}
+	
+	manta_send_LED();
 	uhi_hid_manta_start_trans_report(add);
 }
 
@@ -466,7 +468,6 @@ void manta_LED_set_mode(uint8_t mode)
 		case HOST_CONTROL_HEX_AND_BUTTON: uhi_manta_report[9] = 0x01; break;		
 		default: break;         // TODO fix these modes to be the correct bits
 	}
-	manta_send_LED();
 }
 
 void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)

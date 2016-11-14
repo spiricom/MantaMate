@@ -257,7 +257,7 @@ void initSequencer(void)
 	}
 	
 	
-	manta_send_LED(); // now write that data to the manta 
+	; // now write that data to the manta 
 }
 
 void uiStep(MantaSequencer seq)
@@ -348,7 +348,7 @@ void uiStep(MantaSequencer seq)
 	}
 	
 	
-	manta_send_LED();
+	;
 }
 
 void sequencerStep(void)
@@ -429,7 +429,6 @@ void sequencerStep(void)
 	{
 		uiStep((currentSequencer+1) % NUM_SEQ);
 	}
-	manta_send_LED(); // now write that data to the manta
 }
 
 void setKeyboardLEDsFor(MantaSequencer seq, uint8_t note)
@@ -734,7 +733,7 @@ void processTouchLowerHex(uint8_t hexagon)
 
 	}
 	
-	manta_send_LED();
+	;
 	new_lower_hex = 0;
 }
 
@@ -914,7 +913,7 @@ void processTouchUpperHex(uint8_t hexagon)
 
 	}
 	
-	manta_send_LED();
+	;
 	
 	//set memory variables
 	new_upper_hex = 0;
@@ -1026,7 +1025,7 @@ void processTouchFunctionButton(MantaButton button)
 	}
 	
 	// Actually send LED data to Manta.
-	manta_send_LED();
+	;
 	
 	new_func_button = 0;
 }
@@ -1056,7 +1055,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 	
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
-		manta_send_LED();
+		;
 		if (uiHexCurrentStep == currentHexUI)
 		{
 			dacsend(sliderNum, 0, val);
@@ -1079,7 +1078,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 		
 		manta_set_LED_slider(sliderNum,(val >> 9) + 1); // add one to the slider values because a zero turns them off
-		manta_send_LED();
+		;
 		if (uiHexCurrentStep == currentHexUI)
 		{
 			// This might be wrong?
@@ -1096,7 +1095,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			sequencer[currentSequencer].step[note].octave = newOct;
 			current_seq_octave = newOct;
 			manta_set_LED_slider(0, newOct + 1); // add one to the slider values because a zero turns them off
-			manta_send_LED();
+			;
 
 			if ((uiHexCurrentStep == currentHexUI) && (prevOct != newOct))
 			{
@@ -1111,7 +1110,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		{
 			sequencer[currentSequencer].step[note].length = (val >> 9) + 1; //step length (should be 1-8)
 			manta_set_LED_slider(1, (val >> 9) + 1); // add one to the slider values because a zero turns them off
-			manta_send_LED();
+			;
 		}
 		else
 		{
