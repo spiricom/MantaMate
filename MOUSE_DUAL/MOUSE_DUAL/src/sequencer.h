@@ -88,6 +88,7 @@ typedef struct _tSequencer
 	uint8_t lengthCounter;
 	
 	void (*next)(struct _tSequencer *self);
+	int (*toggle)(struct _tSequencer *self, uint8_t step);
 	void (*setPattern)(struct _tSequencer *self, SequencerPatternType type);
 	int (*getNumNotes)(struct _tSequencer *self);
 	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);

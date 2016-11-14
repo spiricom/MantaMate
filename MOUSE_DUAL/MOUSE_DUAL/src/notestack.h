@@ -22,10 +22,9 @@ typedef struct _tNoteStack
 	void (*setMaxSize)(struct _tNoteStack *self, uint8_t size);
 	
 	void (*add)(struct _tNoteStack *self, uint8_t note);
-	void (*remove)(struct _tNoteStack *self, uint8_t note);
+	int (*remove)(struct _tNoteStack *self, uint8_t note);
 	void (*clear)(struct _tNoteStack *self);
 	
-	int (*toggle)(struct _tNoteStack *self, uint8_t note);
 	int (*next)(struct _tNoteStack *self); 
 	
 } tNoteStack;
