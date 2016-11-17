@@ -432,15 +432,18 @@ void clearEditStackHexes(MantaSequencer seq)
 	
 	int size = editStack.size;
 	int note = 0;
+	int hexUI = 0;
 	
 	for (int i = 0; i < size; i++)
 	{
-		note = editStack.notestack[i];
-		manta_set_LED_hex(note, Off);
+		hexUI = editStack.notestack[i];
+		note = hexUIToStep(hexUI);
+		
+		manta_set_LED_hex(hexUI, Off);
 		
 		if (sequencer[seq].step[note].toggled)
 		{
-			manta_set_LED_hex(note, AmberOn);
+			manta_set_LED_hex(hexUI, AmberOn);
 		}
 	}
 	
@@ -480,6 +483,11 @@ void processTouchLowerHex(uint8_t hexagon)
 			currentSequencer = SequencerTwo;
 		}
 		
+		if (prevSequencer != currentSequencer)
+		{
+			clearEditStackHexes(currentSequencer);
+		}
+		
 	}
 	
 	if (key_vs_option == KeyboardMode)
@@ -515,10 +523,11 @@ void processTouchLowerHex(uint8_t hexagon)
 	// if we are in edit mode, then we want to be able to touch the hexagons to edit the sequencer[currentSequencer] stages, without changing which stages will be stepped on
 	if (edit_vs_play == EditMode)
 	{
+		int step = hexUIToStep(currentHexUI);
 		if (editNoteOn >= 0)
 		{
 			// If the first hex added is still touched, add new hex to edit stack.
-			if (editStack.contains(&editStack,currentHexUI) < 0)
+			if (editStack.contains(&editStack, currentHexUI) < 0)
 			{
 				editStack.add(&editStack, currentHexUI);
 				manta_set_LED_hex(currentHexUI,Red);
@@ -584,33 +593,33 @@ void setParameter(MantaSequencer seq, StepParameterType param, uint16_t value)
 	int i = 0;
 
 	if (param == Toggled)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].toggled = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].toggled = value;
 	else if (param == Length)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].length = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].length = value;
 	else if (param == CV1)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].cv1 = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv1 = value;
 	else if (param == CV2)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].cv2 = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv2 = value;
 	else if (param == CV3)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].cv3 = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv3 = value;
 	else if (param == CV4)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].cv4 = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv4 = value;
 	else if (param == Pitch)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].pitch = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].pitch = value;
 	else if (param == Octave)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].octave = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = value;
 	else if (param == Note)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].note = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].note = value;
 	else if (param == KbdHex)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].kbdhex = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].kbdhex = value;
 	else if (param == On1)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].on[PanelOne] = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelOne] = value;
 	else if (param == On2)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].on[PanelTwo] = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelTwo] = value;
 	else if (param == On3)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].on[PanelThree] = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelThree] = value;
 	else if (param == On4)
-	for (; i < size; i++) sequencer[seq].step[editStack.notestack[i]].on[PanelFour] = value;
+	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelFour] = value;
 	else
 	;
 	
@@ -684,7 +693,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		}
 		
 		int cStep = sequencer[currentSequencer].currentStep;
-		if (editStack.contains(&editStack,cStep) != -1)
+		if (editStack.contains(&editStack,stepToHexUI(currentSequencer,cStep)) != -1)
 		{
 			//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
 			uint32_t DACtemp = (uint32_t)sequencer[currentSequencer].step[cStep].pitch;
@@ -990,7 +999,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevOct = 0;
 			if (editStack.size <= 1)
 			{
-				prevOct = sequencer[currentSequencer].step[editStack.first(&editStack)].octave;
+				prevOct = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].octave;
 			}
 			uint16_t newOct = (val >> 9);
 			
