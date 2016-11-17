@@ -62,6 +62,7 @@
 
 
 
+
 /**
  * \ingroup uhi_hid_manta_group
  * \defgroup uhi_hid_manta_group_internal Implementation of UHI HID Mouse
@@ -356,7 +357,13 @@ static void uhi_hid_manta_report_reception(
 		processKeys();
 	}
 	
+	
+		
+	blinkersToggle();
+
+	
 	manta_send_LED();
+	
 	uhi_hid_manta_start_trans_report(add);
 }
 

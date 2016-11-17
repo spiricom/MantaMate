@@ -140,9 +140,17 @@ __attribute__((__interrupt__))
 static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	tc_read_sr(TC3, TC3_CHANNEL);
+	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 	
-	LED_Toggle(LED4);
+	if (sr & AVR32_TC_SR0_CPAS_MASK)
+	{
+		//blinkersOn();
+	}
+	
+	if (sr & AVR32_TC_SR0_CPCS_MASK)
+	{	
+		//blinkersOff();
+	}
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
@@ -213,7 +221,7 @@ static void tc1_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc(tc, TC1_CHANNEL, (sysclk_get_pba_hz() / 8 / 1000)); // was 1000
+	tc_write_rc(tc, TC1_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
 
@@ -288,14 +296,14 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc(tc, TC2_CHANNEL, (sysclk_get_pba_hz() / 8 / 1000)); // was 1000
+	tc_write_rc(tc, TC2_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
 	
 	tc_start(tc, TC3_CHANNEL);
 	
 }
-
+uint64_t pba_hz = 0;
 static void tc3_init(volatile avr32_tc_t *tc)
 {
 
@@ -351,7 +359,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 		.ldras = 0,
 		.cpcs  = 1, // Enable interrupt on RC compare alone
 		.cpbs  = 0,
-		.cpas  = 0,
+		.cpas  = 1,
 		.lovrs = 0,
 		.covfs = 0
 	};
@@ -364,7 +372,10 @@ static void tc3_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc(tc, TC3_CHANNEL, (sysclk_get_pba_hz() / 8 / 1000)); // was 1000
+	
+	tc_write_ra( tc, TC3_CHANNEL, 2500); // was 1000
+	tc_write_rc( tc, TC3_CHANNEL, 3000); // was 1000
+	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
 

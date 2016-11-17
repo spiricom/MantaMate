@@ -105,7 +105,7 @@ void tSequencerNext(tSequencer *seq)
 	SequencerPatternType pat = seq->pattern;
 	seq->stepGo = 1;
 	
-	while (seq->notestack.num > 0)
+	while (seq->notestack.size > 0)
 	{
 		if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
 		
@@ -172,13 +172,13 @@ void tSequencerNext(tSequencer *seq)
 
 int tSequencerGetNumNotes(tSequencer *seq)
 {
-	return seq->notestack.num;
+	return seq->notestack.size;
 }
 
 int tSequencerSetMaxLength(tSequencer *seq, uint8_t maxLength)
 {	
 	seq->maxLength = maxLength;
-	seq->notestack.setMaxSize(&seq->notestack,maxLength);
+	seq->notestack.setCapacity(&seq->notestack,maxLength);
 }
 
 void tSequencerSetOctave(tSequencer *seq, int8_t octave)

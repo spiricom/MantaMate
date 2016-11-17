@@ -16,15 +16,18 @@ typedef struct _tNoteStack
 	// -1 in unsigned notestack is actually going to represented as 255. may cause issues if we aren't careful. should change.
 	uint8_t notestack[32];
 	uint8_t pos;
-	uint8_t num;
 	uint8_t size;
+	uint8_t capacity;
 	
-	void (*setMaxSize)(struct _tNoteStack *self, uint8_t size);
+	void (*setCapacity)(struct _tNoteStack *self, uint8_t cap);
 	
+	void (*addIfNotAlreadyThere)(struct _tNoteStack *self, uint8_t note);
 	void (*add)(struct _tNoteStack *self, uint8_t note);
 	int (*remove)(struct _tNoteStack *self, uint8_t note);
 	void (*clear)(struct _tNoteStack *self);
-	
+	uint8_t (*first)(struct _tNoteStack *self);
+	int (*getSize)(struct _tNoteStack *self);
+	int (*contains)(struct _tNoteStack *self, uint8_t note);
 	int (*next)(struct _tNoteStack *self); 
 	
 } tNoteStack;

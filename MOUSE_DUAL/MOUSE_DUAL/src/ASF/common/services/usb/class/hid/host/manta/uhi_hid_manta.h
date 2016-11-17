@@ -99,6 +99,8 @@ typedef enum MantaLEDColor
 
 
 
+
+
 //! Global define which contains standard UHI API for UHC
 //! It must be added in USB_HOST_UHI define from conf_usb_host.h file.
 #define UHI_HID_MANTA { \
