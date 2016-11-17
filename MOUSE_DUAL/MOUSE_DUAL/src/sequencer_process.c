@@ -125,9 +125,6 @@ PanelSwitch panelSwitch[NUM_PANEL_MOVES] = {
 
 SequencerPatternType pattern_type = LeftRightRowUp;
 
-
-
-
 // INPUT
 void processTouchFunctionButton(MantaButton button);
 void processTouchLowerHex(uint8_t hexagon);
@@ -167,7 +164,6 @@ tSequencer trigSequencer[NUM_SEQ];
 
 tSequencer *sequencer; 
 
-uint8_t editList[32];
 int editNoteOn; 
 tNoteStack editStack;
 
@@ -442,13 +438,25 @@ void clearEditStackHexes(MantaSequencer seq)
 		note = editStack.notestack[i];
 		manta_set_LED_hex(note, Off);
 		
-		if (sequencer[seq].step[hexUIToStep(prevHexUI)].toggled)
+		if (sequencer[seq].step[note].toggled)
 		{
 			manta_set_LED_hex(note, AmberOn);
 		}
 	}
 	
 	editStack.clear(&editStack);
+	
+	editStack.add(&editStack,currentHexUI);
+	
+	if (edit_vs_play == EditMode)
+	{
+		manta_set_LED_hex(currentHexUI, Red);
+	}
+	else
+	{
+		manta_set_LED_hex(currentHexUI, AmberOn);
+	}
+	
 }
 
 void processTouchLowerHex(uint8_t hexagon)
@@ -520,10 +528,9 @@ void processTouchLowerHex(uint8_t hexagon)
 		{
 			clearEditStackHexes(prevSequencer);
 			
-			editNoteOn = currentHexUI;
+			editNoteOn = editStack.first(&editStack);
 			
-			editStack.add(&editStack,currentHexUI);
-			manta_set_LED_hex(currentHexUI,Red);
+			manta_set_LED_hex(editNoteOn,Red);
 		}
 
 		// Below not really doing anything atm.
@@ -836,16 +843,17 @@ void processTouchFunctionButton(MantaButton button)
 			edit_vs_play = PlayToggleMode;
 			
 			clearEditStackHexes(currentSequencer);
-			editStack.add(&editStack, currentHexUI);
 			
-			if (currentHexUI != sequencer[currentSequencer].currentStep)
+			int currHex = editStack.first(&editStack);
+			
+			if (currHex != sequencer[currentSequencer].currentStep)
 			{
-				manta_set_LED_hex(currentHexUI, RedOff);
+				manta_set_LED_hex(currHex, AmberOn);
 			}
 			
-			if (sequencer[currentSequencer].step[hexUIToStep(currentHexUI)].toggled)
+			if (sequencer[currentSequencer].step[hexUIToStep(currHex)].toggled)
 			{
-				manta_set_LED_hex(currentHexUI, AmberOn);
+				manta_set_LED_hex(currHex, AmberOn);
 			}
 			
 			manta_set_LED_button(ButtonTopRight, Amber);
@@ -854,13 +862,14 @@ void processTouchFunctionButton(MantaButton button)
 		{
 			edit_vs_play = EditMode;
 			
-			if (currentHexUI != sequencer[currentSequencer].currentStep)
+			int currHex = editStack.first(&editStack);
+			if (currHex != sequencer[currentSequencer].currentStep)
 			{
-				manta_set_LED_hex(currentHexUI, Red);
+				manta_set_LED_hex(currHex, Red);
 			}
 			else
 			{
-				manta_set_LED_hex(currentHexUI, Amber);
+				manta_set_LED_hex(currHex, Amber);
 			}
 			
 			manta_set_LED_button(ButtonTopRight, Off);
@@ -869,7 +878,7 @@ void processTouchFunctionButton(MantaButton button)
 		
 		if (key_vs_option == KeyboardMode)
 		{
-			setKeyboardLEDsFor(currentSequencer, currentHexUI, 1);
+			setKeyboardLEDsFor(currentSequencer, editStack.first(&editStack), 1);
 		}
 		
 		setSliderLEDsFor(currentSequencer, currentHexUI);
@@ -885,7 +894,7 @@ void processTouchFunctionButton(MantaButton button)
 		else
 		{
 			key_vs_option = KeyboardMode;
-			setKeyboardLEDsFor(currentSequencer, currentHexUI, 1);
+			setKeyboardLEDsFor(currentSequencer, 0, 0);
 			manta_set_LED_button(ButtonBottomLeft, Off);
 		}
 		
