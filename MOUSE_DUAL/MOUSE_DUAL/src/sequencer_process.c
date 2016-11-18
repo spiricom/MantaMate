@@ -614,7 +614,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		
 		if (current_pitch == 255)
 		{
-			if (!(sequencer[currentSequencer].step[editStack.first(&editStack)].note))
+			if (!(sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].note))
 			{
 				setParameter(currentSequencer,Note,1);
 			}
@@ -625,7 +625,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		}
 		else if (current_pitch == 254)
 		{
-			if(sequencer[currentSequencer].step[editStack.first(&editStack)].note)
+			if(sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].note)
 			{
 				// down an octave
 				sequencer[currentSequencer].downOctave(&sequencer[currentSequencer]);
@@ -639,7 +639,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		}
 		else if (current_pitch == 253)
 		{
-			if(sequencer[currentSequencer].step[editStack.first(&editStack)].note)
+			if(sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].note)
 			{
 				//up an octave
 				sequencer[currentSequencer].upOctave(&sequencer[currentSequencer]);
@@ -680,7 +680,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			DAC16Send(0, DACtemp); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 		}
 		
-		setKeyboardLEDsFor(currentSequencer, editStack.first(&editStack));
+		setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 	}
 	else
 	{
@@ -780,7 +780,6 @@ void processTouchUpperHex(uint8_t hexagon)
 
 	}
 	
-	;
 	
 	//set memory variables
 	new_upper_hex = 0;
@@ -818,7 +817,7 @@ void processTouchFunctionButton(MantaButton button)
 		}
 		else
 		{
-			setSliderLEDsFor(currentSequencer, editStack.first(&editStack));
+			setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 		}
 		
 	}
@@ -867,7 +866,7 @@ void processTouchFunctionButton(MantaButton button)
 		
 		if (key_vs_option == KeyboardMode)
 		{
-			setKeyboardLEDsFor(currentSequencer, editStack.first(&editStack));
+			setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 		}
 		
 		setSliderLEDsFor(currentSequencer, currentHexUI);
