@@ -118,7 +118,20 @@ static void tc1_irq(void)
 	
 
 	LED_Off(LED1);
-	DAC16Send(1, 0);
+	
+	if (pitch_vs_trigger == PitchMode)
+	{
+		DAC16Send(1, 0);
+	}
+	else // TriggerMode
+	{
+		// Set 4 trigger outputs low
+		dacsend(0, 1, 0);
+		dacsend(1, 1, 0);
+		DAC16Send(0, 0);
+		DAC16Send(1, 0);
+	}
+	
 	tc_stop(tc1, TC1_CHANNEL);
 }
 
@@ -131,7 +144,20 @@ static void tc2_irq(void)
 	
 
 	LED_Off(LED3);
-	DAC16Send(3, 0);
+	
+	if (pitch_vs_trigger == PitchMode)
+	{
+		DAC16Send(3, 0);
+	}
+	else // TriggerMode
+	{
+		// Set 4 trigger outputs low
+		dacsend(2, 1, 0);
+		dacsend(3, 1, 0);
+		DAC16Send(2, 0);
+		DAC16Send(3, 0);
+	}
+	
 	tc_stop(tc2, TC2_CHANNEL);
 }
 
@@ -192,7 +218,7 @@ static void tc1_init(volatile avr32_tc_t *tc)
 		// Counter disable when RC compare.
 		.cpcdis   = false,
 		// Counter clock stopped with RC compare.
-		.cpcstop  = false,
+		.cpcstop  = true,
 		// Burst signal selection.
 		.burst    = false,
 		// Clock inversion.
@@ -267,7 +293,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		// Counter disable when RC compare.
 		.cpcdis   = false,
 		// Counter clock stopped with RC compare.
-		.cpcstop  = false,
+		.cpcstop  = true,
 		// Burst signal selection.
 		.burst    = false,
 		// Clock inversion.
@@ -299,8 +325,6 @@ static void tc2_init(volatile avr32_tc_t *tc)
 	tc_write_rc(tc, TC2_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
-	
-	tc_start(tc, TC3_CHANNEL);
 	
 }
 uint64_t pba_hz = 0;
@@ -379,7 +403,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
 
-	
+	//tc_start(tc, TC3_CHANNEL);
 }
 
 

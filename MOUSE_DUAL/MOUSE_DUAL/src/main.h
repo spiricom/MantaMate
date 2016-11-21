@@ -50,6 +50,8 @@
 #include <stdint.h>
 
 #include "usb_protocol_cdc.h"
+#include "utilities.h"
+
 
 // TIMER 
 volatile avr32_tc_t *tc1;

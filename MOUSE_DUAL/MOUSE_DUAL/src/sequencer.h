@@ -11,8 +11,9 @@
 
 #include "stdlib.h"
 #include "notestack.h"
+#include "utilities.h"
 
-#define MAX_STEPS 32
+
 
 uint8_t pattern_col_down[MAX_STEPS];
 uint8_t pattern_col_up[MAX_STEPS];
@@ -21,52 +22,6 @@ uint8_t pattern_row_reverse[MAX_STEPS];
 uint8_t pattern_diag[MAX_STEPS];
 uint8_t pattern_diag_reverse[MAX_STEPS];
 
-typedef enum SequencerPatternType {
-	LeftRightRowDown,
-	LeftRightRowUp,
-	LeftRightDiagDown,
-	LeftRightDiagUp,
-	LeftRightColDown,
-	RightLeftColUp,
-	RandomWalk,
-	OrderTouch,
-	RecordTouch,
-	
-	//not using atm
-	RightLeftRowDown,
-	RightLeftRowUp,
-	RightLeftDiagDown,
-	RightLeftDiagUp,
-	LeftRightColUp,
-	RightLeftColDown,
-	SequencerPatternTypeNil,
-	
-}SequencerPatternType;
-
-typedef enum TriggerPanel {
-	PanelOne = 0,
-	PanelTwo,
-	PanelThree,
-	PanelFour,
-	PanelNil,
-} TriggerPanel;
-
-typedef enum StepParameterType {
-	Toggled,
-	Length,
-	CV1,
-	CV2,
-	CV3,
-	CV4,
-	Pitch,
-	Octave,
-	Note,
-	KbdHex,
-	On1,
-	On2,
-	On3,
-	On4
-}StepParameterType;
 
 typedef struct _tStep
 {

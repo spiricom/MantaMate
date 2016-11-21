@@ -840,9 +840,6 @@ void noteOut()
 void tuningTest(uint8_t whichOct)
 {
 
-	uint8_t numOct = 6;
-
-		
 	DAC16Send(0, calculateDACvalue(12 * whichOct));
 	DAC16Send(1, calculateDACvalue(12 * whichOct));
 	DAC16Send(2, calculateDACvalue(12 * whichOct));

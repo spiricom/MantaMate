@@ -204,12 +204,10 @@ void tSequencerUpOctave(tSequencer *seq)
 
 int tSequencerStepToggle(tSequencer *seq, uint8_t step)
 {
-	uint8_t j,k;
 	uint8_t foundOne = 0;
 	
 	foundOne = seq->notestack.remove(&seq->notestack,step);
 	
-
 	if (!foundOne)
 	{
 		seq->step[step].toggled = 1;

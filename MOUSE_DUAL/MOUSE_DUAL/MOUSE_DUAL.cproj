@@ -564,6 +564,9 @@
     <Compile Include="src\ASF\avr32\drivers\tc\tc.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\utilities.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="src\ASF\avr32\drivers\tc\tc.h">
       <SubType>compile</SubType>
     </None>
