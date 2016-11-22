@@ -1259,7 +1259,17 @@ void uiStep(MantaSequencer seq)
 		}
 		else
 		{
-			manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			if (pitch_vs_trigger == TriggerMode)
+			{
+				if (!sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
+				{
+					manta_set_LED_hex(uiHexCurrentStep, RedOn);
+				}
+			}
+			else
+			{
+				manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			}
 		}
 			
 		if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
@@ -1268,14 +1278,45 @@ void uiStep(MantaSequencer seq)
 		}
 		else
 		{
-			manta_set_LED_hex(uiHexPrevStep, RedOff);
+			if (pitch_vs_trigger == TriggerMode)
+			{
+				if (!sequencer[seq].step[pStep].on[currentPanel[currentSequencer]])
+				{
+					manta_set_LED_hex(uiHexPrevStep, RedOff);
+				}
+			}
+			else
+			{
+				manta_set_LED_hex(uiHexPrevStep, RedOff);
+			}
 		}
 			
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
-		manta_set_LED_hex(uiHexPrevStep, RedOff);
-		manta_set_LED_hex(uiHexCurrentStep, RedOn);
+		if (pitch_vs_trigger == TriggerMode)
+		{
+			if (!sequencer[seq].step[pStep].on[currentPanel[currentSequencer]])
+			{
+				manta_set_LED_hex(uiHexPrevStep, RedOff);
+			}
+		}
+		else
+		{
+			manta_set_LED_hex(uiHexPrevStep, RedOff);
+		}
+		
+		if (pitch_vs_trigger == TriggerMode)
+		{
+			if (!sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
+			{
+				manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			}
+		}
+		else
+		{
+			manta_set_LED_hex(uiHexCurrentStep, RedOn);
+		}
 	}
 	else // TrigToggleMode
 	{
@@ -1475,6 +1516,15 @@ void setSequencerLEDsFor(MantaSequencer seq)
 		{
 			manta_set_LED_hex(hexUI, Off);
 		}
+		
+		if (pitch_vs_trigger == TriggerMode)
+		{
+			if (sequencer[currentSequencer].step[i].on[currentPanel[currentSequencer]])
+			{
+				manta_set_LED_hex(hexUI, RedOn);
+			}
+		}
+		
 	}
 	
 	int size = editStack.size;
@@ -1486,8 +1536,6 @@ void setSequencerLEDsFor(MantaSequencer seq)
 			manta_set_LED_hex(editStack.notestack[i], Red);
 		}
 	}
-
-	
 	
 	return;
 }
