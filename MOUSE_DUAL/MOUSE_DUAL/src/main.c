@@ -131,8 +131,6 @@ static void tc1_irq(void)
 		DAC16Send(0, 0);
 		DAC16Send(1, 0);
 	}
-	
-	tc_stop(tc1, TC1_CHANNEL);
 }
 
 // SequencerTwo timer interrupt.
@@ -141,10 +139,7 @@ static void tc2_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC2, TC2_CHANNEL);
-	
-
-	LED_Off(LED3);
-	
+		
 	if (pitch_vs_trigger == PitchMode)
 	{
 		DAC16Send(3, 0);
@@ -157,8 +152,6 @@ static void tc2_irq(void)
 		DAC16Send(2, 0);
 		DAC16Send(3, 0);
 	}
-	
-	tc_stop(tc2, TC2_CHANNEL);
 }
 
 // Blink timer.
@@ -299,7 +292,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		// Clock inversion.
 		.clki     = false,
 		// Internal source clock 3, connected to fPBA / 8.
-		.tcclks   = TC_CLOCK_SOURCE_TC4
+		.tcclks   = TC_CLOCK_SOURCE_TC3
 	};
 
 	// Options for enabling TC interrupts
