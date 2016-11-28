@@ -62,6 +62,7 @@ typedef enum MantaSliderMode {
 	SliderModeOne = 0, //CV1, CV2
 	SliderModeTwo,     //CV3, CV4
 	SliderModeThree,   //OCTAVE, STEPLENGTH
+	SliderModePitch,
 	SliderModeNil
 }MantaSliderMode;
 
@@ -137,6 +138,7 @@ typedef enum StepParameterType {
 	CV3,
 	CV4,
 	Pitch,
+	Fine,
 	Octave,
 	Note,
 	KbdHex,
@@ -149,7 +151,10 @@ typedef enum StepParameterType {
 
 // Sequencer Modes
 SequencerPatternType pattern_type;
-MantaSliderMode mantaSliderMode;
+
+MantaSliderMode prevMantaSliderMode;
+MantaSliderMode currentMantaSliderMode;
+
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
 GlobalOptionType full_vs_split;

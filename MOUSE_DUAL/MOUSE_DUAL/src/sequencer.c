@@ -38,6 +38,8 @@ uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 		seq->step[step].cv4 = value;
 	else if (param == Pitch)
 		seq->step[step].pitch = value;
+	else if (param == Fine)
+		seq->step[step].fine = value;
 	else if (param == Octave)
 		seq->step[step].octave = value;
 	else if (param == Note)
@@ -77,6 +79,8 @@ uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 		val = seq->step[step].cv4;
 	else if (param == Pitch)
 		val = seq->step[step].pitch;
+	else if (param == Fine)
+		val = seq->step[step].fine;
 	else if (param == Octave)
 		val = seq->step[step].octave;
 	else if (param == Note)
@@ -267,6 +271,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 		seq->step[i].cv4 = 0;  // cv4 zero
 		seq->step[i].note = 1;  // note, not rest
 		seq->step[i].pitch = 0;  // keyboard pitch zero
+		seq->step[i].fine = 2048; // 2948 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
 		seq->step[i].octave = 3;  // octave
 		seq->step[i].kbdhex = MAX_STEPS + 0;  // hexagon number in keyboard range
 		

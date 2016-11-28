@@ -36,7 +36,8 @@ typedef struct _tStep
 	uint8_t note;   
 	uint16_t cv3;       
 	uint16_t cv4;      
-	uint16_t pitch;   
+	uint16_t pitch;
+	uint16_t fine;   
 	uint16_t octave;
 	uint16_t kbdhex; 
 	
