@@ -30,6 +30,10 @@ void processReleaseLowerHex(uint8_t hexagon);
 void processTouchUpperHex(uint8_t hexagon);
 void processReleaseUpperHex(uint8_t hexagon);
 
+// OUTPUT
+void dacSendPitchMode(MantaSequencer seq, uint8_t step);
+void dacSendTriggerMode(MantaSequencer seq, uint8_t step);
+
 // LEDs
 void setSliderLEDsFor(MantaSequencer seq, int note);
 void setKeyboardLEDsFor(MantaSequencer seq, int note);
@@ -108,6 +112,9 @@ tNoteStack editStack;
 
 int keyNoteOn;
 
+tNoteStack noteOnStack;
+tNoteStack noteOffStack;
+
 #define RANGEMODE 0
 #define TOGGLEMODE 1
 #define SINGLEMODE 0
@@ -178,28 +185,30 @@ void initSequencer(void)
 	initTimers();
 	
 	// Sequencer Modes
-	pattern_type = LeftRightRowUp;
-	currentMantaSliderMode = SliderModeOne;
-	prevMantaSliderMode = SliderModeOne;
-	edit_vs_play = EditMode;
-	currentFunctionButton = ButtonTopLeft;
-	full_vs_split = FullMode;
-	pitch_vs_trigger = TriggerMode;
-	range_vs_toggle_mode = ToggleMode;
-	key_vs_option = KeyboardMode;
-	seq_vs_arp = SeqMode;
+	pattern_type =				LeftRightRowUp;
+	currentMantaSliderMode =	SliderModeOne;
+	prevMantaSliderMode =		SliderModeOne;
+	edit_vs_play =				EditMode;
+	currentFunctionButton =		ButtonTopLeft;
+	full_vs_split =				FullMode;
+	pitch_vs_trigger =			PitchMode;
+	range_vs_toggle_mode =		ToggleMode;
+	key_vs_option =				KeyboardMode;
+	seq_vs_arp =				SeqMode;
 	
 	
-	tNoteStackInit(&editStack,32);
+	tNoteStackInit(&editStack,		32);
+	tNoteStackInit(&noteOffStack,	32);
+	tNoteStackInit(&noteOnStack,	32);
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
 	
 	for (int i = 0; i < NUM_SEQ; i++)
 	{		
-		tSequencerInit(&pitchFullSequencer[i],32);
-		tSequencerInit(&pitchSplitSequencer[i],16);
-		tSequencerInit(&trigFullSequencer[i],32);
+		tSequencerInit(&pitchFullSequencer[i],	32);
+		tSequencerInit(&pitchSplitSequencer[i],	16);
+		tSequencerInit(&trigFullSequencer[i],	32);
 	}
 	
 	if (pitch_vs_trigger == PitchMode)
@@ -220,76 +229,11 @@ void initSequencer(void)
 	}
 
 	setKeyboardLEDsFor(currentSequencer, -1);
-
-	
-	
-	; // now write that data to the manta 
-}
-
-uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
-{
-	// take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-	uint32_t DACtemp = ((uint32_t)sequencer[seq].step[step].pitch);
-	DACtemp += (sequencer[seq].step[step].octave * 12);
-	DACtemp *= 546125;
-	DACtemp /= 1000;
-
-	DACtemp += (sequencer[seq].step[step].fine >> 2) - 512;
-	
-	return DACtemp;
-}
-
-void dacSendPitchMode(MantaSequencer seq, uint8_t step)
-{	
-	int offset = 2;
-	if (seq ==SequencerOne)
-	{
-		offset = 0;
-	}
-	
-	if (sequencer[seq].step[step].note)
-	{
-		// CV1, CV2, CV3, CV4
-		dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
-		dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
-		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
-		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
-		
-		// Pitch, Trigger
-		DAC16Send(offset+0, get16BitPitch(seq,step)); 
-		DAC16Send(offset+1, 65535);
-	}
-}
-int offsetTest = 0;
-void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
-{
-	int offset = 2;
-	if (seq ==SequencerOne)
-	{
-		offset = 0;
-		offsetTest = 0;
-	}
-	else
-	{
-		offset = 2;
-		offsetTest = 2;
-	}
-	
-	// CV1 , CV2
-	dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
-	dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
-		
-	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(offset+0, 1, sequencer[seq].step[step].on[0] * 4095);
-	dacsend(offset+1, 1, sequencer[seq].step[step].on[1] * 4095);
-	DAC16Send(offset+0,  sequencer[seq].step[step].on[2] * 65535);
-	DAC16Send(offset+1,  sequencer[seq].step[step].on[3] * 65535);
 }
 
 void sequencerStep(void)
 {
-
-	LED_Toggle(LED5); 
+	LED_Toggle(LED5);
 	
 	int offset,cstep,curr;
 	
@@ -306,7 +250,7 @@ void sequencerStep(void)
 			sequencer[i].next(&sequencer[i]); // Move to next step, seq 1.
 			
 			curr = sequencer[i].currentStep;
-				
+			
 			if (sequencer[i].stepGo)
 			{
 				if (pitch_vs_trigger == PitchMode)
@@ -319,8 +263,8 @@ void sequencerStep(void)
 					dacSendTriggerMode(i,curr);
 				}
 
-				// Start sequencer 1 and 2 timers: tc1, tc2. 
-				// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step. 
+				// Start sequencer 1 and 2 timers: tc1, tc2.
+				// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
 				if (i == SequencerOne)
 				{
 					tc_start(tc1, TC1_CHANNEL);
@@ -332,7 +276,7 @@ void sequencerStep(void)
 
 			}
 			sequencer[i].lengthCounter = 0;
-		}	
+		}
 	}
 	
 	// UI
@@ -360,12 +304,14 @@ void processSequencer(void)
 		{
 			newHexUI = i;
 			new_lower_hex = 1;
+			noteOnStack.add(&noteOnStack,	i);
 		}
 		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newHexUI = i;
 			new_release_lower_hex = 1;
+			noteOffStack.add(&noteOffStack,	i);
 		}
 		pastbutt_states[i] = butt_states[i];
 	}
@@ -412,16 +358,25 @@ void processSequencer(void)
 
 }
 
+
 void processReleaseLowerHex(uint8_t hexagon)
 {
 	if (edit_vs_play == EditMode)
 	{
-		if (editNoteOn == hexagon)
+		uint8_t hex = 0;
+		for (int i = 0; i < noteOffStack.size; i++)
 		{
-			editNoteOn = -1;
+			hex = noteOffStack.notestack[i];
+			
+			if (hex == editNoteOn)
+			{
+				editNoteOn = -1;
+			}
 		}
-	}
 		
+	}
+	
+	noteOffStack.clear(&noteOffStack);
 	new_release_lower_hex = 0;
 }
 
@@ -455,119 +410,116 @@ void processTouchLowerHex(uint8_t hexagon)
 		if (sequencerToSet != currentSequencer)
 		{
 			resetEditStack();
-		}
-		
-		setSequencerLEDsFor(sequencerToSet);
-		setSequencerLEDsFor(currentSequencer);
+			
+			if (edit_vs_play != TrigToggleMode)
+			{
+				setSequencerLEDsFor(SequencerOne);
+				setSequencerLEDsFor(SequencerTwo);
+			}
+			else
+			{
+				setTriggerPanelLEDsFor(SequencerOne,currentPanel[SequencerOne]);
+				setTriggerPanelLEDsFor(SequencerTwo,currentPanel[SequencerTwo]);
+			}
+		}	
 	}
 	
 	
-	
-	
-	
-	uint8_t step = hexUIToStep(hexagon);
 	uint8_t uiHexCurrentStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].currentStep);
 	uint8_t uiHexPrevStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].prevStep);
+	int step = 0;
 	
-	if (edit_vs_play == EditMode)
+	for (int i = 0; i < noteOnStack.size; i++)
 	{
-		int step = hexUIToStep(currentHexUI);
-		if (editNoteOn >= 0)
-		{
-			// If the first hex added is still touched, add new hex to edit stack.
-			if (editStack.contains(&editStack, currentHexUI) < 0)
-			{
-				editStack.add(&editStack, currentHexUI);
-				manta_set_LED_hex(currentHexUI,Red);
-			}
-		}
-		else
-		{
-			resetEditStack();
-			
-			setSequencerLEDsFor(sequencerToSet);
-			
-			editNoteOn = editStack.first(&editStack);
-			
-			manta_set_LED_hex(editNoteOn,Red);
-		}
+		hexagon = noteOnStack.notestack[i];
+		step = hexUIToStep(hexagon);
 		
-		// Below not really doing anything atm.
-		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		if (prevHexUI != hexagon)
+		if (edit_vs_play == EditMode)
 		{
-			if (range_vs_toggle_mode == RangeMode)
+			if (editNoteOn >= 0)
 			{
-				manta_set_LED_hex(prevHexUI, AmberOff);
-				manta_set_LED_hex(hexagon, AmberOn);
-			}	
-		}
-		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		
-	}
-	else if (edit_vs_play == PlayToggleMode)
-	{
-		editStack.remove(&editStack, prevHexUI);
-		editStack.add(&editStack,currentHexUI);
-		
-		if (seq_vs_arp == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
-		{
-			if (sequencer[currentSequencer].toggle(&sequencer[currentSequencer], step))
-			{
-				manta_set_LED_hex(hexagon, AmberOn);
-			}
-			else
-			{
-				manta_set_LED_hex(hexagon, AmberOff);
-				if (hexagon == uiHexCurrentStep)
+				// If the first hex added is still touched, add new hex to edit stack.
+				// contains returns index of hex in notestack if hex is found
+				if (editStack.contains(&editStack, hexagon) < 0)
 				{
-					manta_set_LED_hex(hexagon, RedOff);
+					editStack.add(&editStack, hexagon);
+					manta_set_LED_hex(hexagon, Red);
 				}
-			}	
-		}
-		else  
-		{
-			// "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down
-		}
-
-	}
-	else //TrigToggleMode
-	{
-		editStack.remove(&editStack, prevHexUI);
-		editStack.add(&editStack,currentHexUI);	
-		
-		int currPanel = currentPanel[currentSequencer];
-		
-		if (sequencer[currentSequencer].step[step].on[currPanel])
-		{
-			sequencer[currentSequencer].step[step].on[currPanel] = 0;
-			manta_set_LED_hex(currentHexUI, RedOff);
-		}
-		else
-		{
-			sequencer[currentSequencer].step[step].on[currPanel] = 1;
-			manta_set_LED_hex(currentHexUI, RedOn);
-		}
-	}
-
-	
-	if (edit_vs_play != TrigToggleMode)
-	{
-		if (key_vs_option == KeyboardMode)
-		{
-			if (editStack.size > 1)
-			{
-				setKeyboardLEDsFor(currentSequencer, -1);
+				
 			}
 			else
 			{
-				setKeyboardLEDsFor(currentSequencer, hexUIToStep(hexagon));
+				resetEditStack();
+				
+				setSequencerLEDsFor(sequencerToSet);
+				
+				editNoteOn = editStack.first(&editStack);
+				
+				manta_set_LED_hex(editNoteOn,Red);
 			}
+
+		}
+		else if (edit_vs_play == PlayToggleMode)
+		{
+			editStack.remove(&editStack, prevHexUI);
+			editStack.add(&editStack,currentHexUI);
+		
+			if (seq_vs_arp == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
+			{
+				if (sequencer[currentSequencer].toggle(&sequencer[currentSequencer], step))
+				{
+					manta_set_LED_hex(hexagon, AmberOn);
+				}
+				else
+				{
+					manta_set_LED_hex(hexagon, AmberOff);
+					if (hexagon == uiHexCurrentStep)
+					{
+						manta_set_LED_hex(hexagon, RedOff);
+					}
+				}	
+			}
+			else  
+			{
+				// "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down
+			}
+
+		}
+		else //TrigToggleMode
+		{
+			editStack.remove(&editStack, prevHexUI);
+			editStack.add(&editStack,currentHexUI);	
+		
+			int currPanel = currentPanel[currentSequencer];
+		
+			if (sequencer[currentSequencer].step[step].on[currPanel])
+			{
+				sequencer[currentSequencer].step[step].on[currPanel] = 0;
+				manta_set_LED_hex(currentHexUI, RedOff);
+			}
+			else
+			{
+				sequencer[currentSequencer].step[step].on[currPanel] = 1;
+				manta_set_LED_hex(currentHexUI, RedOn);
+			}
+		}
+	}
+	
+
+	if (key_vs_option == KeyboardMode)
+	{
+		if (editStack.size > 1)
+		{
+			setKeyboardLEDsFor(currentSequencer, -1);
 		}
 		else
 		{
-			setModeLEDsFor(currentSequencer);
+			setKeyboardLEDsFor(currentSequencer, hexUIToStep(hexagon));
 		}
+	}
+	else
+	{
+		setModeLEDsFor(currentSequencer);
 	}
 	
 	if (editStack.size > 1)
@@ -579,6 +531,7 @@ void processTouchLowerHex(uint8_t hexagon)
 		setSliderLEDsFor(currentSequencer, hexagon);
 	}
 	
+	noteOnStack.clear(&noteOnStack);
 	new_lower_hex = 0;
 }
 
@@ -715,32 +668,47 @@ void processTouchUpperHex(uint8_t hexagon)
 		{
 			int whichUpperHex = hexagon-MAX_STEPS;
 			int whichTrigPanel = trigger_pattern[whichUpperHex];
-				
-			if ((whichTrigPanel == S1TrigPanelMove) || (whichTrigPanel == S2TrigPanelMove))
+			
+			int whichSeq = currentSequencer;
+			int whichWay = -1;
+			if (whichUpperHex < 2)
 			{
-				int whichSeq = currentSequencer;
-				int whichWay = 0;
-				if (whichUpperHex < 2)
-				{
-					whichSeq = SequencerOne;
-					whichWay = whichUpperHex;
-				}
-				else if( whichUpperHex >= 14)
-				{
-					whichSeq = SequencerTwo;
-					whichWay = whichUpperHex - 14;
-				}
-				else
-				{
-					
-				}
-					
-				if (whichSeq != currentSequencer)
+				whichSeq = SequencerOne;
+				whichWay = whichUpperHex;
+			}
+			else if( whichUpperHex >= 14)
+			{
+				whichSeq = SequencerTwo;
+				whichWay = whichUpperHex - 14;
+			}
+			else if (whichUpperHex >= 8 && whichUpperHex < 12)
+			{
+				whichSeq = SequencerOne;
+			}
+			else if (whichUpperHex >=4 && whichUpperHex < 8)
+			{
+				whichSeq = SequencerTwo;
+			}
+			
+			if (whichSeq != currentSequencer)
+			{
+				if (whichWay != -1)
 				{
 					setCurrentSequencer(whichSeq);
 				}
-					
-				int prev = currentPanel[currentSequencer];
+				else
+				{
+					if (edit_vs_play == TrigToggleMode)
+					{
+						setCurrentSequencer(whichSeq);
+					}
+				}
+			}
+			
+			int prevPanel = currentPanel[currentSequencer];
+				
+			if ((whichTrigPanel == S1TrigPanelMove) || (whichTrigPanel == S2TrigPanelMove))
+			{
 				if (whichWay == PanelLeft)
 				{
 					if (--currentPanel[currentSequencer] < PanelOne)
@@ -756,23 +724,6 @@ void processTouchUpperHex(uint8_t hexagon)
 					}
 				}
 				
-				if (edit_vs_play != TrigToggleMode)
-				{
-					setSequencerLEDsFor(currentSequencer);
-				}
-				else //TrigToggleMode
-				{
-					setTriggerPanelLEDsFor(currentSequencer,currentPanel[currentSequencer]);
-					
-					int uiOffset = MAX_STEPS;
-						
-					if (whichSeq == SequencerOne) uiOffset += 8;
-					else /*SequencerTwo*/ uiOffset += 4;
-						
-					manta_set_LED_hex(prev + uiOffset, Amber);
-					manta_set_LED_hex(currentPanel[currentSequencer] + uiOffset, Red);
-				}
-				
 			}
 			else if ((whichTrigPanel == S1TrigPanelSelect) || (whichTrigPanel == S2TrigPanelSelect))
 			{
@@ -784,15 +735,30 @@ void processTouchUpperHex(uint8_t hexagon)
 				}
 					
 				int step = hexUIToStep(editStack.first(&editStack));
-					
+				
+
 				if (!getParameterFromStep(currentSequencer, step, On1 + whichOn))
 				{
-					setParameterForStep(currentSequencer, step, On1 + whichOn, 1);
+					setParameterForEditStackSteps(currentSequencer, On1 + whichOn, 1);
 				}
 				else
 				{
-					setParameterForStep(currentSequencer, step, On1 + whichOn, 0);
+					setParameterForEditStackSteps(currentSequencer, On1 + whichOn, 0);
 				}
+
+				
+				/*
+				if (!(getParameterFromStep(currentSequencer, step, On1 + whichOn)))
+				{
+					setParameterForEditStackSteps(currentSequencer,On1+whichOn,1);
+					
+				}
+				else
+				{
+					setParameterForEditStackSteps(currentSequencer,On1+whichOn,0);
+				}
+				*/
+				
 			}
 			else //SXTrigPanelNil
 			{
@@ -802,6 +768,22 @@ void processTouchUpperHex(uint8_t hexagon)
 			if (edit_vs_play != TrigToggleMode)
 			{
 				setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+				if (whichWay != -1)
+				{
+					setSequencerLEDsFor(currentSequencer);
+				}
+			}
+			else //TrigToggleMode
+			{
+				setTriggerPanelLEDsFor(currentSequencer,currentPanel[currentSequencer]);
+				
+				int uiOffset = MAX_STEPS;
+				
+				if (whichSeq == SequencerOne) uiOffset += 8;
+				else /*SequencerTwo*/ uiOffset += 4;
+				
+				manta_set_LED_hex(prevPanel + uiOffset, Amber);
+				manta_set_LED_hex(currentPanel[currentSequencer] + uiOffset, Red);
 			}	
 			
 		}
@@ -1002,27 +984,22 @@ void processTouchFunctionButton(MantaButton button)
 	{
 		resetEditStack();
 		
-		setSequencerLEDsFor(currentSequencer);
+		if (full_vs_split == SplitMode)
+		{
+			setSequencerLEDsFor(SequencerOne);
+			setSequencerLEDsFor(SequencerTwo);
+		}
+		else
+		{
+			setSequencerLEDsFor(currentSequencer);
+		}
+		
 		
 		if (pitch_vs_trigger == PitchMode)
 		{
 			if (edit_vs_play == EditMode)
 			{
 				edit_vs_play = PlayToggleMode;
-				
-				int currHex = editStack.first(&editStack);
-				
-				// Do we need this? --------- we have setKeyboardLEDs
-				if (currHex != sequencer[currentSequencer].currentStep)
-				{
-					manta_set_LED_hex(currHex, AmberOn);
-				}
-				
-				if (sequencer[currentSequencer].step[hexUIToStep(currHex)].toggled)
-				{
-					manta_set_LED_hex(currHex, AmberOn);
-				}
-				//-----------------------------------------------------
 				
 				manta_set_LED_button(ButtonTopRight, Amber);
 			}
@@ -1049,6 +1026,17 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 			}
+			
+			if (full_vs_split == FullMode)
+			{
+				setSequencerLEDsFor(currentSequencer);
+			}
+			else
+			{
+				setSequencerLEDsFor(SequencerOne);
+				setSequencerLEDsFor(SequencerTwo);
+			}
+			
 		} 
 		else //TriggerMode
 		{
@@ -1058,27 +1046,12 @@ void processTouchFunctionButton(MantaButton button)
 				
 				int currHex = editStack.first(&editStack);
 				
-				setSequencerLEDsFor(currentSequencer);
-				
-				if (key_vs_option == KeyboardMode)
-				{
-					setKeyboardLEDsFor(currentSequencer,hexUIToStep(currHex));
-				}
-				
 				manta_set_LED_button(ButtonTopRight, Amber);
 			}
 			else if (edit_vs_play == PlayToggleMode)
 			{
 				edit_vs_play = TrigToggleMode;
-				
-				setTriggerPanelLEDsFor(currentSequencer,currentPanel[currentSequencer]);
-				
-				if (key_vs_option == KeyboardMode)
-				{
-					setKeyboardLEDsFor(currentSequencer,-1);
-				}
-				
-				
+						
 				manta_set_LED_button(ButtonTopRight, Red);
 				
 			}
@@ -1086,17 +1059,38 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				edit_vs_play = EditMode;
 				
-				setSequencerLEDsFor(currentSequencer);
-				
 				manta_set_LED_button(ButtonTopRight, Off);
 			}
 			
+			if (edit_vs_play == TrigToggleMode)
+			{
+				if (full_vs_split == SplitMode)
+				{
+					setTriggerPanelLEDsFor(SequencerOne,currentPanel[SequencerOne]);
+					setTriggerPanelLEDsFor(SequencerTwo,currentPanel[SequencerTwo]);
+				}
+				else //FullMode
+				{
+					setTriggerPanelLEDsFor(currentSequencer,currentPanel[currentSequencer]);
+				}
+			}
+			else
+			{
+				if (full_vs_split == FullMode)
+				{
+					setSequencerLEDsFor(currentSequencer);
+				}
+				else //SplitMode
+				{
+					setSequencerLEDsFor(SequencerOne);
+					setSequencerLEDsFor(SequencerTwo);
+				}
+				
+			}	
+			
 			if (edit_vs_play != PlayToggleMode)
 			{
-				if (key_vs_option == KeyboardMode)
-				{
-					setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
-				}
+				setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 			}
 			else
 			{
@@ -1104,10 +1098,9 @@ void processTouchFunctionButton(MantaButton button)
 				setModeLEDsFor(currentSequencer);
 				manta_set_LED_button(ButtonBottomLeft, Red);
 			}
-			
 		}
 		
-		setSliderLEDsFor(currentSequencer, currentHexUI);
+		setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 	}
 	else if (button == ButtonBottomLeft)
 	{
@@ -1292,71 +1285,89 @@ void uiStep(MantaSequencer seq)
 
 	if (edit_vs_play == EditMode)
 	{
-			
-		if (editStack.contains(&editStack,uiHexCurrentStep) >= 0)
+		if (pitch_vs_trigger == PitchMode)
 		{
-			manta_set_LED_hex(uiHexCurrentStep, AmberOn);
-		}
-		else
-		{
-			if (pitch_vs_trigger == TriggerMode)
+			if (editStack.contains(&editStack,uiHexCurrentStep) >= 0)
 			{
-				if (!sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
-				{
-					manta_set_LED_hex(uiHexCurrentStep, RedOn);
-				}
+				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
 			}
 			else
 			{
 				manta_set_LED_hex(uiHexCurrentStep, RedOn);
 			}
-		}
 			
-		if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
-		{
-			manta_set_LED_hex(uiHexPrevStep, AmberOff);
-		}
-		else
-		{
-			if (pitch_vs_trigger == TriggerMode)
+			if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
 			{
-				if (!sequencer[seq].step[pStep].on[currentPanel[currentSequencer]])
-				{
-					manta_set_LED_hex(uiHexPrevStep, RedOff);
-				}
+				manta_set_LED_hex(uiHexPrevStep, AmberOff);
 			}
 			else
 			{
 				manta_set_LED_hex(uiHexPrevStep, RedOff);
 			}
 		}
+		else //TriggerMode
+		{
+			if (editStack.contains(&editStack,uiHexCurrentStep) >= 0)
+			{
+				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
+			}
+			else
+			{
+				if (sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
+				{
+					manta_set_LED_hex(uiHexCurrentStep, Red);
+				}
+				else
+				{
+					manta_set_LED_hex(uiHexCurrentStep, RedOn);
+				}
+			}
+			
+			if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
+			{
+				manta_set_LED_hex(uiHexPrevStep, AmberOff);
+			}
+			else
+			{
+				if (sequencer[seq].step[pStep].on[currentPanel[currentSequencer]])
+				{
+					manta_set_LED_hex(uiHexPrevStep, Amber);
+				}
+				else
+				{
+					manta_set_LED_hex(uiHexPrevStep, RedOff);
+				}
+			}
+		}
+		
+			
+		
 			
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
 		if (pitch_vs_trigger == TriggerMode)
 		{
-			if (!sequencer[seq].step[pStep].on[currentPanel[currentSequencer]])
+			if (sequencer[seq].step[pStep].toggled)
 			{
-				manta_set_LED_hex(uiHexPrevStep, RedOff);
+				manta_set_LED_hex(uiHexPrevStep, Amber);
+			}
+
+			if (!sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
+			{
+				manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			}
+			else
+			{
+				manta_set_LED_hex(uiHexCurrentStep, Red);		
 			}
 		}
 		else
 		{
 			manta_set_LED_hex(uiHexPrevStep, RedOff);
-		}
-		
-		if (pitch_vs_trigger == TriggerMode)
-		{
-			if (!sequencer[seq].step[cStep].on[currentPanel[currentSequencer]])
-			{
-				manta_set_LED_hex(uiHexCurrentStep, RedOn);
-			}
-		}
-		else
-		{
 			manta_set_LED_hex(uiHexCurrentStep, RedOn);
 		}
+		
 	}
 	else // TrigToggleMode
 	{
@@ -1445,27 +1456,25 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 		
 		if (setRed)
 		{
-			for (int seq = 0; seq < 2; seq++)
+
+			if (seq == SequencerOne)
 			{
-				if (seq == SequencerOne)
-				{
-					hexUIOffset = 8;
-				}
-				else //SequencerTwo
-				{
-					hexUIOffset = 4;
-				}
+				hexUIOffset = 8;
+			}
+			else //SequencerTwo
+			{
+				hexUIOffset = 4;
+			}
 				
-				for (int panel = 0; panel < 4; panel++)
+			for (int panel = 0; panel < 4; panel++)
+			{
+				if (sequencer[seq].step[note].on[panel])
 				{
-					if (sequencer[seq].step[note].on[panel])
-					{
-						manta_set_LED_hex(hexUIOffset + panel + MAX_STEPS, Red);
-					}
-					else
-					{
-						manta_set_LED_hex(hexUIOffset + panel + MAX_STEPS, Amber);
-					}
+					manta_set_LED_hex(hexUIOffset + panel + MAX_STEPS, Red);
+				}
+				else
+				{
+					manta_set_LED_hex(hexUIOffset + panel + MAX_STEPS, Amber);
 				}
 			}
 		}
@@ -1562,16 +1571,7 @@ void setSequencerLEDsFor(MantaSequencer seq)
 		else
 		{
 			manta_set_LED_hex(hexUI, Off);
-		}
-		
-		if (pitch_vs_trigger == TriggerMode)
-		{
-			if (sequencer[currentSequencer].step[i].on[currentPanel[currentSequencer]])
-			{
-				manta_set_LED_hex(hexUI, RedOn);
-			}
-		}
-		
+		}	
 	}
 	
 	int size = editStack.size;
@@ -1650,6 +1650,61 @@ void setModeLEDsFor(MantaSequencer seq)
 	{
 		manta_set_LED_hex(MAX_STEPS + 9, Red);
 	}
+}
+
+// Output
+uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
+{
+	// take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+	uint32_t DACtemp = ((uint32_t)sequencer[seq].step[step].pitch);
+	DACtemp += (sequencer[seq].step[step].octave * 12);
+	DACtemp *= 546125;
+	DACtemp /= 1000;
+
+	DACtemp += (sequencer[seq].step[step].fine >> 2) - 512;
+	
+	return DACtemp;
+}
+
+void dacSendPitchMode(MantaSequencer seq, uint8_t step)
+{
+	int offset = 2;
+	if (seq ==SequencerOne)
+	{
+		offset = 0;
+	}
+	
+	if (sequencer[seq].step[step].note)
+	{
+		// CV1, CV2, CV3, CV4
+		dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
+		dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
+		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
+		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
+		
+		// Pitch, Trigger
+		DAC16Send(offset+0, get16BitPitch(seq,step));
+		DAC16Send(offset+1, 65535);
+	}
+}
+
+void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
+{
+	int offset = 2;
+	if (seq == SequencerOne)
+	{
+		offset = 0;
+	}
+	
+	// CV1 , CV2
+	dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
+	dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
+	
+	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
+	dacsend(offset+0, 1, sequencer[seq].step[step].on[0] * 4095);
+	dacsend(offset+1, 1, sequencer[seq].step[step].on[1] * 4095);
+	DAC16Send(offset+0,  sequencer[seq].step[step].on[2] * 65535);
+	DAC16Send(offset+1,  sequencer[seq].step[step].on[3] * 65535);
 }
 
 // UTILITIES

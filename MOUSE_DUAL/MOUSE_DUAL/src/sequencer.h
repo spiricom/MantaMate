@@ -13,8 +13,6 @@
 #include "notestack.h"
 #include "utilities.h"
 
-
-
 uint8_t pattern_col_down[MAX_STEPS];
 uint8_t pattern_col_up[MAX_STEPS];
 uint8_t pattern_row_reverse[MAX_STEPS];
