@@ -162,6 +162,7 @@ GlobalOptionType pitch_vs_trigger;
 MantaSeqArpMode seq_vs_arp;
 MantaRangeToggleMode range_vs_toggle_mode;
 KeyboardOptionMode key_vs_option;
+KeyboardOptionMode prev_key_vs_option;
 
 
 
