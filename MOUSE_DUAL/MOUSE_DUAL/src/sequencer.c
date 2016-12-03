@@ -190,6 +190,12 @@ void tSequencerSetOctave(tSequencer *seq, int8_t octave)
 	seq->octave = octave;
 }
 
+int tSequencerGetOctave(tSequencer *seq, int8_t octave)
+{
+	return seq->octave;
+}
+
+
 void tSequencerDownOctave(tSequencer *seq)
 {
 	if (--seq->octave < 0)
@@ -253,6 +259,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	seq->get = &tSequencerGet;
 	seq->set = &tSequencerSet;
 	seq->setOctave = &tSequencerSetOctave;
+	seq->getOctave = &tSequencerGetOctave;
 	seq->upOctave = &tSequencerUpOctave;
 	seq->downOctave = &tSequencerDownOctave;
 	seq->getNumNotes = &tSequencerGetNumNotes;

@@ -153,6 +153,7 @@ typedef enum StepParameterType {
 SequencerPatternType pattern_type;
 
 MantaSliderMode prevMantaSliderMode;
+MantaSliderMode prevMantaSliderModeForOctaveHexDisable;
 MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;

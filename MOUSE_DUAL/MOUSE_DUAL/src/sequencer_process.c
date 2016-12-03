@@ -150,13 +150,12 @@ uint8_t current_panel_hex = 0;
 uint8_t prev_option_hex = 0;
 uint8_t current_option_hex = 0;
 
+uint8_t currentHexUIOff = 0;
+
 uint8_t currentHexUI = 0;
 uint8_t prevHexUI = 0;
 
 uint8_t currentUpperHexUI = 0;
-
-
-int8_t current_seq_octave = 3;
 
 extern uint8_t func_button_states[4];
 
@@ -293,7 +292,8 @@ void processSequencer(void)
 	// the manta data is in a global array called butt_states[i]
 	// look at processKeys() for an example of how to find changes in the data. This function will get called even when nothing is different about the data the manta is sending - it hasn't parsed it yet to know whether there is a significant change (i.e a new hexagon button press)
 	int i = 0;
-	uint8_t newHexUI = 0;
+	uint8_t newHexUIOn = 0;
+	uint8_t newHexUIOff = 0;
 	uint8_t newUpperHexUI = 0;
 
 	
@@ -302,14 +302,14 @@ void processSequencer(void)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
-			newHexUI = i;
+			newHexUIOn = i;
 			new_lower_hex = 1;
 			noteOnStack.add(&noteOnStack,	i);
 		}
 		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
-			newHexUI = i;
+			newHexUIOff = i;
 			new_release_lower_hex = 1;
 			noteOffStack.add(&noteOffStack,	i);
 		}
@@ -346,9 +346,9 @@ void processSequencer(void)
 		past_func_button_states[i] = func_button_states[i];
 	}
 	
-	if (new_release_lower_hex) processReleaseLowerHex(newHexUI);
+	if (new_release_lower_hex) processReleaseLowerHex(newHexUIOff);
 	
-	if (new_lower_hex) processTouchLowerHex(newHexUI);
+	if (new_lower_hex) processTouchLowerHex(newHexUIOn);
 	
 	if (new_release_upper_hex) processReleaseUpperHex(newUpperHexUI);
 
@@ -357,7 +357,6 @@ void processSequencer(void)
 	if (new_func_button) processTouchFunctionButton(currentFunctionButton);
 
 }
-
 
 void processReleaseLowerHex(uint8_t hexagon)
 {
@@ -373,7 +372,6 @@ void processReleaseLowerHex(uint8_t hexagon)
 				editNoteOn = -1;
 			}
 		}
-		
 	}
 	
 	noteOffStack.clear(&noteOffStack);
@@ -386,7 +384,6 @@ void processTouchLowerHex(uint8_t hexagon)
 	{
 		resetSliderMode();
 	}
-	
 	
 	blinkerState = 0;
 	blinkerFrameCounter = 0;
@@ -439,7 +436,7 @@ void processTouchLowerHex(uint8_t hexagon)
 			if (editNoteOn >= 0)
 			{
 				// If the first hex added is still touched, add new hex to edit stack.
-				// contains returns index of hex in notestack if hex is found
+				// (contains returns index of hex in notestack if hex is found)
 				if (editStack.contains(&editStack, hexagon) < 0)
 				{
 					editStack.add(&editStack, hexagon);
@@ -562,7 +559,20 @@ void processReleaseUpperHex(uint8_t hexagon)
 			}
 			
 		}
+		
+		if (key_vs_option == KeyboardMode)
+		{
+			if ((keyboard_pattern[hexagon-MAX_STEPS] == 253) || (keyboard_pattern[hexagon-MAX_STEPS] == 254))
+			{
+				if (currentMantaSliderMode != SliderModeThree)
+				{
+					setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+				}
+				currentMantaSliderMode = prevMantaSliderModeForOctaveHexDisable;
+			}
+		}
 	}
+	
 	new_release_upper_hex = 0;
 }
 
@@ -604,10 +614,20 @@ void processTouchUpperHex(uint8_t hexagon)
 			{
 				// down an octave
 				sequencer[currentSequencer].downOctave(&sequencer[currentSequencer]);
-				if (currentMantaSliderMode == SliderModeThree)
+				
+				// Temporarily set slider LEDs to display current octave.
+				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
+				
+				/*
+				if (currentMantaSliderMode != SliderModeNil)
 				{
-					manta_set_LED_slider(0, sequencer[currentSequencer].octave+1);
+					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
+					prevMantaSliderMode = currentMantaSliderMode;
 				}
+				
+				currentMantaSliderMode = SliderModeNil;
+				*/
+				
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
 			}
@@ -616,10 +636,19 @@ void processTouchUpperHex(uint8_t hexagon)
 				//up an octave
 				sequencer[currentSequencer].upOctave(&sequencer[currentSequencer]);
 				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
-				if (currentMantaSliderMode == SliderModeThree)
+				
+				// Temporarily set slider LEDs to display current octave.
+				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
+				
+				/*
+				if (currentMantaSliderMode != SliderModeNil) 
 				{
-					manta_set_LED_slider(0, sequencer[currentSequencer].octave+1);
+					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
 				}
+				
+				currentMantaSliderMode = SliderModeNil;
+				*/
+				
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
 
@@ -635,7 +664,7 @@ void processTouchUpperHex(uint8_t hexagon)
 					
 					setParameterForEditStackSteps(currentSequencer, Pitch, upperHexType);
 
-					setParameterForEditStackSteps(currentSequencer, Octave, current_seq_octave);
+					setParameterForEditStackSteps(currentSequencer, Octave, sequencer[currentSequencer].octave);
 					
 					setParameterForEditStackSteps(currentSequencer, KbdHex, currentUpperHexUI);
 
@@ -1196,9 +1225,6 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t newOct = (val >> 9);
 			
 			setParameterForEditStackSteps(currentSequencer,Octave,newOct);
-			//sequencer[currentSequencer].step[note].octave = newOct;
-			
-			current_seq_octave = newOct;
 			
 			manta_set_LED_slider(SliderOne, newOct + 1); // add one to the slider values because a zero turns them off
 
@@ -1394,7 +1420,15 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 				}
 				else
 				{
-					manta_set_LED_hex(j+MAX_STEPS, Off);
+					if ((keyboard_pattern[j] == 253) || (keyboard_pattern[j] == 254))
+					{
+						manta_set_LED_hex(j+MAX_STEPS, Off);
+					}
+					else
+					{
+						manta_set_LED_hex(j+MAX_STEPS, Off);
+					}
+					
 				}
 			}
 			

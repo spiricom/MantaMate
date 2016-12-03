@@ -67,6 +67,7 @@ typedef struct _tSequencer
 	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);
 	void (*setOctave)(struct _tSequencer *self, int8_t octave);
 	void (*downOctave)(struct _tSequencer *self);
+	int (*getOctave)(struct _tSequencer *self);
 	void (*upOctave)(struct _tSequencer *self);
 	
 	uint16_t (*get)(struct _tSequencer *self, uint8_t step, StepParameterType param);
