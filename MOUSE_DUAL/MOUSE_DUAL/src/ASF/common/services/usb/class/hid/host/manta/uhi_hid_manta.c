@@ -157,14 +157,8 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
-	//char *product = NULL;
 
-	//product = uhc_dev_get_string(dev,dev->dev_desc.iProduct);
-	//while(product == NULL);
-	
-	//lcd_clear_line(2);
-	//dip204_printf_string("%x",dev->dev_desc.idProduct);
-	Write7Seg(55);
+	//Write7Seg(55);  //a little debug thing to verify it found a manta
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);

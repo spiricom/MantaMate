@@ -52,6 +52,7 @@ void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, 
 void setParameterForStep(MantaSequencer seq, uint8_t step, StepParameterType param, uint16_t value);
 uint16_t getParameterFromStep(MantaSequencer seq, uint8_t step, StepParameterType param);
 void resetEditStack(void);
+void resetRangeStack(void);
 uint8_t hexUIToStep(uint8_t hexagon);
 uint8_t stepToHexUI(MantaSequencer seq, uint8_t noteIn);
 
@@ -106,13 +107,18 @@ tSequencer trigSplitSequencer[NUM_SEQ];
 
 tSequencer *sequencer; 
 
+int rangeNoteOn;
+tNoteStack rangeStack;
+
 int editNoteOn; 
 tNoteStack editStack;
 
 int keyNoteOn;
 
+
 tNoteStack noteOnStack;
 tNoteStack noteOffStack;
+
 
 #define RANGEMODE 0
 #define TOGGLEMODE 1
@@ -177,9 +183,16 @@ void setCurrentSequencer(MantaSequencer seq)
 	
 }
 
+void initSHArrays(void)
+{
+	
+}
+
 void initSequencer(void)
 {
 	initTimers();
+	
+	initSHArrays();
 	
 	// Sequencer Modes
 	pattern_type =				LeftRightRowUp;
@@ -189,17 +202,18 @@ void initSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	full_vs_split =				FullMode;
 	pitch_vs_trigger =			PitchMode;
-	range_vs_toggle_mode =		ToggleMode;
 	key_vs_option =				KeyboardMode;
-	seq_vs_arp =				SeqMode;
+	playSubMode =				SeqMode;
 	
 	
 	tNoteStackInit(&editStack,		32);
 	tNoteStackInit(&noteOffStack,	32);
 	tNoteStackInit(&noteOnStack,	32);
+	tNoteStackInit(&rangeStack,	32);
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
+	rangeNoteOn = -1;
 	
 	for (int i = 0; i < NUM_SEQ; i++)
 	{		
@@ -373,10 +387,46 @@ void processReleaseLowerHex(uint8_t hexagon)
 			}
 		}
 	}
+	else if (edit_vs_play == PlayToggleMode)
+	{
+		uint8_t hex = 0;
+		for (int i = 0; i < noteOffStack.size; i++)
+		{
+			hex = noteOffStack.notestack[i];
+			
+			if (playSubMode == ArpMode)
+			{
+				sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer],hex);
+				
+				manta_set_LED_hex(hex, Off);
+			} 
+			else if (playSubMode == RangeMode)
+			{
+				rangeStack.remove(&rangeStack, hexagon);
+				
+				if (hex == rangeNoteOn)
+				{
+					rangeNoteOn = -1;
+				}
+			}
+			else // SeqMode
+			{
+			
+			}
+		}
+	}
 	
 	noteOffStack.clear(&noteOffStack);
 	new_release_lower_hex = 0;
 }
+
+void clearSequencer(MantaSequencer seq)
+{
+	sequencer[seq].clearSteps(&sequencer[seq]);
+	setSequencerLEDsFor(seq);
+}
+
+int first, last;
 
 void processTouchLowerHex(uint8_t hexagon)
 {
@@ -459,11 +509,11 @@ void processTouchLowerHex(uint8_t hexagon)
 		else if (edit_vs_play == PlayToggleMode)
 		{
 			editStack.remove(&editStack, prevHexUI);
-			editStack.add(&editStack,currentHexUI);
+			editStack.add(&editStack, currentHexUI);
 		
-			if (seq_vs_arp == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
+			if (playSubMode == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
 			{
-				if (sequencer[currentSequencer].toggle(&sequencer[currentSequencer], step))
+				if (sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], step))
 				{
 					manta_set_LED_hex(hexagon, AmberOn);
 				}
@@ -476,9 +526,69 @@ void processTouchLowerHex(uint8_t hexagon)
 					}
 				}	
 			}
-			else  
+			else if (playSubMode == RangeMode)
 			{
-				// "arp mode", note ons should add to pattern, note offs should remove from pattern, so pattern only sounds when fingers are down
+				
+				if (rangeNoteOn >= 0)
+				{
+					// If the first hex added is still touched, add new hex to edit stack.
+					// (contains returns index of hex in notestack if hex is found)
+					
+					clearSequencer(currentSequencer);
+					
+					if (rangeStack.contains(&rangeStack, hexagon) < 0)
+					{
+						rangeStack.add(&rangeStack, hexagon);
+						manta_set_LED_hex(hexagon, Red);
+					}
+
+					first = 32;
+					last = -1;
+					int rangeHex = -1;
+					for (int i = 0; i < rangeStack.size; i++)
+					{
+						rangeHex = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], rangeStack.notestack[i]);
+						if (rangeHex >= 0)
+						{
+							if (rangeHex < first)
+							{
+								first = rangeHex;
+							}
+								
+							if (rangeHex > last)
+							{
+								last = rangeHex;
+							}
+								
+						}
+					}
+						
+					for (int i = first; i <= last; i++)
+					{
+						int nextStep = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], i);
+						sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], nextStep);
+						manta_set_LED_hex(nextStep, AmberOn);
+					}
+				
+				}
+				else
+				{
+					resetRangeStack();
+				
+					setSequencerLEDsFor(sequencerToSet);
+				
+					rangeNoteOn = rangeStack.first(&rangeStack);
+				
+					manta_set_LED_hex(rangeNoteOn,Red);
+				}
+
+			}
+			else // ArpMode
+			{
+				sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer],step);
+				
+				manta_set_LED_hex(hexagon, AmberOn);
+				
 			}
 
 		}
@@ -564,11 +674,12 @@ void processReleaseUpperHex(uint8_t hexagon)
 		{
 			if ((keyboard_pattern[hexagon-MAX_STEPS] == 253) || (keyboard_pattern[hexagon-MAX_STEPS] == 254))
 			{
+				currentMantaSliderMode = prevMantaSliderModeForOctaveHexDisable;
+				
 				if (currentMantaSliderMode != SliderModeThree)
 				{
 					setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
 				}
-				currentMantaSliderMode = prevMantaSliderModeForOctaveHexDisable;
 			}
 		}
 	}
@@ -618,15 +729,14 @@ void processTouchUpperHex(uint8_t hexagon)
 				// Temporarily set slider LEDs to display current octave.
 				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
 				
-				/*
+				
 				if (currentMantaSliderMode != SliderModeNil)
 				{
 					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
-					prevMantaSliderMode = currentMantaSliderMode;
+					currentMantaSliderMode = SliderModeNil;
 				}
 				
-				currentMantaSliderMode = SliderModeNil;
-				*/
+				
 				
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
@@ -640,14 +750,11 @@ void processTouchUpperHex(uint8_t hexagon)
 				// Temporarily set slider LEDs to display current octave.
 				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
 				
-				/*
 				if (currentMantaSliderMode != SliderModeNil) 
 				{
 					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
+					currentMantaSliderMode = SliderModeNil;
 				}
-				
-				currentMantaSliderMode = SliderModeNil;
-				*/
 				
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
@@ -1138,15 +1245,26 @@ void processTouchFunctionButton(MantaButton button)
 	}
 	else if (button == ButtonBottomRight)
 	{
-		if (seq_vs_arp == ArpMode)
+		if (playSubMode == SeqMode)
 		{
-			seq_vs_arp = SeqMode;
-			manta_set_LED_button(ButtonBottomRight, Off);
+			playSubMode = RangeMode;
+			resetRangeStack();
+			manta_set_LED_button(ButtonBottomRight, Amber);
 		}
-		else //SeqMode
+		else if (playSubMode == RangeMode)
 		{
-			seq_vs_arp = ArpMode;
+			playSubMode = ArpMode;
+			
+			sequencer[SequencerOne].clearSteps(&sequencer[SequencerOne]);
+			sequencer[SequencerTwo].clearSteps(&sequencer[SequencerTwo]);
+			
+			setSequencerLEDsFor(currentSequencer);
+			
 			manta_set_LED_button(ButtonBottomRight, Red);
+		} else // ArpMode
+		{
+			playSubMode = SeqMode;
+			manta_set_LED_button(ButtonBottomRight, Off);
 		}
 	}
 	else
@@ -1966,6 +2084,14 @@ void resetEditStack(void)
 	editNoteOn = -1;
 	editStack.add(&editStack,currentHexUI);
 }
+
+void resetRangeStack(void)
+{
+	rangeStack.clear(&rangeStack);
+	editNoteOn = -1;
+	rangeStack.add(&rangeStack, currentHexUI);
+}
+
 
 void seqwait(void)
 {

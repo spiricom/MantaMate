@@ -39,24 +39,18 @@ typedef enum MantaEditPlayMode {
 	MantaEditPlayModeNil
 }MantaEditPlayMode;
 
-typedef enum MantaSeqArpMode {
+typedef enum MantaPlaySubMode {
 	SeqMode = 0,
 	ArpMode,
-	MantaSeqArpModeNil
-}MantaSeqArpMode;
+	RangeMode,
+	MantaPlayModeNil,
+}MantaPlaySubMode;
 
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
 	SelectMode,
 	MantaKeySelectModeNil
 }MantaKeySelectMode;
-
-
-typedef enum MantaRangeToggleMode {
-	RangeMode = 0,
-	ToggleMode,
-	MantaRangeToggleModeNil
-}MantaRangeToggleMode;
 
 typedef enum MantaSliderMode {
 	SliderModeOne = 0, //CV1, CV2
@@ -160,8 +154,7 @@ MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
 GlobalOptionType full_vs_split;
 GlobalOptionType pitch_vs_trigger;
-MantaSeqArpMode seq_vs_arp;
-MantaRangeToggleMode range_vs_toggle_mode;
+MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
 KeyboardOptionMode prev_key_vs_option;
 
