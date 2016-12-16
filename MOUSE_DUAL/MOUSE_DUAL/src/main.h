@@ -58,6 +58,8 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
+tRamp glide; 
+
 #define TIMERS 1
 
 #define TC1                 (&AVR32_TC)

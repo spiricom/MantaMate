@@ -36,38 +36,24 @@ uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 	uint16_t val = 0;
 	StepParameterType param = paramType;
 	
-	if (param == Toggled)
-		seq->step[step].toggled = value;
-	else if (param == Length)
-		seq->step[step].length = value;
-	else if (param == CV1)
-		seq->step[step].cv1 = value;
-	else if (param == CV2)
-		seq->step[step].cv2 = value;
-	else if (param == CV3)
-		seq->step[step].cv3 = value;
-	else if (param == CV4)
-		seq->step[step].cv4 = value;
-	else if (param == Pitch)
-		seq->step[step].pitch = value;
-	else if (param == Fine)
-		seq->step[step].fine = value;
-	else if (param == Octave)
-		seq->step[step].octave = value;
-	else if (param == Note)
-		seq->step[step].note = value;
-	else if (param == KbdHex)
-		val = seq->step[step].kbdhex;
-	else if (param == On1)
-		seq->step[step].on[PanelOne] = value;
-	else if (param == On2)
-		seq->step[step].on[PanelTwo] = value;
-	else if (param == On3)
-		seq->step[step].on[PanelThree] = value;
-	else if (param == On4)
-		seq->step[step].on[PanelFour] = value;
-	else 
-		; // Other
+	if (param == Toggled)				seq->step[step].toggled = value;
+	else if (param == Length)			seq->step[step].length = value;
+	else if (param == CV1)				seq->step[step].cv1 = value;
+	else if (param == CV2)				seq->step[step].cv2 = value;
+	else if (param == CV3)				seq->step[step].cv3 = value;
+	else if (param == CV4)				seq->step[step].cv4 = value;
+	else if (param == Pitch)			seq->step[step].pitch = value;
+	else if (param == Fine)				seq->step[step].fine = value;
+	else if (param == Octave)			seq->step[step].octave = value;
+	else if (param == Note)				seq->step[step].note = value;
+	else if (param == KbdHex)			seq->step[step].kbdhex = value;
+	else if (param == PitchGlide)		seq->step[step].pglide = value;
+	else if (param ==CVGlide)			seq->step[step].cvglide = value;
+	else if (param == On1)				seq->step[step].on[PanelOne] = value;
+	else if (param == On2)				seq->step[step].on[PanelTwo] = value;
+	else if (param == On3)				seq->step[step].on[PanelThree] = value;
+	else if (param == On4)				seq->step[step].on[PanelFour] = value;
+	else; // Other
 
 	return val;
 }
@@ -77,38 +63,24 @@ uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 	uint16_t val = 0;
 	StepParameterType param = paramType;
 	
-	if (param == Toggled)
-		val = seq->step[step].toggled;
-	else if (param == Length)
-		val = seq->step[step].length;
-	else if (param == CV1)
-		val = seq->step[step].cv1;
-	else if (param == CV2)
-		val = seq->step[step].cv2;
-	else if (param == CV3)
-		val = seq->step[step].cv3;
-	else if (param == CV4)
-		val = seq->step[step].cv4;
-	else if (param == Pitch)
-		val = seq->step[step].pitch;
-	else if (param == Fine)
-		val = seq->step[step].fine;
-	else if (param == Octave)
-		val = seq->step[step].octave;
-	else if (param == Note)
-		val = seq->step[step].note;
-	else if (param == KbdHex)
-		val = seq->step[step].kbdhex;
-	else if (param == On1)
-		val = seq->step[step].on[PanelOne];
-	else if (param == On2)
-		val = seq->step[step].on[PanelTwo];
-	else if (param == On3)
-		val = seq->step[step].on[PanelThree];
-	else if (param == On4)
-		val = seq->step[step].on[PanelFour];
-	else
-		; // Other
+	if (param == Toggled)			val = seq->step[step].toggled;
+	else if (param == Length)		val = seq->step[step].length;
+	else if (param == CV1)			val = seq->step[step].cv1;
+	else if (param == CV2)			val = seq->step[step].cv2;
+	else if (param == CV3)			val = seq->step[step].cv3;
+	else if (param == CV4)			val = seq->step[step].cv4;
+	else if (param == Pitch)		val = seq->step[step].pitch;
+	else if (param == Fine)			val = seq->step[step].fine;
+	else if (param == Octave)		val = seq->step[step].octave;
+	else if (param == Note)			val = seq->step[step].note;
+	else if (param == KbdHex)		val = seq->step[step].kbdhex;
+	else if (param == PitchGlide)	val = seq->step[step].pglide;
+	else if (param == CVGlide)		val = seq->step[step].cvglide;
+	else if (param == On1)			val = seq->step[step].on[PanelOne];
+	else if (param == On2)			val = seq->step[step].on[PanelTwo];
+	else if (param == On3)			val = seq->step[step].on[PanelThree];
+	else if (param == On4)			val = seq->step[step].on[PanelFour];
+	else;
 		
 	return val;	
 }

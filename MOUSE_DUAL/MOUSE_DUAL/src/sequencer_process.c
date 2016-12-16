@@ -65,8 +65,30 @@ typedef enum TriggerPanelButtonType
 	SXTrigPanelNil
 	
 } TriggerPanelButtonType;
+
+typedef enum PitchPanelButtonType
+{
+	KeyboardPanelKeyC = 0,
+	KeyboardPanelKeyCSharp = 1,
+	KeyboardPanelKeyD = 2,
+	KeyboardPanelKeyDSharp = 3,
+	KeyboardPanelKeyE = 4,
+	KeyboardPanelKeyF = 5,
+	KeyboardPanelKeyFSharp = 6,
+	KeyboardPanelKeyG = 7,
+	KeyboardPanelKeyGSharp = 8,
+	KeyboardPanelKeyA = 9, 
+	KeyboardPanelKeyASharp = 10,
+	KeyboardPanelKeyB = 11,
+	KeyboardPanelRest = 255,
+	KeyboardPanelOctaveDown = 253,
+	KeyboardPanelOctaveUp = 254,
+	KeyboardPanelGlide = 252,
+	KeyboardEndOctave = 12
+} PitchPanelButtonType;
 // Upper keyboard pattern
-uint8_t keyboard_pattern[16] = {0,2,4,5,7,9,11,12,1,3,255,6,8,10,254,253};
+uint8_t keyboard_pattern[16] = {KeyboardPanelKeyC,	    KeyboardPanelKeyD,		KeyboardPanelKeyE,	KeyboardPanelKeyF,		KeyboardPanelKeyG,		KeyboardPanelKeyA,		KeyboardPanelKeyB,		 KeyboardPanelRest, 
+								KeyboardPanelKeyCSharp, KeyboardPanelKeyDSharp, KeyboardPanelGlide, KeyboardPanelKeyFSharp, KeyboardPanelKeyGSharp, KeyboardPanelKeyASharp, KeyboardPanelOctaveDown, KeyboardPanelOctaveUp};
 	
 uint8_t trigger_pattern[16] = 
 {
@@ -242,6 +264,8 @@ void initSequencer(void)
 	}
 
 	setKeyboardLEDsFor(currentSequencer, -1);
+
+	tc_start(tc3, TC3_CHANNEL);
 }
 
 void sequencerStep(void)
@@ -650,7 +674,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 {
 	if (pitch_vs_trigger == PitchMode)
 	{
-		if (keyboard_pattern[hexagon-MAX_STEPS] < 253)
+		if (keyboard_pattern[hexagon-MAX_STEPS] < KeyboardEndOctave)
 		{
 			// Exit SliderModePitch
 			if (keyNoteOn == hexagon)
@@ -672,7 +696,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 		
 		if (key_vs_option == KeyboardMode)
 		{
-			if ((keyboard_pattern[hexagon-MAX_STEPS] == 253) || (keyboard_pattern[hexagon-MAX_STEPS] == 254))
+			if ((keyboard_pattern[hexagon-MAX_STEPS] == KeyboardPanelOctaveDown) || (keyboard_pattern[hexagon-MAX_STEPS] == KeyboardPanelOctaveUp))
 			{
 				currentMantaSliderMode = prevMantaSliderModeForOctaveHexDisable;
 				
@@ -697,7 +721,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		{
 			int upperHexType = keyboard_pattern[hexagon-MAX_STEPS];
 				
-			if (upperHexType == 255)
+			if (upperHexType == KeyboardPanelRest)
 			{
 				//if (editStack.size <= 1)
 				{
@@ -721,7 +745,7 @@ void processTouchUpperHex(uint8_t hexagon)
 					//setParameterForEditStackSteps(currentSequencer,Note,1);
 				}
 			}
-			else if (upperHexType == 254)
+			else if (upperHexType == KeyboardPanelOctaveDown)
 			{
 				// down an octave
 				sequencer[currentSequencer].downOctave(&sequencer[currentSequencer]);
@@ -741,7 +765,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
 			}
-			else if (upperHexType == 253)
+			else if (upperHexType == KeyboardPanelOctaveUp)
 			{
 				//up an octave
 				sequencer[currentSequencer].upOctave(&sequencer[currentSequencer]);
@@ -759,6 +783,12 @@ void processTouchUpperHex(uint8_t hexagon)
 				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 				//sequencer[currentSequencer].step[note].octave = sequencer[currentSequencer].octave;
 
+			}
+			else if (upperHexType == KeyboardPanelGlide) 
+			{
+				
+				
+				
 			}
 			else
 			{
@@ -1400,6 +1430,52 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 		}
 	}
+	else if (currentMantaSliderMode == SliderModeGlide)
+	{
+		if (sliderNum == SliderOne)
+		{
+			// Pitch glide time
+			uint16_t prevGlide = 0;
+			if (editStack.size <= 1)
+			{
+				prevGlide = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].pglide;
+			}
+			uint16_t newGlide = val;
+			
+			setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
+			
+			manta_set_LED_slider(SliderOne, (val >> 9)  + 1); // add one to the slider values because a zero turns them off
+
+			/*
+			if ((editStack.contains(&editStack,uiHexCurrentStep) >= 0) && (prevGlide != newGlide))
+			{
+				
+				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+			}
+			*/
+		}
+		else // SliderTwo
+		{
+			// TODO: Implement CV glide similar to pitch glide but for 12 bit DAC
+			/*
+			uint16_t prevFine = 0;
+			if (editStack.size <= 1)
+			{
+				prevFine = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].fine;
+			}
+			uint16_t newFine = val;
+			
+			setParameterForEditStackSteps(currentSequencer,Fine,val);
+			
+			manta_set_LED_slider(SliderTwo, (val >> 9) + 1); // add one to the slider values because a zero turns them off
+
+			if ((editStack.contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
+			{
+				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+			}*/
+			
+		}
+	}
 	else
 	{
 		// Should not get here.
@@ -1532,21 +1608,13 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 		{
 			for (int j = 0; j < 16; j++)
 			{
-				if (keyboard_pattern[j] < 200)
+				if (keyboard_pattern[j] < KeyboardEndOctave)
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Amber);
 				}
 				else
 				{
-					if ((keyboard_pattern[j] == 253) || (keyboard_pattern[j] == 254))
-					{
-						manta_set_LED_hex(j+MAX_STEPS, Off);
-					}
-					else
-					{
-						manta_set_LED_hex(j+MAX_STEPS, Off);
-					}
-					
+					manta_set_LED_hex(j+MAX_STEPS, Off);
 				}
 			}
 			
@@ -1559,11 +1627,11 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 		{
 			for (int j = 0; j < 16; j++)
 			{
-				if (keyboard_pattern[j] < 200)
+				if (keyboard_pattern[j] < KeyboardEndOctave)
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Red);
 				}
-				else if (keyboard_pattern[j] == 255)
+				else if (keyboard_pattern[j] == KeyboardPanelRest)
 				{
 					manta_set_LED_hex(j+MAX_STEPS,Amber);
 				}
@@ -1784,6 +1852,8 @@ void setModeLEDsFor(MantaSequencer seq)
 	}
 }
 
+
+
 // Output
 uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
 {
@@ -1797,6 +1867,7 @@ uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
 	
 	return DACtemp;
 }
+
 
 void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 {
@@ -1815,7 +1886,7 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
 		
 		// Pitch, Trigger
-		DAC16Send(offset+0, get16BitPitch(seq,step));
+		tRampSetDest(&glide, (float)get16BitPitch(seq,step) / UINT16_MAX); 
 		DAC16Send(offset+1, 65535);
 	}
 }
@@ -1842,38 +1913,24 @@ void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
 // UTILITIES
 uint16_t getParameterFromStep(MantaSequencer seq, uint8_t step, StepParameterType param)
 {
-	if (param == Toggled)
-	return sequencer[seq].step[step].toggled;
-	else if (param == Length)
-	return sequencer[seq].step[step].length;
-	else if (param == CV1)
-	return sequencer[seq].step[step].cv1;
-	else if (param == CV2)
-	return sequencer[seq].step[step].cv2;
-	else if (param == CV3)
-	return sequencer[seq].step[step].cv3;
-	else if (param == CV4)
-	return sequencer[seq].step[step].cv4;
-	else if (param == Pitch)
-	return sequencer[seq].step[step].pitch;
-	else if (param == Fine)
-	return sequencer[seq].step[step].fine;
-	else if (param == Octave)
-	return sequencer[seq].step[step].octave;
-	else if (param == Note)
-	return sequencer[seq].step[step].note;
-	else if (param == KbdHex)
-	return sequencer[seq].step[step].kbdhex;
-	else if (param == On1)
-	return sequencer[seq].step[step].on[PanelOne];
-	else if (param == On2)
-	return sequencer[seq].step[step].on[PanelTwo];
-	else if (param == On3)
-	return sequencer[seq].step[step].on[PanelThree];
-	else if (param == On4)
-	return sequencer[seq].step[step].on[PanelFour];
-	else
-	return;
+	if (param == Toggled)		return sequencer[seq].step[step].toggled;
+	else if (param == Length)	return sequencer[seq].step[step].length;
+	else if (param == CV1)		return sequencer[seq].step[step].cv1;
+	else if (param == CV2)		return sequencer[seq].step[step].cv2;
+	else if (param == CV3)		return sequencer[seq].step[step].cv3;
+	else if (param == CV4)		return sequencer[seq].step[step].cv4;
+	else if (param == Pitch)	return sequencer[seq].step[step].pitch;
+	else if (param == Fine)		return sequencer[seq].step[step].fine;
+	else if (param == Octave)	return sequencer[seq].step[step].octave;
+	else if (param == Note)		return sequencer[seq].step[step].note;
+	else if (param == KbdHex)	return sequencer[seq].step[step].kbdhex;
+	else if (param == PitchGlide)	return sequencer[seq].step[step].pglide;
+	else if (param == CVGlide)	return sequencer[seq].step[step].cvglide;
+	else if (param == On1)		return sequencer[seq].step[step].on[PanelOne];
+	else if (param == On2)		return sequencer[seq].step[step].on[PanelTwo];
+	else if (param == On3)		return sequencer[seq].step[step].on[PanelThree];
+	else if (param == On4)		return sequencer[seq].step[step].on[PanelFour];
+	else return 0;
 }
 
 void setParameterForStep(MantaSequencer seq, uint8_t step, StepParameterType param, uint16_t value)
@@ -1881,38 +1938,24 @@ void setParameterForStep(MantaSequencer seq, uint8_t step, StepParameterType par
 	int size = editStack.size;
 	int i = 0;
 
-	if (param == Toggled)
-	sequencer[seq].step[step].toggled = value;
-	else if (param == Length)
-	sequencer[seq].step[step].length = value;
-	else if (param == CV1)
-	sequencer[seq].step[step].cv1 = value;
-	else if (param == CV2)
-	sequencer[seq].step[step].cv2 = value;
-	else if (param == CV3)
-	sequencer[seq].step[step].cv3 = value;
-	else if (param == CV4)
-	sequencer[seq].step[step].cv4 = value;
-	else if (param == Pitch)
-	sequencer[seq].step[step].pitch = value;
-	else if (param == Fine)
-	sequencer[seq].step[step].fine = value;
-	else if (param == Octave)
-	sequencer[seq].step[step].octave = value;
-	else if (param == Note)
-	sequencer[seq].step[step].note = value;
-	else if (param == KbdHex)
-	sequencer[seq].step[step].kbdhex = value;
-	else if (param == On1)
-	sequencer[seq].step[step].on[PanelOne] = value;
-	else if (param == On2)
-	sequencer[seq].step[step].on[PanelTwo] = value;
-	else if (param == On3)
-	sequencer[seq].step[step].on[PanelThree] = value;
-	else if (param == On4)
-	sequencer[seq].step[step].on[PanelFour] = value;
-	else
-	;
+	if (param == Toggled)			sequencer[seq].step[step].toggled = value;
+	else if (param == Length)		sequencer[seq].step[step].length = value;
+	else if (param == CV1)			sequencer[seq].step[step].cv1 = value;
+	else if (param == CV2)			sequencer[seq].step[step].cv2 = value;
+	else if (param == CV3)			sequencer[seq].step[step].cv3 = value;
+	else if (param == CV4)			sequencer[seq].step[step].cv4 = value;
+	else if (param == Pitch)		sequencer[seq].step[step].pitch = value;
+	else if (param == Fine)			sequencer[seq].step[step].fine = value;
+	else if (param == Octave)		sequencer[seq].step[step].octave = value;
+	else if (param == Note)			sequencer[seq].step[step].note = value;
+	else if (param == KbdHex)		sequencer[seq].step[step].kbdhex = value;
+	else if (param == PitchGlide)		sequencer[seq].step[step].pglide = value;
+	else if (param == CVGlide)		sequencer[seq].step[step].cvglide = value;
+	else if (param == On1)			sequencer[seq].step[step].on[PanelOne] = value;
+	else if (param == On2)			sequencer[seq].step[step].on[PanelTwo] = value;
+	else if (param == On3)			sequencer[seq].step[step].on[PanelThree] = value;
+	else if (param == On4)			sequencer[seq].step[step].on[PanelFour] = value;
+	else;
 }
 
 void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, uint16_t value)
@@ -1920,38 +1963,24 @@ void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, 
 	int size = editStack.size;
 	int i = 0;
 
-	if (param == Toggled)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].toggled = value;
-	else if (param == Length)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].length = value;
-	else if (param == CV1)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv1 = value;
-	else if (param == CV2)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv2 = value;
-	else if (param == CV3)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv3 = value;
-	else if (param == CV4)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv4 = value;
-	else if (param == Pitch)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].pitch = value;
-	else if (param == Fine)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].fine = value;
-	else if (param == Octave)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = value;
-	else if (param == Note)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].note = value;
-	else if (param == KbdHex)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].kbdhex = value;
-	else if (param == On1)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelOne] = value;
-	else if (param == On2)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelTwo] = value;
-	else if (param == On3)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelThree] = value;
-	else if (param == On4)
-	for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelFour] = value;
-	else
-	;
+	if (param == Toggled)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].toggled = value;
+	else if (param == Length)		for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].length = value;
+	else if (param == CV1)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv1 = value;
+	else if (param == CV2)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv2 = value;
+	else if (param == CV3)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv3 = value;
+	else if (param == CV4)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cv4 = value;
+	else if (param == Pitch)		for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].pitch = value;
+	else if (param == Fine)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].fine = value;
+	else if (param == Octave)		for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = value;
+	else if (param == Note)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].note = value;
+	else if (param == KbdHex)		for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].kbdhex = value;
+	else if (param == PitchGlide)   for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].pglide = value;
+	else if (param == CVGlide)		for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].cvglide = value;
+	else if (param == On1)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelOne] = value;
+	else if (param == On2)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelTwo] = value;
+	else if (param == On3)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelThree] = value;
+	else if (param == On4)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelFour] = value;
+	else;
 }
 
 
