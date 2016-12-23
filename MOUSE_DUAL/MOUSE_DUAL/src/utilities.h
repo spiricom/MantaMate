@@ -205,7 +205,7 @@ typedef struct _tRamp {
 } tRamp;
 
 float tRampTick(tRamp *r);
-int tRampSetTime(tRamp *r, uint16_t time);
+int tRampSetTime(tRamp *r, float time);
 int tRampSetDest(tRamp *r, float dest);
 
 int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
