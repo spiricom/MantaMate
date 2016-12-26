@@ -147,8 +147,11 @@ int main(void){
 	//start off on preset 0;
 	updatePreset();
 	
-	tRampInit(&glide, 2000, 500, 1);
-	tRampSetTime(&glide, 200);
+	tRampInit(&glideOne, 2000, 500, 1);
+	tRampSetTime(&glideOne, 200);
+	
+	tRampInit(&glideTwo, 2000, 500, 1);
+	tRampSetTime(&glideTwo, 200);
 
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
@@ -205,26 +208,16 @@ static void tc2_irq(void)
 		DAC16Send(3, 0);
 	}
 }
-// Blink timer.
+// Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
-	DAC16Send(0, tRampTick(&glide) * UINT16_MAX);
 	
-	/*
-	if (sr & AVR32_TC_SR0_CPAS_MASK)
-	{
-		
-	}
-	
-	if (sr & AVR32_TC_SR0_CPCS_MASK)
-	{
-		
-	}
-	*/
+	DAC16Send(0, tRampTick(&glideOne) * UINT16_MAX);
+	DAC16Send(2, tRampTick(&glideTwo) * UINT16_MAX);
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
