@@ -1949,8 +1949,6 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 	if (sequencer[seq].step[step].note)
 	{
 		// CV1, CV2, CV3, CV4
-		//dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
-		dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
 		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
 		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
 		
@@ -1970,31 +1968,20 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		
 		if (seq == SequencerOne) 
 		{
-			tRampSetDest(&cv1GlideOne, ((float)sequencer[seq].step[step].cv1) / UINT16_MAX);
+			tRampSetDest(&cv1GlideOne, sequencer[SequencerOne].step[step].cv1);
 			tRampSetTime(&cv1GlideOne, glideTime);
 					
 			tRampSetTime(&cv2GlideOne, glideTime);
-			tRampSetDest(&cv2GlideOne, sequencer[SequencerOne].step[step].cv2);
+			tRampSetDest(&cv2GlideOne, (float) sequencer[SequencerOne].step[step].cv2);
 			
-			tRampSetTime(&cv3GlideOne, glideTime);
-			tRampSetDest(&cv3GlideOne, sequencer[SequencerOne].step[step].cv3);
-			
-			tRampSetTime(&cv4GlideOne, glideTime);
-			tRampSetDest(&cv4GlideOne, sequencer[SequencerOne].step[step].cv4);
 		} 
 		else //SequencerTwo
 		{
 			tRampSetTime(&cv1GlideTwo, glideTime);
-			tRampSetDest(&cv1GlideTwo, (float) sequencer[seq].step[step].cv1 / UINT16_MAX);
+			tRampSetDest(&cv1GlideTwo, (float) sequencer[seq].step[step].cv1);
 			
 			tRampSetTime(&cv2GlideTwo, glideTime);
-			tRampSetDest(&cv2GlideTwo, sequencer[SequencerTwo].step[step].cv2);
-			
-			tRampSetTime(&cv3GlideTwo, glideTime);
-			tRampSetDest(&cv3GlideTwo, sequencer[SequencerTwo].step[step].cv3);
-			
-			tRampSetTime(&cv4GlideTwo, glideTime);
-			tRampSetDest(&cv4GlideTwo, sequencer[SequencerTwo].step[step].cv4);
+			tRampSetDest(&cv2GlideTwo, (float) sequencer[SequencerTwo].step[step].cv2);
 		}
 		
 		
