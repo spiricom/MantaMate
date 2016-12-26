@@ -175,6 +175,8 @@ tNoteStack editStack;
 
 int keyNoteOn;
 
+int glideNoteOn;
+
 
 tNoteStack noteOnStack;
 tNoteStack noteOffStack;
@@ -273,6 +275,7 @@ void initSequencer(void)
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
+	glideNoteOn = -1;
 	rangeNoteOn = -1;
 	
 	for (int i = 0; i < NUM_SEQ; i++)
@@ -719,6 +722,25 @@ void processReleaseUpperHex(uint8_t hexagon)
 			}
 			
 		}
+		else if (keyboard_pattern[hexagon-MAX_STEPS] == KeyboardPanelGlide)
+		{
+			if (glideNoteOn == hexagon)
+			{
+				glideNoteOn = -1;
+				
+				currentMantaSliderMode = prevMantaSliderMode;
+				if (editStack.size <= 1)
+				{
+					setSliderLEDsFor(currentSequencer, editStack.first(&editStack));
+				}
+				else
+				{
+					setSliderLEDsFor(currentSequencer, -1);
+				}
+				
+				manta_set_LED_hex(hexagon, Off);
+			}
+		}
 		
 		if (key_vs_option == KeyboardMode)
 		{
@@ -797,7 +819,25 @@ void processTouchUpperHex(uint8_t hexagon)
 			}
 			else if (upperHexType == KeyboardPanelGlide) 
 			{
-				// DO GLIDE STUFF HERE
+				if (glideNoteOn == -1)
+				{
+					glideNoteOn = hexagon;
+					
+					manta_set_LED_hex(hexagon, Red);
+					
+					// Enter SliderModeGlide
+					prevMantaSliderMode = currentMantaSliderMode;
+					currentMantaSliderMode = SliderModeGlide;
+					
+					if (editStack.size <= 1)
+					{
+						setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+					}
+					else
+					{
+						setSliderLEDsFor(currentSequencer, -1);
+					}
+				}
 				
 			}
 			else //KeyboardPanelKeyX
@@ -1070,9 +1110,16 @@ void processTouchUpperHex(uint8_t hexagon)
 
 void resetSliderMode(void)
 {
-	if (keyNoteOn >= 0)
+	if (keyNoteOn >= 0 )
 	{
 		keyNoteOn = -1;
+		currentMantaSliderMode = prevMantaSliderMode;
+		setSliderLEDsFor(currentSequencer, hexUIToStep(current_pattern_hex));
+	}
+	
+	if (glideNoteOn >= 0)
+	{
+		glideNoteOn = -1;
 		currentMantaSliderMode = prevMantaSliderMode;
 		setSliderLEDsFor(currentSequencer, hexUIToStep(current_pattern_hex));
 	}
@@ -1449,17 +1496,11 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			uint16_t newGlide = val;
 			
+			if (newGlide == 0) newGlide = 1;
+			
 			setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
 			
 			manta_set_LED_slider(SliderOne, (val >> 9)  + 1); // add one to the slider values because a zero turns them off
-
-			/*
-			if ((editStack.contains(&editStack,uiHexCurrentStep) >= 0) && (prevGlide != newGlide))
-			{
-				
-				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-			}
-			*/
 		}
 		else // SliderTwo
 		{
@@ -1704,6 +1745,8 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	uint16_t octave = 0;
 	uint16_t fine = 0;
 	uint16_t length = 0;
+	uint16_t pglide = 0;
+	uint16_t cvglide = 0;
 	
 	if (note >= 0)
 	{
@@ -1714,6 +1757,8 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 		fine = (sequencer[seq].step[note].fine >> 9) + 1;
 		octave = (sequencer[seq].step[note].octave + 1);
 		length = (sequencer[seq].step[note].length);
+		pglide = (sequencer[seq].step[note].pglide >> 9) + 1;
+		cvglide = (sequencer[seq].step[note].cvglide) + 1;
 	}
 
 	
@@ -1736,6 +1781,11 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	{
 		manta_set_LED_slider(SliderOne, octave); // OCTAVE add one to the slider values because a zero turns them off
 		manta_set_LED_slider(SliderTwo, fine); // the step length is already between 1-8
+	}
+	else if (currentMantaSliderMode == SliderModeGlide)
+	{
+		manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
+		manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
 	}
 	else
 	{
@@ -1895,13 +1945,20 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
 		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
 		
-		// Pitch, Trigger
+		// Configure Glide
 		tRamp* glide = &glideOne;
 		if (offset > 0)
 		{
 			glide = &glideTwo;
 		}
+		
+		uint16_t glideTime =  sequencer[seq].step[step].pglide >> 3;
+		if (glideTime <= 5) glideTime = 5;
+		
+		tRampSetTime(glide, glideTime);
 		tRampSetDest(glide, (float)get16BitPitch(seq,step) / UINT16_MAX); 
+		
+		// Send Trigger
 		DAC16Send(offset+1, 65535);
 	}
 }

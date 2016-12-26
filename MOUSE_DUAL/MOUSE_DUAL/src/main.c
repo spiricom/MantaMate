@@ -216,8 +216,8 @@ static void tc3_irq(void)
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
 	
-	DAC16Send(0, tRampTick(&glideOne) * UINT16_MAX);
-	DAC16Send(2, tRampTick(&glideTwo) * UINT16_MAX);
+	DAC16Send(0, tRampTick(&glideOne) * UINT16_MAX); // SequencerOne Pitch
+	DAC16Send(2, tRampTick(&glideTwo) * UINT16_MAX); // SequencerTwo Pitch
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
