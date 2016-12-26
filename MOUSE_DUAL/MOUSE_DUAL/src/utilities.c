@@ -22,12 +22,16 @@ int tRampSetDest(tRamp *r, float dest) {
 }
 
 float tRampTick(tRamp *r) {
-	r->curr += r->inc;
 	
-	if (((r->curr >= r->dest) && (r->inc > 0.0f)) || ((r->curr <= r->dest) && (r->inc < 0.0f))) {
+	
+	if (((r->curr >= r->dest) && (r->inc > 0.0f)) || ((r->curr <= r->dest) && (r->inc < 0.0f))) 
+	{
 		r->inc = 0.0f;
+		r->curr = r->dest;
 	}
-	
+	else		
+		r->curr += r->inc;
+
 	return r->curr;
 }
 

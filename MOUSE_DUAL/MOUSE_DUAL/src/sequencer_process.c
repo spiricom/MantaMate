@@ -823,11 +823,11 @@ void processTouchUpperHex(uint8_t hexagon)
 				{
 					glideNoteOn = hexagon;
 					
-					manta_set_LED_hex(hexagon, Red);
-					
 					// Enter SliderModeGlide
 					prevMantaSliderMode = currentMantaSliderMode;
 					currentMantaSliderMode = SliderModeGlide;
+					
+					manta_set_LED_hex(hexagon, Red);
 					
 					if (editStack.size <= 1)
 					{
@@ -1660,6 +1660,14 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Amber);
 				}
+				else if (keyboard_pattern[j] == KeyboardPanelRest)
+				{
+					manta_set_LED_hex(j+MAX_STEPS,Red);
+				}
+				else if (keyboard_pattern[j] == KeyboardPanelGlide)
+				{
+					
+				}
 				else
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Off);
@@ -1683,7 +1691,11 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 				{
 					manta_set_LED_hex(j+MAX_STEPS,Amber);
 				}
-				else
+				else if (keyboard_pattern[j] == KeyboardPanelGlide)
+				{
+					
+				}
+				else 
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Off);
 				}
@@ -1785,7 +1797,7 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	else if (currentMantaSliderMode == SliderModeGlide)
 	{
 		manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
-		manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
+		manta_set_LED_slider(SliderTwo, 0); // the step length is already between 1-8
 	}
 	else
 	{
@@ -1953,7 +1965,7 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		}
 		
 		uint16_t glideTime =  sequencer[seq].step[step].pglide >> 3;
-		if (glideTime <= 5) glideTime = 5;
+		if (glideTime < 5) glideTime = 5;
 		
 		tRampSetTime(glide, glideTime);
 		tRampSetDest(glide, (float)get16BitPitch(seq,step) / UINT16_MAX); 
