@@ -1496,7 +1496,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			uint16_t newGlide = val;
 			
-			if (newGlide == 0) newGlide = 1;
+			if (newGlide < 5) newGlide = 5;
 			
 			setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
 			
@@ -1504,24 +1504,19 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 		else // SliderTwo
 		{
-			// TODO: Implement CV glide similar to pitch glide but for 12 bit DAC
-			/*
-			uint16_t prevFine = 0;
+			// CV glide time
+			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				prevFine = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].fine;
+				prevGlide = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].cvglide;
 			}
-			uint16_t newFine = val;
+			uint16_t newGlide = val;
 			
-			setParameterForEditStackSteps(currentSequencer,Fine,val);
+			if (newGlide < 5) newGlide = 5;
 			
-			manta_set_LED_slider(SliderTwo, (val >> 9) + 1); // add one to the slider values because a zero turns them off
-
-			if ((editStack.contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
-			{
-				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-			}*/
+			setParameterForEditStackSteps(currentSequencer, CVGlide, newGlide);
 			
+			manta_set_LED_slider(SliderTwo, (val >> 9)  + 1); // add one to the slider values because a zero turns them off
 		}
 	}
 	else
@@ -1770,7 +1765,7 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 		octave = (sequencer[seq].step[note].octave + 1);
 		length = (sequencer[seq].step[note].length);
 		pglide = (sequencer[seq].step[note].pglide >> 9) + 1;
-		cvglide = (sequencer[seq].step[note].cvglide) + 1;
+		cvglide = (sequencer[seq].step[note].cvglide >> 9) + 1;
 	}
 
 	
@@ -1797,7 +1792,7 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	else if (currentMantaSliderMode == SliderModeGlide)
 	{
 		manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
-		manta_set_LED_slider(SliderTwo, 0); // the step length is already between 1-8
+		manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
 	}
 	else
 	{
@@ -1940,6 +1935,8 @@ uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
 	return DACtemp;
 }
 
+uint16_t glideTimeTEMP = 0;
+float destTEMP= .0f;
 
 void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 {
@@ -1952,23 +1949,54 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 	if (sequencer[seq].step[step].note)
 	{
 		// CV1, CV2, CV3, CV4
-		dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
+		//dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
 		dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
 		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
 		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
 		
-		// Configure Glide
-		tRamp* glide = &glideOne;
-		if (offset > 0)
-		{
-			glide = &glideTwo;
-		}
+		// Configure PitchGlide
+		tRamp* glide = &pitchGlideOne;
+		if (seq == SequencerTwo) glide = &pitchGlideTwo;
 		
 		uint16_t glideTime =  sequencer[seq].step[step].pglide >> 3;
 		if (glideTime < 5) glideTime = 5;
 		
-		tRampSetTime(glide, glideTime);
 		tRampSetDest(glide, (float)get16BitPitch(seq,step) / UINT16_MAX); 
+		tRampSetTime(glide, glideTime);
+
+		// Configure CVGlide
+		glideTime =  sequencer[seq].step[step].cvglide >> 3;
+		if (glideTime < 5) glideTime = 5;
+		
+		if (seq == SequencerOne) 
+		{
+			tRampSetDest(&cv1GlideOne, ((float)sequencer[seq].step[step].cv1) / UINT16_MAX);
+			tRampSetTime(&cv1GlideOne, glideTime);
+					
+			tRampSetTime(&cv2GlideOne, glideTime);
+			tRampSetDest(&cv2GlideOne, sequencer[SequencerOne].step[step].cv2);
+			
+			tRampSetTime(&cv3GlideOne, glideTime);
+			tRampSetDest(&cv3GlideOne, sequencer[SequencerOne].step[step].cv3);
+			
+			tRampSetTime(&cv4GlideOne, glideTime);
+			tRampSetDest(&cv4GlideOne, sequencer[SequencerOne].step[step].cv4);
+		} 
+		else //SequencerTwo
+		{
+			tRampSetTime(&cv1GlideTwo, glideTime);
+			tRampSetDest(&cv1GlideTwo, (float) sequencer[seq].step[step].cv1 / UINT16_MAX);
+			
+			tRampSetTime(&cv2GlideTwo, glideTime);
+			tRampSetDest(&cv2GlideTwo, sequencer[SequencerTwo].step[step].cv2);
+			
+			tRampSetTime(&cv3GlideTwo, glideTime);
+			tRampSetDest(&cv3GlideTwo, sequencer[SequencerTwo].step[step].cv3);
+			
+			tRampSetTime(&cv4GlideTwo, glideTime);
+			tRampSetDest(&cv4GlideTwo, sequencer[SequencerTwo].step[step].cv4);
+		}
+		
 		
 		// Send Trigger
 		DAC16Send(offset+1, 65535);

@@ -147,11 +147,16 @@ int main(void){
 	//start off on preset 0;
 	updatePreset();
 	
-	tRampInit(&glideOne, 2000, 500, 1);
-	tRampSetTime(&glideOne, 200);
-	
-	tRampInit(&glideTwo, 2000, 500, 1);
-	tRampSetTime(&glideTwo, 200);
+	tRampInit(&pitchGlideOne, 2000, 500, 1);
+	tRampInit(&pitchGlideTwo, 2000, 500, 1);
+	tRampInit(&cv1GlideOne, 2000, 500, 1);
+	tRampInit(&cv2GlideOne, 2000, 500, 1);
+	tRampInit(&cv3GlideOne, 2000, 500, 1);
+	tRampInit(&cv4GlideOne, 2000, 500, 1);
+	tRampInit(&cv1GlideTwo, 2000, 500, 1);
+	tRampInit(&cv2GlideTwo, 2000, 500, 1);
+	tRampInit(&cv3GlideTwo, 2000, 500, 1);
+	tRampInit(&cv4GlideTwo, 2000, 500, 1);
 
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
@@ -208,6 +213,7 @@ static void tc2_irq(void)
 		DAC16Send(3, 0);
 	}
 }
+float cv1Val = 0;
 // Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
@@ -215,9 +221,20 @@ static void tc3_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
+	// SequencerOne Pitch, CV1-CV4
+	DAC16Send(0, tRampTick(&pitchGlideOne) * UINT16_MAX); 
+	dacsend(0, 0, tRampTick(&cv1GlideOne) * UINT16_MAX);
+	dacsend(1, 0, tRampTick(&cv2GlideOne));
+	dacsend(0, 1, tRampTick(&cv3GlideOne));
+	dacsend(1, 1, tRampTick(&cv4GlideOne));
 	
-	DAC16Send(0, tRampTick(&glideOne) * UINT16_MAX); // SequencerOne Pitch
-	DAC16Send(2, tRampTick(&glideTwo) * UINT16_MAX); // SequencerTwo Pitch
+	// SequencerTwo Pitch, CV1-CV4
+	DAC16Send(2, tRampTick(&pitchGlideTwo) * UINT16_MAX); 
+	dacsend(2, 0, tRampTick(&cv1GlideTwo) * UINT16_MAX);
+	dacsend(3, 0, tRampTick(&cv2GlideTwo));
+	dacsend(2, 1, tRampTick(&cv3GlideTwo));
+	dacsend(3, 1, tRampTick(&cv4GlideTwo));
+
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)

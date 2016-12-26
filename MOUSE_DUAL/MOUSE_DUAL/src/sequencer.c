@@ -312,8 +312,8 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 		seq->step[i].fine = 2048; // 2948 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
 		seq->step[i].octave = 3;  // octave
 		seq->step[i].kbdhex = MAX_STEPS + 0;  // hexagon number in keyboard range
-		seq->step[i].pglide = 1;
-		seq->step[i].cvglide = 1;
+		seq->step[i].pglide = 5;
+		seq->step[i].cvglide = 5;
 		
 		// Trigger only
 		for (int j = 0; j < 4; j++)
