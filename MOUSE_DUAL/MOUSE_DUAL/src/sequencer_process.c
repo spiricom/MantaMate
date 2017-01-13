@@ -1968,11 +1968,17 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		
 		if (seq == SequencerOne) 
 		{
-			tRampSetDest(&cv1GlideOne, sequencer[SequencerOne].step[step].cv1);
+			tRampSetDest(&cv1GlideOne, (float) sequencer[SequencerOne].step[step].cv1);
 			tRampSetTime(&cv1GlideOne, glideTime);
 					
 			tRampSetTime(&cv2GlideOne, glideTime);
 			tRampSetDest(&cv2GlideOne, (float) sequencer[SequencerOne].step[step].cv2);
+			
+			tRampSetDest(&cv3GlideOne, sequencer[SequencerOne].step[step].cv3);
+			tRampSetTime(&cv3GlideOne, (float) glideTime);
+			
+			tRampSetTime(&cv4GlideOne, glideTime);
+			tRampSetDest(&cv4GlideOne, (float) sequencer[SequencerOne].step[step].cv4);
 			
 		} 
 		else //SequencerTwo
@@ -1982,6 +1988,12 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 			
 			tRampSetTime(&cv2GlideTwo, glideTime);
 			tRampSetDest(&cv2GlideTwo, (float) sequencer[SequencerTwo].step[step].cv2);
+			
+			tRampSetTime(&cv3GlideTwo, glideTime);
+			tRampSetDest(&cv3GlideTwo, (float) sequencer[seq].step[step].cv3);
+			
+			tRampSetTime(&cv4GlideTwo, glideTime);
+			tRampSetDest(&cv4GlideTwo, (float) sequencer[SequencerTwo].step[step].cv4);
 		}
 		
 		

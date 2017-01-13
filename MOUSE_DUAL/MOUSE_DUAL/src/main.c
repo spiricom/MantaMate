@@ -214,6 +214,7 @@ static void tc2_irq(void)
 	}
 }
 float cv1Val = 0;
+int flipFlop = 0;
 // Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
@@ -223,14 +224,30 @@ static void tc3_irq(void)
 
 	// SequencerOne Pitch, CV1-CV4
 	DAC16Send(0, tRampTick(&pitchGlideOne) * UINT16_MAX); 
-	dacsend(0, 0, tRampTick(&cv1GlideOne));
-	dacsend(1, 0, tRampTick(&cv2GlideOne));
+	
+	if (flipFlop == 0) {
+		dacsend(0, 0, tRampTick(&cv1GlideOne));
+		dacsend(1, 0, tRampTick(&cv2GlideOne));
+		flipFlop = 1;
+	} else {
+		dacsend(0, 1, tRampTick(&cv3GlideOne));
+		dacsend(1, 1, tRampTick(&cv4GlideOne));
+		flipFlop = 0;
+	}
+	
+	// NEED TO FIX FLIP FLOP THING BUT THIS WILL PROBABLY WORK, AAHHH GOTTA GO TO LAME PRESENTATIONS :( 
 	
 	// SequencerTwo Pitch, CV1-CV4
 	DAC16Send(2, tRampTick(&pitchGlideTwo) * UINT16_MAX); 
-	dacsend(2, 0, tRampTick(&cv1GlideTwo));
-	dacsend(3, 0, tRampTick(&cv2GlideTwo));
-
+	if (flipFlop == 0) {
+		dacsend(2, 0, tRampTick(&cv1GlideTwo));
+		dacsend(3, 0, tRampTick(&cv2GlideTwo));
+		flipFlop = 1;
+	} else {
+		dacsend(2, 1, tRampTick(&cv3GlideTwo));
+		dacsend(3, 1, tRampTick(&cv4GlideTwo));
+		flipFlop = 0
+	}
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
