@@ -213,7 +213,7 @@ static void tc2_irq(void)
 		DAC16Send(3, 0);
 	}
 }
-float cv1Val = 0;
+
 // Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
