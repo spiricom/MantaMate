@@ -181,12 +181,6 @@ int glideNoteOn;
 tNoteStack noteOnStack;
 tNoteStack noteOffStack;
 
-
-#define RANGEMODE 0
-#define TOGGLEMODE 1
-#define SINGLEMODE 0
-#define DUALMODE 1
-
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
@@ -599,8 +593,9 @@ void processTouchLowerHex(uint8_t hexagon)
 					last = -1;
 					int rangeHex = -1;
 					for (int i = 0; i < rangeStack.size; i++)
-					{
+					{	
 						rangeHex = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], rangeStack.notestack[i]);
+						// rangeHex = rangeStack.notestack[i];
 						if (rangeHex >= 0)
 						{
 							if (rangeHex < first)
@@ -619,6 +614,7 @@ void processTouchLowerHex(uint8_t hexagon)
 					for (int i = first; i <= last; i++)
 					{
 						int nextStep = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], i);
+						//int nextStep = i;
 						sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], nextStep);
 						manta_set_LED_hex(nextStep, AmberOn);
 					}
