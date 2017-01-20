@@ -1661,7 +1661,7 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
-					
+					manta_set_LED_hex(j+MAX_STEPS, Off);
 				}
 				else
 				{
