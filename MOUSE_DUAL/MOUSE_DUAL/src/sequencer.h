@@ -44,7 +44,10 @@ typedef struct _tStep
 	uint16_t pitch;
 	uint16_t fine;   
 	uint16_t octave;
-	uint16_t kbdhex; 
+	uint16_t kbdhex;
+	
+	uint16_t pglide;
+	uint16_t cvglide;
 	
 	// Trigger only
 	uint8_t on[4];

@@ -15,6 +15,8 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+#include "stdint.h"
+
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType
 {
@@ -57,6 +59,7 @@ typedef enum MantaSliderMode {
 	SliderModeTwo,     //CV3, CV4
 	SliderModeThree,   //OCTAVE, STEPLENGTH
 	SliderModePitch,
+	SliderModeGlide,
 	SliderModeNil
 }MantaSliderMode;
 
@@ -136,10 +139,12 @@ typedef enum StepParameterType {
 	Octave,
 	Note,
 	KbdHex,
+	PitchGlide,
+	CVGlide,
 	On1,
 	On2,
 	On3,
-	On4,
+	On4
 }StepParameterType;
 
 
@@ -158,6 +163,52 @@ MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
 KeyboardOptionMode prev_key_vs_option;
 
+//#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
+//#define tick0(THIS)					THIS.tick(&THIS)
+
+typedef enum ControlParameterType {
+	ControlParameterFeedback = 0,
+	ControlParameterDive,
+	ControlParameterSineDecay,
+	ControlParameterNoiseWidth,
+	ControlParameterNoiseDecay,
+	ControlParameterNoiseCutoff,
+	ControlParameterNil,
+} ControlParameterType;
+
+typedef enum ControlParamaterXYType {
+	ControlParameterBR = 0,
+	ControlParameterBL,
+	ControlParameterMR,
+	ControlParameterML,
+	ControlParameterTR,
+	ControlParameterTL,
+	ControlParameterXYNil,
+} ControlParameterXYType;
+
+typedef enum SmoothedParameterType {
+	SmoothedParameterDelay= 0,
+	SmoothedParameterSineFreq,
+	SmoothedParameterFeedback,
+	SmoothedParameterNil,
+} SmoothedParameterType;
+
+
+/* Ramp */
+typedef struct _tRamp {
+	float inc;
+	float inv_sr_ms;
+	float curr,dest;
+	uint16_t time;
+	int samples_per_tick;
+
+} tRamp;
+
+float tRampTick(tRamp *r);
+int tRampSetTime(tRamp *r, float time);
+int tRampSetDest(tRamp *r, float dest);
+
+int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
 
 
 #endif /* UTILITIES_H_ */

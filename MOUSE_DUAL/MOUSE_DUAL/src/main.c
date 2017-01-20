@@ -51,6 +51,7 @@
 #include "note_process.h"
 #include "7Segment.h"
 #include "sequencer_process.h"
+#include "utilities.h"
 
 
 #define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
@@ -107,6 +108,65 @@ const U8 test_pattern[] =  {
 	0x77,
 0x99};
 
+
+/*! \brief Main function. Execution starts here.
+ */
+int main(void){
+	
+	irq_initialize_vectors();
+	cpu_irq_enable();
+	
+	// Initialize the sleep manager
+	sleepmgr_init();
+	setupEIC();
+
+	sysclk_init();
+	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
+	board_init();
+
+	ui_init();
+	initSequencer();
+	//initialize the SPI bus for DAC
+	initSPIbus();
+	
+	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
+	initI2C();
+	
+	//send the messages to the DACs to make them update without software LDAC feature
+	DACsetup();
+	
+	// a test write
+	//sendI2CtoEEPROM();
+	
+	// Start USB host stack
+	uhc_start();
+	
+	// figure out if we're supposed to be in host mode or device mode for the USB
+	USB_Mode_Switch_Check();
+	
+	//start off on preset 0;
+	updatePreset();
+	
+	tRampInit(&pitchGlideOne, 2000, 500, 1);
+	tRampInit(&pitchGlideTwo, 2000, 500, 1);
+	tRampInit(&cv1GlideOne, 2000, 500, 1);
+	tRampInit(&cv2GlideOne, 2000, 500, 1);
+	tRampInit(&cv3GlideOne, 2000, 500, 1);
+	tRampInit(&cv4GlideOne, 2000, 500, 1);
+	tRampInit(&cv1GlideTwo, 2000, 500, 1);
+	tRampInit(&cv2GlideTwo, 2000, 500, 1);
+	tRampInit(&cv3GlideTwo, 2000, 500, 1);
+	tRampInit(&cv4GlideTwo, 2000, 500, 1);
+
+	// The USB management is entirely managed by interrupts.
+	// As a consequence, the user application only has to play with the power modes.
+	
+	while (true) {	
+		sleepmgr_enter_sleep();
+	}
+}
+
+
 U8 data_received[PATTERN_TEST_LENGTH];
 
 // SequencerOne timer interrupt.
@@ -154,22 +214,29 @@ static void tc2_irq(void)
 	}
 }
 
-// Blink timer.
+// Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
+
+	// SequencerOne & sequencerTwo Pitch
+	DAC16Send(0, tRampTick(&pitchGlideOne) * UINT16_MAX); 
+	DAC16Send(2, tRampTick(&pitchGlideTwo) * UINT16_MAX);
 	
-	if (sr & AVR32_TC_SR0_CPAS_MASK)
-	{
-		//blinkersOn();
-	}
-	
-	if (sr & AVR32_TC_SR0_CPCS_MASK)
-	{	
-		//blinkersOff();
-	}
+	// SequencerOne CV1-CV2
+	dacsend(0, 0, tRampTick(&cv1GlideOne));
+	dacsend(1, 0, tRampTick(&cv2GlideOne));
+	// SequencerOne CV3-CV4
+	dacsend(0, 1, tRampTick(&cv3GlideOne));
+	dacsend(1, 1, tRampTick(&cv4GlideOne));
+	// SequencerTwo CV1-CV2
+	dacsend(2, 0, tRampTick(&cv1GlideTwo));
+	dacsend(3, 0, tRampTick(&cv2GlideTwo));
+	// SequencerTwo CV3-CV4
+	dacsend(2, 1, tRampTick(&cv3GlideTwo));
+	dacsend(3, 1, tRampTick(&cv4GlideTwo));	
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
@@ -366,7 +433,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 		// Clock inversion.
 		.clki     = false,
 		// Internal source clock 3, connected to fPBA / 8.
-		.tcclks   = TC_CLOCK_SOURCE_TC5
+		.tcclks   = TC_CLOCK_SOURCE_TC3
 	};
 
 	// Options for enabling TC interrupts
@@ -376,7 +443,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 		.ldras = 0,
 		.cpcs  = 1, // Enable interrupt on RC compare alone
 		.cpbs  = 0,
-		.cpas  = 1,
+		.cpas  = 0,
 		.lovrs = 0,
 		.covfs = 0
 	};
@@ -384,19 +451,17 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	// Initialize the timer/counter.
 	tc_init_waveform(tc, &waveform_opt);
 	/*
-		* Set the compare triggers.
-		* We configure it to count every 1 milliseconds.
-		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
-		* to get an interrupt every 10 ms.
-		*/
-	
-	tc_write_ra( tc, TC3_CHANNEL, 2500); // was 1000
-	tc_write_rc( tc, TC3_CHANNEL, 3000); // was 1000
+	* Set the compare triggers.
+	* We configure it to count every 1 milliseconds.
+	* We want: (1 / (fPBA / 8)) * RC = 1 ms,
+	hence RC = (fPBA / 8) / 1000
+	* to get an interrupt every 10 ms.
+	*/
+	tc_write_rc( tc, TC3_CHANNEL, 2000); // approximately .5 ms
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
 
-	//tc_start(tc, TC3_CHANNEL);
 }
 
 
@@ -981,53 +1046,6 @@ void setupEIC(void)
 	
 }
 
-
-/*! \brief Main function. Execution starts here.
- */
-int main(void){
-	
-	irq_initialize_vectors();
-	cpu_irq_enable();
-	
-	// Initialize the sleep manager
-	sleepmgr_init();
-	setupEIC();
-
-	sysclk_init();
-	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
-	board_init();
-
-	ui_init();
-	initSequencer();
-	//initialize the SPI bus for DAC
-	initSPIbus();
-	
-	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
-	initI2C();
-	
-	//send the messages to the DACs to make them update without software LDAC feature
-	DACsetup();
-	
-	// a test write
-	//sendI2CtoEEPROM();
-	
-	// Start USB host stack
-	uhc_start();
-	
-	// figure out if we're supposed to be in host mode or device mode for the USB
-	USB_Mode_Switch_Check();
-	
-	//start off on preset 0;
-	
-	updatePreset();
-
-	// The USB management is entirely managed by interrupts.
-	// As a consequence, the user application only has to play with the power modes.
-	
-	while (true) {	
-		sleepmgr_enter_sleep();
-	}
-}
 
 void main_suspend_action(void)
 {
