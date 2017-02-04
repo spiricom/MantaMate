@@ -544,7 +544,7 @@ void processTouchLowerHex(uint8_t hexagon)
 				else
 				{
 					editStack.remove(&editStack, hexagon);
-					
+
 					if (amberHexes[currentSequencer][hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
 					else											manta_set_LED_hex(hexagon, Off);
 				}
