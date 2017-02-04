@@ -165,7 +165,7 @@ tSequencer pitchSplitSequencer[NUM_SEQ];
 tSequencer trigFullSequencer[NUM_SEQ];
 tSequencer trigSplitSequencer[NUM_SEQ];
 
-uint8_t amberHexes[MAX_STEPS];
+uint8_t amberHexes[NUM_SEQ][MAX_STEPS];
 
 tSequencer *sequencer; 
 
@@ -545,8 +545,8 @@ void processTouchLowerHex(uint8_t hexagon)
 				{
 					editStack.remove(&editStack, hexagon);
 					
-					if (amberHexes[hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
-					else							manta_set_LED_hex(hexagon, Off);
+					if (amberHexes[currentSequencer][hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
+					else											manta_set_LED_hex(hexagon, Off);
 				}
 			}
 			else
@@ -569,12 +569,12 @@ void processTouchLowerHex(uint8_t hexagon)
 				if (sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], step))
 				{
 					manta_set_LED_hex(hexagon, AmberOn);
-					amberHexes[hexagon] = 1;
+					amberHexes[currentSequencer][hexagon] = 1;
 				}
 				else
 				{
 					manta_set_LED_hex(hexagon, AmberOff);
-					amberHexes[hexagon] = 0;
+					amberHexes[currentSequencer][hexagon] = 0;
 					if (hexagon == uiHexCurrentStep)
 					{
 						manta_set_LED_hex(hexagon, RedOff);
