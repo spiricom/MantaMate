@@ -11,17 +11,11 @@
 // If stack contains note, returns index. Else returns -1;
 int tNoteStackContains(tNoteStack *ns, uint8_t noteVal)
 {
-	int foundOne = -1;
-	
 	for (int i = 0; i < ns->size; i++)
 	{
-		if (ns->notestack[i] == noteVal)
-		{
-			foundOne = i;
-			break;
-		}
+		if (ns->notestack[i] == noteVal)	return i;
 	}
-	return foundOne;
+	return -1;
 }
 
 void tNoteStackAdd(tNoteStack *ns, uint8_t noteVal)
@@ -42,7 +36,7 @@ int tNoteStackAddIfNotAlreadyThere(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t j;
 	
-	int foundIndex = tNoteStackContains(ns,noteVal);
+	int foundIndex = tNoteStackContains(ns, noteVal);
 	int added = 0;
 
 	if (foundIndex == -1)
@@ -62,7 +56,6 @@ int tNoteStackAddIfNotAlreadyThere(tNoteStack *ns, uint8_t noteVal)
 	}
 	
 	return added;
-	
 }
 
 
@@ -70,7 +63,7 @@ int tNoteStackAddIfNotAlreadyThere(tNoteStack *ns, uint8_t noteVal)
 int tNoteStackRemove(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t k;
-	int foundIndex = tNoteStackContains(ns,noteVal);
+	int foundIndex = tNoteStackContains(ns, noteVal);
 	int removed = 0;
 	
 	if (foundIndex >= 0)
@@ -178,7 +171,6 @@ int tNoteStackInit(tNoteStack *ns, uint8_t cap)
 	ns->capacity = cap;
 	
 	ns->next = &tNoteStackNext;
-	
 	ns->add = &tNoteStackAdd;
 	ns->addIfNotAlreadyThere = &tNoteStackAddIfNotAlreadyThere;
 	ns->remove = &tNoteStackRemove;
@@ -186,9 +178,6 @@ int tNoteStackInit(tNoteStack *ns, uint8_t cap)
 	ns->contains = &tNoteStackContains;
 	ns->clear = &tNoteStackClear;
 	ns->first = &tNoteStackFirst;
-	
 	ns->setCapacity = &tNoteStackSetCapacity;
-	
-	
 	return 0;
 }
