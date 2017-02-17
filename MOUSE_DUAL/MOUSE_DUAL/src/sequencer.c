@@ -129,7 +129,7 @@ int tSequencerGetHexFromStep(tSequencer *seq, uint8_t in)
 		}
 	}
 	else if (pat == OrderTouch)
-		hex = seq->notestack.next(&seq->notestack);
+		hex = NoteStack_next(&(seq->notestack));
 	else
 		;//Other
 		
@@ -173,7 +173,7 @@ int tSequencerGetNumNotes(tSequencer *seq)
 int tSequencerSetMaxLength(tSequencer *seq, uint8_t maxLength)
 {	
 	seq->maxLength = maxLength;
-	seq->notestack.setCapacity(&seq->notestack,maxLength);
+	NoteStack_setCapacity(&seq->notestack, maxLength);
 }
 
 void tSequencerSetOctave(tSequencer *seq, int8_t octave)
@@ -207,12 +207,12 @@ int tSequencerStepToggle(tSequencer *seq, uint8_t step)
 {
 	uint8_t foundOne = 0;
 	
-	foundOne = seq->notestack.remove(&seq->notestack,step);
+	foundOne = NoteStack_remove(&(seq->notestack), step);
 	
 	if (!foundOne)
 	{
 		seq->step[step].toggled = 1;
-		seq->notestack.add(&seq->notestack,step);
+		NoteStack_add(&(seq->notestack), step);
 	}
 	else
 	{
@@ -226,12 +226,12 @@ int tSequencerStepAdd(tSequencer *seq, uint8_t step)
 {
 	uint8_t foundOne = 0;
 	
-	foundOne = seq->notestack.contains(&seq->notestack, step);
+	foundOne = NoteStack_contains(&(seq->notestack), step);
 	
 	if (foundOne < 0)
 	{
 		seq->step[step].toggled = 1;
-		seq->notestack.add(&seq->notestack,step);
+		NoteStack_add(&(seq->notestack), step);
 	}
 
 	return !foundOne;
@@ -242,7 +242,7 @@ int tSequencerStepRemove(tSequencer *seq, uint8_t step)
 	uint8_t foundOne = 0;
 	
 	seq->step[step].toggled = 0;
-	foundOne = seq->notestack.remove(&seq->notestack, step);
+	foundOne = NoteStack_remove(&(seq->notestack), step);
 
 	return foundOne;
 }
@@ -252,7 +252,7 @@ void tSequencerClearSteps(tSequencer *seq)
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		seq->step[i].toggled = 0;
-		seq->notestack.remove(&seq->notestack, i);
+		NoteStack_remove(&(seq->notestack), i);
 	}
 }
 
@@ -320,7 +320,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 		}
 	}
 	
-	tNoteStackInit(&seq->notestack, maxLength);
+	NoteStack_init(&(seq->notestack), maxLength);
 
 	return 0;
 }

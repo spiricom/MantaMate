@@ -179,7 +179,7 @@ int glideNoteOn;
 tNoteStack editStack;
 tNoteStack noteOnFrame;
 tNoteStack noteOffFrame; // frames refreshed every 2 ms
-tNoteStack noteOnStack; // all notes on at any point during runtime
+tNoteStack noteOnStack;  // all notes on at any point during runtime
 
 
 #define RANGEMODE 0
@@ -268,17 +268,13 @@ void initSequencer(void)
 	playSubMode =				SeqMode;
 	
 	
-	tNoteStackInit(&editStack,		32);
-	
+	NoteStack_init(&editStack, 32);
 	resetEditStack();
 	
-	tNoteStackInit(&noteOffFrame,	32);
-	tNoteStackInit(&noteOnFrame,	32);
-	tNoteStackInit(&rangeStack,	32);
-	
-	// Initialize the noteOnStack. :D !!!
-	tNoteStackInit(&noteOnStack, 32); 
-	// Glad I commented that - thanks @Josh Becker for the tip on appropriate commenting.
+	NoteStack_init(&noteOffFrame, 32);
+	NoteStack_init(&noteOnFrame, 32);
+	NoteStack_init(&rangeStack,	32);	
+	NoteStack_init(&noteOnStack, 32); 
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
@@ -389,16 +385,16 @@ void processSequencer(void)
 		{
 			newHexUIOn = i;
 			new_lower_hex = 1;
-			noteOnFrame.add(&noteOnFrame,	i);
-			noteOnStack.add(&noteOnStack, i);
+			NoteStack_add(&noteOnFrame,	i);
+			NoteStack_add(&noteOnStack, i);
 		}
 		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newHexUIOff = i;
 			new_release_lower_hex = 1;
-			noteOffFrame.add(&noteOffFrame,	i);
-			noteOnStack.remove(&noteOnStack, i);
+			NoteStack_add(&noteOffFrame, i);
+			NoteStack_remove(&noteOnStack, i);
 			
 		}
 		pastbutt_states[i] = butt_states[i];
@@ -477,7 +473,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 			} 
 			else if (playSubMode == RangeMode)
 			{
-				rangeStack.remove(&rangeStack, hexagon);
+				NoteStack_remove(&rangeStack, hexagon);
 				
 				if (hex == rangeNoteOn)
 				{
@@ -491,7 +487,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 		}
 	}
 	
-	noteOffFrame.clear(&noteOffFrame);
+	NoteStack_clear(&noteOffFrame);
 	new_release_lower_hex = 0;
 }
 
@@ -505,7 +501,7 @@ int first, last;
 
 void processTouchLowerHex(uint8_t hexagon)
 {
-	if (editStack.contains(&editStack,hexagon) < 0)	resetSliderMode();
+	if (NoteStack_contains(&editStack,hexagon) < 0)	resetSliderMode();
 
 	// Set hexUIs for this processing frame.
 	prevHexUI = currentHexUI;
@@ -549,14 +545,14 @@ void processTouchLowerHex(uint8_t hexagon)
 			if (editNoteOn >= 0)
 			{
 				// If the first hex added is still touched, add new hex to edit stack.
-				if (editStack.contains(&editStack, hexagon) == -1)
+				if (NoteStack_contains(&editStack, hexagon) == -1)
 				{
-					editStack.add(&editStack, hexagon);
+					NoteStack_add(&editStack, hexagon);
 					manta_set_LED_hex(hexagon, Red);
 				}
 				else
 				{
-					editStack.remove(&editStack, hexagon);
+					NoteStack_remove(&editStack, hexagon);
 
 					if (amberHexes[currentSequencer][hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
 					else											manta_set_LED_hex(hexagon, Off);
@@ -567,15 +563,15 @@ void processTouchLowerHex(uint8_t hexagon)
 				resetEditStack();
 				setSequencerLEDsFor(sequencerToSet);
 				
-				editNoteOn = editStack.first(&editStack);
+				editNoteOn = NoteStack_first(&editStack);
 				manta_set_LED_hex(editNoteOn, Red);
 			}
 
 		}
 		else if (edit_vs_play == PlayToggleMode)
 		{
-			editStack.remove(&editStack, prevHexUI);
-			editStack.add(&editStack, currentHexUI);
+			NoteStack_remove(&editStack, prevHexUI);
+			NoteStack_add(&editStack, currentHexUI);
 		
 			if (playSubMode == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
 			{
@@ -603,9 +599,9 @@ void processTouchLowerHex(uint8_t hexagon)
 					
 					clearSequencer(currentSequencer);
 					
-					if (rangeStack.contains(&rangeStack, hexagon) < 0)
+					if (NoteStack_contains(&rangeStack, hexagon) < 0)
 					{
-						rangeStack.add(&rangeStack, hexagon);
+						NoteStack_add(&rangeStack, hexagon);
 						manta_set_LED_hex(hexagon, Red);
 					}
 
@@ -643,7 +639,7 @@ void processTouchLowerHex(uint8_t hexagon)
 					resetRangeStack();
 					setSequencerLEDsFor(sequencerToSet);
 				
-					rangeNoteOn = rangeStack.first(&rangeStack);
+					rangeNoteOn = NoteStack_first(&rangeStack);
 					manta_set_LED_hex(rangeNoteOn,Red);
 				}
 
@@ -656,8 +652,8 @@ void processTouchLowerHex(uint8_t hexagon)
 		}
 		else // TrigToggleMode
 		{
-			editStack.remove(&editStack, prevHexUI);
-			editStack.add(&editStack,currentHexUI);	
+			NoteStack_remove(&editStack, prevHexUI);
+			NoteStack_add(&editStack,currentHexUI);	
 		
 			int currPanel = currentPanel[currentSequencer];
 			if (sequencer[currentSequencer].step[step].on[currPanel])
@@ -702,7 +698,7 @@ void processTouchLowerHex(uint8_t hexagon)
 		setSliderLEDsFor(currentSequencer, hexUIToStep(hexagon));
 	}
 	
-	noteOnFrame.clear(&noteOnFrame);
+	NoteStack_clear(&noteOnFrame);
 	new_lower_hex = 0;
 }
 
@@ -721,7 +717,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 				currentMantaSliderMode = prevMantaSliderMode;
 				if (editStack.size <= 1)
 				{
-					setSliderLEDsFor(currentSequencer, editStack.first(&editStack));
+					setSliderLEDsFor(currentSequencer, NoteStack_first(&editStack));
 				}
 				else
 				{
@@ -739,7 +735,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 				currentMantaSliderMode = prevMantaSliderMode;
 				if (editStack.size <= 1)
 				{
-					setSliderLEDsFor(currentSequencer, editStack.first(&editStack));
+					setSliderLEDsFor(currentSequencer, NoteStack_first(&editStack));
 				}
 				else
 				{
@@ -758,7 +754,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 				
 				if (currentMantaSliderMode != SliderModeThree)
 				{
-					setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+					setSliderLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 				}
 			}
 		}
@@ -781,7 +777,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			{
 				// handle case when more than one note in editStack (check if they all have same parameter value
 				// need to be able to set multiple notes to rest too
-				int step = hexUIToStep(editStack.first(&editStack));
+				int step = hexUIToStep(NoteStack_first(&editStack));
 					
 				if (!(getParameterFromStep(currentSequencer, step, Note)))	setParameterForEditStackSteps(currentSequencer,Note,1);
 				else														setParameterForEditStackSteps(currentSequencer,Note,0);
@@ -839,7 +835,7 @@ void processTouchUpperHex(uint8_t hexagon)
 					
 					if (editStack.size <= 1)
 					{
-						setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+						setSliderLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 					}
 					else
 					{
@@ -872,7 +868,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				
 					if (editStack.size <= 1)
 					{
-						setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+						setSliderLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 					}
 					else
 					{
@@ -882,13 +878,13 @@ void processTouchUpperHex(uint8_t hexagon)
 			}
 				
 			int cStep = sequencer[currentSequencer].currentStep;
-			if (editStack.contains(&editStack,stepToHexUI(currentSequencer,cStep)) != -1)
+			if (NoteStack_contains(&editStack,stepToHexUI(currentSequencer,cStep)) != -1)
 			{
 				//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 				
-			setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+			setKeyboardLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 		}
 		else // TriggerMode
 		{
@@ -920,7 +916,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				
 					if (edit_vs_play != TrigToggleMode)
 					{
-						setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+						setKeyboardLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 						setSequencerLEDsFor(currentSequencer);
 					}
 				}
@@ -934,7 +930,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				{
 					if (whichTrigPanel != SXTrigPanelNil)
 					{
-						int step = hexUIToStep(editStack.first(&editStack));
+						int step = hexUIToStep(NoteStack_first(&editStack));
 					
 						if (!getParameterFromStep(currentSequencer, step, On1 + whichPanel))
 						{
@@ -1164,7 +1160,7 @@ void processTouchFunctionButton(MantaButton button)
 			}
 			else
 			{
-				setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+				setSliderLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 			}
 		}
 	}
@@ -1189,7 +1185,7 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				edit_vs_play = EditMode;
 				
-				int currHex = editStack.first(&editStack);
+				int currHex = NoteStack_first(&editStack);
 				
 				if (currHex != sequencer[currentSequencer].currentStep)
 				{
@@ -1212,7 +1208,7 @@ void processTouchFunctionButton(MantaButton button)
 			
 			if (key_vs_option == KeyboardMode)
 			{
-				setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+				setKeyboardLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 			}
 			
 			if (full_vs_split == FullMode)
@@ -1288,7 +1284,7 @@ void processTouchFunctionButton(MantaButton button)
 			
 			if (edit_vs_play == EditMode)
 			{
-				setKeyboardLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+				setKeyboardLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 			}
 			else if (edit_vs_play == TrigToggleMode)
 			{
@@ -1301,7 +1297,7 @@ void processTouchFunctionButton(MantaButton button)
 			}
 		}
 		
-		setSliderLEDsFor(currentSequencer, hexUIToStep(editStack.first(&editStack)));
+		setSliderLEDsFor(currentSequencer, hexUIToStep(NoteStack_first(&editStack)));
 	}
 	else if (button == ButtonBottomLeft)
 	{
@@ -1395,7 +1391,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
 
-		if (editStack.contains(&editStack,uiHexCurrentStep) != -1)
+		if (NoteStack_contains(&editStack,uiHexCurrentStep) != -1)
 		{
 			dacsend(currentSequencer * 2 + sliderNum, 0, val);
 		}
@@ -1417,7 +1413,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		
 		manta_set_LED_slider(sliderNum,(val >> 9) + 1); // add one to the slider values because a zero turns them off
 		
-		if (editStack.contains(&editStack,uiHexCurrentStep) != -1)
+		if (NoteStack_contains(&editStack,uiHexCurrentStep) != -1)
 		{
 			dacsend(currentSequencer * 2 + sliderNum, 1, val);
 		}
@@ -1430,7 +1426,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevOct = 0;
 			if (editStack.size <= 1)
 			{
-				prevOct = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].octave;
+				prevOct = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].octave;
 			}
 			uint16_t newOct = (val >> 9);
 			
@@ -1438,7 +1434,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 			manta_set_LED_slider(SliderOne, newOct + 1); // add one to the slider values because a zero turns them off
 
-			if ((editStack.contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
+			if ((NoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); 
 			}
@@ -1458,7 +1454,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevOct = 0;
 			if (editStack.size <= 1)
 			{
-				prevOct = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].octave;
+				prevOct = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].octave;
 			}
 			uint16_t newOct = (val >> 9);
 			
@@ -1466,7 +1462,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 			manta_set_LED_slider(SliderOne, newOct + 1); // add one to the slider values because a zero turns them off
 
-			if ((editStack.contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
+			if ((NoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
@@ -1477,7 +1473,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevFine = 0;
 			if (editStack.size <= 1)
 			{
-				prevFine = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].fine;
+				prevFine = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].fine;
 			}
 			uint16_t newFine = val;
 			
@@ -1485,7 +1481,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 			manta_set_LED_slider(SliderTwo, (val >> 9) + 1); // add one to the slider values because a zero turns them off
 
-			if ((editStack.contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
+			if ((NoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
 			{
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
@@ -1500,7 +1496,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				prevGlide = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].pglide;
+				prevGlide = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].pglide;
 			}
 			uint16_t newGlide = val;
 			
@@ -1516,7 +1512,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				prevGlide = sequencer[currentSequencer].step[hexUIToStep(editStack.first(&editStack))].cvglide;
+				prevGlide = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].cvglide;
 			}
 			uint16_t newGlide = val;
 			
@@ -1544,7 +1540,7 @@ void uiStep(MantaSequencer seq)
 	{
 		if (pitch_vs_trigger == PitchMode)
 		{
-			if (editStack.contains(&editStack, uiHexCurrentStep) >= 0)
+			if (NoteStack_contains(&editStack, uiHexCurrentStep) >= 0)
 			{
 				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
 			}
@@ -1553,7 +1549,7 @@ void uiStep(MantaSequencer seq)
 				manta_set_LED_hex(uiHexCurrentStep, RedOn);
 			}
 			
-			if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
+			if (NoteStack_contains(&editStack,uiHexPrevStep) >= 0)
 			{
 				manta_set_LED_hex(uiHexPrevStep, AmberOff);
 			}
@@ -1564,7 +1560,7 @@ void uiStep(MantaSequencer seq)
 		}
 		else // TriggerMode
 		{
-			if (editStack.contains(&editStack,uiHexCurrentStep) >= 0)
+			if (NoteStack_contains(&editStack,uiHexCurrentStep) >= 0)
 			{
 				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
 			}
@@ -1580,7 +1576,7 @@ void uiStep(MantaSequencer seq)
 				}
 			}
 			
-			if (editStack.contains(&editStack,uiHexPrevStep) >= 0)
+			if (NoteStack_contains(&editStack,uiHexPrevStep) >= 0)
 			{
 				manta_set_LED_hex(uiHexPrevStep, AmberOff);
 			}
@@ -2224,17 +2220,17 @@ uint8_t stepToHexUI(MantaSequencer seq, uint8_t stepIn)
 // Sets shift/noteon hex to -1 to prevent notes from being added to edit stack until new note is pressed.
 void resetEditStack(void)
 {
-	editStack.clear(&editStack);
+	NoteStack_clear(&editStack);
 	editNoteOn = -1;
-	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	editStack.add(&editStack,currentHexUI);
-	else												editStack.add(&editStack,0);
+	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	NoteStack_add(&editStack, currentHexUI);
+	else												NoteStack_add(&editStack, 0);
 }
 
 void resetRangeStack(void)
 {
-	rangeStack.clear(&rangeStack);
+	NoteStack_clear(&rangeStack);
 	editNoteOn = -1;
-	rangeStack.add(&rangeStack, currentHexUI);
+	NoteStack_add(&rangeStack, currentHexUI);
 }
 
 

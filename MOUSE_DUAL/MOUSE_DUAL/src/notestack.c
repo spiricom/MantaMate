@@ -7,9 +7,8 @@
 
 #include "notestack.h"
 
-
-// If stack contains note, returns index. Else returns -1;
-int tNoteStackContains(tNoteStack *ns, uint8_t noteVal)
+// If stack contains note, returns index. Else returns -1
+int NoteStack_contains(tNoteStack *ns, uint8_t noteVal)
 {
 	for (int i = 0; i < ns->size; i++)
 	{
@@ -18,7 +17,7 @@ int tNoteStackContains(tNoteStack *ns, uint8_t noteVal)
 	return -1;
 }
 
-void tNoteStackAdd(tNoteStack *ns, uint8_t noteVal)
+void NoteStack_add(tNoteStack *ns, uint8_t noteVal)
 {
 	//first move notes that are already in the stack one position to the right
 	for (int i = ns->size; i > 0; i--)
@@ -32,38 +31,11 @@ void tNoteStackAdd(tNoteStack *ns, uint8_t noteVal)
 	ns->size++;
 }
 
-int tNoteStackAddIfNotAlreadyThere(tNoteStack *ns, uint8_t noteVal)
-{
-	uint8_t j;
-	
-	int foundIndex = tNoteStackContains(ns, noteVal);
-	int added = 0;
-
-	if (foundIndex == -1)
-	{
-		//first move notes that are already in the stack one position to the right
-		for (j = ns->size; j > 0; j--)
-		{
-			ns->notestack[j] = ns->notestack[(j - 1)];
-		}
-
-		//then, insert the new note into the front of the stack
-		ns->notestack[0] = noteVal;
-
-		ns->size++;
-		
-		added = 1;
-	}
-	
-	return added;
-}
-
-
 // Remove noteVal. return 1 if removed, 0 if not
-int tNoteStackRemove(tNoteStack *ns, uint8_t noteVal)
+int NoteStack_remove(tNoteStack *ns, uint8_t noteVal)
 {
 	uint8_t k;
-	int foundIndex = tNoteStackContains(ns, noteVal);
+	int foundIndex = NoteStack_contains(ns, noteVal);
 	int removed = 0;
 	
 	if (foundIndex >= 0)
@@ -90,13 +62,11 @@ int tNoteStackRemove(tNoteStack *ns, uint8_t noteVal)
 		removed = 1;
 	}
 
-			
-
 	return removed;
 }
 
 // Doesn't change size of data types 
-void tNoteStackSetCapacity(tNoteStack *ns, uint8_t cap)
+void NoteStack_setCapacity(tNoteStack *ns, uint8_t cap)
 {
 	if (cap <= 0)
 		ns->capacity = 1;
@@ -120,12 +90,12 @@ void tNoteStackSetCapacity(tNoteStack *ns, uint8_t cap)
 	}
 }
 
-int tNoteStackGetSize(tNoteStack *ns)
+int NoteStack_getSize(tNoteStack *ns)
 {
 	return ns->size;
 }
 
-int tNoteStackClear(tNoteStack *ns)
+int NoteStack_clear(tNoteStack *ns)
 {
 	for (int i = 0; i < 32; i++)
 	{
@@ -136,7 +106,7 @@ int tNoteStackClear(tNoteStack *ns)
 }
 
 // Next item in order of addition to stack. Return 0-31 if there is a next item to move to. Returns -1 otherwise.
-int tNoteStackNext(tNoteStack *ns)
+int NoteStack_next(tNoteStack *ns)
 {
 	int step = 0;
 	if (ns->size != 0) // if there is at least one note in the stack
@@ -159,25 +129,16 @@ int tNoteStackNext(tNoteStack *ns)
 	}
 }
 
-uint8_t tNoteStackFirst(tNoteStack *ns)
+uint8_t NoteStack_first(tNoteStack *ns)
 {
 	return ns->notestack[0];
 }
 
-int tNoteStackInit(tNoteStack *ns, uint8_t cap)
+int NoteStack_init(tNoteStack *ns, uint8_t cap)
 {
 	ns->size = 0;
 	ns->pos = 0;
 	ns->capacity = cap;
 	
-	ns->next = &tNoteStackNext;
-	ns->add = &tNoteStackAdd;
-	ns->addIfNotAlreadyThere = &tNoteStackAddIfNotAlreadyThere;
-	ns->remove = &tNoteStackRemove;
-	ns->getSize = &tNoteStackGetSize;
-	ns->contains = &tNoteStackContains;
-	ns->clear = &tNoteStackClear;
-	ns->first = &tNoteStackFirst;
-	ns->setCapacity = &tNoteStackSetCapacity;
 	return 0;
 }
