@@ -136,6 +136,56 @@ int tSequencerGetHexFromStep(tSequencer *seq, uint8_t in)
 	return hex;
 }
 
+static int getIndexInPattern(uint8_t* pattern, uint8_t value) 
+{
+	// All patterns are MAX_STEPS length
+	for (int i = 0; i < MAX_STEPS; i++)
+	{
+		if (pattern[i] == value) return i;
+	}
+	return -1;
+}
+
+int tSequencerGetStepFromHex(tSequencer *seq, uint8_t hex)
+{
+	SequencerPatternType pat = seq->pattern;
+	int step = -1;
+	// WORKING: 1, 2, 7
+	// NOT WORKING: 3, 4, 5, 6 
+	
+	if (pat == LeftRightRowDown)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
+	else if (pat == LeftRightRowUp)
+		step = hex;
+	else if (pat == RightLeftRowDown)
+		step = (seq->maxLength - 1) - hex;
+	else if (pat == RightLeftRowUp)
+		step = getIndexInPattern(pattern_row_reverse, hex);
+	else if (pat == LeftRightColDown)
+		step = getIndexInPattern(pattern_col_up, hex);
+	else if (pat == LeftRightColUp)
+		step = getIndexInPattern(pattern_col_down, hex);
+	else if (pat == RightLeftColDown)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_down, hex);
+	else if (pat == RightLeftColUp)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_up, hex);
+	else if (pat == LeftRightDiagDown)
+		step = getIndexInPattern(pattern_diag_reverse, hex);
+	else if (pat == LeftRightDiagUp)
+		step = getIndexInPattern(pattern_diag, hex);
+	else if (pat == RightLeftDiagDown)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag_reverse, hex);
+	else if (pat == RightLeftDiagUp)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag, hex);
+	else if (pat == RandomWalk) {
+		// TODO: Decide what to do for this??? Just doing LeftRightRowDown for now
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
+	}
+	
+	return step;
+	
+}
+
 void tSequencerNext(tSequencer *seq)
 {
 	seq->stepGo = 1;
@@ -293,6 +343,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	seq->getNumNotes = &tSequencerGetNumNotes;
 	seq->setMaxLength = &tSequencerSetMaxLength;
 	seq->getHexFromStep = &tSequencerGetHexFromStep;
+	seq->getStepFromHex = &tSequencerGetStepFromHex;
 	
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
