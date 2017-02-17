@@ -54,9 +54,6 @@ typedef struct _tStep
 	
 } tStep;
 
-
-
-
 typedef struct _tSequencer
 {
 
@@ -69,29 +66,24 @@ typedef struct _tSequencer
 	tNoteStack notestack;
 	SequencerPatternType pattern;
 	uint8_t lengthCounter;
-	
-	void (*next)(struct _tSequencer *self);
-	int (*toggleStep)(struct _tSequencer *self, uint8_t step);
-	int (*addStep)(struct _tSequencer *self, uint8_t step);
-	int (*removeStep)(struct _tSequencer *self, uint8_t step);
-	void (*setPattern)(struct _tSequencer *self, SequencerPatternType type);
-	int (*getNumNotes)(struct _tSequencer *self);
-	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);
-	void (*setOctave)(struct _tSequencer *self, int8_t octave);
-	void (*downOctave)(struct _tSequencer *self);
-	int (*getOctave)(struct _tSequencer *self);
-	void (*upOctave)(struct _tSequencer *self);
-	void (*clearSteps)(struct _tSequencer *self);
-	int (*getHexFromStep)(struct _tSequencer *self, uint8_t step);
-	int (*getStepFromHex)(struct _tSequencer *self, uint8_t  hex);
-	
-	uint16_t (*get)(struct _tSequencer *self, uint8_t step, StepParameterType param);
-	uint16_t (*set)(struct _tSequencer *self, uint8_t step, StepParameterType param, uint16_t value);
-
-	
 } tSequencer;
 
-int tSequencerInit(tSequencer *tseq, uint8_t maxLength);
-
+int Sequencer_init(tSequencer *seq, uint8_t maxLength);
+void Sequencer_setPattern(tSequencer *seq, SequencerPatternType pat);
+uint16_t Sequencer_set(tSequencer *seq, uint8_t step, StepParameterType paramType, uint16_t value);
+uint16_t Sequencer_get(tSequencer *seq, uint8_t step, StepParameterType paramType);
+int Sequencer_getHexFromStep(tSequencer *seq, uint8_t in);
+uint8_t	Sequencer_getStepFromHex(tSequencer *seq, uint8_t in);
+void Sequencer_next(tSequencer *seq);
+int Sequencer_getNumNotes(tSequencer *seq);
+int Sequencer_setMaxLength(tSequencer *seq, uint8_t maxLength);
+void Sequencer_setOctave(tSequencer *seq, int8_t octave);
+int Sequencer_getOctave(tSequencer *seq, int8_t octave);
+void Sequencer_downOctave(tSequencer *seq);
+void Sequencer_upOctave(tSequencer *seq);
+int Sequencer_toggleStep(tSequencer *seq, uint8_t step);
+int Sequencer_stepAdd(tSequencer *seq, uint8_t step);
+int Sequencer_stepRemove(tSequencer *seq, uint8_t step);
+void Sequencer_clearSteps(tSequencer *seq);
 
 #endif /* SEQUENCER_H_ */

@@ -283,11 +283,11 @@ void initSequencer(void)
 	
 	for (int i = 0; i < NUM_SEQ; i++)
 	{		
-		tSequencerInit(&pitchFullSequencer[i],	32);
-		tSequencerInit(&pitchSplitSequencer[i],	16);
+		Sequencer_init(&pitchFullSequencer[i],	32);
+		Sequencer_init(&pitchSplitSequencer[i],	16);
 		
-		tSequencerInit(&trigFullSequencer[i],	32);
-		tSequencerInit(&trigSplitSequencer[i],  16);
+		Sequencer_init(&trigFullSequencer[i],	32);
+		Sequencer_init(&trigSplitSequencer[i],  16);
 	}
 	
 	if (pitch_vs_trigger == PitchMode)
@@ -328,7 +328,7 @@ void sequencerStep(void)
 		
 		if (sequencer[i].lengthCounter >= sequencer[i].step[cstep].length)
 		{
-			sequencer[i].next(&sequencer[i]); // Move to next step, seq 1.
+			Sequencer_next(&sequencer[i]); // Move to next step, seq 1.
 			
 			curr = sequencer[i].currentStep;
 			
@@ -467,7 +467,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 			
 			if (playSubMode == ArpMode)
 			{
-				sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer],hex);
+				Sequencer_toggleStep(&sequencer[currentSequencer],hex);
 				
 				manta_set_LED_hex(hex, Off);
 			} 
@@ -493,7 +493,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 
 void clearSequencer(MantaSequencer seq)
 {
-	sequencer[seq].clearSteps(&sequencer[seq]);
+	Sequencer_clearSteps(&sequencer[seq]);
 	setSequencerLEDsFor(seq);
 }
 
@@ -575,7 +575,7 @@ void processTouchLowerHex(uint8_t hexagon)
 		
 			if (playSubMode == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
 			{
-				if (sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], step))
+				if (Sequencer_toggleStep(&sequencer[currentSequencer], step))
 				{
 					manta_set_LED_hex(hexagon, AmberOn);
 					amberHexes[currentSequencer][hexagon] = 1;
@@ -610,7 +610,7 @@ void processTouchLowerHex(uint8_t hexagon)
 					int rangeHex = -1;
 					for (int i = 0; i < rangeStack.size; i++)
 					{
-						rangeHex = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], rangeStack.notestack[i]);
+						rangeHex = Sequencer_getStepFromHex(&sequencer[currentSequencer], rangeStack.notestack[i]);
 						if (rangeHex >= 0)
 						{
 							if (rangeHex < first)
@@ -628,8 +628,8 @@ void processTouchLowerHex(uint8_t hexagon)
 					
 					for (int i = first; i <= last; i++)
 					{
-						int nextStep = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], i);
-						sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer], nextStep);
+						int nextStep = Sequencer_getStepFromHex(&sequencer[currentSequencer], i);
+						Sequencer_toggleStep(&sequencer[currentSequencer], nextStep);
 						manta_set_LED_hex(nextStep, AmberOn);
 					}
 				
@@ -646,7 +646,7 @@ void processTouchLowerHex(uint8_t hexagon)
 			}
 			else // ArpMode
 			{
-				sequencer[currentSequencer].toggleStep(&sequencer[currentSequencer],step);
+				Sequencer_toggleStep(&sequencer[currentSequencer],step);
 				manta_set_LED_hex(hexagon, AmberOn);
 			}
 		}
@@ -785,7 +785,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			else if (upperHexType == KeyboardPanelOctaveDown)
 			{
 				// down an octave
-				sequencer[currentSequencer].downOctave(&sequencer[currentSequencer]);
+				Sequencer_downOctave(&sequencer[currentSequencer]);
 				
 				// Temporarily set slider LEDs to display current octave.
 				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
@@ -805,7 +805,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			else if (upperHexType == KeyboardPanelOctaveUp)
 			{
 				//up an octave
-				sequencer[currentSequencer].upOctave(&sequencer[currentSequencer]);
+				Sequencer_upOctave(&sequencer[currentSequencer]);
 				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
 				
 				// Temporarily set slider LEDs to display current octave.
@@ -976,7 +976,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		
 		if (whichOptionType < OptionEndPattern )
 		{
-			sequencer[currentSequencer].setPattern(&sequencer[currentSequencer], whichOptionType);
+			Sequencer_setPattern(&sequencer[currentSequencer], whichOptionType);
 				
 			prev_pattern_hex = current_pattern_hex;
 			current_pattern_hex = whichHex;
@@ -1343,8 +1343,8 @@ void processTouchFunctionButton(MantaButton button)
 		{
 			playSubMode = ArpMode;
 			
-			sequencer[SequencerOne].clearSteps(&sequencer[SequencerOne]);
-			sequencer[SequencerTwo].clearSteps(&sequencer[SequencerTwo]);
+			Sequencer_clearSteps(&sequencer[SequencerOne]);
+			Sequencer_clearSteps(&sequencer[SequencerTwo]);
 			
 			setSequencerLEDsFor(currentSequencer);
 			
