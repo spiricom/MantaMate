@@ -10,6 +10,7 @@
 #include "uhi_hid_manta.h"
 #include "utilities.h"
 #include "sequencer.h"
+#include "sequencer_process.h"
 
 
 #define BLINKER_FRAMES 25
@@ -245,7 +246,7 @@ void setCurrentSequencer(MantaSequencer seq)
 	
 }
 
-void initSHArrays(void)
+static void initSHArrays(void)
 {
 	
 }
@@ -491,7 +492,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 	new_release_lower_hex = 0;
 }
 
-void clearSequencer(MantaSequencer seq)
+static void clearSequencer(MantaSequencer seq)
 {
 	Sequencer_clearSteps(&sequencer[seq]);
 	setSequencerLEDsFor(seq);
@@ -1367,56 +1368,31 @@ void processTouchFunctionButton(MantaButton button)
 }
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
-{
-	int note = hexUIToStep(currentHexUI);
-	
-	int currStep = sequencer[currentSequencer].currentStep;
-	
+{	
+	int currStep = sequencer[currentSequencer].currentStep;	
 	int uiHexCurrentStep = stepToHexUI(currentSequencer,currStep);
 
 	if (currentMantaSliderMode == SliderModeOne)
 	{
 		// Set proper internal state
-		if (sliderNum == SliderOne)
-		{
-			setParameterForEditStackSteps(currentSequencer, CV1, val);
-			//sequencer[currentSequencer].step[note].cv1 = val;
-			
-		}
-		else // SliderTwo
-		{
-			setParameterForEditStackSteps(currentSequencer, CV2, val);
-			//sequencer[currentSequencer].step[note].cv2 = val;
-		}
+		if (sliderNum == SliderOne)	setParameterForEditStackSteps(currentSequencer, CV1, val);			
+		else						setParameterForEditStackSteps(currentSequencer, CV2, val);
 		
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
 
 		if (NoteStack_contains(&editStack,uiHexCurrentStep) != -1)
-		{
 			dacsend(currentSequencer * 2 + sliderNum, 0, val);
-		}
 	}
 	else if (currentMantaSliderMode == SliderModeTwo)
 	{
 		// check if you're in second slider mode, where top slider is cv3 out and bottom slider is cv4 out
-		if (sliderNum == SliderOne)
-		{
-			setParameterForEditStackSteps(currentSequencer, CV3, val);
-			//sequencer[currentSequencer].step[note].cv3 = val;
-		}
-		else // SliderTwo
-		{
-			setParameterForEditStackSteps(currentSequencer, CV4, val);
-			//sequencer[currentSequencer].step[note].cv4 = val;
-		}
+		if (sliderNum == SliderOne)	setParameterForEditStackSteps(currentSequencer, CV3, val);
+		else						setParameterForEditStackSteps(currentSequencer, CV4, val);
 
-		
 		manta_set_LED_slider(sliderNum,(val >> 9) + 1); // add one to the slider values because a zero turns them off
 		
 		if (NoteStack_contains(&editStack,uiHexCurrentStep) != -1)
-		{
 			dacsend(currentSequencer * 2 + sliderNum, 1, val);
-		}
 	}
 	else if (currentMantaSliderMode == SliderModeThree)
 	{
@@ -1425,9 +1401,8 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		{
 			uint16_t prevOct = 0;
 			if (editStack.size <= 1)
-			{
 				prevOct = sequencer[currentSequencer].step[hexUIToStep(NoteStack_first(&editStack))].octave;
-			}
+				
 			uint16_t newOct = (val >> 9);
 			
 			setParameterForEditStackSteps(currentSequencer,Octave,newOct);
@@ -1435,9 +1410,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			manta_set_LED_slider(SliderOne, newOct + 1); // add one to the slider values because a zero turns them off
 
 			if ((NoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
-			{
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, currStep)); 
-			}
 		}
 		else //SliderTwo
 		{
@@ -2046,9 +2019,6 @@ uint16_t getParameterFromStep(MantaSequencer seq, uint8_t step, StepParameterTyp
 
 void setParameterForStep(MantaSequencer seq, uint8_t step, StepParameterType param, uint16_t value)
 {
-	int size = editStack.size;
-	int i = 0;
-
 	if (param == Toggled)			sequencer[seq].step[step].toggled = value;
 	else if (param == Length)		sequencer[seq].step[step].length = value;
 	else if (param == CV1)			sequencer[seq].step[step].cv1 = value;

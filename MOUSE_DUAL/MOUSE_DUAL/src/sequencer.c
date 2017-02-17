@@ -172,7 +172,7 @@ int Sequencer_getNumNotes(tSequencer *seq)
 	return seq->notestack.size;
 }
 
-int Sequencer_setMaxLength(tSequencer *seq, uint8_t maxLength)
+void Sequencer_setMaxLength(tSequencer *seq, uint8_t maxLength)
 {	
 	seq->maxLength = maxLength;
 	NoteStack_setCapacity(&seq->notestack, maxLength);

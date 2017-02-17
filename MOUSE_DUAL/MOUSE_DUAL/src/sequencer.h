@@ -76,7 +76,7 @@ int Sequencer_getHexFromStep(tSequencer *seq, uint8_t in);
 uint8_t	Sequencer_getStepFromHex(tSequencer *seq, uint8_t in);
 void Sequencer_next(tSequencer *seq);
 int Sequencer_getNumNotes(tSequencer *seq);
-int Sequencer_setMaxLength(tSequencer *seq, uint8_t maxLength);
+void Sequencer_setMaxLength(tSequencer *seq, uint8_t maxLength);
 void Sequencer_setOctave(tSequencer *seq, int8_t octave);
 int Sequencer_getOctave(tSequencer *seq, int8_t octave);
 void Sequencer_downOctave(tSequencer *seq);
