@@ -1311,7 +1311,7 @@ void processTouchFunctionButton(MantaButton button)
 			setModeLEDsFor(currentSequencer);
 			manta_set_LED_button(ButtonBottomLeft, Red);
 		}
-		else //OptionMode
+		else // OptionMode
 		{
 			key_vs_option = KeyboardMode;
 				
@@ -1323,7 +1323,7 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				setKeyboardLEDsFor(currentSequencer, -1);
 			}
-			else //PlayToggleMode
+			else // PlayToggleMode
 			{
 				 if (pitch_vs_trigger != TriggerMode)
 				 {
@@ -1890,11 +1890,11 @@ void setModeLEDsFor(MantaSequencer seq)
 			{
 				if ((modeButton - OptionSeqLeft) == seq) // (i-14) is index in range [0,2)
 				{
-					manta_set_LED_hex(modeHex,Amber);
+					manta_set_LED_hex(modeHex, Red);
 				}
 				else 
 				{
-					manta_set_LED_hex(modeHex,Red);
+					manta_set_LED_hex(modeHex, Amber);
 				}
 			}
 			else
@@ -1906,20 +1906,20 @@ void setModeLEDsFor(MantaSequencer seq)
 	
 	if (pitch_vs_trigger == PitchMode)
 	{
-		manta_set_LED_hex(MAX_STEPS + 10, Red); 
+		manta_set_LED_hex(MAX_STEPS + 8, Red); 
 	}
-	else //TriggerMode
+	else // TriggerMode
 	{		
-		manta_set_LED_hex(MAX_STEPS + 11, Red);
+		manta_set_LED_hex(MAX_STEPS + 9, Red);
 	}
 	
 	if (full_vs_split == FullMode)
 	{
-		manta_set_LED_hex(MAX_STEPS + 8, Red);
+		manta_set_LED_hex(MAX_STEPS + 10, Red);
 	}
-	else //SplitMode
+	else // SplitMode
 	{
-		manta_set_LED_hex(MAX_STEPS + 9, Red);
+		manta_set_LED_hex(MAX_STEPS + 11, Red);
 	}
 }
 
