@@ -195,11 +195,13 @@ void my_callback_midi_rx_notify(void)
 	}
 };
 
+//I think this shouldn't matter, it's from the example code where they are allowing interrupts from a joystick on the dev board.
+/*
 void ui_host_wakeup_event(void)
 {
 	ui_disable_asynchronous_interrupt();
 }
-
+*/
 void ui_host_sof_event(void)
 {
 	static uint16_t counter_sof = 0;
@@ -333,39 +335,5 @@ void ui_process(uint16_t framenumber)
 		USB_frame_counter++;
 	}
 	
-}
-
-void ui_ext_gate_in(void)
-{
-	if(dummycounter % 2 == 1)
-	{
-		//LED_On(LED4);
-		
-		//tuningTest(tuning_count);
-		//mySendBuf[0] = 0x09;
-		//mySendBuf[1] = 0x90;
-		//mySendBuf[2] = 0x3c;
-		//mySendBuf[3] = 0x78;
-		
-		//ui_my_midi_send();
-		//udi_midi_write_buf(mySendBuf, 4);
-	}
-	else
-	{
-		//LED_Off(LED4);
-		//tuningTest(tuning_count);
-		//mySendBuf[0] = 0x09;
-		//mySendBuf[1] = 0x90;
-		//mySendBuf[2] = 0x3c;
-		//mySendBuf[3] = 0x00;
-		//ui_my_midi_receive();
-		//ui_my_midi_send();
-		//udi_midi_write_buf(mySendBuf, 4);
-	}
-	//tuning_count++;
-	//if (tuning_count > 6)
-	//{
-	//	tuning_count = 0;
-	//}
 }
 

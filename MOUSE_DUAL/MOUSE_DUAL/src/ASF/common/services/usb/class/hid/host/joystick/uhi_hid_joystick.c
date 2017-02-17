@@ -57,6 +57,7 @@
 #include "7Segment.h"
 #include <time.h>
 
+
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
 #endif
@@ -794,8 +795,7 @@ static void uhi_hid_joy_report_reception(
 		uhi_hid_joy_dev.report_hat_prev = hat_new;
 	}
 	
-	// start the next transfer. this looks like it starts some crazy loop,
-	// but it follows the example code given by atmel
+		// start the next transfer.
 	uhi_hid_joy_start_trans_report(add);
 }
 

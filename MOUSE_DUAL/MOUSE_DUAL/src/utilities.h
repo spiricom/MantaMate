@@ -15,6 +15,8 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+#include "stdint.h"
+
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType
 {
@@ -39,11 +41,12 @@ typedef enum MantaEditPlayMode {
 	MantaEditPlayModeNil
 }MantaEditPlayMode;
 
-typedef enum MantaSeqArpMode {
+typedef enum MantaPlaySubMode {
 	SeqMode = 0,
 	ArpMode,
-	MantaSeqArpModeNil
-}MantaSeqArpMode;
+	RangeMode,
+	MantaPlayModeNil,
+}MantaPlaySubMode;
 
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
@@ -51,18 +54,12 @@ typedef enum MantaKeySelectMode {
 	MantaKeySelectModeNil
 }MantaKeySelectMode;
 
-
-typedef enum MantaRangeToggleMode {
-	RangeMode = 0,
-	ToggleMode,
-	MantaRangeToggleModeNil
-}MantaRangeToggleMode;
-
 typedef enum MantaSliderMode {
 	SliderModeOne = 0, //CV1, CV2
 	SliderModeTwo,     //CV3, CV4
 	SliderModeThree,   //OCTAVE, STEPLENGTH
 	SliderModePitch,
+	SliderModeGlide,
 	SliderModeNil
 }MantaSliderMode;
 
@@ -142,10 +139,12 @@ typedef enum StepParameterType {
 	Octave,
 	Note,
 	KbdHex,
+	PitchGlide,
+	CVGlide,
 	On1,
 	On2,
 	On3,
-	On4,
+	On4
 }StepParameterType;
 
 
@@ -153,17 +152,63 @@ typedef enum StepParameterType {
 SequencerPatternType pattern_type;
 
 MantaSliderMode prevMantaSliderMode;
+MantaSliderMode prevMantaSliderModeForOctaveHexDisable;
 MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
 GlobalOptionType full_vs_split;
 GlobalOptionType pitch_vs_trigger;
-MantaSeqArpMode seq_vs_arp;
-MantaRangeToggleMode range_vs_toggle_mode;
+MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
 KeyboardOptionMode prev_key_vs_option;
 
+//#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
+//#define tick0(THIS)					THIS.tick(&THIS)
+
+typedef enum ControlParameterType {
+	ControlParameterFeedback = 0,
+	ControlParameterDive,
+	ControlParameterSineDecay,
+	ControlParameterNoiseWidth,
+	ControlParameterNoiseDecay,
+	ControlParameterNoiseCutoff,
+	ControlParameterNil,
+} ControlParameterType;
+
+typedef enum ControlParamaterXYType {
+	ControlParameterBR = 0,
+	ControlParameterBL,
+	ControlParameterMR,
+	ControlParameterML,
+	ControlParameterTR,
+	ControlParameterTL,
+	ControlParameterXYNil,
+} ControlParameterXYType;
+
+typedef enum SmoothedParameterType {
+	SmoothedParameterDelay= 0,
+	SmoothedParameterSineFreq,
+	SmoothedParameterFeedback,
+	SmoothedParameterNil,
+} SmoothedParameterType;
+
+
+/* Ramp */
+typedef struct _tRamp {
+	float inc;
+	float inv_sr_ms;
+	float curr,dest;
+	uint16_t time;
+	int samples_per_tick;
+
+} tRamp;
+
+float tRampTick(tRamp *r);
+int tRampSetTime(tRamp *r, float time);
+int tRampSetDest(tRamp *r, float dest);
+
+int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
 
 
 #endif /* UTILITIES_H_ */

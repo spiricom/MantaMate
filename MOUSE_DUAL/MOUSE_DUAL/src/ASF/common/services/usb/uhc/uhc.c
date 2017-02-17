@@ -1053,7 +1053,7 @@ void uhc_notify_sof(bool b_micro)
 void uhc_notify_resume(void)
 {
 	uhc_remotewakeup(false);
-	UHC_WAKEUP_EVENT();
+	//UHC_WAKEUP_EVENT();
 }
 
 #ifdef USB_HOST_LPM_SUPPORT
