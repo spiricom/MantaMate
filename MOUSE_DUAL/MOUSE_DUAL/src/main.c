@@ -502,7 +502,7 @@ static void int_handler_switches (void)
 	
 	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
 	{	// PA11 generated the interrupt.
-		delay_us(500); // to de-bounce
+		delay_us(5000); // to de-bounce
 		USB_Mode_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
@@ -513,6 +513,8 @@ static void int_handler_switches (void)
 		//down switch
 		delay_us(500); // to de-bounce
 		Preset_Switch_Check(0);
+		LED_On(LED2);
+		LED_Off(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH1);
 	}
@@ -522,23 +524,50 @@ static void int_handler_switches (void)
 		//up switch
 		delay_us(500); // to de-bounce
 		Preset_Switch_Check(1);
+		LED_Off(LED2);
+		LED_On(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH2);
+	}
+	
+	else if( gpio_get_pin_interrupt_flag( GPIO_PREFERENCES_SWITCH) )
+	{
+		//up switch
+		delay_us(500); // to de-bounce
+		//Preset_Switch_Check(1);
+		LED_Off(LED4);
+		LED_On(LED0);
+		// Clear the interrupt flag of the pin PB2 is mapped to.
+		gpio_clear_pin_interrupt_flag(GPIO_PREFERENCES_SWITCH);
+	}
+	
+	else if( gpio_get_pin_interrupt_flag( GPIO_SAVE_SWITCH) )
+	{
+		//up switch
+		delay_us(500); // to de-bounce
+		//Preset_Switch_Check(1);
+		LED_Off(LED0);
+		LED_On(LED4);
+		// Clear the interrupt flag of the pin PB2 is mapped to.
+		gpio_clear_pin_interrupt_flag(GPIO_SAVE_SWITCH);
 	}
 	
 }
 
 void USB_Mode_Switch_Check(void)
 {
+		
+		int myTemp = gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
+		
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
 		{
 
 			//LED_On(LED1);
 			if (myUSBMode == HOSTMODE)
 			{
-				//udc_stop();
+				uhc_stop(1);
 			}
-			//uhc_start();
+ 			udc_start();
 			myUSBMode = DEVICEMODE;
 			
 			udc_attach();
@@ -549,12 +578,11 @@ void USB_Mode_Switch_Check(void)
 			//LED_Off(LED1);
 			if (myUSBMode == DEVICEMODE)
 			{
-				//uhc_stop(1);
+				udc_stop();
 			}
-			//udc_start();
+			uhc_start();
 			myUSBMode = HOSTMODE;
-
-		}
+		}	
 }
 
 void Preset_Switch_Check(uint8_t whichSwitch)
@@ -977,9 +1005,10 @@ uint16_t testvoltage = 0;
 uint16_t testvoltage16 = 0;
 
 void testLoop(void)
-{
+ {
 	while(1)
 	{
+		//testvoltage16 = 32767;
 		//cpu_delay_ms(1,64000000);//5
 		for(i=0; i<4; i++)
 		{
@@ -989,6 +1018,7 @@ void testLoop(void)
 		}
 		testvoltage++;
 		testvoltage16++;
+		
 		if (testvoltage > 2095)
 		{
 			LED_Off(LED5);
@@ -1012,7 +1042,7 @@ void setupEIC(void)
 {
 	// Enable edge-triggered interrupt.
 	eic_options[0].eic_mode  = EIC_MODE_EDGE_TRIGGERED;
-	// Interrupt will trigger on rising edge.
+	// Interrupt will trigger on falling edge.
 	eic_options[0].eic_edge  = EIC_EDGE_FALLING_EDGE;
 	// Initialize in synchronous mode : interrupt is synchronized to the clock
 	eic_options[0].eic_async  = EIC_SYNCH_MODE;
@@ -1034,8 +1064,15 @@ void setupEIC(void)
 	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH1 , GPIO_PIN_CHANGE);	// PB02
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH1/8), AVR32_INTC_INT0);
 	
-	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PB03
+	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PA20
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH2/8), AVR32_INTC_INT0);
+	
+	gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT0);
+	
+	gpio_enable_pin_interrupt(GPIO_PREFERENCES_SWITCH , GPIO_PIN_CHANGE);	//PX02
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PREFERENCES_SWITCH/8), AVR32_INTC_INT0);
+	
 	
 	// Register the RTC interrupt handler to the interrupt controller.
 	INTC_register_interrupt(&tc1_irq, TC1_IRQ, TC1_IRQ_PRIORITY);
@@ -1046,6 +1083,54 @@ void setupEIC(void)
 	
 }
 
+
+/*! \brief Main function. Execution starts here.
+ */
+int main(void){
+	
+	irq_initialize_vectors();
+	cpu_irq_enable();
+	
+	// Initialize the sleep manager
+	sleepmgr_init();
+	setupEIC();
+
+	sysclk_init();
+	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
+	
+	board_init();
+
+	ui_init();
+	initSequencer();
+	//initialize the SPI bus for DAC
+	initSPIbus();
+	
+	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
+	initI2C();
+	
+	//send the messages to the DACs to make them update without software LDAC feature
+	DACsetup();
+	
+	// a test write
+	//sendI2CtoEEPROM();
+	//testLoop();
+	// Start USB host stack
+	uhc_start();
+	
+	// figure out if we're supposed to be in host mode or device mode for the USB
+	USB_Mode_Switch_Check();
+	
+	//start off on preset 0;
+	
+	updatePreset();
+
+	// The USB management is entirely managed by interrupts.
+	// As a consequence, the user application only has to play with the power modes.
+	
+	while (true) {	
+		sleepmgr_enter_sleep();
+	}
+}
 
 void main_suspend_action(void)
 {

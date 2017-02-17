@@ -445,6 +445,8 @@ bool otg_dual_enable(void)
 	otg_enable_id_interrupt();
 	otg_ack_id_transition();
 	otg_freeze_clock();
+	
+	
 	if (Is_otg_id_device()) {
 		uhd_sleep_mode(UHD_STATE_WAIT_ID_HOST);
 		UHC_MODE_CHANGE(false);
@@ -506,7 +508,11 @@ void uhd_enable(void)
 #else
 	// ID pin not used then force host mode
 	otg_disable_id_pin();
-	otg_force_host_mode();
+	
+	//TODO: testing force to go into device mode - JS
+
+	otg_force_device_mode();
+	//otg_force_host_mode();
 #endif
 
 	// Enable USB hardware
