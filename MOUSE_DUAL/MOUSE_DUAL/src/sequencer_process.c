@@ -177,8 +177,9 @@ int keyNoteOn;
 int glideNoteOn;
 
 tNoteStack editStack;
-tNoteStack noteOnStack;
-tNoteStack noteOffStack;
+tNoteStack noteOnFrame;
+tNoteStack noteOffFrame; // frames refreshed every 2 ms
+tNoteStack noteOnStack; // all notes on at any point during runtime
 
 
 #define RANGEMODE 0
@@ -268,9 +269,10 @@ void initSequencer(void)
 	
 	
 	tNoteStackInit(&editStack,		32);
-	tNoteStackInit(&noteOffStack,	32);
-	tNoteStackInit(&noteOnStack,	32);
+	tNoteStackInit(&noteOffFrame,	32);
+	tNoteStackInit(&noteOnFrame,	32);
 	tNoteStackInit(&rangeStack,	32);
+	tNoteStackInit(&noteOnStack, 32); // Initialize the noteOnStack. :D !!!
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
@@ -381,14 +383,17 @@ void processSequencer(void)
 		{
 			newHexUIOn = i;
 			new_lower_hex = 1;
-			noteOnStack.add(&noteOnStack,	i);
+			noteOnFrame.add(&noteOnFrame,	i);
+			noteOnStack.add(&noteOnStack, i);
 		}
 		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newHexUIOff = i;
 			new_release_lower_hex = 1;
-			noteOffStack.add(&noteOffStack,	i);
+			noteOffFrame.add(&noteOffFrame,	i);
+			noteOnStack.remove(&noteOnStack, i);
+			
 		}
 		pastbutt_states[i] = butt_states[i];
 	}
@@ -440,21 +445,23 @@ void processReleaseLowerHex(uint8_t hexagon)
 	if (edit_vs_play == EditMode)
 	{
 		uint8_t hex = 0;
-		for (int i = 0; i < noteOffStack.size; i++)
+		for (int i = 0; i < noteOffFrame.size; i++)
 		{
-			hex = noteOffStack.notestack[i];			
+			hex = noteOffFrame.notestack[i];			
 			if (hex == editNoteOn)
-			{
-				editNoteOn = -1;
+			{	
+				if (noteOnStack.size)	editNoteOn = noteOnStack.notestack[0];
+				else					editNoteOn = -1;
+				
 			}
 		}
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
 		uint8_t hex = 0;
-		for (int i = 0; i < noteOffStack.size; i++)
+		for (int i = 0; i < noteOffFrame.size; i++)
 		{
-			hex = noteOffStack.notestack[i];
+			hex = noteOffFrame.notestack[i];
 			
 			if (playSubMode == ArpMode)
 			{
@@ -478,7 +485,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 		}
 	}
 	
-	noteOffStack.clear(&noteOffStack);
+	noteOffFrame.clear(&noteOffFrame);
 	new_release_lower_hex = 0;
 }
 
@@ -526,9 +533,9 @@ void processTouchLowerHex(uint8_t hexagon)
 	
 	int step = 0;
 	
-	for (int i = 0; i < noteOnStack.size; i++)
+	for (int i = 0; i < noteOnFrame.size; i++)
 	{
-		hexagon = noteOnStack.notestack[i];
+		hexagon = noteOnFrame.notestack[i];
 		step = hexUIToStep(hexagon);
 		
 		if (edit_vs_play == EditMode)
@@ -616,7 +623,7 @@ void processTouchLowerHex(uint8_t hexagon)
 								
 						}
 					}
-						//hey there
+					
 					for (int i = first; i <= last; i++)
 					{
 						int nextStep = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], i);
@@ -689,7 +696,7 @@ void processTouchLowerHex(uint8_t hexagon)
 		setSliderLEDsFor(currentSequencer, hexUIToStep(hexagon));
 	}
 	
-	noteOnStack.clear(&noteOnStack);
+	noteOnFrame.clear(&noteOnFrame);
 	new_lower_hex = 0;
 }
 
