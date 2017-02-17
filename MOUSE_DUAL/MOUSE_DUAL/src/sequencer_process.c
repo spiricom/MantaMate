@@ -260,7 +260,7 @@ void initSequencer(void)
 	pattern_type =				LeftRightRowUp;
 	currentMantaSliderMode =	SliderModeOne;
 	prevMantaSliderMode =		SliderModeOne;
-	edit_vs_play =				EditMode;
+	edit_vs_play =				PlayToggleMode;
 	currentFunctionButton =		ButtonTopLeft;
 	full_vs_split =				FullMode;
 	pitch_vs_trigger =			PitchMode;
@@ -269,10 +269,16 @@ void initSequencer(void)
 	
 	
 	tNoteStackInit(&editStack,		32);
+	
+	resetEditStack();
+	
 	tNoteStackInit(&noteOffFrame,	32);
 	tNoteStackInit(&noteOnFrame,	32);
 	tNoteStackInit(&rangeStack,	32);
-	tNoteStackInit(&noteOnStack, 32); // Initialize the noteOnStack. :D !!!
+	
+	// Initialize the noteOnStack. :D !!!
+	tNoteStackInit(&noteOnStack, 32); 
+	// Glad I commented that - thanks @Josh Becker for the tip on appropriate commenting.
 	
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
@@ -1179,13 +1185,7 @@ void processTouchFunctionButton(MantaButton button)
 		
 		if (pitch_vs_trigger == PitchMode)
 		{
-			if (edit_vs_play == EditMode)
-			{
-				edit_vs_play = PlayToggleMode;
-				
-				manta_set_LED_button(ButtonTopRight, Amber);
-			}
-			else // PlayToggleMode
+			if (edit_vs_play == PlayToggleMode)
 			{
 				edit_vs_play = EditMode;
 				
@@ -1200,8 +1200,14 @@ void processTouchFunctionButton(MantaButton button)
 					manta_set_LED_hex(currHex, Amber);
 				}
 				
-				manta_set_LED_button(ButtonTopRight, Off);
+				manta_set_LED_button(ButtonTopRight, Amber);
 				
+			}
+			else // EditMode
+			{
+				edit_vs_play = PlayToggleMode;
+				
+				manta_set_LED_button(ButtonTopRight, Off);
 			}
 			
 			if (key_vs_option == KeyboardMode)
@@ -1222,17 +1228,7 @@ void processTouchFunctionButton(MantaButton button)
 		} 
 		else //TriggerMode
 		{
-			if (edit_vs_play == EditMode)
-			{
-				// Switch to OptionMode.
-				prev_key_vs_option = key_vs_option;
-				key_vs_option = OptionMode;
-				manta_set_LED_button(ButtonBottomLeft, Red);
-				
-				edit_vs_play = PlayToggleMode;
-				manta_set_LED_button(ButtonTopRight, Amber);
-			}
-			else if (edit_vs_play == PlayToggleMode)
+			if (edit_vs_play == PlayToggleMode)
 			{
 				// Switch back to other KeyboardOptionMode.
 				key_vs_option = prev_key_vs_option;
@@ -1245,12 +1241,22 @@ void processTouchFunctionButton(MantaButton button)
 					manta_set_LED_button(ButtonBottomLeft, Red);
 				}
 				
-				edit_vs_play = TrigToggleMode;		
+				edit_vs_play = EditMode;
+				manta_set_LED_button(ButtonTopRight, Amber);
+			}
+			else if (edit_vs_play == EditMode)
+			{
+				// Switch to OptionMode.
+				prev_key_vs_option = key_vs_option;
+				key_vs_option = OptionMode;
+				manta_set_LED_button(ButtonBottomLeft, Red);
+				
+				edit_vs_play = TrigToggleMode;
 				manta_set_LED_button(ButtonTopRight, Red);
 			}
 			else // TrigToggleMode
 			{
-				edit_vs_play = EditMode;
+				edit_vs_play = PlayToggleMode;
 				manta_set_LED_button(ButtonTopRight, Off);
 			}
 			
@@ -2220,7 +2226,8 @@ void resetEditStack(void)
 {
 	editStack.clear(&editStack);
 	editNoteOn = -1;
-	editStack.add(&editStack,currentHexUI);
+	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	editStack.add(&editStack,currentHexUI);
+	else												editStack.add(&editStack,0);
 }
 
 void resetRangeStack(void)
