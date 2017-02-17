@@ -616,7 +616,7 @@ void processTouchLowerHex(uint8_t hexagon)
 								
 						}
 					}
-						
+						//hey there
 					for (int i = first; i <= last; i++)
 					{
 						int nextStep = sequencer[currentSequencer].getStepFromHex(&sequencer[currentSequencer], i);
