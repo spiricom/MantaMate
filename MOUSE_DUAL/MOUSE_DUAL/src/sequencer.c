@@ -138,8 +138,6 @@ int tSequencerGetHexFromStep(tSequencer *seq, uint8_t in)
 
 void tSequencerNext(tSequencer *seq)
 {
-	
-	
 	seq->stepGo = 1;
 	int step = -1;
 	
