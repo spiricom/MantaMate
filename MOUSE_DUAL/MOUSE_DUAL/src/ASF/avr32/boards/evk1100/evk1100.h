@@ -111,7 +111,7 @@
 //! Multiplexed pin used for USB_ID: AVR32_USBB_USB_ID_x_x.
 //! To be selected according to the AVR32_USBB_USB_ID_x_x_PIN and
 //! AVR32_USBB_USB_ID_x_x_FUNCTION definitions from <avr32/uc3axxxx.h>.
-#define USB_ID                      AVR32_USBB_USB_ID_0_0
+#define USB_ID                      AVR32_USBB_USB_ID_0_0   
 
 //! Multiplexed pin used for USB_VBOF: AVR32_USBB_USB_VBOF_x_x.
 //! To be selected according to the AVR32_USBB_USB_VBOF_x_x_PIN and
@@ -140,9 +140,9 @@
 /*! \name GPIO Connections of LEDs
  */
 //! @{
-#define LED0_GPIO   AVR32_PIN_PB19
-#define LED1_GPIO   AVR32_PIN_PB20
-#define LED2_GPIO   AVR32_PIN_PB21
+#define LED0_GPIO   AVR32_PIN_PX38
+#define LED1_GPIO   AVR32_PIN_PX01
+#define LED2_GPIO   AVR32_PIN_PX00
 #define LED3_GPIO   AVR32_PIN_PB22
 #define LED4_GPIO   AVR32_PIN_PA25
 #define LED5_GPIO   AVR32_PIN_PA26
@@ -194,8 +194,12 @@
 //! @{
 #define GPIO_PRESET_SWITCH1           AVR32_PIN_PB02
 #define GPIO_PRESET_SWITCH1_PRESSED   0
-#define GPIO_PRESET_SWITCH2           AVR32_PIN_PB03
-#define GPIO_PRESET_SWITCH2_PRESSED
+#define GPIO_PRESET_SWITCH2           AVR32_PIN_PA20
+#define GPIO_PRESET_SWITCH2_PRESSED	  0
+#define GPIO_SAVE_SWITCH			  AVR32_PIN_PX39
+#define GPIO_SAVE_SWITCH_PRESSED      0
+#define GPIO_PREFERENCES_SWITCH              AVR32_PIN_PX02
+#define GPIO_PREFERENCES_SWITCH_PRESSED      0
 
 #define GPIO_HOST_DEVICE_SWITCH		AVR32_PIN_PA11
 #define GPIO_HOST_DEVICE_SWITCH_PRESSED		0
