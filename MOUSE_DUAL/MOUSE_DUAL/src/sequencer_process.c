@@ -1224,6 +1224,7 @@ void processTouchFunctionButton(MantaButton button)
 			{
 				// Switch back to other KeyboardOptionMode.
 				key_vs_option = prev_key_vs_option;
+				
 				if (key_vs_option == KeyboardMode)
 				{
 					manta_set_LED_button(ButtonBottomLeft, Off);
@@ -1238,16 +1239,16 @@ void processTouchFunctionButton(MantaButton button)
 			}
 			else if (edit_vs_play == EditMode)
 			{
-				// Switch to OptionMode.
-				prev_key_vs_option = key_vs_option;
-				key_vs_option = OptionMode;
-				manta_set_LED_button(ButtonBottomLeft, Red);
-				
 				edit_vs_play = TrigToggleMode;
 				manta_set_LED_button(ButtonTopRight, Red);
 			}
 			else // TrigToggleMode
 			{
+				// Switch to OptionMode.
+				prev_key_vs_option = key_vs_option;
+				key_vs_option = OptionMode;
+				manta_set_LED_button(ButtonBottomLeft, Red);
+				
 				edit_vs_play = PlayToggleMode;
 				manta_set_LED_button(ButtonTopRight, Off);
 			}
@@ -1303,25 +1304,14 @@ void processTouchFunctionButton(MantaButton button)
 			setModeLEDsFor(currentSequencer);
 			manta_set_LED_button(ButtonBottomLeft, Red);
 		}
-		else // OptionMode
+		else if (!(pitch_vs_trigger == TriggerMode && edit_vs_play == PlayToggleMode) )  // OptionMode
 		{
 			key_vs_option = KeyboardMode;
 				
-			if (edit_vs_play == TrigToggleMode)
-			{
+			if (edit_vs_play == TrigToggleMode)	
 				setKeyboardLEDsFor(currentSequencer, 0);
-			}
-			else if (edit_vs_play == EditMode)
-			{
+			else // PlayToggleMode or EditMode
 				setKeyboardLEDsFor(currentSequencer, -1);
-			}
-			else // PlayToggleMode
-			{
-				 if (pitch_vs_trigger != TriggerMode)
-				 {
-					 setKeyboardLEDsFor(currentSequencer, -1);
-				 }
-			}
 
 			manta_set_LED_button(ButtonBottomLeft, Off);
 		}
