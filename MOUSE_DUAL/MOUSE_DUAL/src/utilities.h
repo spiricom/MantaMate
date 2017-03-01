@@ -106,9 +106,9 @@ typedef enum SequencerPatternType {
 	RightLeftColUp,
 	RandomWalk,
 	OrderTouch,
-	RecordTouch,
 	
 	//not using atm
+	RecordTouch,
 	RightLeftRowDown,
 	RightLeftRowUp,
 	RightLeftDiagDown,

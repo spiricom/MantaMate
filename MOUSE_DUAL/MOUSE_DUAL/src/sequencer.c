@@ -26,12 +26,12 @@ uint8_t patterns[5][MAX_STEPS] = {
 		};
 
 
-void tSequencerSetPattern(tSequencer *seq, SequencerPatternType pat)
+void tSequencer_setPattern(tSequencer* const seq, SequencerPatternType pat)
 {
 	seq->pattern = pat;
 }
 
-uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramType, uint16_t value)
+void tSequencer_setParameterValue(tSequencer* const seq, uint8_t step, StepParameterType paramType, uint16_t value)
 {
 	uint16_t val = 0;
 	StepParameterType param = paramType;
@@ -54,11 +54,9 @@ uint16_t tSequencerSet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 	else if (param == On3)				seq->step[step].on[PanelThree] = value;
 	else if (param == On4)				seq->step[step].on[PanelFour] = value;
 	else; // Other
-
-	return val;
 }
 
-uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramType)
+uint16_t tSequencer_getParameterValue(tSequencer* const seq, uint8_t step, StepParameterType paramType)
 {
 	uint16_t val = 0;
 	StepParameterType param = paramType;
@@ -86,7 +84,7 @@ uint16_t tSequencerGet(tSequencer *seq, uint8_t step, StepParameterType paramTyp
 }
 
 
-int tSequencerGetHexFromStep(tSequencer *seq, uint8_t in)
+int tSequencer_getHexFromStep(tSequencer* const seq, uint8_t in)
 {
 	SequencerPatternType pat = seq->pattern;
 	int hex = -1;
@@ -129,64 +127,70 @@ int tSequencerGetHexFromStep(tSequencer *seq, uint8_t in)
 		}
 	}
 	else if (pat == OrderTouch)
-		hex = seq->notestack.next(&seq->notestack);
+		hex = tNoteStack_next(&seq->notestack);
 	else
 		;//Other
 		
 	return hex;
 }
 
-static int getIndexInPattern(uint8_t* pattern, uint8_t value) 
+// utility
+static int getIndexInPattern(uint8_t* pattern, uint8_t value)
 {
 	// All patterns are MAX_STEPS length
-	for (int i = 0; i < MAX_STEPS; i++)
-	{
-		if (pattern[i] == value) return i;
-	}
+	for (int i = 0; i < MAX_STEPS; i++)	if (pattern[i] == value) return i;
 	return -1;
 }
 
-int tSequencerGetStepFromHex(tSequencer *seq, uint8_t hex)
+int tSequencer_getStepFromHex(tSequencer* const seq, uint8_t hex)
 {
 	SequencerPatternType pat = seq->pattern;
 	int step = -1;
 	// WORKING: 1, 2, 7
 	// NOT WORKING: 3, 4, 5, 6 
-	
+
 	if (pat == LeftRightRowDown)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
 	else if (pat == LeftRightRowUp)
 		step = hex;
-	else if (pat == RightLeftRowDown)
-		step = (seq->maxLength - 1) - hex;
-	else if (pat == RightLeftRowUp)
-		step = getIndexInPattern(pattern_row_reverse, hex);
-	else if (pat == LeftRightColDown)
-		step = getIndexInPattern(pattern_col_up, hex);
-	else if (pat == LeftRightColUp)
-		step = getIndexInPattern(pattern_col_down, hex);
-	else if (pat == RightLeftColDown)
-		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_down, hex);
-	else if (pat == RightLeftColUp)
-		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_up, hex);
 	else if (pat == LeftRightDiagDown)
 		step = getIndexInPattern(pattern_diag_reverse, hex);
 	else if (pat == LeftRightDiagUp)
 		step = getIndexInPattern(pattern_diag, hex);
+	else if (pat == LeftRightColDown)
+		step = getIndexInPattern(pattern_col_up, hex);
+	else if (pat == RightLeftColUp)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_up, hex);
+	else if (pat == RandomWalk) 
+	{
+			// TODO: Decide what to do for  Random. Just doing LeftRightRowDown for now
+			step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
+	}
+	else if (pat == OrderTouch)
+	{
+			// TODO: Decide what to do for Order. Just doing LeftRightRowDown for now
+			step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
+	}
+	
+	else if (pat == LeftRightColUp)
+		step = getIndexInPattern(pattern_col_down, hex);
+	else if (pat == RightLeftRowDown)
+		step = (seq->maxLength - 1) - hex;
+	else if (pat == RightLeftRowUp)
+		step = getIndexInPattern(pattern_row_reverse, hex);
+	else if (pat == RightLeftColDown)
+		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_down, hex);
 	else if (pat == RightLeftDiagDown)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag_reverse, hex);
 	else if (pat == RightLeftDiagUp)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag, hex);
-	else if (pat == RandomWalk) {
-		// TODO: Decide what to do for this??? Just doing LeftRightRowDown for now
-		step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
-	}
+	
 	
 	return step;
 	
 }
 
-void tSequencerNext(tSequencer *seq)
+void tSequencer_next(tSequencer* const seq)
 {
 	seq->stepGo = 1;
 	int step = -1;
@@ -195,7 +199,7 @@ void tSequencerNext(tSequencer *seq)
 	{
 		if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
 		
-		step = tSequencerGetHexFromStep(seq, seq->phasor);
+		step = tSequencer_getHexFromStep(seq, seq->phasor);
 		
 		if (seq->step[step].toggled == 1)
 		{
@@ -215,29 +219,29 @@ void tSequencerNext(tSequencer *seq)
 	}
 }
 
-int tSequencerGetNumNotes(tSequencer *seq)
+int tSequencer_getNumNotes(tSequencer* const seq)
 {
 	return seq->notestack.size;
 }
 
-int tSequencerSetMaxLength(tSequencer *seq, uint8_t maxLength)
+void tSequencer_setMaxLength(tSequencer* const seq, uint8_t maxLength)
 {	
 	seq->maxLength = maxLength;
-	seq->notestack.setCapacity(&seq->notestack,maxLength);
+	tNoteStack_setCapacity(&seq->notestack,maxLength);
 }
 
-void tSequencerSetOctave(tSequencer *seq, int8_t octave)
+void tSequencer_setOctave(tSequencer* const seq, int8_t octave)
 {
 	seq->octave = octave;
 }
 
-int tSequencerGetOctave(tSequencer *seq, int8_t octave)
+int tSequencer_getOctave(tSequencer* const seq)
 {
 	return seq->octave;
 }
 
 
-void tSequencerDownOctave(tSequencer *seq)
+void tSequencer_downOctave(tSequencer* const seq)
 {
 	if (--seq->octave < 0)
 	{
@@ -245,7 +249,7 @@ void tSequencerDownOctave(tSequencer *seq)
 	}
 }
 
-void tSequencerUpOctave(tSequencer *seq)
+void tSequencer_upOctave(tSequencer* const seq)
 {
 	if (++seq->octave > 7)
 	{
@@ -253,16 +257,16 @@ void tSequencerUpOctave(tSequencer *seq)
 	}
 }
 
-int tSequencerStepToggle(tSequencer *seq, uint8_t step)
+int tSequencer_toggleStep(tSequencer* const seq, uint8_t step)
 {
 	uint8_t foundOne = 0;
 	
-	foundOne = seq->notestack.remove(&seq->notestack,step);
+	foundOne = tNoteStack_remove(&seq->notestack,step);
 	
 	if (!foundOne)
 	{
 		seq->step[step].toggled = 1;
-		seq->notestack.add(&seq->notestack,step);
+		tNoteStack_add(&seq->notestack,step);
 	}
 	else
 	{
@@ -272,41 +276,41 @@ int tSequencerStepToggle(tSequencer *seq, uint8_t step)
 	return !foundOne;
 }
 
-int tSequencerStepAdd(tSequencer *seq, uint8_t step)
+int tSequencer_addStep(tSequencer* const seq, uint8_t step)
 {
 	uint8_t foundOne = 0;
 	
-	foundOne = seq->notestack.contains(&seq->notestack, step);
+	foundOne = tNoteStack_contains(&seq->notestack, step);
 	
 	if (foundOne < 0)
 	{
 		seq->step[step].toggled = 1;
-		seq->notestack.add(&seq->notestack,step);
+		tNoteStack_add(&seq->notestack,step);
 	}
 
 	return !foundOne;
 }
 
-int tSequencerStepRemove(tSequencer *seq, uint8_t step)
+int tSequencer_removeStep(tSequencer* const seq, uint8_t step)
 {
 	uint8_t foundOne = 0;
 	
 	seq->step[step].toggled = 0;
-	foundOne = seq->notestack.remove(&seq->notestack, step);
+	foundOne = tNoteStack_remove(&seq->notestack, step);
 
 	return foundOne;
 }
 
-void tSequencerClearSteps(tSequencer *seq)
+void tSequencer_clearSteps(tSequencer* const seq)
 {
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		seq->step[i].toggled = 0;
-		seq->notestack.remove(&seq->notestack, i);
+		tNoteStack_remove(&seq->notestack, i);
 	}
 }
 
-int tSequencerInit(tSequencer *seq, uint8_t maxLength) 
+int tSequencer_init(tSequencer* const seq, uint8_t maxLength) 
 {
 	if (maxLength < 1)
 	{
@@ -327,23 +331,6 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 	seq->phasor = 0;
 	seq->pattern = LeftRightRowDown;
 	seq->octave = 3;
-	
-	seq->clearSteps = &tSequencerClearSteps;
-	seq->toggleStep = &tSequencerStepToggle;
-	seq->addStep = &tSequencerStepAdd;
-	seq->removeStep = &tSequencerStepRemove;
-	seq->next = &tSequencerNext;
-	seq->setPattern = &tSequencerSetPattern;
-	seq->get = &tSequencerGet;
-	seq->set = &tSequencerSet;
-	seq->setOctave = &tSequencerSetOctave;
-	seq->getOctave = &tSequencerGetOctave;
-	seq->upOctave = &tSequencerUpOctave;
-	seq->downOctave = &tSequencerDownOctave;
-	seq->getNumNotes = &tSequencerGetNumNotes;
-	seq->setMaxLength = &tSequencerSetMaxLength;
-	seq->getHexFromStep = &tSequencerGetHexFromStep;
-	seq->getStepFromHex = &tSequencerGetStepFromHex;
 	
 	for (int i = 0; i < MAX_STEPS; i++)
 	{
@@ -371,7 +358,7 @@ int tSequencerInit(tSequencer *seq, uint8_t maxLength)
 		}
 	}
 	
-	tNoteStackInit(&seq->notestack, maxLength);
+	tNoteStack_init(&seq->notestack, maxLength);
 
 	return 0;
 }

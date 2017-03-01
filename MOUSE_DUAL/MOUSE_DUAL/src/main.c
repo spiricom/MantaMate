@@ -1083,55 +1083,6 @@ void setupEIC(void)
 	
 }
 
-
-/*! \brief Main function. Execution starts here.
- */
-int main(void){
-	
-	irq_initialize_vectors();
-	cpu_irq_enable();
-	
-	// Initialize the sleep manager
-	sleepmgr_init();
-	setupEIC();
-
-	sysclk_init();
-	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
-	
-	board_init();
-
-	ui_init();
-	initSequencer();
-	//initialize the SPI bus for DAC
-	initSPIbus();
-	
-	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
-	initI2C();
-	
-	//send the messages to the DACs to make them update without software LDAC feature
-	DACsetup();
-	
-	// a test write
-	//sendI2CtoEEPROM();
-	//testLoop();
-	// Start USB host stack
-	uhc_start();
-	
-	// figure out if we're supposed to be in host mode or device mode for the USB
-	USB_Mode_Switch_Check();
-	
-	//start off on preset 0;
-	
-	updatePreset();
-
-	// The USB management is entirely managed by interrupts.
-	// As a consequence, the user application only has to play with the power modes.
-	
-	while (true) {	
-		sleepmgr_enter_sleep();
-	}
-}
-
 void main_suspend_action(void)
 {
 	//ui_powerdown();
