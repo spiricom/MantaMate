@@ -58,11 +58,11 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
-tRamp pitchGlideOne, pitchGlideTwo; 
+tRamp pitchGlideOne, pitchGlideTwo;
 tRamp cv1GlideOne, cv1GlideTwo;
 tRamp cv2GlideOne, cv2GlideTwo;
 tRamp cv3GlideOne, cv3GlideTwo;
-tRamp cv4GlideOne, cv4GlideTwo; 
+tRamp cv4GlideOne, cv4GlideTwo;
 
 #define TIMERS 1
 

@@ -79,9 +79,11 @@ static uhi_midi_dev_t uhi_midi_dev = {
 
 static void uhi_midi_free_device(void);
 static bool uhi_midi_rx_update(uhi_midi_line_t *line);
-static void uhi_midi_rx_received(usb_add_t add, usb_ep_t ep, uhd_trans_status_t status, iram_size_t nb_transferred);
+static void uhi_midi_rx_received(usb_add_t add, usb_ep_t ep,
+uhd_trans_status_t status, iram_size_t nb_transferred);
 static bool uhi_midi_tx_update(uhi_midi_line_t *line);
-static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep, uhd_trans_status_t status, iram_size_t nb_transferred);
+static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
+uhd_trans_status_t status, iram_size_t nb_transferred);
 bool uhi_midi_is_rx_ready(void);
 uint16_t parseMIDI(uint16_t);
 static void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2);

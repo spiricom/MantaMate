@@ -51,7 +51,6 @@
 #include "note_process.h"
 #include "7Segment.h"
 #include "sequencer_process.h"
-#include "utilities.h"
 
 
 #define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
@@ -107,7 +106,6 @@ const U8 test_pattern[] =  {
 	0x5A,
 	0x77,
 0x99};
-
 
 /*! \brief Main function. Execution starts here.
  */
@@ -464,9 +462,6 @@ static void tc3_init(volatile avr32_tc_t *tc)
 
 }
 
-
-
-
 void initTimers (void)
 {
 	
@@ -483,7 +478,7 @@ void initTimers (void)
 	tc2_init(tc2);
 	tc3_init(tc3);
 
-};
+}
 
   
 // interrupt handler for external gate signal input from synthesizer.
@@ -896,8 +891,8 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	
 	//for now, to correct for a mistake on the panel where the jacks are upside down, we reverse the DACvoice and DACnum numbers
 	//KLUDGE
-	DACvoice = (3 - DACvoice);
-	DACnum = (1 - DACnum);
+	//DACvoice = (3 - DACvoice);
+	//DACnum = (1 - DACnum);
 	//KLUDGE
 	
 	SPIbusy = 1;
@@ -948,7 +943,7 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 		spi_mode = SIXTEENBIT;
 	}
 	
-	DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
+	//DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
@@ -1008,7 +1003,7 @@ void testLoop(void)
  {
 	while(1)
 	{
-		//testvoltage16 = 32767;
+		testvoltage16 = 65530;
 		//cpu_delay_ms(1,64000000);//5
 		for(i=0; i<4; i++)
 		{
@@ -1017,7 +1012,7 @@ void testLoop(void)
 			DAC16Send(i,testvoltage16);
 		}
 		testvoltage++;
-		testvoltage16++;
+		//testvoltage16++;
 		
 		if (testvoltage > 2095)
 		{
