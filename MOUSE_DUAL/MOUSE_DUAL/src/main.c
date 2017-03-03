@@ -136,15 +136,6 @@ int main(void){
 	// a test write
 	//sendI2CtoEEPROM();
 	
-	// Start USB host stack
-	uhc_start();
-	
-	// figure out if we're supposed to be in host mode or device mode for the USB
-	USB_Mode_Switch_Check();
-	
-	//start off on preset 0;
-	updatePreset();
-	
 	tRampInit(&pitchGlideOne, 2000, 500, 1);
 	tRampInit(&pitchGlideTwo, 2000, 500, 1);
 	tRampInit(&cv1GlideOne, 2000, 500, 1);
@@ -155,6 +146,15 @@ int main(void){
 	tRampInit(&cv2GlideTwo, 2000, 500, 1);
 	tRampInit(&cv3GlideTwo, 2000, 500, 1);
 	tRampInit(&cv4GlideTwo, 2000, 500, 1);
+	
+	// Start USB host stack
+	uhc_start();
+	
+	// figure out if we're supposed to be in host mode or device mode for the USB
+	USB_Mode_Switch_Check();
+	
+	//start off on preset 0;
+	updatePreset();
 
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
@@ -212,6 +212,7 @@ static void tc2_irq(void)
 	}
 }
 
+int count3 = 0;
 // Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
@@ -949,11 +950,12 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	DAC1outlow = ((DAC16val & 255) << 8);
 	gpio_clr_gpio_pin(DAC1_CS);
 	dacwait2();
-	spi_write(SPARE_SPI,DAC1outhigh);
-	spi_write(SPARE_SPI,DAC1outlow);
+	spi_write(SPARE_SPI, DAC1outhigh);
+	spi_write(SPARE_SPI, DAC1outlow);
 	dacwait2();
 	gpio_set_gpio_pin(DAC1_CS);
 	SPIbusy = 0;
+
 }
 
 static void initSPIbus(void)
