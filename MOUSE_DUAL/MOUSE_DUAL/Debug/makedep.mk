@@ -4,6 +4,8 @@
 
 src\ASF\avr32\drivers\tc\tc.c
 
+src\preset.c
+
 src\utilities.c
 
 src\ASF\avr32\drivers\wdt\wdt.c

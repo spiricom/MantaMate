@@ -136,16 +136,16 @@ int main(void){
 	// a test write
 	//sendI2CtoEEPROM();
 	
-	tRampInit(&pitchGlideOne, 2000, 500, 1);
-	tRampInit(&pitchGlideTwo, 2000, 500, 1);
-	tRampInit(&cv1GlideOne, 2000, 500, 1);
-	tRampInit(&cv2GlideOne, 2000, 500, 1);
-	tRampInit(&cv3GlideOne, 2000, 500, 1);
-	tRampInit(&cv4GlideOne, 2000, 500, 1);
-	tRampInit(&cv1GlideTwo, 2000, 500, 1);
-	tRampInit(&cv2GlideTwo, 2000, 500, 1);
-	tRampInit(&cv3GlideTwo, 2000, 500, 1);
-	tRampInit(&cv4GlideTwo, 2000, 500, 1);
+	tRampInit(&out00, 2000, 500, 1);
+	tRampInit(&out02, 2000, 500, 1);
+	tRampInit(&out10, 2000, 500, 1);
+	tRampInit(&out11, 2000, 500, 1);
+	tRampInit(&out12, 2000, 500, 1);
+	tRampInit(&out13, 2000, 500, 1);
+	tRampInit(&out20, 2000, 500, 1);
+	tRampInit(&out21, 2000, 500, 1);
+	tRampInit(&out22, 2000, 500, 1);
+	tRampInit(&out23, 2000, 500, 1);
 	
 	// Start USB host stack
 	uhc_start();
@@ -184,10 +184,10 @@ static void tc1_irq(void)
 	else // TriggerMode
 	{
 		// Set 4 trigger outputs low
+		dacsend(0, 0, 0);
+		dacsend(1, 0, 0);
 		dacsend(0, 1, 0);
 		dacsend(1, 1, 0);
-		DAC16Send(0, 0);
-		DAC16Send(1, 0);
 	}
 }
 
@@ -205,10 +205,10 @@ static void tc2_irq(void)
 	else // TriggerMode
 	{
 		// Set 4 trigger outputs low
+		dacsend(2, 0, 0);
+		dacsend(3, 0, 0);
 		dacsend(2, 1, 0);
 		dacsend(3, 1, 0);
-		DAC16Send(2, 0);
-		DAC16Send(3, 0);
 	}
 }
 
@@ -219,23 +219,35 @@ static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
-
-	// SequencerOne & sequencerTwo Pitch
-	DAC16Send(0, tRampTick(&pitchGlideOne) * UINT16_MAX); 
-	DAC16Send(2, tRampTick(&pitchGlideTwo) * UINT16_MAX);
 	
-	// SequencerOne CV1-CV2
-	dacsend(0, 0, tRampTick(&cv1GlideOne));
-	dacsend(1, 0, tRampTick(&cv2GlideOne));
-	// SequencerOne CV3-CV4
-	dacsend(0, 1, tRampTick(&cv3GlideOne));
-	dacsend(1, 1, tRampTick(&cv4GlideOne));
-	// SequencerTwo CV1-CV2
-	dacsend(2, 0, tRampTick(&cv1GlideTwo));
-	dacsend(3, 0, tRampTick(&cv2GlideTwo));
-	// SequencerTwo CV3-CV4
-	dacsend(2, 1, tRampTick(&cv3GlideTwo));
-	dacsend(3, 1, tRampTick(&cv4GlideTwo));	
+	if (pitch_vs_trigger == PitchMode)
+	{
+		// SequencerOne & sequencerTwo Pitch
+		DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
+		DAC16Send(2, tRampTick(&out20) * UINT16_MAX);
+		
+		// SequencerOne CV1-CV2
+		dacsend(0, 0, tRampTick(&out10));
+		dacsend(1, 0, tRampTick(&out11));
+		// SequencerOne CV3-CV4
+		dacsend(0, 1, tRampTick(&out20));
+		dacsend(1, 1, tRampTick(&out21));
+		// SequencerTwo CV1-CV2
+		dacsend(2, 0, tRampTick(&out12));
+		dacsend(3, 0, tRampTick(&out13));
+		// SequencerTwo CV3-CV4
+		dacsend(2, 1, tRampTick(&out22));
+		dacsend(3, 1, tRampTick(&out23));
+	}
+	else //TriggerMode
+	{
+		DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
+		DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+		DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
+		DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+	}
+
+		
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)

@@ -761,6 +761,33 @@ void processReleaseUpperHex(uint8_t hexagon)
 			}
 		}
 	}
+	else // TriggerMode
+	{
+		int whichUpperHex = currentUpperHexUI - MAX_STEPS;
+		int whichTrigPanel = trigger_pattern[whichUpperHex];
+		
+
+		if (whichTrigPanel != S1TrigPanelSelect && whichTrigPanel != S2TrigPanelSelect)
+		{
+			if (glideNoteOn == hexagon)
+			{
+				glideNoteOn = -1;
+				
+				currentMantaSliderMode = prevMantaSliderMode;
+				if (editStack.size <= 1)
+				{
+					setSliderLEDsFor(currentSequencer, tNoteStack_first(&editStack));
+				}
+				else
+				{
+					setSliderLEDsFor(currentSequencer, -1);
+				}
+				
+				manta_set_LED_hex(hexagon, Off);
+			}
+		}
+		
+	}
 	
 	new_release_upper_hex = 0;
 }
@@ -903,6 +930,28 @@ void processTouchUpperHex(uint8_t hexagon)
 				whichSeq = SequencerTwo;
 				whichPanel = whichUpperHex - 4;
 				cont = 1;
+			}
+			else
+			{
+				if (glideNoteOn == -1)
+				{
+					glideNoteOn = hexagon;
+					
+					// Enter SliderModeGlide
+					prevMantaSliderMode = currentMantaSliderMode;
+					currentMantaSliderMode = SliderModeGlide;
+					
+					manta_set_LED_hex(hexagon, Red);
+					
+					if (editStack.size <= 1)
+					{
+						setSliderLEDsFor(currentSequencer, hexUIToStep(tNoteStack_first(&editStack)));
+					}
+					else
+					{
+						setSliderLEDsFor(currentSequencer, -1);
+					}
+				}
 			}
 			
 			if (cont) //dumb method
@@ -1482,14 +1531,21 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].pglide;
+				if (pitch_vs_trigger == PitchMode) 
+					prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].pglide;
+				else
+					prevGlide = sequencer[SequencerOne].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
+				
 			}
 			uint16_t newGlide = val;
 			
 			if (newGlide < 5) newGlide = 5;
 			
-			setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
-			
+			if (pitch_vs_trigger == PitchMode) 
+				setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
+			else
+				setParameterForEditStackSteps(SequencerOne, CVGlide, newGlide);
+				
 			manta_set_LED_slider(SliderOne, (val >> 9)  + 1); // add one to the slider values because a zero turns them off
 		}
 		else // SliderTwo
@@ -1498,13 +1554,19 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
+				if (pitch_vs_trigger == PitchMode)
+					prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
+				else
+					prevGlide = sequencer[SequencerTwo].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
 			}
 			uint16_t newGlide = val;
 			
 			if (newGlide < 5) newGlide = 5;
 			
-			setParameterForEditStackSteps(currentSequencer, CVGlide, newGlide);
+			if (pitch_vs_trigger == PitchMode)
+				setParameterForEditStackSteps(currentSequencer, CVGlide, newGlide);
+			else
+				setParameterForEditStackSteps(SequencerTwo, CVGlide, newGlide);
 			
 			manta_set_LED_slider(SliderTwo, (val >> 9)  + 1); // add one to the slider values because a zero turns them off
 		}
@@ -1777,8 +1839,17 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	}
 	else if (currentMantaSliderMode == SliderModeGlide)
 	{
-		manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
-		manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
+		if (pitch_vs_trigger == PitchMode)
+		{
+			manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
+			manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
+		}
+		else // TriggerMode
+		{
+			manta_set_LED_slider(SliderOne, (sequencer[SequencerOne].step[note].cvglide >> 9) + 1); 
+			manta_set_LED_slider(SliderTwo, (sequencer[SequencerTwo].step[note].cvglide >> 9) + 1); 
+		}
+		
 	}
 	else
 	{
@@ -1934,13 +2005,9 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 	
 	if (sequencer[seq].step[step].note)
 	{
-		// CV1, CV2, CV3, CV4
-		dacsend(offset+0, 1, sequencer[seq].step[step].cv3);
-		dacsend(offset+1, 1, sequencer[seq].step[step].cv4);
-		
 		// Configure PitchGlide
-		tRamp* glide = &pitchGlideOne;
-		if (seq == SequencerTwo) glide = &pitchGlideTwo;
+		tRamp* glide = &out00;
+		if (seq == SequencerTwo) glide = &out02;
 		
 		uint16_t glideTime =  sequencer[seq].step[step].pglide >> 3;
 		if (glideTime < 5) glideTime = 5;
@@ -1954,32 +2021,33 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		
 		if (seq == SequencerOne) 
 		{
-			tRampSetDest(&cv1GlideOne, (float) sequencer[SequencerOne].step[step].cv1);
-			tRampSetTime(&cv1GlideOne, glideTime);
+			
+			tRampSetTime(&out10, glideTime);
+			tRampSetDest(&out10, (float) sequencer[SequencerOne].step[step].cv1);
 					
-			tRampSetTime(&cv2GlideOne, glideTime);
-			tRampSetDest(&cv2GlideOne, (float) sequencer[SequencerOne].step[step].cv2);
+			tRampSetTime(&out11, glideTime);
+			tRampSetDest(&out11, (float) sequencer[SequencerOne].step[step].cv2);
 			
-			tRampSetDest(&cv3GlideOne, sequencer[SequencerOne].step[step].cv3);
-			tRampSetTime(&cv3GlideOne, (float) glideTime);
+			tRampSetTime(&out20, glideTime);
+			tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv3);
 			
-			tRampSetTime(&cv4GlideOne, glideTime);
-			tRampSetDest(&cv4GlideOne, (float) sequencer[SequencerOne].step[step].cv4);
+			tRampSetTime(&out21, glideTime);
+			tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv4);
 			
 		} 
 		else //SequencerTwo
 		{
-			tRampSetTime(&cv1GlideTwo, glideTime);
-			tRampSetDest(&cv1GlideTwo, (float) sequencer[seq].step[step].cv1);
+			tRampSetTime(&out12, glideTime);
+			tRampSetDest(&out12, (float) sequencer[SequencerTwo].step[step].cv1);
 			
-			tRampSetTime(&cv2GlideTwo, glideTime);
-			tRampSetDest(&cv2GlideTwo, (float) sequencer[SequencerTwo].step[step].cv2);
+			tRampSetTime(&out13, glideTime);
+			tRampSetDest(&out13, (float) sequencer[SequencerTwo].step[step].cv2);
 			
-			tRampSetTime(&cv3GlideTwo, glideTime);
-			tRampSetDest(&cv3GlideTwo, (float) sequencer[seq].step[step].cv3);
+			tRampSetTime(&out22, glideTime);
+			tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv3);
 			
-			tRampSetTime(&cv4GlideTwo, glideTime);
-			tRampSetDest(&cv4GlideTwo, (float) sequencer[SequencerTwo].step[step].cv4);
+			tRampSetTime(&out23, glideTime);
+			tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv4);
 		}
 		
 		
@@ -1990,21 +2058,37 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 
 void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
 {
-	int offset = 2;
+
+	int offset = 0;
+	if (seq == SequencerTwo) offset = 2;
+	
+	// Configure CVGlide
+	uint16_t glideTime =  sequencer[seq].step[step].cvglide >> 3;
+	if (glideTime < 5) glideTime = 5;
+	
 	if (seq == SequencerOne)
 	{
-		offset = 0;
+		tRampSetTime(&out20, glideTime);
+		tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv1);
+		
+		tRampSetTime(&out21, glideTime);
+		tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv2);
+		
+	}
+	else //SequencerTwo
+	{
+		tRampSetTime(&out22, glideTime);
+		tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv1);
+		
+		tRampSetTime(&out23, glideTime);
+		tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv2);
 	}
 	
-	// CV1 , CV2
-	dacsend(offset+0, 0, sequencer[seq].step[step].cv1);
-	dacsend(offset+1, 0, sequencer[seq].step[step].cv2);
-	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(offset+0, 1, sequencer[seq].step[step].on[0] * 4095);
-	dacsend(offset+1, 1, sequencer[seq].step[step].on[1] * 4095);
-	DAC16Send(offset+0,  sequencer[seq].step[step].on[2] * 65535);
-	DAC16Send(offset+1,  sequencer[seq].step[step].on[3] * 65535);
+	dacsend(offset+0, 0, sequencer[seq].step[step].on[0] * 4095);
+	dacsend(offset+1, 0, sequencer[seq].step[step].on[1] * 4095);
+	dacsend(offset+0, 1, sequencer[seq].step[step].on[2] * 4095);
+	dacsend(offset+1, 1, sequencer[seq].step[step].on[3] * 4095);
 }
 
 // UTILITIES

@@ -70,6 +70,9 @@ typedef struct _tSequencer
 	SequencerPatternType pattern;
 	uint8_t lengthCounter;
 	
+	GlobalOptionType pitchOrTrigger;
+	GlobalOptionType fullOrSplit;
+	
 } tSequencer;
 
 int			tSequencer_init				(tSequencer* const, uint8_t maxLength);
