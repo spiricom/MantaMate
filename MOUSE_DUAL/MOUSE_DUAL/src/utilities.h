@@ -161,7 +161,6 @@ GlobalOptionType full_vs_split;
 GlobalOptionType pitch_vs_trigger;
 MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
-KeyboardOptionMode prev_key_vs_option;
 
 //#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
 //#define tick0(THIS)					THIS.tick(&THIS)
