@@ -71,11 +71,10 @@ typedef struct _tSequencer
 	uint8_t lengthCounter;
 	
 	GlobalOptionType pitchOrTrigger;
-	GlobalOptionType fullOrSplit;
 	
 } tSequencer;
 
-int			tSequencer_init				(tSequencer* const, uint8_t maxLength);
+int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
 void		tSequencer_next				(tSequencer* const);
 int			tSequencer_toggleStep		(tSequencer* const, uint8_t step);
 int			tSequencer_addStep			(tSequencer* const, uint8_t step);

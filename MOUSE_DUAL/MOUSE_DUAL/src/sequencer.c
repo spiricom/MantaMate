@@ -310,7 +310,7 @@ void tSequencer_clearSteps(tSequencer* const seq)
 	}
 }
 
-int tSequencer_init(tSequencer* const seq, uint8_t maxLength) 
+int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLength) 
 {
 	if (maxLength < 1)
 	{
@@ -331,6 +331,7 @@ int tSequencer_init(tSequencer* const seq, uint8_t maxLength)
 	seq->phasor = 0;
 	seq->pattern = LeftRightRowDown;
 	seq->octave = 3;
+	seq->pitchOrTrigger = type;
 	
 	for (int i = 0; i < MAX_STEPS; i++)
 	{

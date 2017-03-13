@@ -177,7 +177,7 @@ static void tc1_irq(void)
 
 	LED_Off(LED1);
 	
-	if (pitch_vs_trigger == PitchMode)
+	if (seq1PvT == PitchMode)
 	{
 		DAC16Send(1, 0);
 	}
@@ -198,7 +198,7 @@ static void tc2_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC2, TC2_CHANNEL);
 		
-	if (pitch_vs_trigger == PitchMode)
+	if (seq2PvT == PitchMode)
 	{
 		DAC16Send(3, 0);
 	}
@@ -220,11 +220,10 @@ static void tc3_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 	
-	if (pitch_vs_trigger == PitchMode)
+	if (seq1PvT == PitchMode)
 	{
 		// SequencerOne & sequencerTwo Pitch
 		DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
-		DAC16Send(2, tRampTick(&out20) * UINT16_MAX);
 		
 		// SequencerOne CV1-CV2
 		dacsend(0, 0, tRampTick(&out10));
@@ -232,6 +231,18 @@ static void tc3_irq(void)
 		// SequencerOne CV3-CV4
 		dacsend(0, 1, tRampTick(&out20));
 		dacsend(1, 1, tRampTick(&out21));
+	}
+	else //TriggerMode
+	{
+		DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
+		DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+	}
+	
+	if (seq2PvT == PitchMode)
+	{
+		// SequencerTwo Pitch
+		DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
+		
 		// SequencerTwo CV1-CV2
 		dacsend(2, 0, tRampTick(&out12));
 		dacsend(3, 0, tRampTick(&out13));
@@ -241,8 +252,6 @@ static void tc3_irq(void)
 	}
 	else //TriggerMode
 	{
-		DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
-		DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
 		DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
 		DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
 	}

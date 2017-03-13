@@ -157,10 +157,12 @@ MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
-GlobalOptionType full_vs_split;
-GlobalOptionType pitch_vs_trigger;
 MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
+
+GlobalOptionType full_vs_split;
+
+GlobalOptionType seq1PvT, seq2PvT;
 
 //#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
 //#define tick0(THIS)					THIS.tick(&THIS)

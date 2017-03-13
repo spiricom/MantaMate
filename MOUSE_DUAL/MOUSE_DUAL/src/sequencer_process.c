@@ -124,16 +124,16 @@ typedef enum OptionPanelButtonType
 	OptionPatternSix,
 	OptionPatternSeven,
 	OptionPatternEight,
-	OptionPitch,
-	OptionTrigger,
-	OptionFull,
-	OptionSplit,
+	OptionSeqOnePitchTrigger,
+	OptionSeqTwoPitchTrigger,
+	OptionFullSplit,
 	OptionNilOne,
 	OptionNilTwo,
+	OptionNilThree,
 	OptionSeqLeft,
 	OptionSeqRight,
 	OptionPanelButtonTypeNil,
-	OptionEndPattern = OptionPitch,
+	OptionEndPattern = OptionSeqOnePitchTrigger,
 	OptionEndMode = OptionNilOne,
 	
 }OptionPanelButtonType;
@@ -148,27 +148,22 @@ OptionPanelButtonType optionModeButtons[16] =	{
 	OptionPatternSeven, 
 	OptionPatternEight,
 	
-	OptionPitch, 
-	OptionTrigger, 
-	OptionFull, 
-	OptionSplit, 
+	OptionSeqOnePitchTrigger, 
+	OptionSeqTwoPitchTrigger, 
+	OptionFullSplit,  
 	OptionNilOne, 
 	OptionNilTwo, 
+	OptionNilThree,
 	OptionSeqLeft, 
 	OptionSeqRight
 	};
 
 #define NUM_SEQ 2
 
-tSequencer pitchFullSequencer[NUM_SEQ]; 
-tSequencer pitchSplitSequencer[NUM_SEQ];
+tSequencer sequencer[NUM_SEQ];
 
-tSequencer trigFullSequencer[NUM_SEQ];
-tSequencer trigSplitSequencer[NUM_SEQ];
 
 uint8_t amberHexes[NUM_SEQ][MAX_STEPS];
-
-tSequencer *sequencer; 
 
 int rangeNoteOn;
 tNoteStack rangeStack;
@@ -259,13 +254,8 @@ void initSequencer(void)
 	prevMantaSliderMode =		SliderModeOne;
 	edit_vs_play =				PlayToggleMode; manta_set_LED_button(ButtonTopRight, Amber);
 	currentFunctionButton =		ButtonTopLeft;
-	full_vs_split =				FullMode;
-	pitch_vs_trigger =			PitchMode;
 	key_vs_option =				KeyboardMode;
 	playSubMode =				SeqMode;
-	
-	
-	
 	
 	tNoteStack_init(&editStack,		32);
 	
@@ -284,32 +274,14 @@ void initSequencer(void)
 	glideNoteOn = -1;
 	rangeNoteOn = -1;
 	
+	seq1PvT = PitchMode; seq2PvT = PitchMode;
 	for (int i = 0; i < NUM_SEQ; i++)
 	{		
-		tSequencer_init(&pitchFullSequencer[i],	32);
-		tSequencer_init(&pitchSplitSequencer[i],	16);
-		
-		tSequencer_init(&trigFullSequencer[i],	32);
-		tSequencer_init(&trigSplitSequencer[i],  16);
-	}
-	
-	if (pitch_vs_trigger == PitchMode)
-	{
-		sequencer = pitchFullSequencer;
-	}
-	else //TriggerMode
-	{
-		sequencer = trigFullSequencer;
+		tSequencer_init(&sequencer[i], PitchMode, 32);
 	}
 	
 	setSequencerLEDsFor(currentSequencer);
 	
-	if (full_vs_split == SplitMode)
-	{
-		// Selects and sets LEDs for OTHER sequencer.
-		setSequencerLEDsFor((currentSequencer+1) % NUM_SEQ);  
-	}
-
 	setKeyboardLEDsFor(currentSequencer, -1);
 
 	tc_start(tc3, TC3_CHANNEL);
@@ -337,7 +309,7 @@ void sequencerStep(void)
 			
 			if (sequencer[i].stepGo)
 			{
-				if (pitch_vs_trigger == PitchMode)
+				if (sequencer[i].pitchOrTrigger == PitchMode)
 				{
 					dacSendPitchMode(i,curr);
 				}
@@ -784,7 +756,7 @@ void switchToMode(MantaEditPlayMode mode)
 
 void processReleaseUpperHex(uint8_t hexagon)
 {
-	if (pitch_vs_trigger == PitchMode)
+	if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 	{
 		if (keyboard_pattern[hexagon-MAX_STEPS] < KeyboardEndOctave)
 		{
@@ -898,7 +870,7 @@ void processTouchUpperHex(uint8_t hexagon)
 
 	if (key_vs_option == KeyboardMode)
 	{
-		if (pitch_vs_trigger == PitchMode)
+		if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 		{
 			int upperHexType = keyboard_pattern[hexagon-MAX_STEPS];
 				
@@ -1142,95 +1114,67 @@ void processTouchUpperHex(uint8_t hexagon)
 			prev_pattern_hex = current_pattern_hex;
 			current_pattern_hex = whichHex;
 		}
-		else if ((whichOptionType >= OptionPitch) && (whichOptionType < OptionEndMode))
+		else if ((whichOptionType >= OptionSeqOnePitchTrigger) && (whichOptionType < OptionEndMode))
 		{
 			resetEditStack();
 			
 			prev_option_hex = current_option_hex;
 			current_option_hex = whichHex;
 			
-				
 			currentHexUI = 0;
 				
 			currentUpperHexUI = 0;
 				
 			setCurrentSequencer(SequencerOne);
 			
-			if (optionModeButtons[whichHex] == OptionFull)
+			if (optionModeButtons[whichHex] == OptionSeqOnePitchTrigger)
 			{
-				full_vs_split = FullMode;
-					
-				if (pitch_vs_trigger == PitchMode)
+				if (sequencer[SequencerOne].pitchOrTrigger == PitchMode)
 				{
-					sequencer = pitchFullSequencer;
+					tSequencer_init(&sequencer[SequencerOne], TriggerMode, MAX_STEPS); seq1PvT = TriggerMode;
 				}
-				else //TriggerMode
+				else if (sequencer[SequencerOne].pitchOrTrigger == TriggerMode)
 				{
-					sequencer = trigFullSequencer;
+					tSequencer_init(&sequencer[SequencerOne], PitchMode, MAX_STEPS); seq1PvT = PitchMode;
 				}
-					
-				setSequencerLEDsFor(SequencerOne);
-					
 			}
-			else if (whichOptionType == OptionSplit)
+			else if (whichOptionType == OptionSeqTwoPitchTrigger)
 			{
-				full_vs_split = SplitMode;
-					
-				if (pitch_vs_trigger == PitchMode)
+				if (sequencer[SequencerTwo].pitchOrTrigger == PitchMode)
 				{
-					sequencer = pitchSplitSequencer;
+					tSequencer_init(&sequencer[SequencerTwo], TriggerMode, MAX_STEPS); seq2PvT = TriggerMode;
 				}
-				else
+				else if (sequencer[SequencerTwo].pitchOrTrigger == TriggerMode)
 				{
-					sequencer = trigSplitSequencer;
+					tSequencer_init(&sequencer[SequencerTwo], PitchMode, MAX_STEPS); seq2PvT = PitchMode;
 				}
-					
-				setSequencerLEDsFor(SequencerOne);
-				setSequencerLEDsFor(SequencerTwo);
+				
 			}
-			else if (whichOptionType == OptionPitch)
+			else if (whichOptionType == OptionFullSplit)
 			{
-				pitch_vs_trigger = PitchMode;
-					
-				if (full_vs_split == FullMode)
+				if (full_vs_split == FullMode)			
 				{
-					sequencer = pitchFullSequencer;
-					setCurrentSequencer(SequencerOne);
-					setSequencerLEDsFor(SequencerOne);
+					full_vs_split = SplitMode;
 				}
-				else //SplitMode
+				else if (full_vs_split == SplitMode)	
 				{
-					sequencer = pitchSplitSequencer;
-					setSequencerLEDsFor(SequencerOne);
-					setSequencerLEDsFor(SequencerTwo);
-				}	
-					
-						
+					full_vs_split = FullMode;
+				}
 			} 
-			else if (whichOptionType == OptionTrigger)
-			{
-				pitch_vs_trigger = TriggerMode;
-				switchToMode(PlayToggleMode);
-					
-				if (full_vs_split == FullMode)
-				{
-					sequencer = trigFullSequencer;
-						
-					setCurrentSequencer(SequencerOne);
-					setSequencerLEDsFor(SequencerOne);
-				}
-				else //SplitMode
-				{
-
-					sequencer = trigSplitSequencer;
-					
-					setSequencerLEDsFor(SequencerOne);
-					setSequencerLEDsFor(SequencerTwo);
-				}
-			}
 			else
 			{
 				// No other mode, sorry.
+			}
+			
+			if (full_vs_split == FullMode)
+			{
+				setCurrentSequencer(SequencerOne);
+				setSequencerLEDsFor(SequencerOne);
+			}
+			else //SplitMode
+			{
+				setSequencerLEDsFor(SequencerOne);
+				setSequencerLEDsFor(SequencerTwo);
 			}
 				
 			setModeLEDsFor(SequencerOne);
@@ -1238,7 +1182,7 @@ void processTouchUpperHex(uint8_t hexagon)
 		}
 		else if ((whichOptionType == OptionSeqLeft) || (whichOptionType == OptionSeqRight))
 		{
-			if (pitch_vs_trigger == PitchMode)
+			if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 			{
 				if (full_vs_split == FullMode)
 				{
@@ -1298,7 +1242,7 @@ void processTouchFunctionButton(MantaButton button)
 	if (button == ButtonTopLeft)
 	{
 		//toggle three different SliderModes in PitchMode
-		if (pitch_vs_trigger == PitchMode)
+		if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 		{
 			if (currentMantaSliderMode == SliderModeOne)
 			{
@@ -1517,7 +1461,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			uint16_t newFine = val;
 			
-			setParameterForEditStackSteps(currentSequencer,Fine,val);
+			setParameterForEditStackSteps(currentSequencer, Fine, val);
 			
 			manta_set_LED_slider(SliderTwo, (val >> 9) + 1); // add one to the slider values because a zero turns them off
 
@@ -1536,7 +1480,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				if (pitch_vs_trigger == PitchMode) 
+				if (sequencer[currentSequencer].pitchOrTrigger == PitchMode) 
 					prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].pglide;
 				else
 					prevGlide = sequencer[SequencerTwo].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
@@ -1546,7 +1490,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 			if (newGlide < 5) newGlide = 5;
 			
-			if (pitch_vs_trigger == PitchMode) 
+			if (sequencer[currentSequencer].pitchOrTrigger == PitchMode) 
 				setParameterForEditStackSteps(currentSequencer, PitchGlide, newGlide);
 			else
 				setParameterForEditStackSteps(SequencerTwo, CVGlide, newGlide);
@@ -1559,7 +1503,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			uint16_t prevGlide = 0;
 			if (editStack.size <= 1)
 			{
-				if (pitch_vs_trigger == PitchMode)
+				if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 					prevGlide = sequencer[currentSequencer].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
 				else
 					prevGlide = sequencer[SequencerOne].step[hexUIToStep(tNoteStack_first(&editStack))].cvglide;
@@ -1568,7 +1512,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			
 			if (newGlide < 5) newGlide = 5;
 			
-			if (pitch_vs_trigger == PitchMode)
+			if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 				setParameterForEditStackSteps(currentSequencer, CVGlide, newGlide);
 			else
 				setParameterForEditStackSteps(SequencerOne, CVGlide, newGlide);
@@ -1591,7 +1535,7 @@ void uiStep(MantaSequencer seq)
 
 	if (edit_vs_play == EditMode)
 	{
-		if (pitch_vs_trigger == PitchMode)
+		if (sequencer[seq].pitchOrTrigger == PitchMode)
 		{
 			if (tNoteStack_contains(&editStack, uiHexCurrentStep) >= 0)
 			{
@@ -1648,7 +1592,7 @@ void uiStep(MantaSequencer seq)
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
-		if (pitch_vs_trigger == TriggerMode)
+		if (sequencer[seq].pitchOrTrigger == TriggerMode)
 		{
 			if (sequencer[seq].step[pStep].toggled)
 			{
@@ -1698,7 +1642,7 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 		nt = note;
 	}
 	
-	if (pitch_vs_trigger == PitchMode)
+	if (sequencer[seq].pitchOrTrigger == PitchMode)
 	{
 		if (sequencer[seq].step[nt].note == 1)
 		{
@@ -1840,7 +1784,7 @@ void setSliderLEDsFor(MantaSequencer seq, int note)
 	}
 	else if (currentMantaSliderMode == SliderModeGlide)
 	{
-		if (pitch_vs_trigger == PitchMode)
+		if (sequencer[seq].pitchOrTrigger == PitchMode)
 		{
 			manta_set_LED_slider(SliderOne, pglide); // OCTAVE add one to the slider values because a zero turns them off
 			manta_set_LED_slider(SliderTwo, cvglide); // the step length is already between 1-8
@@ -1920,14 +1864,13 @@ void setModeLEDsFor(MantaSequencer seq)
 	{
 		modeButton = optionModeButtons[i];
 		modeHex = modeButton + MAX_STEPS;
-		if ((modeButton == OptionNilOne) || (modeButton == OptionNilTwo))
+		if ((modeButton == OptionNilOne) || (modeButton == OptionNilTwo) || (modeButton == OptionNilThree))
 		{
 			manta_set_LED_hex(modeHex, Off);
 		}
-		else if ((modeButton >= OptionPitch) && (modeButton < OptionEndMode))
+		else if ((modeButton >= OptionSeqOnePitchTrigger) && (modeButton < OptionEndMode))
 		{
 			manta_set_LED_hex(modeHex, Amber);
-			
 		}
 		else if (modeButton < OptionEndPattern)
 		{
@@ -1960,26 +1903,33 @@ void setModeLEDsFor(MantaSequencer seq)
 		}
 	}
 	
-	if (pitch_vs_trigger == PitchMode)
+	if (sequencer[SequencerOne].pitchOrTrigger == PitchMode)
 	{
-		manta_set_LED_hex(MAX_STEPS + 8, Red); 
+		manta_set_LED_hex(MAX_STEPS + 8, Amber); 
 	}
 	else // TriggerMode
 	{		
+		manta_set_LED_hex(MAX_STEPS + 8, Red);
+	}
+	
+	if (sequencer[SequencerTwo].pitchOrTrigger == PitchMode)
+	{
+		manta_set_LED_hex(MAX_STEPS + 9, Amber);
+	}
+	else // TriggerMode
+	{
 		manta_set_LED_hex(MAX_STEPS + 9, Red);
 	}
 	
 	if (full_vs_split == FullMode)
 	{
-		manta_set_LED_hex(MAX_STEPS + 10, Red);
+		manta_set_LED_hex(MAX_STEPS + 10, Amber);
 	}
 	else // SplitMode
 	{
-		manta_set_LED_hex(MAX_STEPS + 11, Red);
+		manta_set_LED_hex(MAX_STEPS + 10, Red);
 	}
 }
-
-
 
 // Output
 uint32_t get16BitPitch(MantaSequencer seq, uint8_t step)
