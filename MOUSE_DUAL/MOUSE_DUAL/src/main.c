@@ -222,7 +222,7 @@ static void tc3_irq(void)
 	
 	if (seq1PvT == PitchMode)
 	{
-		// SequencerOne & sequencerTwo Pitch
+		// SequencerOne Pitch
 		DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
 		
 		// SequencerOne CV1-CV2
