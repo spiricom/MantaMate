@@ -575,6 +575,9 @@
     <Compile Include="src\ASF\avr32\drivers\tc\tc.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\note_process_utilities.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\preset.c">
       <SubType>compile</SubType>
     </Compile>

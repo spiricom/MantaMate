@@ -4,6 +4,8 @@
 
 src\ASF\avr32\drivers\tc\tc.c
 
+src\note_process_utilities.c
+
 src\preset.c
 
 src\utilities.c

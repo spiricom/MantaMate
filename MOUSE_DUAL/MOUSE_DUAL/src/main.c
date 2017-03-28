@@ -80,7 +80,7 @@ uint8_t spi_mode = 0;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-uint8_t sequencer_mode = 1;  // Hey Reid, this is the variable to change to put it into "sequencer" mode.
+uint8_t sequencer_mode = 0;  
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -123,7 +123,8 @@ int main(void){
 	board_init();
 
 	ui_init();
-	initSequencer();
+	if (sequencer_mode)	initSequencer();
+	else /*KeyboardMode*/initKeys() ;
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	
@@ -136,16 +137,16 @@ int main(void){
 	// a test write
 	//sendI2CtoEEPROM();
 	
-	tRampInit(&out00, 2000, 500, 1);
-	tRampInit(&out02, 2000, 500, 1);
-	tRampInit(&out10, 2000, 500, 1);
-	tRampInit(&out11, 2000, 500, 1);
-	tRampInit(&out12, 2000, 500, 1);
-	tRampInit(&out13, 2000, 500, 1);
-	tRampInit(&out20, 2000, 500, 1);
-	tRampInit(&out21, 2000, 500, 1);
-	tRampInit(&out22, 2000, 500, 1);
-	tRampInit(&out23, 2000, 500, 1);
+	tRampInit(&out00, 2000, 3, 1);
+	tRampInit(&out02, 2000, 3, 1);
+	tRampInit(&out10, 2000, 3, 1);
+	tRampInit(&out11, 2000, 3, 1);
+	tRampInit(&out12, 2000, 3, 1);
+	tRampInit(&out13, 2000, 3, 1);
+	tRampInit(&out20, 2000, 3, 1);
+	tRampInit(&out21, 2000, 3, 1);
+	tRampInit(&out22, 2000, 3, 1);
+	tRampInit(&out23, 2000, 3, 1);
 	
 	// Start USB host stack
 	uhc_start();
@@ -219,42 +220,58 @@ static void tc3_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 	
-	
-	if (seq1PvT == PitchMode)
+	if (sequencer_mode)
 	{
-		// SequencerOne Pitch
-		DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
+		if (seq1PvT == PitchMode)
+		{
+			// SequencerOne Pitch
+			DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
+			
+			// SequencerOne CV1-CV2
+			dacsend(0, 0, tRampTick(&out10));
+			dacsend(1, 0, tRampTick(&out11));
+			// SequencerOne CV3-CV4
+			dacsend(0, 1, tRampTick(&out20));
+			dacsend(1, 1, tRampTick(&out21));
+		}
+		else //TriggerMode
+		{
+			DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
+			DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+		}
 		
-		// SequencerOne CV1-CV2
-		dacsend(0, 0, tRampTick(&out10));
-		dacsend(1, 0, tRampTick(&out11));
-		// SequencerOne CV3-CV4
-		dacsend(0, 1, tRampTick(&out20));
-		dacsend(1, 1, tRampTick(&out21));
+		if (seq2PvT == PitchMode)
+		{
+			// SequencerTwo Pitch
+			DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
+			
+			// SequencerTwo CV1-CV2
+			dacsend(2, 0, tRampTick(&out12));
+			dacsend(3, 0, tRampTick(&out13));
+			// SequencerTwo CV3-CV4
+			dacsend(2, 1, tRampTick(&out22));
+			dacsend(3, 1, tRampTick(&out23));
+		}
+		else //TriggerMode
+		{
+			DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
+			DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+		}
 	}
-	else //TriggerMode
+	else /// KeyMode
 	{
-		DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
-		DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+		for (int i = 0; i < polynum; i++)
+		{
+			DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
+			
+			dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
+			
+			dacsend     (i,1,  hexMax[notestack[3-i][0]] * 16);
+		}
+
+		
 	}
 	
-	if (seq2PvT == PitchMode)
-	{
-		// SequencerTwo Pitch
-		DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
-		
-		// SequencerTwo CV1-CV2
-		dacsend(2, 0, tRampTick(&out12));
-		dacsend(3, 0, tRampTick(&out13));
-		// SequencerTwo CV3-CV4
-		dacsend(2, 1, tRampTick(&out22));
-		dacsend(3, 1, tRampTick(&out23));
-	}
-	else //TriggerMode
-	{
-		DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
-		DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
-	}
 	
 	/* All lights on.
 	DAC16Send(0,30000);

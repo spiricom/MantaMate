@@ -351,7 +351,6 @@ static void uhi_hid_manta_report_reception(
 	{
 		processSequencer();
 	}
-	//if not, we're in keyboard mode
 	else
 	{
 		processKeys();
@@ -398,23 +397,23 @@ static void processKeys(void)
 			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 			{
 				addNote(i,butt_states[i]);
+				manta_set_LED_hex(i, Amber);
 			}
 
 			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 			{
 				removeNote(i);	
+				manta_set_LED_hex(i, Off);
 			}
-			if (butt_states[i] > hex_max)
-			{
-				hex_max = butt_states[i];
-			}
+			
+			hexMax[i] = butt_states[i];
 
 			// update the past keymap array (stores the previous values of every key's sensor reading)
 			pastbutt_states[i] = butt_states[i];
 		}
 	
 	}
-	dacsend(3,0,(hex_max * 16)); 
+
 	noteOut();
 }
 
