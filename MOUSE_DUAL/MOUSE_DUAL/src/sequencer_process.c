@@ -13,6 +13,8 @@
 //#include "7Segment.h"
 
 
+
+
 #define BLINKER_FRAMES 25
 int blinkerFrameCounter = 0;
 uint8_t blinkerState = 0;
@@ -311,11 +313,11 @@ void sequencerStep(void)
 			{
 				if (sequencer[i].pitchOrTrigger == PitchMode)
 				{
-					dacSendPitchMode(i,curr);
+					dacSendPitchMode(i, curr);
 				}
 				else // TriggerMode
 				{
-					dacSendTriggerMode(i,curr);
+					dacSendTriggerMode(i, curr);
 				}
 
 				// Start sequencer 1 and 2 timers: tc1, tc2.
@@ -993,30 +995,35 @@ void processTouchUpperHex(uint8_t hexagon)
 			
 			if (whichTrigPanel == S1TrigPanelSelect)
 			{
-				whichSeq = SequencerOne;
-				whichPanel = whichUpperHex;
-				
-				if (edit_vs_play == PlayToggleMode)
+				if (sequencer[SequencerOne].pitchOrTrigger == TriggerMode)
 				{
-					trigSelectOn = whichUpperHex;
-					switchToMode(TrigToggleMode);
+					whichSeq = SequencerOne;
+					whichPanel = whichUpperHex;
+					
+					if (edit_vs_play == PlayToggleMode)
+					{
+						trigSelectOn = whichUpperHex;
+						switchToMode(TrigToggleMode);
+					}
+					
+					cont= 1;
 				}
-				
-				
-				cont= 1;
 			}
 			else if (whichTrigPanel == S2TrigPanelSelect)
 			{
-				whichSeq = SequencerTwo;
-				whichPanel = whichUpperHex - 12;
-				
-				if (edit_vs_play == PlayToggleMode)
+				if (sequencer[SequencerTwo].pitchOrTrigger == TriggerMode)
 				{
-					trigSelectOn = whichUpperHex;
-					switchToMode(TrigToggleMode);
+					whichSeq = SequencerTwo;
+					whichPanel = whichUpperHex - 12;
+					
+					if (edit_vs_play == PlayToggleMode)
+					{
+						trigSelectOn = whichUpperHex;
+						switchToMode(TrigToggleMode);
+					}
+					
+					cont= 1;
 				}
-				
-				cont = 1;
 			}
 			else
 			{
@@ -1124,8 +1131,6 @@ void processTouchUpperHex(uint8_t hexagon)
 			currentHexUI = 0;
 				
 			currentUpperHexUI = 0;
-				
-			setCurrentSequencer(SequencerOne);
 			
 			if (optionModeButtons[whichHex] == OptionSeqOnePitchTrigger)
 			{
@@ -1137,6 +1142,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				{
 					tSequencer_init(&sequencer[SequencerOne], PitchMode, MAX_STEPS); seq1PvT = PitchMode;
 				}
+				setCurrentSequencer(SequencerOne);
 			}
 			else if (whichOptionType == OptionSeqTwoPitchTrigger)
 			{
@@ -1148,7 +1154,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				{
 					tSequencer_init(&sequencer[SequencerTwo], PitchMode, MAX_STEPS); seq2PvT = PitchMode;
 				}
-				
+				setCurrentSequencer(SequencerTwo);
 			}
 			else if (whichOptionType == OptionFullSplit)
 			{
@@ -1160,6 +1166,8 @@ void processTouchUpperHex(uint8_t hexagon)
 				{
 					full_vs_split = FullMode;
 				}
+				
+				setCurrentSequencer(SequencerOne);
 			} 
 			else
 			{
@@ -1168,8 +1176,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			
 			if (full_vs_split == FullMode)
 			{
-				setCurrentSequencer(SequencerOne);
-				setSequencerLEDsFor(SequencerOne);
+				setSequencerLEDsFor(currentSequencer);
 			}
 			else //SplitMode
 			{
@@ -1177,7 +1184,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				setSequencerLEDsFor(SequencerTwo);
 			}
 				
-			setModeLEDsFor(SequencerOne);
+			setModeLEDsFor(currentSequencer);
 		
 		}
 		else if ((whichOptionType == OptionSeqLeft) || (whichOptionType == OptionSeqRight))
@@ -1974,6 +1981,11 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		
 		if (seq == SequencerOne) 
 		{
+			tRampSetTime(&out20, glideTime);
+			tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv3);
+			
+			tRampSetTime(&out21, glideTime);
+			tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv4);
 			
 			tRampSetTime(&out10, glideTime);
 			tRampSetDest(&out10, (float) sequencer[SequencerOne].step[step].cv1);
@@ -1981,26 +1993,21 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 			tRampSetTime(&out11, glideTime);
 			tRampSetDest(&out11, (float) sequencer[SequencerOne].step[step].cv2);
 			
-			tRampSetTime(&out20, glideTime);
-			tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv3);
-			
-			tRampSetTime(&out21, glideTime);
-			tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv4);
-			
 		} 
 		else //SequencerTwo
 		{
+			tRampSetTime(&out22, glideTime);
+			tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv3);
+			
+			tRampSetTime(&out23, glideTime);
+			tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv4);
+			
 			tRampSetTime(&out12, glideTime);
 			tRampSetDest(&out12, (float) sequencer[SequencerTwo].step[step].cv1);
 			
 			tRampSetTime(&out13, glideTime);
 			tRampSetDest(&out13, (float) sequencer[SequencerTwo].step[step].cv2);
 			
-			tRampSetTime(&out22, glideTime);
-			tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv3);
-			
-			tRampSetTime(&out23, glideTime);
-			tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv4);
 		}
 		
 		
@@ -2038,10 +2045,10 @@ void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
 	}
 	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(offset+0, 0, sequencer[seq].step[step].on[0] * 4095);
-	dacsend(offset+1, 0, sequencer[seq].step[step].on[1] * 4095);
-	dacsend(offset+0, 1, sequencer[seq].step[step].on[2] * 4095);
-	dacsend(offset+1, 1, sequencer[seq].step[step].on[3] * 4095);
+	dacsend(offset+0, 1, sequencer[seq].step[step].on[0] * 4095);
+	dacsend(offset+1, 1, sequencer[seq].step[step].on[1] * 4095);
+	dacsend(offset+0, 0, sequencer[seq].step[step].on[2] * 4095);
+	dacsend(offset+1, 0, sequencer[seq].step[step].on[3] * 4095);
 }
 
 // UTILITIES

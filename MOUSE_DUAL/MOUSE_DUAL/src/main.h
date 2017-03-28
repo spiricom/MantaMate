@@ -58,11 +58,17 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
-tRamp out00, out02;
-tRamp out10, out12;
-tRamp out11, out13;
-tRamp out20, out22;
-tRamp out21, out23;
+tRamp out00;
+tRamp out02;
+
+tRamp out10;
+tRamp out11;
+tRamp out12;
+tRamp out13;
+tRamp out20;
+tRamp out21;
+tRamp out22;
+tRamp out23;
 
 #define TIMERS 1
 
