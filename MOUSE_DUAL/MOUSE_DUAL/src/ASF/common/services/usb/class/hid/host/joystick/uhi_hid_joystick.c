@@ -176,7 +176,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
-	Write7Seg(57);
+	if (DEBUG) Write7Seg(57);
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
 	ptr_iface = (usb_iface_desc_t*) dev->conf_desc;
 	b_iface_supported = false;
@@ -282,7 +282,7 @@ static void get_report_descriptor()
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
 			//dip204_printf_string("ERROR");
-			Write7Seg(77);
+			if (DEBUG) Write7Seg(77);
 			return;
 		}
 	}
@@ -783,7 +783,7 @@ static void uhi_hid_joy_report_reception(
 			
 			if (n_butts_mapped_so_far == 0)
 			{
-				Write7Seg(butt_state);
+				if (DEBUG) Write7Seg(butt_state);
 			}
 			n_butts_mapped_so_far++;
 		}

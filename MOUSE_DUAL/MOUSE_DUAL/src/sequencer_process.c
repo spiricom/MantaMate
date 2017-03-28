@@ -246,6 +246,8 @@ void initSHArrays(void)
 
 void initSequencer(void)
 {
+	sequencer_mode = 1;
+	
 	initTimers();
 	
 	initSHArrays();
@@ -258,6 +260,17 @@ void initSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	key_vs_option =				KeyboardMode;
 	playSubMode =				SeqMode;
+	
+	tRampInit(&out00, 2000, 3, 1);
+	tRampInit(&out02, 2000, 3, 1);
+	tRampInit(&out10, 2000, 3, 1);
+	tRampInit(&out11, 2000, 3, 1);
+	tRampInit(&out12, 2000, 3, 1);
+	tRampInit(&out13, 2000, 3, 1);
+	tRampInit(&out20, 2000, 3, 1);
+	tRampInit(&out21, 2000, 3, 1);
+	tRampInit(&out22, 2000, 3, 1);
+	tRampInit(&out23, 2000, 3, 1);
 	
 	tNoteStack_init(&editStack,		32);
 	

@@ -49,8 +49,7 @@ unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
 unsigned char polymode = 0; //need to implement
-unsigned char polynum = 4;
-unsigned char polyVoiceNote[4];
+
 
 unsigned char changevoice[4]; // flags to indicate a voice has a new note value
 unsigned char notehappened = 0;
@@ -421,12 +420,26 @@ void programChange(uint8_t num)
 	programNum = num;
 }
 
-void initKeys(void)
+void resetMantaUI(void)
 {
+	for (int i = 0; i < 48; i++) manta_set_LED_hex(i, Off);
+	for (int i = 0; i < 2; i++)  manta_set_LED_slider(i, 0);
+	for (int i = 0; i < 4; i++)  manta_set_LED_button(i, Off);
+	
+}
+
+void initKeys(int numVoices)
+{
+	polynum = 4;
 	sysVol = 0x7F; 
 	float_t	birlOctave = 12;
 	float_t	birlOffset = 23;
 	
+	sequencer_mode = 0;
+	if (numVoices > 1)  polymode = 1;
+	else				polymode = 0;
+	
+	polynum = numVoices;
 	
 	for (int i = 0; i < 12; i++)
 	{
@@ -435,6 +448,11 @@ void initKeys(void)
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	tc_start(tc3, TC3_CHANNEL);
+	
+	resetMantaUI();
+	
+	initNoteStack();
+	noteOut();
 }
 
 

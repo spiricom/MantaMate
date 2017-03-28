@@ -24,9 +24,11 @@ extern unsigned char polynum;
 tRamp keyRamp[12];
 uint8_t hexMax[48];
 unsigned char polyVoiceBusy[4];
+unsigned char polynum;
+unsigned char polyVoiceNote[4];
 signed char notestack[48][2];
 
-void initKeys(void);
+void initKeys(int numVoices);
 void initNoteStack(void);
 void addNote(uint8_t noteVal, uint8_t vel);
 void removeNote(uint8_t noteVal);

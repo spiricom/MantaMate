@@ -123,8 +123,7 @@ int main(void){
 	board_init();
 
 	ui_init();
-	if (sequencer_mode)	initSequencer();
-	else /*KeyboardMode*/initKeys() ;
+
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	
@@ -137,17 +136,6 @@ int main(void){
 	// a test write
 	//sendI2CtoEEPROM();
 	
-	tRampInit(&out00, 2000, 3, 1);
-	tRampInit(&out02, 2000, 3, 1);
-	tRampInit(&out10, 2000, 3, 1);
-	tRampInit(&out11, 2000, 3, 1);
-	tRampInit(&out12, 2000, 3, 1);
-	tRampInit(&out13, 2000, 3, 1);
-	tRampInit(&out20, 2000, 3, 1);
-	tRampInit(&out21, 2000, 3, 1);
-	tRampInit(&out22, 2000, 3, 1);
-	tRampInit(&out23, 2000, 3, 1);
-	
 	// Start USB host stack
 	uhc_start();
 	
@@ -155,6 +143,8 @@ int main(void){
 	USB_Mode_Switch_Check();
 	
 	//start off on preset 0;
+	preset_num = 0;
+	
 	updatePreset();
 
 	// The USB management is entirely managed by interrupts.
@@ -266,7 +256,9 @@ static void tc3_irq(void)
 			
 			dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
 			
-			dacsend     (i,1,  hexMax[notestack[3-i][0]] * 16);
+			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+			
+			dacsend     (i,1,  hexMax[polyVoiceNote[i]] * 16);
 		}
 
 		
@@ -675,44 +667,40 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 void updatePreset(void)
 {
-	Write7Seg(preset_num);
+	
 	switch (preset_num)
 	{
 		case 0:
-		initNoteStack();
-		noteOut();
-		polymode = 0;
+		initSequencer();
 		break;
 		
 		case 1:
-		initNoteStack();
-		noteOut();
-		polymode = 1;
-		polynum = 2;
+		initKeys(1);
 		break;
 		
 		case 2:
-		initNoteStack();
-		noteOut();
-		polymode = 1;
-		polynum = 3;
+		initKeys(2);
 		break;
 		
 		case 3:
-		initNoteStack();
-		noteOut();
-		polymode = 1;
-		polynum = 4;
+		initKeys(3);
+		break;
+		
+		case 4:
+		initKeys(4);
 		break;
 		
 		default: 
 		break;	
 	}
+	
+	Write7Seg(preset_num);
 }
 
 void clockHappened(void)
 {
-	sequencerStep();
+	
+	if (sequencer_mode) sequencerStep();
 
 }
 
@@ -728,12 +716,12 @@ void initI2C(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		Write7Seg(77);
+		if (DEBUG) Write7Seg(77);
 	}
 	else
 	{
 		// display test result to user
-		Write7Seg(70);
+		if (DEBUG) Write7Seg(70);
 	}
 
 	static const gpio_map_t TWI_GPIO_MAP =
@@ -771,12 +759,12 @@ void sendI2CtoEEPROM(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		Write7Seg(17);
+		if (DEBUG) Write7Seg(17);
 	}
 	else
 	{
 		// display test result to user
-		Write7Seg(10);
+		if (DEBUG) Write7Seg(10);
 	}
 	delay_ms(1);
 
@@ -800,12 +788,12 @@ void sendI2CtoEEPROM(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		Write7Seg(27);
+		if (DEBUG) Write7Seg(27);
 	}
 	else
 	{
 		// display test result to user
-		Write7Seg(20);
+		if (DEBUG) Write7Seg(20);
 	}
 
 	// check received data against sent data
@@ -814,12 +802,12 @@ void sendI2CtoEEPROM(void)
 		if (data_received[i] != test_pattern[i])
 		{
 			// a char isn't consistent
-			Write7Seg(30);
+			if (DEBUG) Write7Seg(30);
 		}
 	}
 
 	// everything was OK
-	Write7Seg(37);
+	if (DEBUG) Write7Seg(37);
 	//this will be to send preset data to the EEPROM chip.
 }
 
@@ -1087,7 +1075,7 @@ void testLoop(void)
 		{
 			testvoltage16 = 0;
 		}
-		Write7Seg(testvoltage16 / 656);
+		if (DEBUG) Write7Seg(testvoltage16 / 656);
 		
 	}
 }
