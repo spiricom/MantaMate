@@ -478,13 +478,20 @@ int first, last;
 
 void processTouchLowerHex(uint8_t hexagon)
 {
+	if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4))) 
+	{
+		tNoteStack_clear(&noteOnFrame);
+		new_lower_hex = 0;
+		return;
+	}
+	
 	if (tNoteStack_contains(&editStack,hexagon) < 0)	resetSliderMode();
 
 	// Set hexUIs for this processing frame.
 	prevHexUI = currentHexUI;
 	currentHexUI = hexagon;
 	
-	if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((currentHexUI < 16 && trigSelectOn >= 12) || (currentHexUI >= 16 && trigSelectOn < 4))) return;
+	
 	
 	MantaSequencer sequencerToSet = currentSequencer;
 	if (full_vs_split == SplitMode)
@@ -982,6 +989,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				DAC16Send(2 * currentSequencer, get16BitPitch(currentSequencer, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 				
+
 			setKeyboardLEDsFor(currentSequencer, hexUIToStep(tNoteStack_first(&editStack)));
 		}
 		else // TriggerMode
@@ -2045,10 +2053,10 @@ void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
 	}
 	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(offset+0, 1, sequencer[seq].step[step].on[0] * 4095);
-	dacsend(offset+1, 1, sequencer[seq].step[step].on[1] * 4095);
-	dacsend(offset+0, 0, sequencer[seq].step[step].on[2] * 4095);
-	dacsend(offset+1, 0, sequencer[seq].step[step].on[3] * 4095);
+	dacsend(offset+0, 0, sequencer[seq].step[step].on[0] * 4095);
+	dacsend(offset+1, 0, sequencer[seq].step[step].on[1] * 4095);
+	dacsend(offset+0, 1, sequencer[seq].step[step].on[2] * 4095);
+	dacsend(offset+1, 1, sequencer[seq].step[step].on[3] * 4095);
 }
 
 // UTILITIES

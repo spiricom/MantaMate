@@ -184,10 +184,10 @@ static void tc1_irq(void)
 	else // TriggerMode
 	{
 		// Set 4 trigger outputs low
-		 dacsend(0, 1, 0);
-		dacsend(1, 1, 0);
 		dacsend(0, 0, 0);
 		dacsend(1, 0, 0);
+		dacsend(0, 1, 0);
+		dacsend(1, 1, 0);
 	}
 }
 
@@ -205,10 +205,10 @@ static void tc2_irq(void)
 	else // TriggerMode
 	{
 		// Set 4 trigger outputs low
-		dacsend(2, 1, 0);
-		dacsend(3, 1, 0);
 		dacsend(2, 0, 0);
 		dacsend(3, 0, 0);
+		dacsend(2, 1, 0);
+		dacsend(3, 1, 0);
 	}
 }
 
@@ -226,11 +226,11 @@ static void tc3_irq(void)
 		DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
 		
 		// SequencerOne CV1-CV2
-		dacsend(0, 1, tRampTick(&out10));
-		dacsend(1, 1, tRampTick(&out11));
+		dacsend(0, 0, tRampTick(&out10));
+		dacsend(1, 0, tRampTick(&out11));
 		// SequencerOne CV3-CV4
-		dacsend(0, 0, tRampTick(&out20));
-		dacsend(1, 0, tRampTick(&out21));
+		dacsend(0, 1, tRampTick(&out20));
+		dacsend(1, 1, tRampTick(&out21));
 	}
 	else //TriggerMode
 	{
@@ -244,11 +244,11 @@ static void tc3_irq(void)
 		DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
 		
 		// SequencerTwo CV1-CV2
-		dacsend(2, 1, tRampTick(&out12));
-		dacsend(3, 1, tRampTick(&out13));
+		dacsend(2, 0, tRampTick(&out12));
+		dacsend(3, 0, tRampTick(&out13));
 		// SequencerTwo CV3-CV4
-		dacsend(2, 0, tRampTick(&out22));
-		dacsend(3, 0, tRampTick(&out23));
+		dacsend(2, 1, tRampTick(&out22));
+		dacsend(3, 1, tRampTick(&out23));
 	}
 	else //TriggerMode
 	{
@@ -934,7 +934,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	//for now, to correct for a mistake on the panel where the jacks are upside down, we reverse the DACvoice and DACnum numbers
 	//KLUDGE
 	//DACvoice = (3 - DACvoice);
-	DACnum = (1 - DACnum);
+	//DACnum = (1 - DACnum);
 	//KLUDGE
 	
 	SPIbusy = 1;
