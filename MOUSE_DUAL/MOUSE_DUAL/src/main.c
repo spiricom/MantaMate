@@ -69,7 +69,52 @@
 #define TWI_SPEED             100000       // Speed of TWI  //was 100000 in my later example-JS
 
 static void initSPIbus(void);
-static void setSPI(spi_options_t spiOptions);
+static void setDACSPI(spi_options_t spiOptions);
+static void setMemorySPI(spi_options_t spiOptions);
+
+//SPI options for the 16 and 12 bit DACs
+spi_options_t spiOptions16DAC =
+{
+	.reg          = 0,
+	.baudrate     = 16000000,
+	.bits         = 16,
+	.spck_delay   = 1,
+	.trans_delay  = 0,
+	.stay_act     = 1,
+	.spi_mode     = 1,
+	.modfdis      = 1
+};
+
+spi_options_t spiOptions12DAC =
+{
+	.reg          = 0,
+	.baudrate     = 2000000,
+	.bits         = 8,
+	.spck_delay   = 1,
+	.trans_delay  = 1,
+	.stay_act     = 1,
+	.spi_mode     = 1,
+	.modfdis      = 1
+};
+
+spi_options_t spiOptionsMemory =
+{
+	.reg          = 0,
+	.baudrate     = 2000000,
+	.bits         = 8,
+	.spck_delay   = 1,
+	.trans_delay  = 1,
+	.stay_act     = 1,
+	.spi_mode     = 0,
+	.modfdis      = 1
+};
+
+unsigned short dacouthigh = 0;
+unsigned short dacoutlow = 0;
+unsigned short DAC1outhigh = 0;
+unsigned short DAC1outlow = 0;
+unsigned char SPIbusy = 0;
+unsigned char preset_num = 0;
 
 static volatile bool main_b_midi_enable = false;
 uint32_t dummycounter = 0;
@@ -127,15 +172,19 @@ int main(void){
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	
-	//initialize the I2C bus (TWI) for preset user memory storage (on external EEPROM)
-	initI2C();
-	
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
-	// a test write
-	//sendI2CtoEEPROM();
+	#if TEST_MEMORY
+	setMemorySPI(spiOptionsMemory);
 	
+	memoryWait();
+	// a test write
+	sendDataToExternalMemory();
+	
+	#endif
+	
+	#if !TEST_MEMORY
 	// Start USB host stack
 	uhc_start();
 	
@@ -153,6 +202,7 @@ int main(void){
 	while (true) {	
 		sleepmgr_enter_sleep();
 	}
+	#endif
 }
 
 
@@ -258,7 +308,7 @@ static void tc3_irq(void)
 			
 			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 			
-			dacsend     (i,1,  hexMax[polyVoiceNote[i]] * 16);
+			dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
 		}
 
 		
@@ -626,6 +676,7 @@ void USB_Mode_Switch_Check(void)
 			{
 				udc_stop();
 			}
+			//UHC_MODE_CHANGE(true);
 			uhc_start();
 			myUSBMode = HOSTMODE;
 		}	
@@ -705,52 +756,55 @@ void clockHappened(void)
 }
 
 
-void initI2C(void)
+
+void sendDataToExternalMemory(void)
 {
-	U8 status = 0;
-	// I2C options settings
-	my_opt.pba_hz = 33000000; // is this correct?
-	my_opt.speed = TWI_SPEED;
-	my_opt.chip = EEPROM_ADDRESS;
-	status = twi_master_init(&AVR32_TWI, &my_opt);
-	if (status == TWI_SUCCESS)
-	{
-		// display test result to user
-		if (DEBUG) Write7Seg(77);
-	}
-	else
-	{
-		// display test result to user
-		if (DEBUG) Write7Seg(70);
-	}
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// enable 
+	spi_write(MEMORY_SPI, 0x06);
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// erase chip
+	spi_write(MEMORY_SPI, 0xC7);
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// write page command 
+	spi_write(MEMORY_SPI, 0x02);  //0x02 (write) 0xfff000 (address)
+	spi_write(MEMORY_SPI, 0x00);
+	spi_write(MEMORY_SPI, 0x00); 
+	spi_write(MEMORY_SPI, 0x00);
 
-	static const gpio_map_t TWI_GPIO_MAP =
-	{
-		{AVR32_TWI_SDA_0_0_PIN, AVR32_TWI_SDA_0_0_FUNCTION},
-		{AVR32_TWI_SCL_0_0_PIN, AVR32_TWI_SCL_0_0_FUNCTION}
-	};
-	gpio_enable_module(TWI_GPIO_MAP,
-	sizeof(TWI_GPIO_MAP) / sizeof(TWI_GPIO_MAP[0]));
-
-}
-
-void sendI2CtoEEPROM(void)
-{
+	spi_write(MEMORY_SPI, 0x25);  //0x0025 is data
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// read page command 
+	spi_write(MEMORY_SPI, 0x03); //0x03 (read) 0xfff000 (address)
+	spi_write(MEMORY_SPI, 0x00);
+	spi_write(MEMORY_SPI, 0x00); 
+	spi_write(MEMORY_SPI, 0x00);
+		
+	spi_read(MEMORY_SPI, &readData);
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
+	
+	
+	Write7Seg(readData);
+	
+	//if (TEST_MEMORY) Write7Seg(10);
+	
+	# if 0
 	U8 data_received[PATTERN_TEST_LENGTH] = {0};
 	U8 status = 0;
 	U8 i = 0;
-	// TWI chip address to communicate with
-	I2Cpacket_sent.chip = EEPROM_ADDRESS;
-	// TWI address/commands to issue to the other chip (node)
-	I2Cpacket_sent.addr[0] = VIRTUALMEM_ADDR_START >> 16;
-	I2Cpacket_sent.addr[1] = VIRTUALMEM_ADDR_START >> 8;
-	I2Cpacket_sent.addr[2] = VIRTUALMEM_ADDR_START;
-	// Length of the TWI data address segment (1-3 bytes)
-	I2Cpacket_sent.addr_length = EEPROM_ADDR_LGT;
-	// Where to find the data to be written
-	I2Cpacket_sent.buffer = (void*) test_pattern;
-	// How many bytes do we want to write
-	I2Cpacket_sent.length = PATTERN_TEST_LENGTH;
+
+	
 
 	// perform a write access
 	status = twi_master_write(&AVR32_TWI, &I2Cpacket_sent);
@@ -759,12 +813,12 @@ void sendI2CtoEEPROM(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		if (DEBUG) Write7Seg(17);
+		if (TEST_MEMORY) Write7Seg(17);
 	}
 	else
 	{
 		// display test result to user
-		if (DEBUG) Write7Seg(10);
+		if (TEST_MEMORY) Write7Seg(10);
 	}
 	delay_ms(1);
 
@@ -788,12 +842,12 @@ void sendI2CtoEEPROM(void)
 	if (status == TWI_SUCCESS)
 	{
 		// display test result to user
-		if (DEBUG) Write7Seg(27);
+		if (TEST_MEMORY) Write7Seg(27);
 	}
 	else
 	{
 		// display test result to user
-		if (DEBUG) Write7Seg(20);
+		if (TEST_MEMORY) Write7Seg(20);
 	}
 
 	// check received data against sent data
@@ -802,62 +856,33 @@ void sendI2CtoEEPROM(void)
 		if (data_received[i] != test_pattern[i])
 		{
 			// a char isn't consistent
-			if (DEBUG) Write7Seg(30);
+			if (TEST_MEMORY) Write7Seg(30);
 		}
 	}
 
 	// everything was OK
 	if (DEBUG) Write7Seg(37);
 	//this will be to send preset data to the EEPROM chip.
+	#endif
 }
 
-//SPI options for the 16 and 12 bit DACs
-spi_options_t spiOptions16DAC =
-{
-	.reg          = 0,
-	.baudrate     = 16000000,
-	.bits         = 16,
-	.spck_delay   = 1,
-	.trans_delay  = 0,
-	.stay_act     = 1,
-	.spi_mode     = 1,
-	.modfdis      = 1
-};
 
-spi_options_t spiOptions12DAC =
-{
-	.reg          = 0,
-	.baudrate     = 2000000,
-	.bits         = 8,
-	.spck_delay   = 1,
-	.trans_delay  = 1,
-	.stay_act     = 1,
-	.spi_mode     = 1,
-	.modfdis      = 1
-};
-
-unsigned short dacouthigh = 0;
-unsigned short dacoutlow = 0;
-unsigned short DAC1outhigh = 0;
-unsigned short DAC1outlow = 0;
-unsigned char SPIbusy = 0;
-unsigned char preset_num = 0;
 
 void DACsetup(void)
 {
 	//let the portamento interrupt know the SPI is busy
 	SPIbusy = 1;
 	
-	setSPI(spiOptions12DAC);
+	setDACSPI(spiOptions12DAC);
 	spi_mode = TWELVEBIT;
 	
 	gpio_clr_gpio_pin(DAC2_CS);
 	dacwait1();
 	dacwait1();
 	dacwait1();
-	spi_write(SPARE_SPI,0x30);
-	spi_write(SPARE_SPI,0x00);
-	spi_write(SPARE_SPI,0x0F);
+	spi_write(DAC_SPI,0x30);
+	spi_write(DAC_SPI,0x00);
+	spi_write(DAC_SPI,0x0F);
 	dacwait2();
 	dacwait2();
 	dacwait2();
@@ -871,9 +896,9 @@ void DACsetup(void)
 	dacwait1();
 	dacwait1();
 	dacwait1();
-	spi_write(SPARE_SPI,0x30);
-	spi_write(SPARE_SPI,0x00);
-	spi_write(SPARE_SPI,0x0F);
+	spi_write(DAC_SPI,0x30);
+	spi_write(DAC_SPI,0x00);
+	spi_write(DAC_SPI,0x0F);
 	dacwait2();
 	dacwait2();
 	dacwait2();
@@ -906,6 +931,18 @@ void dacwait2(void)
 	}
 }
 
+void memoryWait(void)
+{
+	//cpu_delay_us(12,64000000);//5
+	static uint8_t i = 0;
+	static uint8_t wastecounter = 0;
+	//cpu_delay_us(12,64000000);//5
+	for (i = 0; i < 100; i++)
+	{
+		wastecounter++;
+	}
+}
+
 void enterBootloader(void)
 {
 	//Reset into Bootloader 
@@ -920,15 +957,27 @@ void enterBootloader(void)
 	while(1);
 }
 
-static void setSPI(spi_options_t spiOptions)
+static void setDACSPI(spi_options_t spiOptions)
 {
 	SPIbusy = 1;
-	spi_disable(SPARE_SPI);
-	spi_initMaster(SPARE_SPI, &spiOptions);
-	spi_selectionMode(SPARE_SPI, 0, 0, 0);
-	spi_selectChip(SPARE_SPI, 0);
-	spi_setupChipReg(SPARE_SPI, &spiOptions, TARGET_PBACLK_FREQ_HZ);
-	spi_enable(SPARE_SPI);
+	spi_disable(DAC_SPI);
+	spi_initMaster(DAC_SPI, &spiOptions);
+	spi_selectionMode(DAC_SPI, 0, 0, 0);
+	spi_selectChip(DAC_SPI, 0);
+	spi_setupChipReg(DAC_SPI, &spiOptions, TARGET_PBACLK_FREQ_HZ);
+	spi_enable(DAC_SPI);
+}
+
+static void setMemorySPI(spi_options_t spiOptions)
+{
+	spi_disable(MEMORY_SPI);
+	spi_initMaster(MEMORY_SPI, &spiOptions);
+	spi_selectionMode(MEMORY_SPI, 0, 0, 0);
+	spi_selectChip(MEMORY_SPI, 0);
+	spi_setupChipReg(MEMORY_SPI, &spiOptions, TARGET_PBACLK_FREQ_HZ);
+	spi_enable(MEMORY_SPI);
+	
+	
 }
 
 void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval)
@@ -945,7 +994,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	SPIbusy = 1;
 	if (spi_mode != TWELVEBIT)
 	{
-		setSPI(spiOptions12DAC);
+		setDACSPI(spiOptions12DAC);
 		spi_mode = TWELVEBIT;
 	}
 
@@ -956,9 +1005,9 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	{
 		gpio_clr_gpio_pin(DAC2_CS);
 		dacwait1();
-		while((spi_write(SPARE_SPI,DACvoice)) != 0);
-		while((spi_write(SPARE_SPI,dacouthigh)) !=0);
-		while((spi_write(SPARE_SPI,dacoutlow)) != 0);
+		while((spi_write(DAC_SPI,DACvoice)) != 0);
+		while((spi_write(DAC_SPI,dacouthigh)) !=0);
+		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC2_CS);
 		//dacwait1();
@@ -968,9 +1017,9 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	{
 		gpio_clr_gpio_pin(DAC3_CS);
 		dacwait1();
-		while((spi_write(SPARE_SPI,DACvoice)) != 0);
-		while((spi_write(SPARE_SPI,dacouthigh)) !=0);
-		while((spi_write(SPARE_SPI,dacoutlow)) != 0);
+		while((spi_write(DAC_SPI,DACvoice)) != 0);
+		while((spi_write(DAC_SPI,dacouthigh)) !=0);
+		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC3_CS);
 		dacwait1();
@@ -986,7 +1035,7 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	//set up SPI to be 16 bit for the DAC
 	if (spi_mode != SIXTEENBIT)
 	{
-		setSPI(spiOptions16DAC);
+		setDACSPI(spiOptions16DAC);
 		spi_mode = SIXTEENBIT;
 	}
 	
@@ -996,8 +1045,8 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 	DAC1outlow = ((DAC16val & 255) << 8);
 	gpio_clr_gpio_pin(DAC1_CS);
 	dacwait2();
-	spi_write(SPARE_SPI, DAC1outhigh);
-	spi_write(SPARE_SPI, DAC1outlow);
+	spi_write(DAC_SPI, DAC1outhigh);
+	spi_write(DAC_SPI, DAC1outlow);
 	dacwait2();
 	gpio_set_gpio_pin(DAC1_CS);
 	SPIbusy = 0;
@@ -1008,6 +1057,7 @@ static void initSPIbus(void)
 {
 	SPIbusy = 1;
 	//prepare the pins the control the DAC and set them to default positions
+	gpio_set_gpio_pin(MEMORY_CS);
 	gpio_set_gpio_pin(DAC1_CS);
 	gpio_set_gpio_pin(DAC2_CS);
 	gpio_set_gpio_pin(DAC3_CS);
@@ -1019,28 +1069,29 @@ static void initSPIbus(void)
 	delay_ms(1);
 
 	// Initialize as master
-	setSPI(spiOptions12DAC);
+	setDACSPI(spiOptions12DAC);
+	setMemorySPI(spiOptionsMemory);
 	
 	// Assign I/Os to SPI
-	static const gpio_map_t DIP204_SPI_GPIO_MAP =
+	static const gpio_map_t MEMORY_SPI_GPIO_MAP =
 	{
-		{DIP204_SPI_SCK_PIN,  DIP204_SPI_SCK_FUNCTION },  // SPI Clock.
-		{DIP204_SPI_MISO_PIN, DIP204_SPI_MISO_FUNCTION},  // MISO.
-		{DIP204_SPI_MOSI_PIN, DIP204_SPI_MOSI_FUNCTION},  // MOSI.
-		{DIP204_SPI_NPCS_PIN, DIP204_SPI_NPCS_FUNCTION}   // Chip Select NPCS.
+		{MEMORY_SPI_SCK_PIN,  MEMORY_SPI_SCK_FUNCTION },  // SPI Clock.
+		{MEMORY_SPI_MISO_PIN, MEMORY_SPI_MISO_FUNCTION},  // MISO.
+		{MEMORY_SPI_MOSI_PIN, MEMORY_SPI_MOSI_FUNCTION},  // MOSI.
+		{MEMORY_SPI_NPCS_PIN, MEMORY_SPI_NPCS_FUNCTION}   // Chip Select NPCS.
 	};
-	gpio_enable_module(DIP204_SPI_GPIO_MAP,
-	sizeof(DIP204_SPI_GPIO_MAP) / sizeof(DIP204_SPI_GPIO_MAP[0]));
+	gpio_enable_module(MEMORY_SPI_GPIO_MAP,
+	sizeof(MEMORY_SPI_GPIO_MAP) / sizeof(MEMORY_SPI_GPIO_MAP[0]));
 	// Assign I/Os to SPI
-	static const gpio_map_t SPARE_SPI_GPIO_MAP =
+	static const gpio_map_t DAC_SPI_GPIO_MAP =
 	{
-		{SPARE_SPI_SCK_PIN,  SPARE_SPI_SCK_FUNCTION },  // SPI Clock.
-		{SPARE_SPI_MISO_PIN, SPARE_SPI_MISO_FUNCTION},  // MISO.
-		{SPARE_SPI_MOSI_PIN, SPARE_SPI_MOSI_FUNCTION},  // MOSI.
-		{SPARE_SPI_NPCS_PIN, SPARE_SPI_NPCS_FUNCTION}   // Chip Select NPCS.
+		{DAC_SPI_SCK_PIN,  DAC_SPI_SCK_FUNCTION },  // SPI Clock.
+		{DAC_SPI_MISO_PIN, DAC_SPI_MISO_FUNCTION},  // MISO.
+		{DAC_SPI_MOSI_PIN, DAC_SPI_MOSI_FUNCTION},  // MOSI.
+		{DAC_SPI_NPCS_PIN, DAC_SPI_NPCS_FUNCTION}   // Chip Select NPCS.
 	};
-	gpio_enable_module(SPARE_SPI_GPIO_MAP,
-	sizeof(SPARE_SPI_GPIO_MAP) / sizeof(SPARE_SPI_GPIO_MAP[0]));
+	gpio_enable_module(DAC_SPI_GPIO_MAP,
+	sizeof(DAC_SPI_GPIO_MAP) / sizeof(DAC_SPI_GPIO_MAP[0]));
 }
 
 int i = 0;

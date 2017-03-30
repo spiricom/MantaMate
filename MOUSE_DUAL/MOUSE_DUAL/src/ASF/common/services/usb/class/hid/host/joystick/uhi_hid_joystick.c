@@ -49,7 +49,6 @@
 #include "uhd.h"
 #include "uhc.h"
 #include "uhi_hid_joystick.h"
-#include "dip204.h"
 #include <string.h>
 #include "main.h"
 #include <fastmath.h>
@@ -281,7 +280,7 @@ static void get_report_descriptor()
 			uhi_hid_joy_dev.DescSize[i], NULL, parse_report_descriptor)) 
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
-			//dip204_printf_string("ERROR");
+			//MEMORY_printf_string("ERROR");
 			if (DEBUG) Write7Seg(77);
 			return;
 		}

@@ -10,7 +10,6 @@
 #define NOTE_PROCESS_H_
 
 #include <stdint.h>
-#include "dip204.h"
 #include "7Segment.h"
 #include <math.h>
 #include <asf.h>
@@ -22,16 +21,20 @@ extern unsigned char polymode;
 extern unsigned char polynum;
 
 tRamp keyRamp[12];
-uint8_t hexMax[48];
 unsigned char polyVoiceBusy[4];
 unsigned char polynum;
 unsigned char polyVoiceNote[4];
 signed char notestack[48][2];
 
 void initKeys(int numVoices);
+void processKeys(void);
+void processSliderKeys(uint8_t sliderNum, uint16_t val);
+
 void initNoteStack(void);
+
 void addNote(uint8_t noteVal, uint8_t vel);
 void removeNote(uint8_t noteVal);
+
 void mantaVol(uint8_t *butts);
 void midiVol(void);
 

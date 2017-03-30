@@ -59,6 +59,15 @@ unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
 
+static uint8_t newUpperHexKeys = 0;
+static uint8_t newReleaseUpperHexKeys = 0;
+
+static uint8_t newLowerHexKeys = 0;
+static uint8_t newReleaseLowerHexKeys = 0;
+
+static uint8_t newFunctionButtonKeys = 0;
+static uint8_t newReleaseFunctionButtonKeys = 0;
+
 
 
 
@@ -230,12 +239,12 @@ void removeNote(uint8_t noteVal)
 		{
 			j = 0;
 			//now check if there are any polyphony voices waiting that got stolen.
-			while(checkstolen && j < numnotes)
+			while(checkstolen != -1 && j < numnotes)
 			{
 				//if you find a held note in the notestack
 				if (notestack[j][0] != -1)
 				{
-					//check if it has no voi   ce associated with it
+					//check if it has no voice associated with it
 					alreadythere = 0;
 					for (k = 0; k < polynum; k++)
 					{
@@ -255,9 +264,7 @@ void removeNote(uint8_t noteVal)
 				j++;
 			}
 		}
-
-		//if(numnotes == 0)
-		//DAC16Send(3,0);
+		
 		for(k=0; k<polynum; k++)
 		{
 			if(!polyVoiceBusy[k])
@@ -331,9 +338,9 @@ void mantaVol(uint8_t *butts)
 	//dacsend(3,2,amplitude<<4);
 	/*if(amplitude != 0)
 	{
-		dip204_clear_line(2);
-		dip204_printf_string("amplitude: %u", amplitude);
-		dip204_hide_cursor();
+		MEMORY_clear_line(2);
+		MEMORY_printf_string("amplitude: %u", amplitude);
+		MEMORY_hide_cursor();
 	}*/
 }
 
@@ -348,9 +355,9 @@ void midiVol(void)
 	for(i=0; i<polynum; i++)
 	{
 		if(polyVoiceBusy[i])
-			dacsend(i+2,0,(vol)&0xFFF);
+			;//dacsend(i+2,0,(vol)&0xFFF);
 		else
-			dacsend(i+2,0,0);	
+			;//dacsend(i+2,0,0);	
 	}
 }
 
@@ -452,7 +459,84 @@ void initKeys(int numVoices)
 	resetMantaUI();
 	
 	initNoteStack();
+	
 	noteOut();
+}
+
+void processTouchLowerHexKey(int hex, uint8_t weight)
+{
+	addNote(hex, weight);
+	
+	manta_set_LED_hex(hex, Amber);	
+}
+
+void processReleaseLowerHexKey(int hex)
+{
+	removeNote(hex);
+	
+	manta_set_LED_hex(hex, Off);
+}
+
+void processTouchFunctionButtonKeys(MantaButton button)
+{
+	
+	
+}
+
+void processReleaseFunctionButtonKeys(MantaButton button)
+{
+	
+	
+}
+
+void processKeys(void)
+{
+	uint8_t i;
+	uint8_t hex_max = 0;
+
+	for (i = 0; i < 48; i++)
+	{
+		//if the current sensor value of a key is positive and it was zero on last count
+		if (!manta_data_lock) // manta_data_lock == 0
+		{
+			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
+			{
+				processTouchLowerHexKey(i, butt_states[i]);
+			}
+
+			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
+			{
+				processReleaseLowerHexKey(i);
+			}
+
+			// update the past keymap array (stores the previous values of every key's sensor reading)
+			pastbutt_states[i] = butt_states[i];
+		}
+		
+	}
+	
+	for (i = 0; i < 4; i++)
+	{
+		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
+		{
+			processTouchFunctionButtonKeys(i);
+		}
+		
+		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
+		{
+			processTouchFunctionButtonKeys(i);
+		}
+		
+		past_func_button_states[i] = func_button_states[i];
+	}
+
+	noteOut();
+}
+
+
+void processSliderKeys(uint8_t sliderNum, uint16_t val)
+{
+	// DO THIS
 }
 
 

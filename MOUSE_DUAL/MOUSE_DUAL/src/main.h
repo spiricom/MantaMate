@@ -52,6 +52,12 @@
 #include "usb_protocol_cdc.h"
 #include "utilities.h"
 
+#define TEST_MEMORY 0
+
+uint8_t readData;
+
+uint8_t* readDataArray[256];
+
 
 // TIMER 
 volatile avr32_tc_t *tc1;
@@ -114,9 +120,8 @@ void updatePreset(void);
 void Preset_Switch_Check(uint8_t whichSwitch);
 void USB_Mode_Switch_Check(void);
 void clockHappened(void);
-void initI2C(void);
 void enterBootloader(void);
-void sendI2CtoEEPROM(void);
+void sendDataToExternalMemory(void);
 
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
@@ -150,6 +155,7 @@ void main_resume_action(void);
 //function prototypes//
 void dacwait1(void);
 void dacwait2(void);
+void memoryWait(void);
 void DACsetup(void);
 void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval);
 

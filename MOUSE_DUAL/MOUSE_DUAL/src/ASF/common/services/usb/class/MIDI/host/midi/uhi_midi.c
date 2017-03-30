@@ -12,7 +12,6 @@
 #include "uhi_midi.h"
 #include "uhd.h"
 #include "uhc.h"
-#include "dip204.h"
 #include "main.h"
 #include "note_process.h"
 #include "7Segment.h"
@@ -658,9 +657,9 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 	
 	
 	//lcd_clear_line(1);
-	//dip204_printf_string("control: %u",ctrlByte);
+	//MEMORY_printf_string("control: %u",ctrlByte);
 	//lcd_clear_line(2);
-	//dip204_printf_string("note: %u", msgByte1);
+	//MEMORY_printf_string("note: %u", msgByte1);
 
 	switch(control)
 	{
@@ -684,13 +683,13 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			break;
 		// control change
 		case 176:
-			controlChange(msgByte1,msgByte2);
+			//controlChange(msgByte1,msgByte2);
 			//LED_On(LED2);
 			//midiVol();
 			break;
 		// program change	
 		case 192:
-			programChange(msgByte1);
+			//programChange(msgByte1);
 			break;
 		default:
 			break;

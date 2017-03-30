@@ -514,7 +514,6 @@
     <Folder Include="src\ASF\avr32\boards\evk1100\" />
     <Folder Include="src\ASF\avr32\components\" />
     <Folder Include="src\ASF\avr32\components\display\" />
-    <Folder Include="src\ASF\avr32\components\display\dip204\" />
     <Folder Include="src\ASF\avr32\components\joystick\" />
     <Folder Include="src\ASF\avr32\components\joystick\skrhabe010\" />
     <Folder Include="src\ASF\avr32\drivers\" />
@@ -620,12 +619,6 @@
     <None Include="src\asf.h">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="src\ASF\avr32\components\display\dip204\dip204.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="src\ASF\avr32\components\display\dip204\dip204.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\ASF\avr32\drivers\cpu\cycle_counter\cycle_counter.h">
       <SubType>compile</SubType>
     </Compile>

@@ -49,7 +49,6 @@
 #include "uhd.h"
 #include "uhc.h"
 #include "uhi_hid_manta.h"
-#include "dip204.h"
 #include "main.h"
 #include "note_process.h"
 #include <string.h>
@@ -62,6 +61,7 @@
 
 
 
+static void processSliders(uint8_t sliderNum, uint16_t val);
 
 /**
  * \ingroup uhi_hid_manta_group
@@ -105,12 +105,6 @@ static void uhi_hid_manta_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered);
 		
-		
-static void processSliders(uint8_t sliderNum, uint16_t val);
-
-static void processSliderKeys(uint8_t sliderNum, uint16_t val);
-
-static void processKeys(void);
 
 
 static bool uhi_manta_send_report(void);
@@ -163,7 +157,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	//while(product == NULL);
 	
 	//lcd_clear_line(2);
-	//dip204_printf_string("%x",dev->dev_desc.idProduct);
+	//MEMORY_printf_string("%x",dev->dev_desc.idProduct);
 	if (DEBUG) Write7Seg(55);
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
@@ -293,6 +287,19 @@ static void uhi_hid_manta_start_trans_report(usb_add_t add)
 			uhi_hid_manta_dev.report_size, 0, uhi_hid_manta_report_reception);
 }
 
+
+static void processSliders(uint8_t sliderNum, uint16_t val)
+{
+	if (sequencer_mode == 1)
+	{
+		processSliderSequencer(sliderNum, val);
+	}
+	else
+	{
+		processSliderKeys(sliderNum, val);
+	}
+}
+
 /**
  * \brief Decodes the HID mouse report received
  *
@@ -347,7 +354,7 @@ static void uhi_hid_manta_report_reception(
 	}
 	
 	//check if we're in sequencer mode
-	if (sequencer_mode == 1)
+	if (sequencer_mode)
 	{
 		processSequencer();
 	}
@@ -356,66 +363,11 @@ static void uhi_hid_manta_report_reception(
 		processKeys();
 	}
 	
-	
-		
-	blinkersToggle();
-
-	
 	manta_send_LED();
 	
 	uhi_hid_manta_start_trans_report(add);
 }
 
-static void processSliders(uint8_t sliderNum, uint16_t val)
-{
-	if (sequencer_mode == 1)
-	{
-		processSliderSequencer(sliderNum, val);
-	}
-	else
-	{
-		processSliderKeys(sliderNum, val);
-	}
-}
-
-static void processSliderKeys(uint8_t sliderNum, uint16_t val)
-{
-	dacsend((sliderNum),0,val);
-}
-
-static void processKeys(void)
-{
-	uint8_t i;
-	uint8_t hex_max = 0;
-
-	for (i = 0; i < 48; i++)
-	{
-		//if the current sensor value of a key is positive and it was zero on last count
-		if (manta_data_lock == 0)
-		{
-			
-			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
-			{
-				addNote(i,butt_states[i]);
-				manta_set_LED_hex(i, Amber);
-			}
-
-			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
-			{
-				removeNote(i);	
-				manta_set_LED_hex(i, Off);
-			}
-			
-			hexMax[i] = butt_states[i];
-
-			// update the past keymap array (stores the previous values of every key's sensor reading)
-			pastbutt_states[i] = butt_states[i];
-		}
-	
-	}
-
-	noteOut();
-}
 
 //happens every USB frame
 void uhi_hid_manta_sof(bool b_micro)

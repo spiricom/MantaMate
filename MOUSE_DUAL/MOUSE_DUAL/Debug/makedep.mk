@@ -18,8 +18,6 @@ src\sequencer.c
 
 src\sequencer_process.c
 
-src\ASF\avr32\components\display\dip204\dip204.c
-
 src\ASF\avr32\drivers\pwm\pwm.c
 
 src\ASF\avr32\drivers\spi\spi.c

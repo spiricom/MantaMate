@@ -12,13 +12,6 @@
 #include "sequencer.h"
 //#include "7Segment.h"
 
-
-
-
-#define BLINKER_FRAMES 25
-int blinkerFrameCounter = 0;
-uint8_t blinkerState = 0;
-
 PanelSwitch panelSwitch[NUM_PANEL_MOVES] =
 {
 	PanelLeft,
@@ -114,6 +107,44 @@ uint8_t trigger_pattern[16] =
 	S2TrigPanelSelect,
 	S2TrigPanelSelect
 };
+
+typedef enum GlobalOptionModeType
+{
+	LMonoKey = 0,
+	LDuoKey,
+	LPitchSeq,
+	LTrigSeq,
+	RMonoKey,
+	RDuoKey,
+	RPitchSeq,
+	RTrigSeq,
+	LSwitch,
+	RSwitch,
+	FullSplitQuad,
+	GlobalOptionNil
+} GlobalOptionModeType;
+
+GlobalOptionModeType globalOptionButtons[16] =
+{
+	LMonoKey,
+	LDuoKey,
+	LPitchSeq,
+	LTrigSeq,
+	RMonoKey,
+	RDuoKey,
+	RPitchSeq,
+	RTrigSeq,
+	
+	LSwitch,
+	RSwitch,
+	GlobalOptionNil,
+	FullSplitQuad,
+	GlobalOptionNil,
+	GlobalOptionNil,
+	GlobalOptionNil,
+	GlobalOptionNil
+};
+	
 	
 // Additional options pattern
 
@@ -159,7 +190,7 @@ OptionPanelButtonType optionModeButtons[16] =	{
 	OptionNilThree,
 	OptionSeqLeft, 
 	OptionSeqRight
-	};
+};
 
 #define NUM_SEQ 2
 
@@ -198,12 +229,12 @@ TriggerPanel currentPanel[2] =
 };
 
 // Flags for new inputs.
-uint8_t new_upper_hex = 0;
-uint8_t new_lower_hex = 0;
-uint8_t new_release_lower_hex = 0;
-uint8_t new_release_upper_hex = 0;
-uint8_t new_func_button = 0;
-uint8_t new_release_func_button = 0;
+static uint8_t newUpperHexSeq = 0;
+static uint8_t newLowerHexSeq = 0;
+static uint8_t newReleaseLowerHexSeq = 0;
+static uint8_t newReleaseUpperHexSeq = 0;
+static uint8_t newFunctionButtonSeq = 0;
+static uint8_t newReleaseFunctionButtonSeq = 0;
 
 uint8_t prev_pattern_hex = 0;
 uint8_t current_pattern_hex = 0;
@@ -376,7 +407,7 @@ void processSequencer(void)
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
 			newHexUIOn = i;
-			new_lower_hex = 1;
+			newLowerHexSeq = 1;
 			tNoteStack_add(&noteOnFrame,	i);
 			tNoteStack_add(&noteOnStack, i);
 		}
@@ -384,7 +415,7 @@ void processSequencer(void)
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newHexUIOff = i;
-			new_release_lower_hex = 1;
+			newReleaseLowerHexSeq = 1;
 			tNoteStack_add(&noteOffFrame,	i);
 			tNoteStack_remove(&noteOnStack, i);
 			
@@ -399,13 +430,13 @@ void processSequencer(void)
 		{
 			//an upper hexagon was just pressed
 			newUpperHexUI = i;
-			new_upper_hex = 1;
+			newUpperHexSeq = 1;
 		}
 		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newUpperHexUI = i;
-			new_release_upper_hex = 1;
+			newReleaseUpperHexSeq = 1;
 		}
 		pastbutt_states[i] = butt_states[i];
 	}
@@ -417,29 +448,29 @@ void processSequencer(void)
 			//a round function button was just pressed
 			//this code currently doesn't function correctly if two buttons are pressed within the same 6ms window of the Manta scan. TODO: we should make sure it counts how many are waiting - have a stack instead of one item of storage.
 			currentFunctionButton = i;
-			new_func_button = 1;
+			newFunctionButtonSeq = 1;
 		}
 		
 		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
 		{
 			currentFunctionButton = i;
-			new_release_func_button = 1;
+			newReleaseFunctionButtonSeq = 1;
 		}
 		
 		past_func_button_states[i] = func_button_states[i];
 	}
 	
-	if (new_release_lower_hex)		processReleaseLowerHex(newHexUIOff);
+	if (newReleaseLowerHexSeq)		processReleaseLowerHex(newHexUIOff);
 	
-	if (new_lower_hex)				processTouchLowerHex(newHexUIOn);
+	if (newLowerHexSeq)				processTouchLowerHex(newHexUIOn);
 	
-	if (new_release_upper_hex)		processReleaseUpperHex(newUpperHexUI);
+	if (newReleaseUpperHexSeq)		processReleaseUpperHex(newUpperHexUI);
 
-	if (new_upper_hex)				processTouchUpperHex(newUpperHexUI);
+	if (newUpperHexSeq)				processTouchUpperHex(newUpperHexUI);
 	
-	if (new_func_button)			processTouchFunctionButton(currentFunctionButton);
+	if (newFunctionButtonSeq)			processTouchFunctionButton(currentFunctionButton);
 	
-	if (new_release_func_button)	processReleaseFunctionButton(currentFunctionButton);
+	if (newReleaseFunctionButtonSeq)	processReleaseFunctionButton(currentFunctionButton);
 
 }
 
@@ -489,7 +520,7 @@ void processReleaseLowerHex(uint8_t hexagon)
 	}
 	
 	tNoteStack_clear(&noteOffFrame);
-	new_release_lower_hex = 0;
+	newReleaseLowerHexSeq = 0;
 }
 
 void clearSequencer(MantaSequencer seq)
@@ -505,7 +536,7 @@ void processTouchLowerHex(uint8_t hexagon)
 	if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4))) 
 	{
 		tNoteStack_clear(&noteOnFrame);
-		new_lower_hex = 0;
+		newLowerHexSeq = 0;
 		return;
 	}
 	
@@ -725,7 +756,7 @@ void processTouchLowerHex(uint8_t hexagon)
 	}
 	
 	tNoteStack_clear(&noteOnFrame);
-	new_lower_hex = 0;
+	newLowerHexSeq = 0;
 }
 
 void switchToMode(MantaEditPlayMode mode)
@@ -880,7 +911,7 @@ void processReleaseUpperHex(uint8_t hexagon)
 		
 	}
 	
-	new_release_upper_hex = 0;
+	newReleaseUpperHexSeq = 0;
 }
 
 void allUIStepsOff(MantaSequencer whichSeq)
@@ -1252,7 +1283,7 @@ void processTouchUpperHex(uint8_t hexagon)
 	}
 
 	//set memory variables
-	new_upper_hex = 0;
+	newUpperHexSeq = 0;
 }
 
 void resetSliderMode(void)
@@ -1285,7 +1316,7 @@ void processReleaseFunctionButton(MantaButton button)
 		manta_set_LED_button(ButtonBottomLeft, Off);
 	}
 	
-	new_release_func_button = 0;
+	newReleaseFunctionButtonSeq = 0;
 }
 
 void processTouchFunctionButton(MantaButton button)
@@ -1386,7 +1417,7 @@ void processTouchFunctionButton(MantaButton button)
 	// Actually send LED data to Manta.
 	;
 	
-	new_func_button = 0;
+	newFunctionButtonSeq = 0;
 }
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
@@ -2153,43 +2184,6 @@ void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, 
 	else if (param == On3)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelThree] = value;
 	else if (param == On4)			for (; i < size; i++) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].on[PanelFour] = value;
 	else;
-}
-
-
-void blinkersOn(void)
-{
-	if (edit_vs_play == EditMode)
-	{
-		manta_set_LED_hex(currentHexUI, RedOn);
-	}
-	
-}
-
-void blinkersOff(void)
-{
-	if (edit_vs_play == EditMode)
-	{
-		manta_set_LED_hex(currentHexUI, RedOff);
-	}
-}
-
-void blinkersToggle(void)
-{
-	
-	if (++blinkerFrameCounter >= BLINKER_FRAMES)
-	{
-		blinkerFrameCounter = 0;
-		blinkerState = !blinkerState;
-
-		if (blinkerState)
-		{
-			//blinkersOn();
-		}
-		else
-		{
-			//blinkersOff();
-		}
-	}
 }
 
 uint8_t hexUIToStep(uint8_t hexagon)

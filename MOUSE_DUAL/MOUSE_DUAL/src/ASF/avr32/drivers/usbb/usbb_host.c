@@ -435,6 +435,15 @@ bool otg_dual_enable(void)
 
 	// Always authorize asynchronous USB interrupts to exit of sleep mode
 	pm_asyn_wake_up_enable(AVR32_PM_AWEN_USB_WAKEN_MASK);
+	
+	/*
+	otg_unfreeze_clock();
+	otg_enable();
+	otg_freeze_clock();
+	
+	UHC_MODE_CHANGE(true);
+	uhc_start();
+	*/
 
 # ifdef USB_ID
 	// By default USBB is already configured with ID pin enable
@@ -511,8 +520,8 @@ void uhd_enable(void)
 	
 	//TODO: testing force to go into device mode - JS
 
-	otg_force_device_mode();
-	//otg_force_host_mode();
+	//otg_force_device_mode();
+	otg_force_host_mode();
 #endif
 
 	// Enable USB hardware
