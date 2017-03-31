@@ -100,7 +100,7 @@ spi_options_t spiOptions12DAC =
 spi_options_t spiOptionsMemory =
 {
 	.reg          = 0,
-	.baudrate     = 2000000,
+	.baudrate     = 50000000,
 	.bits         = 8,
 	.spck_delay   = 1,
 	.trans_delay  = 1,
@@ -754,116 +754,144 @@ void clockHappened(void)
 	if (sequencer_mode) sequencerStep();
 
 }
+uint16_t busy;
+void waitWhileBusy(void)
+{
+	
+	memoryWait();gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	
+	spi_write(MEMORY_SPI, 0x05); //0x05 (read status register 1)
+	memoryWait();
+	
+	int count = 0;
+	int total = 0;
+	busy = 1;
+	while (busy & 1)
+	{
+		spi_write(MEMORY_SPI, 0x00);
+		spi_read(MEMORY_SPI, &busy);
+		
+		//if (++count == 50) { count = 0; Write7Seg(erasing & 1);}
+		//total++;
+	}
+	//Write7Seg(total);
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+	
+}
 
 
+void memorySPIWriteAddress(uint16_t sector, uint16_t page)
+{
+	if (sector < 0 || sector > 2047) return;
+	if (page < 0 || page > 15) return;
+	
+	uint32_t address = (sector << 12) + (page << 8);
+	
+	spi_write(MEMORY_SPI, (address & 0x00ff0000) >> 16);
+	spi_write(MEMORY_SPI, (address & 0x0000ff00) >> 8 );
+	spi_write(MEMORY_SPI, (address & 0x000000ff)      );
+}
+
+void memorySPIWriteEnable(void)
+{
+	memoryWait();gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	spi_write(MEMORY_SPI, 0x06); // Write Enable code
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+}
+
+uint16_t myReadBuffer1[1000];
+
+uint16_t myOddNumbers[10] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
+uint16_t myEvenNumbers[10] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
+uint16_t myNumbers[10] = {1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9, 10};
+uint16_t myCrazyNumbers[10] = {17,7,17,7,17,7,17,7,17,7};
+
+void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
+{
+	// Write Enable
+	memorySPIWriteEnable();
+	
+	// WRITE Page Program
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	spi_write(MEMORY_SPI, 0x02);  // Page Program code
+	memorySPIWriteAddress(sector, page);
+	
+	for (int i = 0; i < numBytes; i++)
+	{
+		spi_write(MEMORY_SPI, buffer[i]);
+	}
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// Wait til Write done
+	waitWhileBusy();
+}
+	
+void memorySPIRead(int sector, int page, uint16_t* buffer, int numBytes)
+{
+	// READ Read Data
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	spi_write(MEMORY_SPI, 0x03); // Read Data code
+	memorySPIWriteAddress(sector, page);
+	
+	//do a dummy write to read in the value
+	for (int i = 0; i < numBytes; i++)
+	{
+		spi_write(MEMORY_SPI, 0x00);
+		spi_read(MEMORY_SPI,&buffer[i]);
+	}
+	
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+}
+
+// Sector can be 0-2047
+// Will block / synchronous / sequential / might never return / P = NP
+void memorySPIEraseSector(uint16_t sector)
+{
+	// Write Enable
+	memorySPIWriteEnable();
+	
+	// ERASE Sector Erase
+	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	spi_write(MEMORY_SPI, 0x20);
+	memorySPIWriteAddress(sector, 0);
+	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+	
+	// Wait til Erase done
+	waitWhileBusy();
+}
+
+int whichSector = 2;
 
 void sendDataToExternalMemory(void)
 {
-	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// enable 
-	spi_write(MEMORY_SPI, 0x06);
-	
-	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
-	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// erase chip
-	spi_write(MEMORY_SPI, 0xC7);
-	
-	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
-	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// write page command 
-	spi_write(MEMORY_SPI, 0x02);  //0x02 (write) 0xfff000 (address)
-	spi_write(MEMORY_SPI, 0x00);
-	spi_write(MEMORY_SPI, 0x00); 
-	spi_write(MEMORY_SPI, 0x00);
+	memorySPIEraseSector(whichSector);
 
-	spi_write(MEMORY_SPI, 0x25);  //0x0025 is data
+	memorySPIWrite(whichSector,  1,  myOddNumbers, 10);
 	
-	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
-	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
+	memorySPIWrite(whichSector, 5,  myEvenNumbers, 10);
 	
-	// read page command 
-	spi_write(MEMORY_SPI, 0x03); //0x03 (read) 0xfff000 (address)
-	spi_write(MEMORY_SPI, 0x00);
-	spi_write(MEMORY_SPI, 0x00); 
-	spi_write(MEMORY_SPI, 0x00);
-		
-	spi_read(MEMORY_SPI, &readData);
+	memorySPIWrite(whichSector, 3,  myNumbers, 10);
 	
-	memoryWait();gpio_set_gpio_pin(MEMORY_CS);
+	memorySPIWrite(whichSector, 7,  myCrazyNumbers, 10);
 	
+	memorySPIRead(whichSector, 1, &myReadBuffer1[0], 10);
 	
-	Write7Seg(readData);
+	memorySPIRead(whichSector, 5, &myReadBuffer1[10], 10);
 	
-	//if (TEST_MEMORY) Write7Seg(10);
+	memorySPIRead(whichSector, 3, &myReadBuffer1[20], 10);
 	
-	# if 0
-	U8 data_received[PATTERN_TEST_LENGTH] = {0};
-	U8 status = 0;
-	U8 i = 0;
-
+	memorySPIRead(whichSector, 7, &myReadBuffer1[30], 10);
 	
-
-	// perform a write access
-	status = twi_master_write(&AVR32_TWI, &I2Cpacket_sent);
-
-	// check write result
-	if (status == TWI_SUCCESS)
+	while(true)
 	{
-		// display test result to user
-		if (TEST_MEMORY) Write7Seg(17);
-	}
-	else
-	{
-		// display test result to user
-		if (TEST_MEMORY) Write7Seg(10);
-	}
-	delay_ms(1);
-
-	// TWI chip address to communicate with
-	I2Cpacket_received.chip = EEPROM_ADDRESS ;
-	// Length of the TWI data address segment (1-3 bytes)
-	I2Cpacket_received.addr_length = EEPROM_ADDR_LGT;
-	// How many bytes do we want to write
-	I2Cpacket_received.length = PATTERN_TEST_LENGTH;
-	// TWI address/commands to issue to the other chip (node)
-	I2Cpacket_received.addr[0] = VIRTUALMEM_ADDR_START >> 16;
-	I2Cpacket_received.addr[1] = VIRTUALMEM_ADDR_START >> 8;
-	I2Cpacket_received.addr[2] = VIRTUALMEM_ADDR_START;
-	// Where to find the data to be written
-	I2Cpacket_received.buffer = data_received;
-
-	// perform a read access
-	status = twi_master_read(&AVR32_TWI, &I2Cpacket_received);
-
-	// check read result
-	if (status == TWI_SUCCESS)
-	{
-		// display test result to user
-		if (TEST_MEMORY) Write7Seg(27);
-	}
-	else
-	{
-		// display test result to user
-		if (TEST_MEMORY) Write7Seg(20);
-	}
-
-	// check received data against sent data
-	for (i = 0 ; i < PATTERN_TEST_LENGTH; i++)
-	{
-		if (data_received[i] != test_pattern[i])
-		{
-			// a char isn't consistent
-			if (TEST_MEMORY) Write7Seg(30);
+		for (int i = 0; i < 40; i++)
+		{	
+			Write7Seg(myReadBuffer1[i]);
+			
+			delay_ms(500);
 		}
 	}
-
-	// everything was OK
-	if (DEBUG) Write7Seg(37);
-	//this will be to send preset data to the EEPROM chip.
-	#endif
 }
 
 
@@ -937,7 +965,7 @@ void memoryWait(void)
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
 	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 100; i++)
+	for (i = 0; i < 20; i++)
 	{
 		wastecounter++;
 	}

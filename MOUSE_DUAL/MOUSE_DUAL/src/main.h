@@ -52,7 +52,7 @@
 #include "usb_protocol_cdc.h"
 #include "utilities.h"
 
-#define TEST_MEMORY 0
+#define TEST_MEMORY 1
 
 uint8_t readData;
 
