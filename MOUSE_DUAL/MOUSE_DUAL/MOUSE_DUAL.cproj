@@ -574,6 +574,12 @@
     <Compile Include="src\ASF\avr32\drivers\tc\tc.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\memory_spi.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\memory_spi.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\note_process_utilities.c">
       <SubType>compile</SubType>
     </Compile>

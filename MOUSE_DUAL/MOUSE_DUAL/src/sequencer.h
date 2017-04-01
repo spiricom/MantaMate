@@ -55,21 +55,29 @@ typedef struct _tStep
 } tStep;
 
 
-
+typedef enum SequencerDataType
+{
+	SeqOctave = 0, 
+	SeqMaxLength,
+	SeqPitchOrTrigger,
+	SeqSteps,
+	SequencerDataTypeNil
+	
+} SequencerDataType;
 
 typedef struct _tSequencer
 {
 
 	tStep step[MAX_STEPS];
-	int maxLength;
 	int phasor;
-	int octave;
 	int currentStep,prevStep;
 	int stepGo;
 	tNoteStack notestack;
-	SequencerPatternType pattern;
 	uint8_t lengthCounter;
 	
+	int octave;
+	SequencerPatternType pattern;
+	int maxLength;
 	GlobalOptionType pitchOrTrigger;
 	
 } tSequencer;
@@ -92,6 +100,9 @@ int			tSequencer_getStepFromHex	(tSequencer* const, uint8_t  hex);
 uint16_t	tSequencer_getParameterValue(tSequencer* const, uint8_t step, StepParameterType param);
 void		tSequencer_setParameterValue(tSequencer* const, uint8_t step, StepParameterType param, uint16_t value);
 
+
+void        tSequencer_encode(tSequencer* const, uint16_t* sBuffer);
+void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);
 
 
 #endif /* SEQUENCER_H_ */

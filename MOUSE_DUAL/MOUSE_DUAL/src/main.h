@@ -48,11 +48,19 @@
 #define _MAIN_H_
 
 #include <stdint.h>
+#include "utilities.h"
+#include "memory_spi.h"
+
+#include "7Segment.h"
+
+#include "note_process.h"
+#include "sequencer_process.h"
 
 #include "usb_protocol_cdc.h"
-#include "utilities.h"
+#include "conf_usb_host.h"
+#include "ui.h"
 
-#define TEST_MEMORY 1
+#define TEST_MEMORY 0
 
 uint8_t readData;
 
@@ -97,6 +105,8 @@ tRamp out23;
 #define TC3_IRQ_PRIORITY    AVR32_INTC_INT0
 
 void initTimers (void);
+
+
 
 //DEBUG CODE
 extern uint16_t lengthDB;

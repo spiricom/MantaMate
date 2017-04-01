@@ -818,6 +818,21 @@ void switchToMode(MantaEditPlayMode mode)
 
 void processReleaseUpperHex(uint8_t hexagon)
 {
+	if (key_vs_option == OptionMode)
+	{
+		
+		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilTwo)
+		{
+			manta_set_LED_hex(MAX_STEPS+12, Off);
+			return;
+		}
+		
+		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilThree)
+		{
+			manta_set_LED_hex(MAX_STEPS+13, Off);
+			return;
+		}
+	}
 	if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 	{
 		if (keyboard_pattern[hexagon-MAX_STEPS] < KeyboardEndOctave)
@@ -925,10 +940,14 @@ void allUIStepsOff(MantaSequencer whichSeq)
 	}
 }
 
+uint16_t soooDumb[1000];
+uint16_t soooDumbDumDum[1000];
+
 void processTouchUpperHex(uint8_t hexagon)
 {
 	prevUpperHexUI = currentUpperHexUI;
 	currentUpperHexUI = hexagon;
+	
 
 	if (key_vs_option == KeyboardMode)
 	{
@@ -1276,6 +1295,38 @@ void processTouchUpperHex(uint8_t hexagon)
 					}
 				}
 			}
+		}
+		else if (whichOptionType == OptionNilTwo)
+		{
+			// THIS CODE IS DUMB DONT USE
+
+			manta_set_LED_hex(MAX_STEPS+12, Red);
+			
+			memorySPIEraseBlock(7); // super dumb, seriously dont do this
+			
+			tSequencer_encode(&sequencer[currentSequencer], &soooDumb);
+			
+			memorySPIWriteSequencer(7, 0, &soooDumb);
+			
+			// END OF "THIS CODE IS DUMB DONT USE"
+			
+			
+		}
+		else if (whichOptionType == OptionNilThree)
+		{
+			// THIS CODE IS DUMB DONT USE
+
+			manta_set_LED_hex(MAX_STEPS+13, Red);
+			
+			memorySPIReadSequencer(7, 0, &soooDumbDumDum);
+			
+			tSequencer_decode(&sequencer[currentSequencer], &soooDumbDumDum);
+			
+			setSequencerLEDsFor(currentSequencer);
+			
+			// END OF "THIS CODE IS DUMB DONT USE"
+			
+			
 		}
 		
 		setModeLEDsFor(currentSequencer);
@@ -1933,7 +1984,7 @@ void setModeLEDsFor(MantaSequencer seq)
 	{
 		modeButton = optionModeButtons[i];
 		modeHex = modeButton + MAX_STEPS;
-		if ((modeButton == OptionNilOne) || (modeButton == OptionNilTwo) || (modeButton == OptionNilThree))
+		if ((modeButton == OptionNilOne) || (modeButton == OptionNilThree))
 		{
 			manta_set_LED_hex(modeHex, Off);
 		}
