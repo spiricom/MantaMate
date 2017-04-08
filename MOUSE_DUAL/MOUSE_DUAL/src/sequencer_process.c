@@ -1302,11 +1302,13 @@ void processTouchUpperHex(uint8_t hexagon)
 
 			manta_set_LED_hex(MAX_STEPS+12, Red);
 			
-			memorySPIEraseBlock(7); // super dumb, seriously dont do this
+			memorySPIEraseBlock(0); // super dumb, seriously dont do this
 			
-			tSequencer_encode(&sequencer[currentSequencer], &soooDumb);
+			tSequencer_encode(&sequencer[SequencerOne], &soooDumb);
+			memorySPIWriteSequencer(0, 0, &soooDumb);
 			
-			memorySPIWriteSequencer(7, 0, &soooDumb);
+			tSequencer_encode(&sequencer[SequencerTwo], &soooDumb);
+			memorySPIWriteSequencer(0, 5, &soooDumb);
 			
 			// END OF "THIS CODE IS DUMB DONT USE"
 			
@@ -1318,9 +1320,11 @@ void processTouchUpperHex(uint8_t hexagon)
 
 			manta_set_LED_hex(MAX_STEPS+13, Red);
 			
-			memorySPIReadSequencer(7, 0, &soooDumbDumDum);
+			memorySPIReadSequencer(0, 0, &soooDumbDumDum);
+			tSequencer_decode(&sequencer[SequencerOne], &soooDumbDumDum);
 			
-			tSequencer_decode(&sequencer[currentSequencer], &soooDumbDumDum);
+			memorySPIReadSequencer(0, 5, &soooDumbDumDum);
+			tSequencer_decode(&sequencer[SequencerTwo], &soooDumbDumDum);
 			
 			setSequencerLEDsFor(currentSequencer);
 			

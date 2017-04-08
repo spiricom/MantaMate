@@ -108,35 +108,45 @@ On4
 
 void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 {
+
+	
 	sBuffer[SeqOctave] = seq->octave;
 	sBuffer[SeqMaxLength] = seq->maxLength;
 	sBuffer[SeqPitchOrTrigger] = seq->pitchOrTrigger;
 	
 	for (int hex = 0; hex < 32; hex++)
 	{
-		int offset = SeqSteps + hex * 17;
+		int offset = SeqSteps + hex * 24;
 		
-		sBuffer[offset+Toggled] = seq->step[hex].toggled;
-		sBuffer[offset+Length] = seq->step[hex].length;
-		sBuffer[offset+CV1] = seq->step[hex].cv1;
-		sBuffer[offset+CV2] = seq->step[hex].cv2;
-		sBuffer[offset+CV3] = seq->step[hex].cv3;
-		sBuffer[offset+CV4] = seq->step[hex].cv4;
-		sBuffer[offset+Pitch] = seq->step[hex].pitch;
-		sBuffer[offset+Fine] = seq->step[hex].fine;
-		sBuffer[offset+Octave] = seq->step[hex].octave;
-		sBuffer[offset+Note] = seq->step[hex].note;
-		sBuffer[offset+KbdHex] = seq->step[hex].kbdhex;
-		sBuffer[offset+PitchGlide] = seq->step[hex].pglide;
-		sBuffer[offset+CVGlide] = seq->step[hex].cvglide;
-		sBuffer[offset+On1] = seq->step[hex].on[0];
-		sBuffer[offset+On2] = seq->step[hex].on[1];
-		sBuffer[offset+On3] = seq->step[hex].on[2];
-		sBuffer[offset+On4] = seq->step[hex].on[3];
+		sBuffer[offset+0] = seq->step[hex].toggled;
+		sBuffer[offset+1] = seq->step[hex].length;
+		sBuffer[offset+2] = (seq->step[hex].cv1 >> 8) & 255;
+		sBuffer[offset+3] = seq->step[hex].cv1 & 255;
+		sBuffer[offset+4] = (seq->step[hex].cv2 >> 8) & 255;
+		sBuffer[offset+5] = seq->step[hex].cv2 & 255;
+		sBuffer[offset+6] = (seq->step[hex].cv3 >> 8) & 255;
+		sBuffer[offset+7] = seq->step[hex].cv3 & 255;
+		sBuffer[offset+8] = (seq->step[hex].cv4 >> 8) & 255;
+		sBuffer[offset+9] = seq->step[hex].cv4 & 255;
+		sBuffer[offset+10] = seq->step[hex].pitch;
+		sBuffer[offset+11] = (seq->step[hex].fine >> 8) & 255;
+		sBuffer[offset+12] = seq->step[hex].fine & 255;
+		sBuffer[offset+13] = seq->step[hex].octave;
+		sBuffer[offset+14] = seq->step[hex].note;
+		sBuffer[offset+15] = seq->step[hex].kbdhex;
+		sBuffer[offset+16] = (seq->step[hex].pglide >> 8) & 255;
+		sBuffer[offset+17] = seq->step[hex].pglide & 255;
+		sBuffer[offset+18] = (seq->step[hex].cvglide >> 8) & 255;
+		sBuffer[offset+19] = seq->step[hex].cvglide & 255;
+		sBuffer[offset+20] = seq->step[hex].on[0];
+		sBuffer[offset+21] = seq->step[hex].on[1];
+		sBuffer[offset+22] = seq->step[hex].on[2];
+		sBuffer[offset+23] = seq->step[hex].on[3];
 		
 	}
 }
 
+uint16_t myglobaltest = 0;
 void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 {
 	seq->octave = sBuffer[SeqOctave];
@@ -145,25 +155,25 @@ void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 	
 	for (int hex = 0; hex < 32; hex++)
 	{
-		int offset = SeqSteps + hex * 17;
+		int offset = SeqSteps + hex * 24;
 		
-		seq->step[hex].toggled = sBuffer[offset+Toggled];
-		seq->step[hex].length = sBuffer[offset+Length];
-		seq->step[hex].cv1 = sBuffer[offset+CV1];
-		seq->step[hex].cv2 = sBuffer[offset+CV2];
-		seq->step[hex].cv3 = sBuffer[offset+CV3];
-		seq->step[hex].cv4 = sBuffer[offset+CV4];
-		seq->step[hex].pitch = sBuffer[offset+Pitch];
-		seq->step[hex].fine = sBuffer[offset+Fine];
-		seq->step[hex].octave = sBuffer[offset+Octave];
-		seq->step[hex].note = sBuffer[offset+Note];
-		seq->step[hex].kbdhex = sBuffer[offset+KbdHex];
-		seq->step[hex].pglide = sBuffer[offset+PitchGlide];
-		seq->step[hex].cvglide = sBuffer[offset+CVGlide];
-		seq->step[hex].on[0] = sBuffer[offset+On1];
-		seq->step[hex].on[1] = sBuffer[offset+On2];
-		seq->step[hex].on[2] = sBuffer[offset+On3];
-		seq->step[hex].on[3] = sBuffer[offset+On4];
+		seq->step[hex].toggled = sBuffer[offset+0];
+		seq->step[hex].length = sBuffer[offset+1];
+		seq->step[hex].cv1 = (sBuffer[offset+2] << 8) + sBuffer[offset+3];//
+		seq->step[hex].cv2 =(sBuffer[offset+4] << 8) + sBuffer[offset+5];//
+		seq->step[hex].cv3 =(sBuffer[offset+6] << 8) + sBuffer[offset+7];//
+		seq->step[hex].cv4 =(sBuffer[offset+8] << 8) + sBuffer[offset+9];//
+		seq->step[hex].pitch = sBuffer[offset+10];
+		seq->step[hex].fine = (sBuffer[offset+11] << 8) + sBuffer[offset+12];//
+		seq->step[hex].octave = sBuffer[offset+13];
+		seq->step[hex].note = sBuffer[offset+14];
+		seq->step[hex].kbdhex = sBuffer[offset+15];
+		seq->step[hex].pglide = (sBuffer[offset+16] << 8) + sBuffer[offset+17];//
+		seq->step[hex].cvglide = (sBuffer[offset+18] << 8) + sBuffer[offset+19];//
+		seq->step[hex].on[0] = sBuffer[offset+20];
+		seq->step[hex].on[1] = sBuffer[offset+21];
+		seq->step[hex].on[2] = sBuffer[offset+22];
+		seq->step[hex].on[3] = sBuffer[offset+23];
 		
 	}
 }
