@@ -216,8 +216,8 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
-uint16_t* encodeBuffer;
-uint16_t* decodeBuffer;
+uint16_t encodeBuffer[1000];
+uint16_t decodeBuffer[1000];
 
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
@@ -820,6 +820,21 @@ void switchToMode(MantaEditPlayMode mode)
 void processReleaseUpperHex(uint8_t hexagon)
 {
 
+	if (key_vs_option == OptionMode)
+	{
+		
+		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilTwo)
+		{
+			manta_set_LED_hex(MAX_STEPS+12, Off);
+			return;
+		}
+		
+		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilThree)
+		{
+			manta_set_LED_hex(MAX_STEPS+13, Off);
+			return;
+		}
+	}
 	if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 	{
 		if (keyboard_pattern[hexagon-MAX_STEPS] < KeyboardEndOctave)
