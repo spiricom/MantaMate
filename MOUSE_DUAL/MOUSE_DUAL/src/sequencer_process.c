@@ -216,7 +216,8 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
-
+uint16_t* encodeBuffer;
+uint16_t* decodeBuffer;
 
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
@@ -1279,6 +1280,42 @@ void processTouchUpperHex(uint8_t hexagon)
 				}
 			}
 		}
+		else if (whichOptionType == OptionNilTwo)
+		{
+			// THIS CODE IS DUMB DONT USE
+			manta_set_LED_hex(MAX_STEPS+12, Red);
+			
+			memorySPIEraseBlock(0); // super dumb, seriously dont do this
+			
+			tSequencer_encode(&sequencer[SequencerOne], &encodeBuffer);
+			memorySPIWriteSequencer(0, 0, &encodeBuffer);
+			
+			tSequencer_encode(&sequencer[SequencerTwo], &encodeBuffer);
+			memorySPIWriteSequencer(0, 5, &encodeBuffer);
+			
+			// END OF "THIS CODE IS DUMB DONT USE"
+			
+			
+		}
+		else if (whichOptionType == OptionNilThree)
+		{
+			// THIS CODE IS DUMB DONT USE
+
+			manta_set_LED_hex(MAX_STEPS+13, Red);
+			
+			memorySPIReadSequencer(0, 0, &decodeBuffer);
+			tSequencer_decode(&sequencer[SequencerOne], &decodeBuffer);
+			
+			memorySPIReadSequencer(0, 5, &decodeBuffer);
+			tSequencer_decode(&sequencer[SequencerTwo], &decodeBuffer);
+			
+			setSequencerLEDsFor(currentSequencer);
+			
+			// END OF "THIS CODE IS DUMB DONT USE"
+			
+			
+		}
+		
 
 		setModeLEDsFor(currentSequencer);
 

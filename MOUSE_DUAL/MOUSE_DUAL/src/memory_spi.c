@@ -34,8 +34,8 @@ static void memorySPIWaitWhileBusy(void)
 		
 		//if (++count == 50) { count = 0; Write7Seg(erasing & 1);}
 		//total++;
-	}
-	//Write7Seg(total);
+	} 
+	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 	
 }

@@ -96,7 +96,7 @@ spi_options_t spiOptions12DAC =
 spi_options_t spiOptionsMemory =
 {
 	.reg          = 0,
-	.baudrate     = 50000000,
+	.baudrate     = 5000000, // change back later 50000000
 	.bits         = 8,
 	.spck_delay   = 1,
 	.trans_delay  = 1,
