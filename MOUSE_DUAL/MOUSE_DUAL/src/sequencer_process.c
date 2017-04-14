@@ -18,7 +18,6 @@ PanelSwitch panelSwitch[NUM_PANEL_MOVES] =
 	PanelRight
 };
 
-
 // INPUT
 void processReleaseFunctionButton(MantaButton button);
 void processTouchFunctionButton(MantaButton button);
