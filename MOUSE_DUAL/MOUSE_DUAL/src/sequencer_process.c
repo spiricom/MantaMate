@@ -283,7 +283,7 @@ void initSequencer(void)
 	
 	initTimers();
 	
-	initSHArrays();
+	initSHArrays(); //what was this supposed to do? currently it does nothing. JS
 	
 	// Sequencer Modes
 	pattern_type =				LeftRightRowUp;
@@ -292,7 +292,7 @@ void initSequencer(void)
 	edit_vs_play =				PlayToggleMode; manta_set_LED_button(ButtonTopRight, Amber);
 	currentFunctionButton =		ButtonTopLeft;
 	key_vs_option =				KeyboardMode;
-	playSubMode =				SeqMode;
+	playSubMode =				SeqMode; manta_set_LED_button(ButtonBottomRight, Off);
 	
 	tRampInit(&out00, 2000, 3, 1);
 	tRampInit(&out02, 2000, 3, 1);
@@ -333,6 +333,7 @@ void initSequencer(void)
 	setKeyboardLEDsFor(currentSequencer, -1);
 
 	tc_start(tc3, TC3_CHANNEL);
+	manta_send_LED();
 }
 
 void sequencerStep(void)
@@ -1294,6 +1295,7 @@ void processTouchUpperHex(uint8_t hexagon)
 				}
 			}
 		}
+		/*
 		else if (whichOptionType == OptionNilTwo)
 		{
 			// THIS CODE IS DUMB DONT USE
@@ -1329,6 +1331,7 @@ void processTouchUpperHex(uint8_t hexagon)
 			
 			
 		}
+		*/
 		
 
 		setModeLEDsFor(currentSequencer);

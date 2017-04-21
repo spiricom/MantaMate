@@ -428,7 +428,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	seq->octave = 3;
 	seq->pitchOrTrigger = type;
 	
-	for (int i = 0; i < MAX_STEPS; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		// Pitch and Trigger parameters
 		seq->step[i].toggled = 0;  // not toggled on

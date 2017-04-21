@@ -117,6 +117,7 @@ extern int slider;
 extern uint32_t dummycounter;
 extern uint8_t manta_mapper;
 extern uint8_t tuning_count;
+extern uint8_t new_manta_attached;
 
 extern uint8_t manta_data_lock;
 extern unsigned char preset_num;

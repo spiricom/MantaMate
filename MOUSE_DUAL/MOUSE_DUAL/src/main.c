@@ -118,6 +118,7 @@ uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
 uint8_t manta_data_lock = 0; // probably not necessary, added this when I was worried about read and write happening simultaneously, but it wasn't the case.
 uint8_t spi_mode = 0;
+uint8_t new_manta_attached = false;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
@@ -181,15 +182,13 @@ int main(void){
 	#endif
 	
 	#if !TEST_MEMORY
-	// Start USB host stack
-	uhc_start();
-	
+
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
 	//start off on preset 0;
 	preset_num = 0;
-	
+	//delay_ms(600);
 	updatePreset();
 
 	// The USB management is entirely managed by interrupts.
@@ -197,6 +196,12 @@ int main(void){
 	
 	while (true) {	
 		sleepmgr_enter_sleep();
+		if (new_manta_attached)
+		{
+			manta_LED_set_mode(HOST_CONTROL_FULL);
+			updatePreset();
+			new_manta_attached = false;
+		}
 	}
 	#endif
 }
@@ -676,6 +681,7 @@ void USB_Mode_Switch_Check(void)
 			uhc_start();
 			myUSBMode = HOSTMODE;
 		}	
+		updatePreset();
 }
 
 void Preset_Switch_Check(uint8_t whichSwitch)

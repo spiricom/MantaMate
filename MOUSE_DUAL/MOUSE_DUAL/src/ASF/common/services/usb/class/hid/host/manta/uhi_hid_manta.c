@@ -245,14 +245,10 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	initNoteStack();
 	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
 	//memset(lights,0,HEX_BYTES*2+SLIDER_BYTES); removed this because it seems more efficient to manipulate the manta hid send report directly. It's possible that there's a problem with that, which means will need to bring back this separate array.
-	
-
-	// FOR NOW, THE LEDS ARE SET TO BEING HOST CONTROLLED
-	manta_LED_set_mode(HOST_CONTROL_FULL);
-
 
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
+	new_manta_attached = true;
 }
 
 
