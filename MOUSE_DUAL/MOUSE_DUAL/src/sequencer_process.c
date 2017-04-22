@@ -51,12 +51,14 @@ void resetEditStack(void);
 void resetRangeStack(void);
 uint8_t hexUIToStep(uint8_t hexagon);
 uint8_t stepToHexUI(MantaSequencer seq, uint8_t noteIn);
+void downOctaveForEditStackSteps(MantaSequencer seq);
+void upOctaveForEditStackSteps(MantaSequencer seq);
 
 /* - - - - - - KEY PATTERNS - - - - - - - -*/
 
 typedef enum TriggerPanelButtonType
 {
-	S1TrigPanelSelect = 0,
+	S1TrigPanelSelect = 0, 
 	S2TrigPanelSelect,
 	SXTrigPanelNil
 	
@@ -718,12 +720,6 @@ void processTouchLowerHex(uint8_t hexagon)
 				}
 				
 			}
-			
-			
-				
-				
-			
-			
 		}
 	}
 	
@@ -967,9 +963,11 @@ void processTouchUpperHex(uint8_t hexagon)
 			{
 				// down an octave
 				tSequencer_downOctave(&sequencer[currentSequencer]);
+				downOctaveForEditStackSteps(currentSequencer);
 				
 				// Temporarily set slider LEDs to display current octave.
-				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
+				if (editStack.size > 1) setSliderLEDsFor(currentSequencer, -1);
+				else					manta_set_LED_slider(SliderOne, sequencer[currentSequencer].step[hexUIToStep(editStack.notestack[0])].octave + 1);
 				
 				
 				if (currentMantaSliderMode != SliderModeNil)
@@ -978,24 +976,25 @@ void processTouchUpperHex(uint8_t hexagon)
 					currentMantaSliderMode = SliderModeNil;
 				}
 				
-				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
+				// setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 			}
 			else if (upperHexType == KeyboardPanelOctaveUp)
 			{
 				//up an octave
 				tSequencer_upOctave(&sequencer[currentSequencer]);
+				upOctaveForEditStackSteps(currentSequencer);
 				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
 				
 				// Temporarily set slider LEDs to display current octave.
-				manta_set_LED_slider(SliderOne, sequencer[currentSequencer].octave+1);
+				if (editStack.size > 1) setSliderLEDsFor(currentSequencer, -1);
+				else					manta_set_LED_slider(SliderOne, sequencer[currentSequencer].step[hexUIToStep(editStack.notestack[0])].octave + 1);
 				
 				if (currentMantaSliderMode != SliderModeNil) 
 				{
 					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
 					currentMantaSliderMode = SliderModeNil;
 				}
-				
-				setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
+				// setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 			}
 			else if (upperHexType == KeyboardPanelGlide) 
 			{
@@ -2242,6 +2241,21 @@ void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, 
 	else;
 }
 
+void upOctaveForEditStackSteps(MantaSequencer seq) {
+	for (int i = 0; i < editStack.size; i++) {
+		int value = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave;
+		if (value >= 7) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave;
+		else			sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave + 1;
+	}
+}
+
+void downOctaveForEditStackSteps(MantaSequencer seq) {
+	for (int i = 0; i < editStack.size; i++) {
+		int value = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave;
+		if (value <= 0) sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave;
+		else			sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave = sequencer[seq].step[hexUIToStep(editStack.notestack[i])].octave - 1;
+	}
+}
 uint8_t hexUIToStep(uint8_t hexagon)
 {
 	int hex = 0;
