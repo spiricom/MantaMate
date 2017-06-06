@@ -49,14 +49,12 @@
 #include "uhd.h"
 #include "uhc.h"
 #include "uhi_hid_joystick.h"
-#include "dip204.h"
 #include <string.h>
 #include "main.h"
 #include <fastmath.h>
 #include "note_process.h"
 #include "7Segment.h"
 #include <time.h>
-
 
 #ifdef USB_HOST_HUB_SUPPORT
 # error USB HUB support is not implemented on UHI mouse
@@ -177,7 +175,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
-	Write7Seg(57);
+	if (DEBUG) Write7Seg(57);
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
 	ptr_iface = (usb_iface_desc_t*) dev->conf_desc;
 	b_iface_supported = false;
@@ -282,8 +280,8 @@ static void get_report_descriptor()
 			uhi_hid_joy_dev.DescSize[i], NULL, parse_report_descriptor)) 
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
-			//dip204_printf_string("ERROR");
-			Write7Seg(77);
+			//MEMORY_printf_string("ERROR");
+			if (DEBUG) Write7Seg(77);
 			return;
 		}
 	}
@@ -784,7 +782,7 @@ static void uhi_hid_joy_report_reception(
 			
 			if (n_butts_mapped_so_far == 0)
 			{
-				Write7Seg(butt_state);
+				if (DEBUG) Write7Seg(butt_state);
 			}
 			n_butts_mapped_so_far++;
 		}
@@ -795,7 +793,8 @@ static void uhi_hid_joy_report_reception(
 		uhi_hid_joy_dev.report_hat_prev = hat_new;
 	}
 	
-		// start the next transfer.
+	// start the next transfer. this looks like it starts some crazy loop,
+	// but it follows the example code given by atmel
 	uhi_hid_joy_start_trans_report(add);
 }
 

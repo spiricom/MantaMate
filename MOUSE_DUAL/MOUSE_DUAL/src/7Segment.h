@@ -11,6 +11,8 @@
 
 #include <stdint.h>
 
+#define DEBUG 0
+
 void Write7Seg(uint8_t value);
 
 #endif /* INCFILE1_H_ */

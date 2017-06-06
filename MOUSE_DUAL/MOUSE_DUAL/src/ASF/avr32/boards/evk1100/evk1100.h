@@ -111,7 +111,7 @@
 //! Multiplexed pin used for USB_ID: AVR32_USBB_USB_ID_x_x.
 //! To be selected according to the AVR32_USBB_USB_ID_x_x_PIN and
 //! AVR32_USBB_USB_ID_x_x_FUNCTION definitions from <avr32/uc3axxxx.h>.
-#define USB_ID                      AVR32_USBB_USB_ID_0_0   
+//#define USB_ID                      AVR32_USBB_USB_ID_0_0   
 
 //! Multiplexed pin used for USB_VBOF: AVR32_USBB_USB_VBOF_x_x.
 //! To be selected according to the AVR32_USBB_USB_VBOF_x_x_PIN and
@@ -129,6 +129,7 @@
 /*! \name DAC pins
  */
 //! @{
+#define MEMORY_CS  AVR32_PIN_PA14  //spread out more on board for soldering convenience -> 26
 #define DAC1_CS  AVR32_PIN_PX34  //spread out more on board for soldering convenience -> 26
 #define DAC2_CS  AVR32_PIN_PX35  // -> 32
 #define DAC3_CS  AVR32_PIN_PX36  // ->38
@@ -249,29 +250,22 @@
 //! @}
 
 
-/*! \name SPI Connections of the DIP204 LCD
+/*! \name SPI Connections of the MEMORY LCD
  */
 //! @{
-#define DIP204_SPI                  (&AVR32_SPI1)
-#define DIP204_SPI_NPCS             2
-#define DIP204_SPI_SCK_PIN          AVR32_SPI1_SCK_0_0_PIN
-#define DIP204_SPI_SCK_FUNCTION     AVR32_SPI1_SCK_0_0_FUNCTION
-#define DIP204_SPI_MISO_PIN         AVR32_SPI1_MISO_0_0_PIN
-#define DIP204_SPI_MISO_FUNCTION    AVR32_SPI1_MISO_0_0_FUNCTION
-#define DIP204_SPI_MOSI_PIN         AVR32_SPI1_MOSI_0_0_PIN
-#define DIP204_SPI_MOSI_FUNCTION    AVR32_SPI1_MOSI_0_0_FUNCTION
-#define DIP204_SPI_NPCS_PIN         AVR32_SPI1_NPCS_2_0_PIN
-#define DIP204_SPI_NPCS_FUNCTION    AVR32_SPI1_NPCS_2_0_FUNCTION
+#define MEMORY_SPI                  (&AVR32_SPI1)
+#define MEMORY_SPI_NPCS             2
+#define MEMORY_SPI_SCK_PIN          AVR32_SPI1_SCK_0_0_PIN
+#define MEMORY_SPI_SCK_FUNCTION     AVR32_SPI1_SCK_0_0_FUNCTION
+#define MEMORY_SPI_MISO_PIN         AVR32_SPI1_MISO_0_0_PIN
+#define MEMORY_SPI_MISO_FUNCTION    AVR32_SPI1_MISO_0_0_FUNCTION
+#define MEMORY_SPI_MOSI_PIN         AVR32_SPI1_MOSI_0_0_PIN
+#define MEMORY_SPI_MOSI_FUNCTION    AVR32_SPI1_MOSI_0_0_FUNCTION
+#define MEMORY_SPI_NPCS_PIN         AVR32_SPI1_NPCS_2_0_PIN
+#define MEMORY_SPI_NPCS_FUNCTION    AVR32_SPI1_NPCS_2_0_FUNCTION
 //! @}
 
-/*! \name GPIO and PWM Connections of the DIP204 LCD Backlight
- */
-//! @{
-#define DIP204_BACKLIGHT_PIN        AVR32_PIN_PB18
-#define DIP204_PWM_CHANNEL          6
-#define DIP204_PWM_PIN              AVR32_PWM_6_PIN
-#define DIP204_PWM_FUNCTION         AVR32_PWM_6_FUNCTION
-//! @}
+
 
 
 /*! \name SPI Connections of the AT45DBX Data Flash Memory
@@ -352,16 +346,16 @@
 /*! \name SPI Connections of the Spare SPI Connector
  */
 //! @{
-#define SPARE_SPI                   (&AVR32_SPI0)
-#define SPARE_SPI_NPCS              0
-#define SPARE_SPI_SCK_PIN           AVR32_SPI0_SCK_0_0_PIN
-#define SPARE_SPI_SCK_FUNCTION      AVR32_SPI0_SCK_0_0_FUNCTION
-#define SPARE_SPI_MISO_PIN          AVR32_SPI0_MISO_0_0_PIN
-#define SPARE_SPI_MISO_FUNCTION     AVR32_SPI0_MISO_0_0_FUNCTION
-#define SPARE_SPI_MOSI_PIN          AVR32_SPI0_MOSI_0_0_PIN
-#define SPARE_SPI_MOSI_FUNCTION     AVR32_SPI0_MOSI_0_0_FUNCTION
-#define SPARE_SPI_NPCS_PIN          AVR32_SPI0_NPCS_0_0_PIN
-#define SPARE_SPI_NPCS_FUNCTION     AVR32_SPI0_NPCS_0_0_FUNCTION
+#define DAC_SPI                   (&AVR32_SPI0)
+#define DAC_SPI_NPCS              0
+#define DAC_SPI_SCK_PIN           AVR32_SPI0_SCK_0_0_PIN
+#define DAC_SPI_SCK_FUNCTION      AVR32_SPI0_SCK_0_0_FUNCTION
+#define DAC_SPI_MISO_PIN          AVR32_SPI0_MISO_0_0_PIN
+#define DAC_SPI_MISO_FUNCTION     AVR32_SPI0_MISO_0_0_FUNCTION
+#define DAC_SPI_MOSI_PIN          AVR32_SPI0_MOSI_0_0_PIN
+#define DAC_SPI_MOSI_FUNCTION     AVR32_SPI0_MOSI_0_0_FUNCTION
+#define DAC_SPI_NPCS_PIN          AVR32_SPI0_NPCS_0_0_PIN
+#define DAC_SPI_NPCS_FUNCTION     AVR32_SPI0_NPCS_0_0_FUNCTION
 //! @}
 
 /*! \name MACB connections to the DP83848 external phy controller

@@ -4,6 +4,12 @@
 
 src\ASF\avr32\drivers\tc\tc.c
 
+src\memory_spi.c
+
+src\note_process_utilities.c
+
+src\preset.c
+
 src\utilities.c
 
 src\ASF\avr32\drivers\wdt\wdt.c
@@ -13,8 +19,6 @@ src\notestack.c
 src\sequencer.c
 
 src\sequencer_process.c
-
-src\ASF\avr32\components\display\dip204\dip204.c
 
 src\ASF\avr32\drivers\pwm\pwm.c
 

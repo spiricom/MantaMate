@@ -55,43 +55,54 @@ typedef struct _tStep
 } tStep;
 
 
-
+typedef enum SequencerDataType
+{
+	SeqOctave = 0, 
+	SeqMaxLength,
+	SeqPitchOrTrigger,
+	SeqSteps,
+	SequencerDataTypeNil
+	
+} SequencerDataType;
 
 typedef struct _tSequencer
 {
 
 	tStep step[MAX_STEPS];
-	int maxLength;
 	int phasor;
-	int octave;
 	int currentStep,prevStep;
 	int stepGo;
 	tNoteStack notestack;
-	SequencerPatternType pattern;
 	uint8_t lengthCounter;
 	
-	void (*next)(struct _tSequencer *self);
-	int (*toggleStep)(struct _tSequencer *self, uint8_t step);
-	int (*addStep)(struct _tSequencer *self, uint8_t step);
-	int (*removeStep)(struct _tSequencer *self, uint8_t step);
-	void (*setPattern)(struct _tSequencer *self, SequencerPatternType type);
-	int (*getNumNotes)(struct _tSequencer *self);
-	int (*setMaxLength)(struct _tSequencer *self, uint8_t maxLength);
-	void (*setOctave)(struct _tSequencer *self, int8_t octave);
-	void (*downOctave)(struct _tSequencer *self);
-	int (*getOctave)(struct _tSequencer *self);
-	void (*upOctave)(struct _tSequencer *self);
-	void (*clearSteps)(struct _tSequencer *self);
-	int (*getHexFromStep)(struct _tSequencer *self, uint8_t step);
-	int (*getStepFromHex)(struct _tSequencer *self, uint8_t  hex);
-	
-	uint16_t (*get)(struct _tSequencer *self, uint8_t step, StepParameterType param);
-	uint16_t (*set)(struct _tSequencer *self, uint8_t step, StepParameterType param, uint16_t value);
-
+	int octave;
+	SequencerPatternType pattern;
+	int maxLength;
+	GlobalOptionType pitchOrTrigger;
 	
 } tSequencer;
 
-int tSequencerInit(tSequencer *tseq, uint8_t maxLength);
+int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
+void		tSequencer_next				(tSequencer* const);
+int			tSequencer_toggleStep		(tSequencer* const, uint8_t step);
+int			tSequencer_addStep			(tSequencer* const, uint8_t step);
+int			tSequencer_removeStep		(tSequencer* const, uint8_t step);
+void		tSequencer_setPattern		(tSequencer* const, SequencerPatternType type);
+int			tSequencer_getNumNotes		(tSequencer* const);
+void		tSequencer_setMaxLength		(tSequencer* const, uint8_t maxLength);
+void		tSequencer_setOctave		(tSequencer* const, int8_t octave);
+int			tSequencer_getOctave		(tSequencer* const);
+void		tSequencer_downOctave		(tSequencer* const);
+void		tSequencer_upOctave			(tSequencer* const);
+void		tSequencer_clearSteps		(tSequencer* const);
+int			tSequencer_getHexFromStep	(tSequencer* const, uint8_t step);
+int			tSequencer_getStepFromHex	(tSequencer* const, uint8_t  hex);
+uint16_t	tSequencer_getParameterValue(tSequencer* const, uint8_t step, StepParameterType param);
+void		tSequencer_setParameterValue(tSequencer* const, uint8_t step, StepParameterType param, uint16_t value);
+
+
+void        tSequencer_encode(tSequencer* const, uint16_t* sBuffer);
+void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);
 
 
 #endif /* SEQUENCER_H_ */

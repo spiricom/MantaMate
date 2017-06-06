@@ -49,7 +49,6 @@
 #include "uhd.h"
 #include "uhc.h"
 #include "uhi_hid_manta.h"
-#include "dip204.h"
 #include "main.h"
 #include "note_process.h"
 #include <string.h>
@@ -62,6 +61,7 @@
 
 
 
+static void processSliders(uint8_t sliderNum, uint16_t val);
 
 /**
  * \ingroup uhi_hid_manta_group
@@ -105,12 +105,6 @@ static void uhi_hid_manta_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered);
 		
-		
-static void processSliders(uint8_t sliderNum, uint16_t val);
-
-static void processSliderKeys(uint8_t sliderNum, uint16_t val);
-
-static void processKeys(void);
 
 
 static bool uhi_manta_send_report(void);
@@ -157,8 +151,14 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
+	//char *product = NULL;
 
-	//Write7Seg(55);  //a little debug thing to verify it found a manta
+	//product = uhc_dev_get_string(dev,dev->dev_desc.iProduct);
+	//while(product == NULL);
+	
+	//lcd_clear_line(2);
+	//MEMORY_printf_string("%x",dev->dev_desc.idProduct);
+	if (DEBUG) Write7Seg(55);
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
@@ -245,14 +245,10 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	initNoteStack();
 	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
 	//memset(lights,0,HEX_BYTES*2+SLIDER_BYTES); removed this because it seems more efficient to manipulate the manta hid send report directly. It's possible that there's a problem with that, which means will need to bring back this separate array.
-	
-
-	// FOR NOW, THE LEDS ARE SET TO BEING HOST CONTROLLED
-	manta_LED_set_mode(HOST_CONTROL_FULL);
-
 
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
+	new_manta_attached = true;
 }
 
 
@@ -285,6 +281,19 @@ static void uhi_hid_manta_start_trans_report(usb_add_t add)
 	// Start transfer on interrupt endpoint IN
 	uhd_ep_run(add, uhi_hid_manta_dev.ep_in, true, uhi_hid_manta_dev.report,
 			uhi_hid_manta_dev.report_size, 0, uhi_hid_manta_report_reception);
+}
+
+
+static void processSliders(uint8_t sliderNum, uint16_t val)
+{
+	if (sequencer_mode == 1)
+	{
+		processSliderSequencer(sliderNum, val);
+	}
+	else
+	{
+		processSliderKeys(sliderNum, val);
+	}
 }
 
 /**
@@ -341,76 +350,20 @@ static void uhi_hid_manta_report_reception(
 	}
 	
 	//check if we're in sequencer mode
-	if (sequencer_mode == 1)
+	if (sequencer_mode)
 	{
 		processSequencer();
 	}
-	//if not, we're in keyboard mode
 	else
 	{
 		processKeys();
 	}
-	
-	
-		
-	blinkersToggle();
-
 	
 	manta_send_LED();
 	
 	uhi_hid_manta_start_trans_report(add);
 }
 
-static void processSliders(uint8_t sliderNum, uint16_t val)
-{
-	if (sequencer_mode == 1)
-	{
-		processSliderSequencer(sliderNum, val);
-	}
-	else
-	{
-		processSliderKeys(sliderNum, val);
-	}
-}
-
-static void processSliderKeys(uint8_t sliderNum, uint16_t val)
-{
-	dacsend((sliderNum),0,val);
-}
-
-static void processKeys(void)
-{
-	uint8_t i;
-	uint8_t hex_max = 0;
-
-	for (i = 0; i < 48; i++)
-	{
-		//if the current sensor value of a key is positive and it was zero on last count
-		if (manta_data_lock == 0)
-		{
-			
-			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
-			{
-				addNote(i,butt_states[i]);
-			}
-
-			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
-			{
-				removeNote(i);	
-			}
-			if (butt_states[i] > hex_max)
-			{
-				hex_max = butt_states[i];
-			}
-
-			// update the past keymap array (stores the previous values of every key's sensor reading)
-			pastbutt_states[i] = butt_states[i];
-		}
-	
-	}
-	dacsend(3,0,(hex_max * 16)); 
-	noteOut();
-}
 
 //happens every USB frame
 void uhi_hid_manta_sof(bool b_micro)

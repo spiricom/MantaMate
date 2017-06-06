@@ -44,13 +44,13 @@
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
 
+#include "note_process.h"
 #include "conf_usb.h"
 #include "usb_protocol.h"
 // #include "usb_protocol_cdc.h"
 #include "udd.h"
 #include "udc.h"
 #include "udi_cdc.h"
-#include "note_process.h"
 #include <string.h>
 
 #define UDI_MIDI_IN_BUFFER_SIZE 64

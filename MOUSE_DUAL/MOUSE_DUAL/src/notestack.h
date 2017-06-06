@@ -19,21 +19,18 @@ typedef struct _tNoteStack
 	uint8_t size;
 	uint8_t capacity;
 	
-	void (*setCapacity)(struct _tNoteStack *self, uint8_t cap);
-	
-	void (*addIfNotAlreadyThere)(struct _tNoteStack *self, uint8_t note);
-	void (*add)(struct _tNoteStack *self, uint8_t note);
-	int (*remove)(struct _tNoteStack *self, uint8_t note);
-	void (*clear)(struct _tNoteStack *self);
-	uint8_t (*first)(struct _tNoteStack *self);
-	int (*getSize)(struct _tNoteStack *self);
-	int (*contains)(struct _tNoteStack *self, uint8_t note);
-	int (*next)(struct _tNoteStack *self); 
-	
 } tNoteStack;
 
-int tNoteStackInit(tNoteStack *notestack, uint8_t size);
-
+int		tNoteStack_init					(tNoteStack *notestack, uint8_t size);
+void	tNoteStack_setCapacity			(tNoteStack* const, uint8_t cap);
+int		tNoteStack_addIfNotAlreadyThere	(tNoteStack* const, uint8_t note);
+void	tNoteStack_add					(tNoteStack* const, uint8_t note);
+int		tNoteStack_remove				(tNoteStack* const, uint8_t note);
+void	tNoteStack_clear				(tNoteStack* const);
+uint8_t tNoteStack_first				(tNoteStack* const);
+int		tNoteStack_getSize				(tNoteStack* const);
+int		tNoteStack_contains				(tNoteStack* const, uint8_t note);
+int		tNoteStack_next					(tNoteStack* const);
 
 
 #endif /* NOTESTACK_H_ */

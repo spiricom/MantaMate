@@ -44,3 +44,4 @@ int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick) {
 	COMPUTE_INC();
 	return 0;
 }
+

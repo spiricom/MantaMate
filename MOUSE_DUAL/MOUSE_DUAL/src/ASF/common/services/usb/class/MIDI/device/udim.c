@@ -65,7 +65,7 @@
  */
 static bool udi_midi_reqstdifaceget_descriptor(uint8_t *report_desc);
 
-bool udi_midi_setup( uint8_t *rate, uint8_t *protocol, uint8_t *report_desc, bool (*setup_report)(void) )
+/*bool udi_midi_setup( uint8_t *rate, uint8_t *protocol, uint8_t *report_desc, bool (*setup_report)(void) )
 {
 	if (Udd_setup_is_in()) {
 		// Requests Interface GET
@@ -101,6 +101,7 @@ bool udi_midi_setup( uint8_t *rate, uint8_t *protocol, uint8_t *report_desc, boo
 	}
 	return false;	// Request not supported
 }
+*/
 
 
 //---------------------------------------------

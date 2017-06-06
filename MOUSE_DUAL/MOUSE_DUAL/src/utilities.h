@@ -69,7 +69,7 @@ typedef enum MantaSlider {
 	SliderNil
 }MantaSlider;
 
-typedef enum MantaButtonXY {
+typedef enum MantaButton {
 	ButtonTopLeft = 0,
 	ButtonTopRight = 1,
 	ButtonBottomLeft = 2,
@@ -87,6 +87,13 @@ typedef enum KeyboardOptionMode
 	OptionMode,
 	KeyboardOptionModeNil,
 }KeyboardOptionMode;
+
+typedef enum CompositionAction
+{
+	CompositionWrite,
+	CompositionRead,
+	CompositionActionNil
+} CompositionAction;
 
 typedef enum PanelSwitch
 {
@@ -106,9 +113,9 @@ typedef enum SequencerPatternType {
 	RightLeftColUp,
 	RandomWalk,
 	OrderTouch,
-	RecordTouch,
 	
 	//not using atm
+	RecordTouch,
 	RightLeftRowDown,
 	RightLeftRowUp,
 	RightLeftDiagDown,
@@ -157,11 +164,12 @@ MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
-GlobalOptionType full_vs_split;
-GlobalOptionType pitch_vs_trigger;
 MantaPlaySubMode playSubMode;
 KeyboardOptionMode key_vs_option;
-KeyboardOptionMode prev_key_vs_option;
+
+GlobalOptionType full_vs_split;
+
+GlobalOptionType seq1PvT, seq2PvT;
 
 //#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
 //#define tick0(THIS)					THIS.tick(&THIS)
@@ -207,7 +215,6 @@ typedef struct _tRamp {
 float tRampTick(tRamp *r);
 int tRampSetTime(tRamp *r, float time);
 int tRampSetDest(tRamp *r, float dest);
-
 int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
 
 

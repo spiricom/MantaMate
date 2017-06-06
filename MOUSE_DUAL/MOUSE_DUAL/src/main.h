@@ -48,9 +48,23 @@
 #define _MAIN_H_
 
 #include <stdint.h>
+#include "utilities.h"
+#include "memory_spi.h"
+
+#include "7Segment.h"
+
+#include "note_process.h"
+#include "sequencer_process.h"
 
 #include "usb_protocol_cdc.h"
-#include "utilities.h"
+#include "conf_usb_host.h"
+#include "ui.h"
+
+#define TEST_MEMORY 0
+
+uint8_t readData;
+
+uint8_t* readDataArray[256];
 
 
 // TIMER 
@@ -58,11 +72,17 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
-tRamp pitchGlideOne, pitchGlideTwo; 
-tRamp cv1GlideOne, cv1GlideTwo;
-tRamp cv2GlideOne, cv2GlideTwo;
-tRamp cv3GlideOne, cv3GlideTwo;
-tRamp cv4GlideOne, cv4GlideTwo; 
+tRamp out00;
+tRamp out02;
+
+tRamp out10;
+tRamp out11;
+tRamp out12;
+tRamp out13;
+tRamp out20;
+tRamp out21;
+tRamp out22;
+tRamp out23;
 
 #define TIMERS 1
 
@@ -86,6 +106,8 @@ tRamp cv4GlideOne, cv4GlideTwo;
 
 void initTimers (void);
 
+
+
 //DEBUG CODE
 extern uint16_t lengthDB;
 extern int slider;
@@ -95,6 +117,7 @@ extern int slider;
 extern uint32_t dummycounter;
 extern uint8_t manta_mapper;
 extern uint8_t tuning_count;
+extern uint8_t new_manta_attached;
 
 extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
@@ -108,9 +131,8 @@ void updatePreset(void);
 void Preset_Switch_Check(uint8_t whichSwitch);
 void USB_Mode_Switch_Check(void);
 void clockHappened(void);
-void initI2C(void);
 void enterBootloader(void);
-void sendI2CtoEEPROM(void);
+void sendDataToExternalMemory(void);
 
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
@@ -144,6 +166,7 @@ void main_resume_action(void);
 //function prototypes//
 void dacwait1(void);
 void dacwait2(void);
+void memoryWait(void);
 void DACsetup(void);
 void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval);
 
