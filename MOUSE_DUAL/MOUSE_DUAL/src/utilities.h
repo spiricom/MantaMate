@@ -69,7 +69,7 @@ typedef enum MantaSlider {
 	SliderNil
 }MantaSlider;
 
-typedef enum MantaButtonXY {
+typedef enum MantaButton {
 	ButtonTopLeft = 0,
 	ButtonTopRight = 1,
 	ButtonBottomLeft = 2,
@@ -87,6 +87,13 @@ typedef enum KeyboardOptionMode
 	OptionMode,
 	KeyboardOptionModeNil,
 }KeyboardOptionMode;
+
+typedef enum CompositionAction
+{
+	CompositionWrite,
+	CompositionRead,
+	CompositionActionNil
+} CompositionAction;
 
 typedef enum PanelSwitch
 {

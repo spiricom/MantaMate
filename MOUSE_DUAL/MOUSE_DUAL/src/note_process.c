@@ -463,27 +463,27 @@ void initKeys(int numVoices)
 	noteOut();
 }
 
-void processTouchLowerHexKey(int hex, uint8_t weight)
+void touchLowerHexKey(int hex, uint8_t weight)
 {
 	addNote(hex, weight);
 	
 	manta_set_LED_hex(hex, Amber);	
 }
 
-void processReleaseLowerHexKey(int hex)
+void releaseLowerHexKey(int hex)
 {
 	removeNote(hex);
 	
 	manta_set_LED_hex(hex, Off);
 }
 
-void processTouchFunctionButtonKeys(MantaButton button)
+void touchFunctionButtonKeys(MantaButton button)
 {
 	
 	
 }
 
-void processReleaseFunctionButtonKeys(MantaButton button)
+void releaseFunctionButtonKeys(MantaButton button)
 {
 	
 	
@@ -501,12 +501,12 @@ void processKeys(void)
 		{
 			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 			{
-				processTouchLowerHexKey(i, butt_states[i]);
+				touchLowerHexKey(i, butt_states[i]);
 			}
 
 			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 			{
-				processReleaseLowerHexKey(i);
+				releaseLowerHexKey(i);
 			}
 
 			// update the past keymap array (stores the previous values of every key's sensor reading)
@@ -519,12 +519,12 @@ void processKeys(void)
 	{
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
 		{
-			processTouchFunctionButtonKeys(i);
+			touchFunctionButtonKeys(i);
 		}
 		
 		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
 		{
-			processTouchFunctionButtonKeys(i);
+			touchFunctionButtonKeys(i);
 		}
 		
 		past_func_button_states[i] = func_button_states[i];
