@@ -66,6 +66,7 @@ uint8_t readData;
 
 uint8_t* readDataArray[256];
 
+void blink(void);
 
 // TIMER 
 volatile avr32_tc_t *tc1;

@@ -18,5 +18,6 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val);
 void initSequencer(void);
 void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer);
 void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer);
+void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int destComp);
 
 #endif /* SEQUENCER_PROCESS_H_ */

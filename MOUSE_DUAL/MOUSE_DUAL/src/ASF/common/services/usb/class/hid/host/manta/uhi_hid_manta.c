@@ -380,9 +380,16 @@ static void uhi_hid_manta_report_reception(
 
 
 //happens every USB frame
+int blinkCount = 0;
 void uhi_hid_manta_sof(bool b_micro)
 {
 	UNUSED(b_micro);
+	
+	if (++blinkCount == 250)
+	{
+		blinkCount = 0;
+		blink();
+	}
 
 	if (clock_speed != 0)
 	{

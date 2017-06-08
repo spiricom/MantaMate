@@ -44,7 +44,6 @@ typedef enum MantaEditPlayMode {
 typedef enum MantaPlaySubMode {
 	SeqMode = 0,
 	ArpMode,
-	RangeMode,
 	MantaPlayModeNil,
 }MantaPlaySubMode;
 
@@ -92,6 +91,7 @@ typedef enum CompositionAction
 {
 	CompositionWrite,
 	CompositionRead,
+	CompositionCopy,
 	CompositionActionNil
 } CompositionAction;
 
