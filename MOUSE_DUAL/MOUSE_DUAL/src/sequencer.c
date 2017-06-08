@@ -27,6 +27,7 @@ uint8_t patterns[5][MAX_STEPS] = {
 	{0, 16,8,1, 24,17,9,2, 25,18,10,3, 26,19,11,4, 27,20,12,5, 28,21,13,6, 29,22,14,7, 30,23,15, 31}
 		};
 
+int numBytesPerHex = 19; //change this if the number of bytes per hex in an "encoded" serialized sequence changes.
 
 void tSequencer_setPattern(tSequencer* const seq, SequencerPatternType pat)
 {
@@ -116,9 +117,16 @@ void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 	
 	for (int hex = 0; hex < 32; hex++)
 	{
-		int offset = SeqSteps + hex * 24;
+		int offset = SeqSteps + hex * numBytesPerHex;
 		
-		sBuffer[offset+0] = seq->step[hex].toggled;
+		uint8_t tempPackedData = (seq->step[hex].toggled);
+		tempPackedData += (seq->step[hex].note) << 1;
+		tempPackedData += (seq->step[hex].on[0]) << 2;
+		tempPackedData += (seq->step[hex].on[1]) << 3;
+		tempPackedData += (seq->step[hex].on[2]) << 4;
+		tempPackedData += (seq->step[hex].on[3]) << 5;
+		
+		sBuffer[offset+0] = tempPackedData;
 		sBuffer[offset+1] = seq->step[hex].length;
 		sBuffer[offset+2] = (seq->step[hex].cv1 >> 8) & 255;
 		sBuffer[offset+3] = seq->step[hex].cv1 & 255;
@@ -132,17 +140,11 @@ void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 		sBuffer[offset+11] = (seq->step[hex].fine >> 8) & 255;
 		sBuffer[offset+12] = seq->step[hex].fine & 255;
 		sBuffer[offset+13] = seq->step[hex].octave;
-		sBuffer[offset+14] = seq->step[hex].note;
-		sBuffer[offset+15] = seq->step[hex].kbdhex;
-		sBuffer[offset+16] = (seq->step[hex].pglide >> 8) & 255;
-		sBuffer[offset+17] = seq->step[hex].pglide & 255;
-		sBuffer[offset+18] = (seq->step[hex].cvglide >> 8) & 255;
-		sBuffer[offset+19] = seq->step[hex].cvglide & 255;
-		sBuffer[offset+20] = seq->step[hex].on[0];
-		sBuffer[offset+21] = seq->step[hex].on[1];
-		sBuffer[offset+22] = seq->step[hex].on[2];
-		sBuffer[offset+23] = seq->step[hex].on[3];
-		
+		sBuffer[offset+14] = seq->step[hex].kbdhex;
+		sBuffer[offset+15] = (seq->step[hex].pglide >> 8) & 255;
+		sBuffer[offset+16] = seq->step[hex].pglide & 255;
+		sBuffer[offset+17] = (seq->step[hex].cvglide >> 8) & 255;
+		sBuffer[offset+18] = seq->step[hex].cvglide & 255;
 	}
 }
 
@@ -155,9 +157,15 @@ void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 	
 	for (int hex = 0; hex < 32; hex++)
 	{
-		int offset = SeqSteps + hex * 24;
+		int offset = SeqSteps + hex * numBytesPerHex;
 		
-		seq->step[hex].toggled = sBuffer[offset+0];
+		seq->step[hex].toggled = sBuffer[offset+0] & 1;
+		seq->step[hex].note = (sBuffer[offset+0] >> 1) & 1;
+		seq->step[hex].on[0] = (sBuffer[offset+0] >> 2) & 1;
+		seq->step[hex].on[1] = (sBuffer[offset+0] >> 3) & 1;
+		seq->step[hex].on[2] = (sBuffer[offset+0] >> 4) & 1;
+		seq->step[hex].on[3] = (sBuffer[offset+0] >> 5) & 1;
+		
 		seq->step[hex].length = sBuffer[offset+1];
 		seq->step[hex].cv1 = (sBuffer[offset+2] << 8) + sBuffer[offset+3];//
 		seq->step[hex].cv2 =(sBuffer[offset+4] << 8) + sBuffer[offset+5];//
@@ -166,14 +174,9 @@ void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 		seq->step[hex].pitch = sBuffer[offset+10];
 		seq->step[hex].fine = (sBuffer[offset+11] << 8) + sBuffer[offset+12];//
 		seq->step[hex].octave = sBuffer[offset+13];
-		seq->step[hex].note = sBuffer[offset+14];
-		seq->step[hex].kbdhex = sBuffer[offset+15];
-		seq->step[hex].pglide = (sBuffer[offset+16] << 8) + sBuffer[offset+17];//
-		seq->step[hex].cvglide = (sBuffer[offset+18] << 8) + sBuffer[offset+19];//
-		seq->step[hex].on[0] = sBuffer[offset+20];
-		seq->step[hex].on[1] = sBuffer[offset+21];
-		seq->step[hex].on[2] = sBuffer[offset+22];
-		seq->step[hex].on[3] = sBuffer[offset+23];
+		seq->step[hex].kbdhex = sBuffer[offset+14];
+		seq->step[hex].pglide = (sBuffer[offset+15] << 8) + sBuffer[offset+16];//
+		seq->step[hex].cvglide = (sBuffer[offset+17] << 8) + sBuffer[offset+18];//
 		
 	}
 }
@@ -441,7 +444,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		seq->step[i].cv4 = 0;  // cv4 zero
 		seq->step[i].note = 1;  // note, not rest
 		seq->step[i].pitch = 0;  // keyboard pitch zero
-		seq->step[i].fine = 2048; // 2948 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
+		seq->step[i].fine = 2048; // 2048 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
 		seq->step[i].octave = 3;  // octave
 		seq->step[i].kbdhex = MAX_STEPS + 0;  // hexagon number in keyboard range
 		seq->step[i].pglide = 5;

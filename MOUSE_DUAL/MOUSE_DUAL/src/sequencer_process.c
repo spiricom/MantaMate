@@ -230,8 +230,11 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
-uint16_t encodeBuffer[4000];
-uint16_t decodeBuffer[1000];
+#define sizeOfSerializedSequence  620 // increase this if the size of the serialized data gets larger (I shrank them to just slightly above the needed 611 because storing the memory internally takes up a lot of room -JS)
+#define sizeOfBankOfSequences  sizeOfSerializedSequence*16
+uint16_t encodeBuffer[sizeOfSerializedSequence]; 
+uint16_t decodeBuffer[sizeOfSerializedSequence];
+static uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
 
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
@@ -299,7 +302,7 @@ void initSequencer(void)
 	compositionMap[SequencerOne][0] = true;
 	compositionMap[SequencerTwo][0] = true;
 	
-	memorySPIEraseBlock(preset_num); // DONT KEEP THIS
+	//memorySPIEraseBlock(preset_num); // DONT KEEP THIS
 	
 	
 	initTimers();
@@ -611,7 +614,7 @@ void touchLowerHex(uint8_t hexagon)
 			
 			if (compositionMap[whichSeq][whichComp])
 			{
-				memorySPIReadSequencer(preset_num, hexagon, &decodeBuffer);
+				memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
 				tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
 			}
 
@@ -621,24 +624,9 @@ void touchLowerHex(uint8_t hexagon)
 			manta_set_LED_hex(hexagon, Amber);
 			
 			compositionMap[whichSeq][whichComp] = true;
-			
-			// Need to determine which Sequences are saved in same sector(s) as this Composition, read them in to memory, then rewrite all data including this Composition (so as not to erase old stuff)
-			
-			int sector = (int) (hexagon / 4);
-			int thisOne = hexagon % 4;
-			
-			for (int i = 0; i < 4; i++)
-				memorySPIReadSequencer(preset_num, sector * 4 + i, &(encodeBuffer[i*1000]));
-				
-			memorySPIEraseSector(preset_num * 16 + sector);
-			
-			
-			tSequencer_encode(&sequencer[currentSequencer], &(encodeBuffer[thisOne*1000]));
-			
-			for (int i = 0; i < 4; i++)
-				memorySPIWriteSequencer(preset_num, sector * 4 + i, &(encodeBuffer[i*1000]));
+			tSequencer_encode(&sequencer[currentSequencer], &encodeBuffer);
+			memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
 		}
-
 	}
 	else
 	{
@@ -2438,4 +2426,19 @@ void seqwait(void)
 }
 
 
+//maybe would be more efficient with memcpy? Not sure if that would be better than an iterated array in this case -JS
+void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer)
+{
+	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	{
+		buffer[i] = memoryInternalCompositionBuffer[whichSeq][(whichhex*sizeOfSerializedSequence) + i];
+	}
+}
 
+void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer)
+{
+	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	{
+		memoryInternalCompositionBuffer[whichSeq][(whichhex*sizeOfSerializedSequence) + i] = buffer[i];
+	}
+}
