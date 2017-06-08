@@ -131,6 +131,8 @@ uint8_t func_button_states[4] = {0,0,0,0};
 uint8_t past_func_button_states[4] = {0,0,0,0};
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
+uint8_t firstEdition = false;
+	
 	
 //! To signal if a valid report is ready to send
 static bool uhi_manta_b_report_valid;
@@ -179,6 +181,18 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					// Start allocation endpoint(s)
 					b_iface_supported = true;
 					// initialize button states to 0
+					
+					//set version number based on serial number
+					if (dev->dev_desc.iSerialNumber < 70)
+					{
+						firstEdition = true;
+						Write7Seg(99); // TODO: remove this one it's been verified that it works - JS
+					}
+					else
+					{
+						firstEdition = false;
+					}
+					
 					for(i=0; i<48; i++)
 					{
 						butt_states[i]=0;

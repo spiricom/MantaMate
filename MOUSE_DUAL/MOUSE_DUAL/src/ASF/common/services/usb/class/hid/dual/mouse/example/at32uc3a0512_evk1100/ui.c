@@ -152,20 +152,6 @@ void ui_host_connection_event(uhc_device_t *dev, bool b_present)
 void ui_host_enum_event(uhc_device_t * dev, uhc_enum_status_t status)
 {
 	ui_enum_status = status;
-	if (ui_enum_status == UHC_ENUM_SUCCESS) {
-		switch (dev->speed) {
-		case UHD_SPEED_HIGH:
-			ui_device_speed_blink = 250;
-			break;
-		case UHD_SPEED_FULL:
-			ui_device_speed_blink = 500;
-			break;
-		case UHD_SPEED_LOW:
-		default:
-			ui_device_speed_blink = 1000;
-			break;
-		}
-	}
 }
 
 void ui_uhi_hid_joy_change(uhc_device_t * dev, bool b_plug)
