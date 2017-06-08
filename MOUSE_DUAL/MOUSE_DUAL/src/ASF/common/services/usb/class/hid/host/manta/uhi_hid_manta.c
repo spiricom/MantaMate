@@ -186,7 +186,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					if (dev->dev_desc.iSerialNumber < 70)
 					{
 						firstEdition = true;
-						Write7Seg(99); // TODO: remove this one it's been verified that it works - JS
+						Write7Seg(99); // TODO: remove this once it's been verified that it works - JS
 					}
 					else
 					{
