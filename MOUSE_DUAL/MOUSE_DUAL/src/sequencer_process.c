@@ -624,7 +624,7 @@ void touchLowerHex(uint8_t hexagon)
 			manta_set_LED_hex(hexagon, Amber);
 			
 			compositionMap[whichSeq][whichComp] = true;
-			tSequencer_encode(&sequencer[currentSequencer], &encodeBuffer);
+			tSequencer_encode(&sequencer[whichSeq], &encodeBuffer);
 			memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
 		}
 	}
