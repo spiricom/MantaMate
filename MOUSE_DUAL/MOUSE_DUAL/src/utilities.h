@@ -87,7 +87,8 @@ typedef enum KeyboardOptionMode
 	KeyboardOptionModeNil,
 }KeyboardOptionMode;
 
-typedef enum CompositionAction
+typedef enum 
+Action
 {
 	CompositionWrite,
 	CompositionRead,

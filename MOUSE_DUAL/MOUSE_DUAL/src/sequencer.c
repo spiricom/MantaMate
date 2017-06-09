@@ -413,6 +413,41 @@ void tSequencer_clearSteps(tSequencer* const seq)
 	}
 }
 
+void tSequencer_randomizePitch(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeCV(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeStepLength(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeGlide(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeToggled(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeTrigger(tSequencer* const seq)
+{
+	
+}
+
+void tSequencer_randomizeAll(tSequencer* const seq)
+{
+	
+}
+
 int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLength) 
 {
 	if (maxLength < 1)

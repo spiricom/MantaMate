@@ -12,7 +12,9 @@
 #include "sequencer.h"
 //#include "7Segment.h"
 
-bool compositionMap[2][16];
+#define NUM_COMP 14
+
+bool compositionMap[2][NUM_COMP];
 
 int currentComp[2] = {-1,-1};
 
@@ -308,7 +310,7 @@ void blink(void)
 	{
 		for (int seq = 0; seq < 2; seq++)
 		{
-			for (int comp = 0; comp < 16; comp++)
+			for (int comp = 0; comp < NUM_COMP; comp++)
 			{
 				if (compositionMap[seq][comp])
 				{
@@ -603,7 +605,7 @@ void setCompositionLEDs(void)
 {
 	for (int seq = 0 ; seq < 2; seq++)
 	{
-		for (int comp = 0; comp < 16; comp++)
+		for (int comp = 0; comp < NUM_COMP; comp++)
 		{
 			if (compositionMap[seq][comp])
 			{
@@ -612,8 +614,16 @@ void setCompositionLEDs(void)
 			}
 			
 		}
-
+		
+		
+		
 	}
+	
+	manta_set_LED_hex(14, Amber);
+	manta_set_LED_hex(15, Red);
+	
+	manta_set_LED_hex(30, Amber);
+	manta_set_LED_hex(31, Red);
 }
 
 
@@ -628,56 +638,72 @@ void touchLowerHex(uint8_t hexagon)
 		MantaSequencer whichSeq = (hexagon < 16) ? SequencerOne : SequencerTwo;
 		int whichComp = (hexagon < 16) ? hexagon : (hexagon - 16);
 		
-		if (compositionAction == CompositionRead)
+		if (whichComp == 14)
 		{
-			if (compositionMap[whichSeq][whichComp])
-			{
-				memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
-				tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
-				
-				currentComp[whichSeq] = whichComp;
-				
-				setCurrentSequencer(whichSeq);
-				
-				setOptionLEDs();
-			}
-
+		
+			manta_set_LED_hex(whichSeq * 16 + 14, Red);	
 		}
-		else if (compositionAction == CompositionWrite) // CompositionWrite 
+		else if (whichComp == 15)
 		{
-			manta_set_LED_hex(hexagon, Amber);
+			tSequencer_init(&sequencer[whichSeq], sequencer[whichSeq].pitchOrTrigger, 32);
 			
-			compositionMap[whichSeq][whichComp] = true;
-			tSequencer_encode(&sequencer[whichSeq], &encodeBuffer);
-			memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
+			manta_set_LED_hex(whichSeq * 16 + 15, Amber);
 		}
-		else if (compositionAction == CompositionCopy)
+		else 
 		{
-			if (copyStage == 0)
+			if (compositionAction == CompositionRead)
 			{
-				// this determines sequence to be copied
 				if (compositionMap[whichSeq][whichComp])
 				{
-					copyWhichSeq = whichSeq;
-					copyWhichComp = whichComp;
+					memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
+					tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
 					
-					copyStage = 1;
+					currentComp[whichSeq] = whichComp;
+					
+					setCurrentSequencer(whichSeq);
+					
+					setOptionLEDs();
 				}
+
 			}
-			else if (copyStage == 1)
+			else if (compositionAction == CompositionWrite) // CompositionWrite
 			{
-				// any hex pressed while still in copy mode is written with sequencer from copystage 1
-				if (!(whichSeq == copyWhichSeq && whichComp == copyWhichComp)) // if not the same step, copy
-				{
-					manta_set_LED_hex(hexagon, Red);
-					compositionMap[whichSeq][whichComp] = true;
-					memoryInternalCopySequencer(copyWhichSeq, copyWhichComp, whichSeq, whichComp);
-				}
+				manta_set_LED_hex(hexagon, Amber);
+				
+				compositionMap[whichSeq][whichComp] = true;
+				tSequencer_encode(&sequencer[whichSeq], &encodeBuffer);
+				memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
 			}
-	
+			else if (compositionAction == CompositionCopy)
+			{
+				if (copyStage == 0)
+				{
+					// this determines sequence to be copied
+					if (compositionMap[whichSeq][whichComp])
+					{
+						copyWhichSeq = whichSeq;
+						copyWhichComp = whichComp;
+						
+						copyStage = 1;
+					}
+				}
+				else if (copyStage == 1)
+				{
+					// any hex pressed while still in copy mode is written with sequencer from copystage 1
+					if (!(whichSeq == copyWhichSeq && whichComp == copyWhichComp)) // if not the same step, copy
+					{
+						manta_set_LED_hex(hexagon, Red);
+						compositionMap[whichSeq][whichComp] = true;
+						memoryInternalCopySequencer(copyWhichSeq, copyWhichComp, whichSeq, whichComp);
+					}
+				}
+				
+			}
+			
 		}
 		
 		return;
+		
 	}
 
 	if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
