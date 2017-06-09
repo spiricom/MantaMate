@@ -151,6 +151,8 @@ void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 uint16_t myglobaltest = 0;
 void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 {
+	tNoteStack_clear(&seq->notestack);
+	
 	seq->octave = sBuffer[SeqOctave];
 	seq->maxLength= sBuffer[SeqMaxLength];
 	seq->pitchOrTrigger = sBuffer[SeqPitchOrTrigger];
@@ -159,7 +161,10 @@ void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 	{
 		int offset = SeqSteps + hex * numBytesPerHex;
 		
-		seq->step[hex].toggled = sBuffer[offset+0] & 1;
+		int toggled = sBuffer[offset+0] & 1;
+		seq->step[hex].toggled = toggled;
+		if (toggled) tNoteStack_add(&seq->notestack, hex);
+		
 		seq->step[hex].note = (sBuffer[offset+0] >> 1) & 1;
 		seq->step[hex].on[0] = (sBuffer[offset+0] >> 2) & 1;
 		seq->step[hex].on[1] = (sBuffer[offset+0] >> 3) & 1;
@@ -458,6 +463,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	}
 	
 	tNoteStack_init(&seq->notestack, maxLength);
+
 
 	return 0;
 }

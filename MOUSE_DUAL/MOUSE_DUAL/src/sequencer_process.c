@@ -14,6 +14,8 @@
 
 bool compositionMap[2][16];
 
+int currentComp[2] = {-1,-1};
+
 CompositionAction compositionAction = CompositionRead;
 
 int copyStage = 0;
@@ -324,8 +326,7 @@ void initSequencer(void)
 {
 	sequencer_mode = 1;
 	
-	compositionMap[SequencerOne][0] = true;
-	compositionMap[SequencerTwo][0] = true;
+	
 	
 	//memorySPIEraseBlock(preset_num); // DONT KEEP THIS
 	
@@ -368,9 +369,18 @@ void initSequencer(void)
 	
 	seq1PvT = PitchMode; seq2PvT = PitchMode;
 	for (int i = 0; i < NUM_SEQ; i++)
-	{		
+	{
 		tSequencer_init(&sequencer[i], PitchMode, 32);
+		
+		
+		tSequencer_encode(&sequencer[i], &encodeBuffer);
+		memoryInternalWriteSequencer(i, 0, &encodeBuffer);
+		
+		compositionMap[i][0] = true;
+		currentComp[i] = 0;
 	}
+	
+	
 	
 	setSequencerLEDsFor(currentSequencer);
 	
@@ -597,11 +607,12 @@ void setCompositionLEDs(void)
 		{
 			if (compositionMap[seq][comp])
 			{
-				if (compositionAction == CompositionRead)		manta_set_LED_hex(seq * 16 + comp, Amber);
-				else if (compositionAction == CompositionWrite) manta_set_LED_hex(seq * 16 + comp, Red);
+				if (compositionAction == CompositionRead)		manta_set_LED_hex(seq * 16 + comp, (currentComp[seq] == comp) ? Red : Amber);
+				else if (compositionAction == CompositionWrite)	manta_set_LED_hex(seq * 16 + comp, Red);
 			}
 			
 		}
+
 	}
 }
 
@@ -619,12 +630,16 @@ void touchLowerHex(uint8_t hexagon)
 		
 		if (compositionAction == CompositionRead)
 		{
-			manta_set_LED_hex(hexagon, Red);
-			
 			if (compositionMap[whichSeq][whichComp])
 			{
 				memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
 				tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
+				
+				currentComp[whichSeq] = whichComp;
+				
+				setCurrentSequencer(whichSeq);
+				
+				setOptionLEDs();
 			}
 
 		}
@@ -1790,7 +1805,7 @@ void uiStep(MantaSequencer seq)
 		else
 		{
 			manta_set_LED_hex(uiHexPrevStep, RedOff);
-			manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			if (sequencer[seq].notestack.size > 0) manta_set_LED_hex(uiHexCurrentStep, RedOn);
 		}
 		
 	}
