@@ -123,6 +123,7 @@ extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
 extern uint32_t clock_speed;
 extern uint8_t sequencer_mode;
+extern uint8_t joystick_mode;
 extern uint32_t USB_frame_counter;
 
 //set up the external interrupt for the gate input

@@ -57,7 +57,7 @@
 #include <time.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
-# error USB HUB support is not implemented on UHI mouse
+//# error USB HUB support is not implemented on UHI mouse
 #endif
 
 /**
@@ -187,7 +187,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 			if ((ptr_iface->bInterfaceClass   == HID_CLASS)
 			&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC)
 			&& dev->dev_desc.idProduct != 0x2424) { // and it's not a manta
-				// USB HID Mouse interface found
+				// USB HID Joystick interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
 			} else {
@@ -609,6 +609,7 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	uhi_hid_joy_dev.report_hat_prev = 0;
 	uhi_hid_joy_start_trans_report(dev->address);
 	UHI_HID_JOY_CHANGE(dev, true);
+	joystick_mode = true; 
 }
 
 void uhi_hid_joy_uninstall(uhc_device_t* dev)
@@ -616,7 +617,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	if (uhi_hid_joy_dev.dev != dev) {
 		return; // Device not enabled in this interface
 	}
-	uhi_hid_joy_dev.dev = NULL;
+	uhi_hid_joy_dev.dev = NULL; 
 	Assert(uhi_hid_joy_dev.report!=NULL);
 	free(uhi_hid_joy_dev.report);
 	free(uhi_hid_joy_dev.DescType);
@@ -624,6 +625,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	free(hid_report_parser.reportDesc);
 	ibutt = 0;
 	UHI_HID_JOY_CHANGE(dev, false);
+	joystick_mode = false;
 }
 //@}
 

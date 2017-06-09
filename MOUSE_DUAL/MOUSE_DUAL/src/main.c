@@ -122,7 +122,8 @@ uint8_t new_manta_attached = false;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-uint8_t sequencer_mode = 0;  
+uint8_t sequencer_mode = 0; 
+uint8_t joystick_mode = 0; 
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -216,20 +217,22 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
-
-	LED_Off(LED1);
+	if (!joystick_mode)
+	{
+		LED_Off(LED1);
 	
-	if (seq1PvT == PitchMode)
-	{
-		DAC16Send(1, 0);
-	}
-	else // TriggerMode
-	{
-		// Set 4 trigger outputs low
-		dacsend(0, 0, 0);
-		dacsend(1, 0, 0);
-		dacsend(0, 1, 0);
-		dacsend(1, 1, 0);
+		if (seq1PvT == PitchMode)
+		{
+			DAC16Send(1, 0);
+		}
+		else // TriggerMode
+		{
+			// Set 4 trigger outputs low
+			dacsend(0, 0, 0);
+			dacsend(1, 0, 0);
+			dacsend(0, 1, 0);
+			dacsend(1, 1, 0);
+		}
 	}
 }
 
@@ -240,17 +243,20 @@ static void tc2_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC2, TC2_CHANNEL);
 		
-	if (seq2PvT == PitchMode)
+	if (!joystick_mode)
 	{
-		DAC16Send(3, 0);
-	}
-	else // TriggerMode
-	{
-		// Set 4 trigger outputs low
-		dacsend(2, 0, 0);
-		dacsend(3, 0, 0);
-		dacsend(2, 1, 0);
-		dacsend(3, 1, 0);
+		if (seq2PvT == PitchMode)
+		{
+			DAC16Send(3, 0);
+		}
+		else // TriggerMode
+		{
+			// Set 4 trigger outputs low
+			dacsend(2, 0, 0);
+			dacsend(3, 0, 0);
+			dacsend(2, 1, 0);
+			dacsend(3, 1, 0);
+		}
 	}
 }
 
@@ -261,82 +267,61 @@ static void tc3_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 	
-	if (sequencer_mode)
+	if (!joystick_mode)
 	{
-		if (seq1PvT == PitchMode)
+		if (sequencer_mode)
 		{
-			// SequencerOne Pitch
-			DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
+			if (seq1PvT == PitchMode)
+			{
+				// SequencerOne Pitch
+				DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
 			
-			// SequencerOne CV1-CV2
-			dacsend(0, 0, tRampTick(&out10));
-			dacsend(1, 0, tRampTick(&out11));
-			// SequencerOne CV3-CV4
-			dacsend(0, 1, tRampTick(&out20));
-			dacsend(1, 1, tRampTick(&out21));
-		}
-		else //TriggerMode
-		{
-			DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
-			DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
-		}
+				// SequencerOne CV1-CV2
+				dacsend(0, 0, tRampTick(&out10));
+				dacsend(1, 0, tRampTick(&out11));
+				// SequencerOne CV3-CV4
+				dacsend(0, 1, tRampTick(&out20));
+				dacsend(1, 1, tRampTick(&out21));
+			}
+			else //TriggerMode
+			{
+				DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
+				DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+			}
 		
-		if (seq2PvT == PitchMode)
-		{
-			// SequencerTwo Pitch
-			DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
+			if (seq2PvT == PitchMode)
+			{
+				// SequencerTwo Pitch
+				DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
 			
-			// SequencerTwo CV1-CV2
-			dacsend(2, 0, tRampTick(&out12));
-			dacsend(3, 0, tRampTick(&out13));
-			// SequencerTwo CV3-CV4
-			dacsend(2, 1, tRampTick(&out22));
-			dacsend(3, 1, tRampTick(&out23));
+				// SequencerTwo CV1-CV2
+				dacsend(2, 0, tRampTick(&out12));
+				dacsend(3, 0, tRampTick(&out13));
+				// SequencerTwo CV3-CV4
+				dacsend(2, 1, tRampTick(&out22));
+				dacsend(3, 1, tRampTick(&out23));
+			}
+			else //TriggerMode
+			{
+				DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
+				DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+			}
 		}
-		else //TriggerMode
+		else /// KeyMode
 		{
-			DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
-			DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+			for (int i = 0; i < polynum; i++)
+			{
+				DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
+			
+				dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
+			
+				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+			
+				dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
+			}
+
 		}
 	}
-	else /// KeyMode
-	{
-		for (int i = 0; i < polynum; i++)
-		{
-			DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
-			
-			dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
-			
-			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-			
-			dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
-		}
-
-		
-	}
-	
-	
-	/* All lights on.
-	DAC16Send(0,30000);
-	DAC16Send(1,30000);
-	DAC16Send(2,30000);
-	DAC16Send(3,30000);
-	// SequencerOne CV1-CV2
-	dacsend(0, 0, 2000);
-	dacsend(1, 0, 2000);
-	// SequencerOne CV3-CV4
-	dacsend(0, 1, 2000);
-	dacsend(1, 1, 2000);
-	
-	// SequencerTwo CV1-CV2
-	dacsend(2, 0, 2000);
-	dacsend(3, 0, 2000);
-	// SequencerTwo CV3-CV4
-	dacsend(2, 1, 2000);
-	dacsend(3, 1, 2000);
-	*/
-
-		
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
