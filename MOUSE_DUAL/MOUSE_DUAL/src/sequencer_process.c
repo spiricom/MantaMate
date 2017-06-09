@@ -12,9 +12,17 @@
 #include "sequencer.h"
 //#include "7Segment.h"
 
-bool compositionMap[2][16];
+#define NUM_COMP 14
+
+bool compositionMap[2][NUM_COMP];
+
+int currentComp[2] = {-1,-1};
 
 CompositionAction compositionAction = CompositionRead;
+
+int copyStage = 0;
+MantaSequencer copyWhichSeq = SequencerNil;
+int copyWhichComp = -1;
 
 PanelSwitch panelSwitch[NUM_PANEL_MOVES] =
 {
@@ -61,7 +69,6 @@ void setParameterForEditStackSteps(MantaSequencer seq, StepParameterType param, 
 void setParameterForStep(MantaSequencer seq, uint8_t step, StepParameterType param, uint16_t value);
 uint16_t getParameterFromStep(MantaSequencer seq, uint8_t step, StepParameterType param);
 void resetEditStack(void);
-void resetRangeStack(void);
 uint8_t hexUIToStep(uint8_t hexagon);
 uint8_t stepToHexUI(MantaSequencer seq, uint8_t noteIn);
 void downOctaveForEditStackSteps(MantaSequencer seq);
@@ -213,18 +220,17 @@ tSequencer sequencer[NUM_SEQ];
 
 uint8_t amberHexes[NUM_SEQ][MAX_STEPS];
 
-int rangeNoteOn;
-tNoteStack rangeStack;
-
 int editNoteOn; 
 int keyNoteOn;
 int glideNoteOn;
 int trigSelectOn;
 
 
+
+
 tNoteStack editStack;
-tNoteStack noteOnFrame;
-tNoteStack noteOffFrame; // frames refreshed every 2 ms
+//tNoteStack noteOnFrame;
+//tNoteStack noteOffFrame; // frames refreshed every 2 ms
 tNoteStack noteOnStack; // all notes on at any point during runtime
 
 uint8_t range_top = 15;
@@ -295,12 +301,34 @@ void initSHArrays(void)
 	
 }
 
+bool blinkToggle;
+void blink(void)
+{
+	blinkToggle = (blinkToggle == true) ? false : true;		   
+	
+	if (key_vs_option == OptionMode && compositionAction == CompositionCopy)
+	{
+		for (int seq = 0; seq < 2; seq++)
+		{
+			for (int comp = 0; comp < NUM_COMP; comp++)
+			{
+				if (compositionMap[seq][comp])
+				{
+					manta_set_LED_hex(seq * 16 + comp, blinkToggle ? AmberOn : AmberOff);
+				}
+			}
+		}
+		
+		if (copyWhichSeq != SequencerNil && copyWhichComp != -1) 
+			manta_set_LED_hex(copyWhichSeq * 16 + copyWhichComp, blinkToggle ? Red : Off);
+	}
+}
+
 void initSequencer(void)
 {
 	sequencer_mode = 1;
 	
-	compositionMap[SequencerOne][0] = true;
-	compositionMap[SequencerTwo][0] = true;
+	
 	
 	//memorySPIEraseBlock(preset_num); // DONT KEEP THIS
 	
@@ -333,10 +361,6 @@ void initSequencer(void)
 	
 	resetEditStack();
 	
-	tNoteStack_init(&noteOffFrame,	32);
-	tNoteStack_init(&noteOnFrame,	32);
-	tNoteStack_init(&rangeStack,	32);
-	
 	// Initialize the noteOnStack. :D !!!
 	tNoteStack_init(&noteOnStack, 32); 
 	// Glad I commented that - thanks @Josh Becker for the tip on appropriate commenting.
@@ -344,13 +368,21 @@ void initSequencer(void)
 	setCurrentSequencer(SequencerOne);
 	keyNoteOn = -1;
 	glideNoteOn = -1;
-	rangeNoteOn = -1;
 	
 	seq1PvT = PitchMode; seq2PvT = PitchMode;
 	for (int i = 0; i < NUM_SEQ; i++)
-	{		
+	{
 		tSequencer_init(&sequencer[i], PitchMode, 32);
+		
+		
+		tSequencer_encode(&sequencer[i], &encodeBuffer);
+		memoryInternalWriteSequencer(i, 0, &encodeBuffer);
+		
+		compositionMap[i][0] = true;
+		currentComp[i] = 0;
 	}
+	
+	
 	
 	setSequencerLEDsFor(currentSequencer);
 	
@@ -431,22 +463,30 @@ void processSequencer(void)
 	//check the sequencer step hexagons
 	for (i = 0; i < MAX_STEPS; i++)
 	{
-		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
-		{
-			newHexUIOn = i;
-			newLowerHexSeq = 1;
-			tNoteStack_add(&noteOnFrame,	i);
-			tNoteStack_add(&noteOnStack, i);
-		}
-		
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
 			newHexUIOff = i;
 			newReleaseLowerHexSeq = 1;
-			tNoteStack_add(&noteOffFrame,	i);
+			
 			tNoteStack_remove(&noteOnStack, i);
 			
+			releaseLowerHex(newHexUIOff);
+			
+			
 		}
+		
+		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
+		{
+			newHexUIOn = i;
+			newLowerHexSeq = 1;
+			
+			tNoteStack_add(&noteOnStack, i);
+			
+			touchLowerHex(newHexUIOn);
+			
+		}
+		
+		
 		pastbutt_states[i] = butt_states[i];
 	}
 	
@@ -487,9 +527,9 @@ void processSequencer(void)
 		past_func_button_states[i] = func_button_states[i];
 	}
 	
-	if (newReleaseLowerHexSeq)		releaseLowerHex(newHexUIOff);
+	//if (newReleaseLowerHexSeq)		releaseLowerHex(newHexUIOff);
 	
-	if (newLowerHexSeq)				touchLowerHex(newHexUIOn);
+	//if (newLowerHexSeq)				touchLowerHex(newHexUIOn);
 	
 	if (newReleaseUpperHexSeq)		releaseUpperHex(newUpperHexUI);
 
@@ -528,48 +568,28 @@ void releaseLowerHex(uint8_t hexagon)
 	
 	if (edit_vs_play == EditMode)
 	{
-		uint8_t hex = 0;
-		for (int i = 0; i < noteOffFrame.size; i++)
-		{
-			hex = noteOffFrame.notestack[i];			
-			if (hex == editNoteOn)
-			{	
-				if (noteOnStack.size)	editNoteOn = noteOnStack.notestack[0];
-				else					editNoteOn = -1;
-				
-			}
-		}
+
+		if (noteOnStack.size > 0)		editNoteOn = editStack.notestack[0];
+		else							editNoteOn = -1;
+			
+	
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
-		for (int i = 0; i < noteOffFrame.size; i++)
+		int step = hexUIToStep(hexagon);
+			
+		if (playSubMode == ArpMode)
 		{
-			int hex = noteOffFrame.notestack[i];
-			int step = hexUIToStep(hex);
-			
-			if (playSubMode == ArpMode)
-			{
-				tSequencer_toggleStep(&sequencer[currentSequencer],step);
+			tSequencer_toggleStep(&sequencer[currentSequencer],step);
 				
-				manta_set_LED_hex(hex, Off);
-			} 
-			else if (playSubMode == RangeMode)
-			{
-				tNoteStack_remove(&rangeStack, hexagon);
-				
-				if (hex == rangeNoteOn)
-				{
-					rangeNoteOn = -1;
-				}
-			}
-			else // SeqMode
-			{
+			manta_set_LED_hex(hexagon, Off);
+		} 
+		else // SeqMode
+		{
 			
-			}
 		}
+		
 	}
-	
-	tNoteStack_clear(&noteOffFrame);
 	newReleaseLowerHexSeq = 0;
 }
 
@@ -585,17 +605,30 @@ void setCompositionLEDs(void)
 {
 	for (int seq = 0 ; seq < 2; seq++)
 	{
-		for (int comp = 0; comp < 16; comp++)
+		for (int comp = 0; comp < NUM_COMP; comp++)
 		{
 			if (compositionMap[seq][comp])
 			{
-				if (compositionAction == CompositionRead)	manta_set_LED_hex(seq * 16 + comp, Amber);
-				else /* CompositionWrite */					manta_set_LED_hex(seq * 16 + comp, Red);
+				if (compositionAction == CompositionRead)		manta_set_LED_hex(seq * 16 + comp, (currentComp[seq] == comp) ? Red : Amber);
+				else if (compositionAction == CompositionWrite)	manta_set_LED_hex(seq * 16 + comp, Red);
 			}
 			
 		}
+		
+		
+		
 	}
+	
+	manta_set_LED_hex(14, Amber);
+	manta_set_LED_hex(15, Red);
+	
+	manta_set_LED_hex(30, Amber);
+	manta_set_LED_hex(31, Red);
 }
+
+
+
+
 MantaSequencer whichSeq_test;
 int whichComp_test;
 void touchLowerHex(uint8_t hexagon)
@@ -605,249 +638,225 @@ void touchLowerHex(uint8_t hexagon)
 		MantaSequencer whichSeq = (hexagon < 16) ? SequencerOne : SequencerTwo;
 		int whichComp = (hexagon < 16) ? hexagon : (hexagon - 16);
 		
-		whichSeq_test = whichSeq;
-		whichComp_test = whichComp;
+		if (whichComp == 14)
+		{
 		
-		if (compositionAction == CompositionRead)
-		{
-			manta_set_LED_hex(hexagon, Red);
-			
-			if (compositionMap[whichSeq][whichComp])
-			{
-				memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
-				tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
-			}
-
+			manta_set_LED_hex(whichSeq * 16 + 14, Red);	
 		}
-		else // CompositionWrite 
+		else if (whichComp == 15)
 		{
-			manta_set_LED_hex(hexagon, Amber);
+			tSequencer_init(&sequencer[whichSeq], sequencer[whichSeq].pitchOrTrigger, 32);
 			
-			compositionMap[whichSeq][whichComp] = true;
-			tSequencer_encode(&sequencer[currentSequencer], &encodeBuffer);
-			memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
+			manta_set_LED_hex(whichSeq * 16 + 15, Amber);
+		}
+		else 
+		{
+			if (compositionAction == CompositionRead)
+			{
+				if (compositionMap[whichSeq][whichComp])
+				{
+					memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
+					tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
+					
+					currentComp[whichSeq] = whichComp;
+					
+					setCurrentSequencer(whichSeq);
+					
+					setOptionLEDs();
+				}
+
+			}
+			else if (compositionAction == CompositionWrite) // CompositionWrite
+			{
+				manta_set_LED_hex(hexagon, Amber);
+				
+				compositionMap[whichSeq][whichComp] = true;
+				tSequencer_encode(&sequencer[whichSeq], &encodeBuffer);
+				memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
+			}
+			else if (compositionAction == CompositionCopy)
+			{
+				if (copyStage == 0)
+				{
+					// this determines sequence to be copied
+					if (compositionMap[whichSeq][whichComp])
+					{
+						copyWhichSeq = whichSeq;
+						copyWhichComp = whichComp;
+						
+						copyStage = 1;
+					}
+				}
+				else if (copyStage == 1)
+				{
+					// any hex pressed while still in copy mode is written with sequencer from copystage 1
+					if (!(whichSeq == copyWhichSeq && whichComp == copyWhichComp)) // if not the same step, copy
+					{
+						manta_set_LED_hex(hexagon, Red);
+						compositionMap[whichSeq][whichComp] = true;
+						memoryInternalCopySequencer(copyWhichSeq, copyWhichComp, whichSeq, whichComp);
+					}
+				}
+				
+			}
+			
+		}
+		
+		return;
+		
+	}
+
+	if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
+	{
+		//tNoteStack_clear(&noteOnFrame);
+		newLowerHexSeq = 0;
+		return;
+	}
+		
+	if (tNoteStack_contains(&editStack,hexagon) < 0)	resetSliderMode();
+
+	// Set hexUIs for this processing frame.
+	prevHexUI = currentHexUI;
+	currentHexUI = hexagon;
+
+	MantaSequencer sequencerToSet = currentSequencer;
+	if (full_vs_split == SplitMode)
+	{
+		if (hexagon < 16)	setCurrentSequencer(SequencerOne);
+		else				setCurrentSequencer(SequencerTwo);
+			
+		if (sequencerToSet != currentSequencer)
+		{
+			resetEditStack();
+			if (edit_vs_play != TrigToggleMode)
+			{
+				setSequencerLEDsFor(SequencerOne);
+				setSequencerLEDsFor(SequencerTwo);
+			}
+			else
+			{
+				setTriggerPanelLEDsFor(SequencerOne,currentPanel[SequencerOne]);
+				setTriggerPanelLEDsFor(SequencerTwo,currentPanel[SequencerTwo]);
+			}
+		}
+	}
+		
+		
+	uint8_t uiHexCurrentStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].currentStep);
+	uint8_t uiHexPrevStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].prevStep);
+		
+	int step = hexUIToStep(hexagon);
+			
+	if (edit_vs_play == EditMode)
+	{
+		if (editNoteOn >= 0)
+		{
+			// If hex is not in editStack, add it
+			if (tNoteStack_contains(&editStack, hexagon) < 0)
+			{
+				tNoteStack_add(&editStack, hexagon);
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else
+			{
+				tNoteStack_remove(&editStack, hexagon);
+
+				if (amberHexes[currentSequencer][hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
+				else											manta_set_LED_hex(hexagon, Off);
+			}
+		}
+		else
+		{
+			resetEditStack();
+			setSequencerLEDsFor(sequencerToSet);
+					
+			editNoteOn = hexagon;
+			manta_set_LED_hex(editNoteOn, Red);
+		}
+
+	}
+	else if (edit_vs_play == PlayToggleMode)
+	{
+		tNoteStack_remove(&editStack, prevHexUI);
+		tNoteStack_add(&editStack, currentHexUI);
+				
+		if (playSubMode == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
+		{
+			if (tSequencer_toggleStep(&sequencer[currentSequencer], step))
+			{
+				manta_set_LED_hex(hexagon, AmberOn);
+				amberHexes[currentSequencer][hexagon] = 1;
+			}
+			else
+			{
+				manta_set_LED_hex(hexagon, AmberOff);
+				amberHexes[currentSequencer][hexagon] = 0;
+				if (hexagon == uiHexCurrentStep)
+				{
+					manta_set_LED_hex(hexagon, RedOff);
+				}
+			}
+		}
+		else // ArpMode
+		{
+			tSequencer_toggleStep(&sequencer[currentSequencer], step);
+			manta_set_LED_hex(hexagon, AmberOn);
+		}
+	}
+	else // TrigToggleMode
+	{
+		tNoteStack_remove(&editStack, prevHexUI);
+		tNoteStack_add(&editStack,currentHexUI);
+				
+		int currPanel = currentPanel[currentSequencer];
+				
+		int cont = 1;
+				
+		if (cont)
+		{
+			if (sequencer[currentSequencer].step[step].on[currPanel])
+			{
+				sequencer[currentSequencer].step[step].on[currPanel] = 0;
+				manta_set_LED_hex(currentHexUI, RedOff);
+			}
+			else
+			{
+				sequencer[currentSequencer].step[step].on[currPanel] = 1;
+				manta_set_LED_hex(currentHexUI, RedOn);
+			}
+					
+		}
+	}
+
+	if (key_vs_option == KeyboardMode)
+	{
+		if (edit_vs_play != TrigToggleMode)
+		{
+			if (editStack.size > 1)
+			{
+				setKeyboardLEDsFor(currentSequencer, -1);
+			}
+			else
+			{
+				setKeyboardLEDsFor(currentSequencer, hexUIToStep(hexagon));
+			}
 		}
 	}
 	else
 	{
-		if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
-		{
-			tNoteStack_clear(&noteOnFrame);
-			newLowerHexSeq = 0;
-			return;
-		}
+		setOptionLEDs();
+	}
 		
-		if (tNoteStack_contains(&editStack,hexagon) < 0)	resetSliderMode();
-
-		// Set hexUIs for this processing frame.
-		prevHexUI = currentHexUI;
-		currentHexUI = hexagon;
-
-		MantaSequencer sequencerToSet = currentSequencer;
-		if (full_vs_split == SplitMode)
-		{
-			if (hexagon < 16)	setCurrentSequencer(SequencerOne);
-			else				setCurrentSequencer(SequencerTwo);
-			
-			if (sequencerToSet != currentSequencer)
-			{
-				resetEditStack();
-				if (edit_vs_play != TrigToggleMode)
-				{
-					setSequencerLEDsFor(SequencerOne);
-					setSequencerLEDsFor(SequencerTwo);
-				}
-				else
-				{
-					setTriggerPanelLEDsFor(SequencerOne,currentPanel[SequencerOne]);
-					setTriggerPanelLEDsFor(SequencerTwo,currentPanel[SequencerTwo]);
-				}
-			}
-		}
-		
-		
-		uint8_t uiHexCurrentStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].currentStep);
-		uint8_t uiHexPrevStep = stepToHexUI(currentSequencer, sequencer[currentSequencer].prevStep);
-		
-		int step = 0;
-		
-		for (int i = 0; i < noteOnFrame.size; i++)
-		{
-			hexagon = noteOnFrame.notestack[i];
-			step = hexUIToStep(hexagon);
-			
-			if (edit_vs_play == EditMode)
-			{
-				if (editNoteOn >= 0)
-				{
-					// If the first hex added is still touched, add new hex to edit stack.
-					if (tNoteStack_contains(&editStack, hexagon) == -1)
-					{
-						tNoteStack_add(&editStack, hexagon);
-						manta_set_LED_hex(hexagon, Red);
-					}
-					else
-					{
-						tNoteStack_remove(&editStack, hexagon);
-
-						if (amberHexes[currentSequencer][hexagon] == 1)	manta_set_LED_hex(hexagon, Amber);
-						else											manta_set_LED_hex(hexagon, Off);
-					}
-				}
-				else
-				{
-					resetEditStack();
-					setSequencerLEDsFor(sequencerToSet);
-					
-					editNoteOn = tNoteStack_first(&editStack);
-					manta_set_LED_hex(editNoteOn, Red);
-				}
-
-			}
-			else if (edit_vs_play == PlayToggleMode)
-			{
-				tNoteStack_remove(&editStack, prevHexUI);
-				tNoteStack_add(&editStack, currentHexUI);
-				
-				if (playSubMode == SeqMode) // note ons should toggle sequencer steps in and out of the pattern
-				{
-					if (tSequencer_toggleStep(&sequencer[currentSequencer], step))
-					{
-						manta_set_LED_hex(hexagon, AmberOn);
-						amberHexes[currentSequencer][hexagon] = 1;
-					}
-					else
-					{
-						manta_set_LED_hex(hexagon, AmberOff);
-						amberHexes[currentSequencer][hexagon] = 0;
-						if (hexagon == uiHexCurrentStep)
-						{
-							manta_set_LED_hex(hexagon, RedOff);
-						}
-					}
-				}
-				else if (playSubMode == RangeMode)
-				{
-					if (rangeNoteOn >= 0)
-					{
-						// If the first hex added is still touched, add new hex to edit stack.
-						// (contains returns index of hex in notestack if hex is found)
-						
-						clearSequencer(currentSequencer);
-						
-						if (tNoteStack_contains(&rangeStack, hexagon) < 0)
-						{
-							tNoteStack_add(&rangeStack, hexagon);
-							manta_set_LED_hex(hexagon, Red);
-						}
-
-						first = 32;
-						last = -1;
-						int rangeHex = -1;
-						for (int i = 0; i < rangeStack.size; i++)
-						{
-							rangeHex = tSequencer_getStepFromHex(&sequencer[currentSequencer], rangeStack.notestack[i]);
-							
-							if (rangeHex >= 0)
-							{
-								if (rangeHex < first)
-								{
-									first = rangeHex;
-								}
-								
-								if (rangeHex > last)
-								{
-									last = rangeHex;
-								}
-								
-							}
-						}
-						
-						for (int i = first; i <= last; i++)
-						{
-
-							int nextStep = tSequencer_getHexFromStep(&sequencer[currentSequencer], i);
-							tSequencer_toggleStep(&sequencer[currentSequencer], hexUIToStep(nextStep));
-
-							manta_set_LED_hex(nextStep, AmberOn);
-						}
-						
-					}
-					else
-					{
-						resetRangeStack();
-						setSequencerLEDsFor(sequencerToSet);
-						
-						rangeNoteOn = tNoteStack_first(&rangeStack);
-						manta_set_LED_hex(rangeNoteOn,Red);
-					}
-
-				}
-				else // ArpMode
-				{
-					tSequencer_toggleStep(&sequencer[currentSequencer], step);
-					manta_set_LED_hex(hexagon, AmberOn);
-				}
-			}
-			else // TrigToggleMode
-			{
-				tNoteStack_remove(&editStack, prevHexUI);
-				tNoteStack_add(&editStack,currentHexUI);
-				
-				int currPanel = currentPanel[currentSequencer];
-				
-				int cont = 1;
-				
-				if (cont)
-				{
-					if (sequencer[currentSequencer].step[step].on[currPanel])
-					{
-						sequencer[currentSequencer].step[step].on[currPanel] = 0;
-						manta_set_LED_hex(currentHexUI, RedOff);
-					}
-					else
-					{
-						sequencer[currentSequencer].step[step].on[currPanel] = 1;
-						manta_set_LED_hex(currentHexUI, RedOn);
-					}
-					
-				}
-			}
-		}
-		
-
-		if (key_vs_option == KeyboardMode)
-		{
-			if (edit_vs_play != TrigToggleMode)
-			{
-				if (editStack.size > 1)
-				{
-					setKeyboardLEDsFor(currentSequencer, -1);
-				}
-				else
-				{
-					setKeyboardLEDsFor(currentSequencer, hexUIToStep(hexagon));
-				}
-			}
-		}
-		else
-		{
-			setOptionLEDs();
-		}
-		
-		if (editStack.size > 1)
-		{
-			setSliderLEDsFor(currentSequencer, -1);
-		}
-		else
-		{
-			setSliderLEDsFor(currentSequencer, hexUIToStep(hexagon));
-		}
+	if (editStack.size > 1)
+	{
+		setSliderLEDsFor(currentSequencer, -1);
+	}
+	else
+	{
+		setSliderLEDsFor(currentSequencer, hexUIToStep(hexagon));
 	}
 	
 	
-	
-	tNoteStack_clear(&noteOnFrame);
 	newLowerHexSeq = 0;
 }
 
@@ -873,7 +882,6 @@ void switchToMode(MantaEditPlayMode mode)
 			
 		}
 		
-		manta_set_LED_button(ButtonTopRight, Off);
 	}
 	else if (mode == PlayToggleMode)
 	{
@@ -886,9 +894,7 @@ void switchToMode(MantaEditPlayMode mode)
 		{
 			setSequencerLEDsFor(currentSequencer);
 		}
-		
 		manta_set_LED_button(ButtonTopRight, Amber);
-		
 	}
 	else // EditMode
 	{
@@ -1389,21 +1395,6 @@ void touchUpperHex(uint8_t hexagon)
 				}
 			}
 		}
-		/*
-		else if (whichOptionType == OptionNilTwo)
-		{
-			// WRITE
-			
-			
-			
-			
-		}
-		else if (whichOptionType == OptionNilThree)
-		{
-			// READ
-			
-		}
-		*/
 		
 
 		setOptionLEDs();
@@ -1476,12 +1467,12 @@ void releaseTopLeftButton(void)
 // ~ ~ ~ ~ TOP RIGHT BUTTON ~ ~ ~ ~ //
 void touchTopRightButton(void)
 {
-	if (key_vs_option == OptionMode) return;
-}
-
-void releaseTopRightButton(void)
-{
-	if (key_vs_option == OptionMode) return;
+	if (key_vs_option == OptionMode)
+	{
+		compositionAction = CompositionCopy;
+		
+		return;
+	}
 	
 	resetEditStack();
 	
@@ -1507,12 +1498,25 @@ void releaseTopRightButton(void)
 	setSliderLEDsFor(currentSequencer, hexUIToStep(tNoteStack_first(&editStack)));
 }
 
+void releaseTopRightButton(void)
+{
+	compositionAction = CompositionRead;
+	copyStage = 0;
+	copyWhichSeq = SequencerNil;
+	copyWhichComp = -1;
+	
+	if (key_vs_option == OptionMode) setCompositionLEDs();
+	
+	
+}
+
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
 void touchBottomLeftButton(void)
 {
 	key_vs_option = OptionMode;
 	
 	allUIStepsOff(currentSequencer);
+	
 	setOptionLEDs();
 	
 	manta_set_LED_button(ButtonBottomLeft, Red);
@@ -1521,7 +1525,11 @@ void touchBottomLeftButton(void)
 
 void releaseBottomLeftButton(void)
 {
+	releaseBottomRightButton();
+	
 	key_vs_option = KeyboardMode;
+	
+	
 	
 	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentSequencer, 0);
 	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentSequencer, -1);
@@ -1543,21 +1551,10 @@ void touchBottomRightButton(void)
 	{
 		if (playSubMode == SeqMode)
 		{
-			playSubMode = RangeMode;
-			resetRangeStack();
+			playSubMode = ArpMode;
 			manta_set_LED_button(ButtonBottomRight, Amber);
 		}
-		else if (playSubMode == RangeMode)
-		{
-			playSubMode = ArpMode;
-			
-			tSequencer_clearSteps(&sequencer[SequencerOne]);
-			tSequencer_clearSteps(&sequencer[SequencerTwo]);
-			
-			setSequencerLEDsFor(currentSequencer);
-			
-			manta_set_LED_button(ButtonBottomRight, Red);
-		} else // ArpMode
+		else // ArpMode
 		{
 			playSubMode = SeqMode;
 			manta_set_LED_button(ButtonBottomRight, Off);
@@ -1834,7 +1831,7 @@ void uiStep(MantaSequencer seq)
 		else
 		{
 			manta_set_LED_hex(uiHexPrevStep, RedOff);
-			manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			if (sequencer[seq].notestack.size > 0) manta_set_LED_hex(uiHexCurrentStep, RedOn);
 		}
 		
 	}
@@ -1948,6 +1945,12 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 			}
 		}		
 	}
+	
+	manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
+	manta_set_LED_button(ButtonBottomLeft, Off);
+	manta_set_LED_button(ButtonBottomRight, (playSubMode == SeqMode) ? Off : Amber);
+	
+	manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 }
 
 
@@ -2105,6 +2108,10 @@ void setOptionLEDs(void)
 	manta_set_LED_hex(MAX_STEPS + 9, (sequencer[SequencerTwo].pitchOrTrigger == PitchMode) ? Amber : Red);
 
 	manta_set_LED_hex(MAX_STEPS + 10, (full_vs_split == FullMode) ? Amber : Red);
+	
+	manta_set_LED_button(ButtonBottomRight, Red); // Write
+	manta_set_LED_button(ButtonTopRight, Amber); // Copy
+	manta_set_LED_button(ButtonTopLeft, Off); // Nothing for now
 	
 	setCompositionLEDs();
 
@@ -2406,14 +2413,6 @@ void resetEditStack(void)
 	else												tNoteStack_add(&editStack,0);
 }
 
-void resetRangeStack(void)
-{
-	tNoteStack_clear(&rangeStack);
-	rangeNoteOn = -1;
-	tNoteStack_add(&rangeStack, currentHexUI);
-}
-
-
 void seqwait(void)
 {
 	static uint8_t i = 0;
@@ -2441,4 +2440,14 @@ void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer)
 	{
 		memoryInternalCompositionBuffer[whichSeq][(whichhex*sizeOfSerializedSequence) + i] = buffer[i];
 	}
+}
+
+void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int destComp)
+{
+	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	{
+		memoryInternalCompositionBuffer[destSeq][(destComp*sizeOfSerializedSequence) + i] = 
+			memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
+	}
+	
 }
