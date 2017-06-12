@@ -112,6 +112,9 @@ unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char savingActive = 0;
+unsigned char globalGlide = 0;
+unsigned char globalGlideMax = 99;
+
 
 GlobalPreferences preference_num = NO_PREFERENCES;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
@@ -125,6 +128,9 @@ uint8_t spi_mode = 0;
 uint8_t new_manta_attached = false;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
+uint32_t clock_speed_max = 99; 
+uint32_t clock_speed_displayed = 0;
+
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
 uint8_t sequencer_mode = 0; 
 uint8_t joystick_mode = 0; 
@@ -668,36 +674,130 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (whichSwitch)
-	{
-		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+	if (preference_num == NO_PREFERENCES)
+	{	
+		if (whichSwitch)
 		{
-			if (preset_num >= 99)
-			{
-				preset_num = 99;
-			}
-			else
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
 			{
 				preset_num++;
+				if (preset_num > 99)
+				{
+					preset_num = 99;
+				}
 			}
-			
 		}
-	}
-	else 
-	{
-		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+		else 
 		{
-			if (preset_num <= 0)
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
 			{
-				preset_num = 0;
-			}
-			else
-			{
-				preset_num--;
+				if (preset_num <= 0)
+				{
+					preset_num = 0;
+				}
+				else
+				{
+					preset_num--;
+				}
 			}
 		}
+		updatePreset();
+		Write7Seg(preset_num);
 	}
-	updatePreset();
+	
+	else if (preference_num == TUNING_SELECT)
+	{
+
+		if (whichSwitch)
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			{
+				tuning++;
+				if (tuning >= numTunings)
+				{
+					tuning = numTunings - 1;
+				}
+			}
+		}
+		else
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			{
+				if (tuning <= 0)
+				{
+					tuning = 0;
+				}
+				else
+				{
+					tuning--;
+				}
+			}
+		}
+		Write7Seg(tuning);
+	}
+	
+	else if (preference_num == PORTAMENTO_TIME)
+	{
+
+		if (whichSwitch)
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			{
+				globalGlide++;
+				if (globalGlide >= globalGlideMax)
+				{
+					globalGlide = globalGlideMax - 1;
+				}
+			}
+		}
+		else
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			{
+				if (globalGlide <= 0)
+				{
+					globalGlide = 0;
+				}
+				else
+				{
+					globalGlide--;
+				}
+			}
+		}
+		Write7Seg(globalGlide);
+	}
+	
+	else if (preference_num == INTERNAL_CLOCK)
+	{
+
+		if (whichSwitch)
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			{
+				clock_speed_displayed++;
+				if (clock_speed_displayed >= clock_speed_max)
+				{
+					clock_speed_displayed = clock_speed_max - 1;
+				}
+			}
+		}
+		else
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			{
+				if (clock_speed_displayed <= 0)
+				{
+					clock_speed_displayed = 0;
+				}
+				else
+				{
+					clock_speed_displayed--;
+				}
+			}
+		}
+		clock_speed = (clock_speed_displayed * 20);
+		Write7Seg(clock_speed_displayed);
+	}
 }
 
 void Preferences_Switch_Check(void)
@@ -751,8 +851,6 @@ void updatePreset(void)
 		default: 
 		break;	
 	}
-	
-	Write7Seg(preset_num);
 }
 
 void updatePreferences(void)
@@ -763,24 +861,28 @@ void updatePreferences(void)
 		LED_Off(LEFT_POINT_LED);
 		LED_Off(RIGHT_POINT_LED);
 		LED_Off(PREFERENCES_LED);
+		Write7Seg(preset_num);
 		break;
 		
 		case TUNING_SELECT:
 		LED_Off(LEFT_POINT_LED);
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
+		Write7Seg(tuning);
 		break;
 		
 		case PORTAMENTO_TIME:
 		LED_On(LEFT_POINT_LED);
 		LED_Off(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
+		Write7Seg(globalGlide);
 		break;
 		
 		case INTERNAL_CLOCK:
 		LED_On(LEFT_POINT_LED);
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
+		Write7Seg(clock_speed_displayed);
 		break;
 	}
 }
