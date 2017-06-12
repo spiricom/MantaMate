@@ -113,16 +113,8 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char savingActive = 0;
 
-enum preferences_t
-{
-	NO_PREFERENCES,
-	TUNING_SELECT,
-	PORTAMENTO_TIME,
-	INTERNAL_CLOCK,
-	PREFERENCES_COUNT
-};
-enum preferences_t preference_num = NO_PREFERENCES;
-enum preferences_t num_preferences = PREFERENCES_COUNT;
+GlobalPreferences preference_num = NO_PREFERENCES;
+GlobalPreferences num_preferences = PREFERENCES_COUNT;
 
 static volatile bool main_b_midi_enable = false;
 uint32_t dummycounter = 0;
@@ -803,7 +795,6 @@ void updateSave(void)
 	{
 		LED_Off(PRESET_SAVE_LED);
 	}
-	
 }
 void clockHappened(void)
 {

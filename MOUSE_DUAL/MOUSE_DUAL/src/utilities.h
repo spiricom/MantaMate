@@ -34,6 +34,17 @@ typedef enum MantaSequencer {
 	SequencerNil,
 } MantaSequencer;
 
+typedef enum GlobalPreferences
+{
+	NO_PREFERENCES,
+	TUNING_SELECT,
+	PORTAMENTO_TIME,
+	INTERNAL_CLOCK,
+	PREFERENCES_COUNT
+}GlobalPreferences;
+
+
+
 typedef enum MantaEditPlayMode {
 	EditMode = 0,
 	PlayToggleMode,
