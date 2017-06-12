@@ -111,6 +111,18 @@ unsigned short DAC1outhigh = 0;
 unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
+unsigned char savingActive = 0;
+
+enum preferences_t
+{
+	NO_PREFERENCES,
+	TUNING_SELECT,
+	PORTAMENTO_TIME,
+	INTERNAL_CLOCK,
+	PREFERENCES_COUNT
+};
+enum preferences_t preference_num = NO_PREFERENCES;
+enum preferences_t num_preferences = PREFERENCES_COUNT;
 
 static volatile bool main_b_midi_enable = false;
 uint32_t dummycounter = 0;
@@ -577,7 +589,7 @@ static void eic_int_handler1(void)
 }
 
 
-// interrupt handler to find the state of the HOST/DEVICE switch on the panel
+// interrupt handler to find the state of the pushbutton switches on the panel and the USB vbus sensing pin
 __attribute__((__interrupt__))
 static void int_handler_switches (void)
 {
@@ -595,8 +607,6 @@ static void int_handler_switches (void)
 		//down switch
 		delay_us(500); // to de-bounce
 		Preset_Switch_Check(0);
-		LED_On(LED2);
-		LED_Off(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH1);
 	}
@@ -606,8 +616,6 @@ static void int_handler_switches (void)
 		//up switch
 		delay_us(500); // to de-bounce
 		Preset_Switch_Check(1);
-		LED_Off(LED2);
-		LED_On(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH2);
 	}
@@ -617,8 +625,7 @@ static void int_handler_switches (void)
 		//up switch
 		delay_us(500); // to de-bounce
 		//Preset_Switch_Check(1);
-		LED_Off(LED4);
-		LED_On(LED0);
+		Preferences_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PREFERENCES_SWITCH);
 	}
@@ -628,8 +635,7 @@ static void int_handler_switches (void)
 		//up switch
 		delay_us(500); // to de-bounce
 		//Preset_Switch_Check(1);
-		LED_Off(LED0);
-		LED_On(LED4);
+		Save_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_SAVE_SWITCH);
 	}
@@ -638,7 +644,6 @@ static void int_handler_switches (void)
 
 void USB_Mode_Switch_Check(void)
 {
-		
 		int myTemp = gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
 		
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
@@ -703,6 +708,29 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	updatePreset();
 }
 
+void Preferences_Switch_Check(void)
+{
+	if (!gpio_get_pin_value(GPIO_PREFERENCES_SWITCH))
+	{
+		preference_num++;
+		if (preference_num >= num_preferences)
+		{
+			preference_num = 0;
+		}
+		updatePreferences();
+	}
+}
+
+void Save_Switch_Check(void)
+{
+	if (!gpio_get_pin_value(GPIO_SAVE_SWITCH))
+	{
+		savingActive = !savingActive;
+		updateSave();
+	}
+}
+
+
 void updatePreset(void)
 {
 	
@@ -735,6 +763,48 @@ void updatePreset(void)
 	Write7Seg(preset_num);
 }
 
+void updatePreferences(void)
+{
+	switch(preference_num)
+	{
+		case NO_PREFERENCES:
+		LED_Off(LEFT_POINT_LED);
+		LED_Off(RIGHT_POINT_LED);
+		LED_Off(PREFERENCES_LED);
+		break;
+		
+		case TUNING_SELECT:
+		LED_Off(LEFT_POINT_LED);
+		LED_On(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		break;
+		
+		case PORTAMENTO_TIME:
+		LED_On(LEFT_POINT_LED);
+		LED_Off(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		break;
+		
+		case INTERNAL_CLOCK:
+		LED_On(LEFT_POINT_LED);
+		LED_On(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		break;
+	}
+}
+
+void updateSave(void)
+{
+	if (savingActive)
+	{
+		LED_On(PRESET_SAVE_LED);
+	}
+	else
+	{
+		LED_Off(PRESET_SAVE_LED);
+	}
+	
+}
 void clockHappened(void)
 {
 	

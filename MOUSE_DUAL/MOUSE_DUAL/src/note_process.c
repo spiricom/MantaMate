@@ -36,7 +36,7 @@ signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 
 enum maps_t whichmap = NO_MAP;
-unsigned long scaledoctaveDACvalue = 54613; //was 54780, but this should be mathematically correct (65535/10/12 = numbers per semitone, * 100 to add resolution for fixed point operations)
+unsigned long scaledoctaveDACvalue = 54613; 
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
@@ -92,10 +92,6 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	uint8_t j;
 	checkstolen = -1;
 	signed int mappedNote = 0;
-
-	//it's a note-on -- add it to the monophonic stack
-	//if(numnotes == 0)
-	//	DAC16Send(3,0xFFFF);
 		
 	// this function needs to check the incoming note value against the currently used manta map if it's for the manta, in order to know not to sensors that don't represent notes (a -1 in the noteMap)
 	// it seems inefficient to calculate this twice, so we should store this and pass it to the calculateDACvalue instead of calculating it there, too. Not sure where to do that yet, as currently sendNote is called separately, and they don't know about each other.

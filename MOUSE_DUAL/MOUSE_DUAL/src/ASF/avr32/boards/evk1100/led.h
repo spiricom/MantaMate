@@ -69,6 +69,13 @@
 //! @}
 
 
+#define PREFERENCES_LED LED0
+#define USB_CONNECTED_LED LED4
+#define RIGHT_POINT_LED LED2
+#define LEFT_POINT_LED LED1
+#define PRESET_SAVE_LED LED5
+
+
 /*! \brief Gets the last state of all LEDs set through the LED API.
  *
  * \return State of all LEDs (1 bit per LED).

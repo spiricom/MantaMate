@@ -394,7 +394,6 @@ void initSequencer(void)
 
 void sequencerStep(void)
 {
-	LED_Toggle(LED5);
 	
 	int offset,cstep,curr;
 	

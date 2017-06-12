@@ -142,10 +142,10 @@ void ui_host_connection_event(uhc_device_t *dev, bool b_present)
 	LED_Off(LED5);
 
 	if (b_present) {
-		LED_On(LED4);
+		LED_On(USB_CONNECTED_LED);
 	} else {
 		ui_enum_status = UHC_ENUM_DISCONNECT;
-		LED_Off(LED4);
+		LED_Off(USB_CONNECTED_LED);
 	}
 }
 

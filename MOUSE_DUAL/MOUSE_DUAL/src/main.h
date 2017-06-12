@@ -122,6 +122,7 @@ extern uint8_t new_manta_attached;
 
 extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
+extern unsigned char savingActive;
 extern uint32_t clock_speed;
 extern uint8_t sequencer_mode;
 extern uint8_t joystick_mode;
@@ -130,11 +131,16 @@ extern uint32_t USB_frame_counter;
 //set up the external interrupt for the gate input
 void setupEIC(void);
 void updatePreset(void);
+void updatePreferences(void);
+void updateSave(void);
 void Preset_Switch_Check(uint8_t whichSwitch);
+void Save_Switch_Check(void);
+void Preferences_Switch_Check(void);
 void USB_Mode_Switch_Check(void);
 void clockHappened(void);
 void enterBootloader(void);
 void sendDataToExternalMemory(void);
+
 
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
