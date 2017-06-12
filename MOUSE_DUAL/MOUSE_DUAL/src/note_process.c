@@ -43,12 +43,11 @@ unsigned char octaveoffset = 0;
 uint8_t amplitude = 0;
 unsigned char lastButtVCA = 0; //0 if you want to turn this off
 
-unsigned int led_map[] = {LED3, LED2, LED1, LED0}; //map the voice number to the led number
 
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
-unsigned char polymode = 0; //need to implement
+unsigned char polymode = 0;
 
 
 unsigned char changevoice[4]; // flags to indicate a voice has a new note value
@@ -58,15 +57,6 @@ unsigned char voicefound = 0; // have we found a polyphony voice slot for the in
 unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
-
-static uint8_t newUpperHexKeys = 0;
-static uint8_t newReleaseUpperHexKeys = 0;
-
-static uint8_t newLowerHexKeys = 0;
-static uint8_t newReleaseLowerHexKeys = 0;
-
-static uint8_t newFunctionButtonKeys = 0;
-static uint8_t newReleaseFunctionButtonKeys = 0;
 
 
 
@@ -450,7 +440,7 @@ void initKeys(int numVoices)
 	
 	for (int i = 0; i < 12; i++)
 	{
-		tRampInit(&keyRamp[i], 2000, 5, 1);
+		tRampInit(&keyRamp[i], 2000, 1, 1);
 	}
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
@@ -492,7 +482,6 @@ void releaseFunctionButtonKeys(MantaButton button)
 void processKeys(void)
 {
 	uint8_t i;
-	uint8_t hex_max = 0;
 
 	for (i = 0; i < 48; i++)
 	{
