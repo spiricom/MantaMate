@@ -14,7 +14,7 @@
 
 typedef struct _tMantaMatePreset
 {
-	// 90 pairs of sequencers in one of four states (PitchFull, PitchSplit, TriggerFull, TriggerSplit
+	// 90 pairs of sequencers in one of four states (PitchFull, PitchSplit, TriggerFull, TriggerSplit)
 	tSequencer sequencers[90][2]; 
 	
 } tMantaMatePreset;

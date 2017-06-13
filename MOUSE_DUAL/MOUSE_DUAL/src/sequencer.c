@@ -88,7 +88,15 @@ uint16_t tSequencer_getParameterValue(tSequencer* const seq, uint8_t step, StepP
 
 
 /*
-Toggled = 0,
+[ //these are packed into a single byte since they are 1-bit values
+Toggled,
+note,
+On1,
+On2,
+On3,
+On4,
+]
+//then these come after that byte
 Length,
 CV1,
 CV2,
@@ -100,17 +108,12 @@ Octave,
 Note,
 KbdHex,
 PitchGlide,
-CVGlide,
-On1,
-On2,
-On3,
-On4
+CVGlide
 */
-
+// we're using 16_bit ints even though we are only using the first 8 bits of them because using 8_bit ints didn't work for SPI sending functions for some reason... 
+// would be nice to figure out why and reduce the size of these arrays -JS
 void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 {
-
-	
 	sBuffer[SeqOctave] = seq->octave;
 	sBuffer[SeqMaxLength] = seq->maxLength;
 	sBuffer[SeqPitchOrTrigger] = seq->pitchOrTrigger;

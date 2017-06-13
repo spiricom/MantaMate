@@ -111,6 +111,7 @@ unsigned short DAC1outhigh = 0;
 unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
+unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
 unsigned char globalGlide = 0;
 unsigned char globalGlideMax = 99;
@@ -676,33 +677,68 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if (preference_num == NO_PREFERENCES)
 	{	
-		if (whichSwitch)
+		//if we are not in Save mode, then we are trying to instantaneously load a preset
+		if (!savingActive)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			if (whichSwitch)
 			{
-				preset_num++;
-				if (preset_num > 99)
+				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
 				{
-					preset_num = 99;
+					preset_num++;
+					if (preset_num > 99)
+					{
+						preset_num = 99;
+					}
 				}
 			}
-		}
-		else 
-		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			else 
 			{
-				if (preset_num <= 0)
+				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
 				{
-					preset_num = 0;
-				}
-				else
-				{
-					preset_num--;
+					if (preset_num <= 0)
+					{
+						preset_num = 0;
+					}
+					else
+					{
+						preset_num--;
+					}
 				}
 			}
+			updatePreset();
+			Write7Seg(preset_num);
 		}
-		updatePreset();
-		Write7Seg(preset_num);
+		//otherwise we are currently navigating to save a preset into a slot
+		else
+		{
+			if (whichSwitch)
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+				{
+					preset_to_save_num++;
+					if (preset_to_save_num > 99)
+					{
+						preset_to_save_num = 99;
+					}
+				}
+			}
+			else
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+				{
+					if (preset_to_save_num <= 10)
+					{
+						preset_to_save_num = 10;
+					}
+					else
+					{
+						preset_to_save_num--;
+					}
+				}
+			}
+			//should make it blink for extra clarity
+			Write7Seg(preset_to_save_num);
+		}
 	}
 	
 	else if (preference_num == TUNING_SELECT)
@@ -804,12 +840,24 @@ void Preferences_Switch_Check(void)
 {
 	if (!gpio_get_pin_value(GPIO_PREFERENCES_SWITCH))
 	{
-		preference_num++;
-		if (preference_num >= num_preferences)
+		//if we aren't in a current save state, act normal and change preferences
+		if (!savingActive)
 		{
-			preference_num = 0;
+			preference_num++;
+			if (preference_num >= num_preferences)
+			{
+				preference_num = 0;
+			}
+			updatePreferences();
 		}
-		updatePreferences();
+		//otherwise the P button acts as a "cancel" button for the save preset state
+		else
+		{
+			//turn off save mode but don't store anything
+			savingActive = 0;
+			LED_Off(PRESET_SAVE_LED);
+		}
+
 	}
 }
 
@@ -850,6 +898,11 @@ void updatePreset(void)
 		
 		default: 
 		break;	
+	}
+	if (preset_num >= 10)
+	{
+		initSequencer(); // TODO: this should actually check the memory for what mode to be in - should happen inside the retrievePreset function call after loading the data
+		retrievePresetFromExternalMemory();
 	}
 }
 
@@ -892,19 +945,23 @@ void updateSave(void)
 	if (savingActive)
 	{
 		LED_On(PRESET_SAVE_LED);
+		//jump to the first available user preset slot if you are on the default factory presets
+		if (preset_to_save_num <= 10)
+		{
+			preset_to_save_num = 10;
+		}
 	}
 	else
 	{
+		storePresetToExternalMemory();
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
+
 void clockHappened(void)
 {
-	
 	if (sequencer_mode) sequencerStep();
-
 }
-
 
 
 

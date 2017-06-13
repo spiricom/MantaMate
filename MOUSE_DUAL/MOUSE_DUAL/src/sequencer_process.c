@@ -213,7 +213,7 @@ OptionPanelButtonType optionModeButtons[16] =	{
 	OptionSeqRight
 };
 
-#define NUM_SEQ 2
+
 
 tSequencer sequencer[NUM_SEQ];
 
@@ -236,12 +236,10 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
-#define sizeOfSerializedSequence  620 // increase this if the size of the serialized data gets larger (I shrank them to just slightly above the needed 611 because storing the memory internally takes up a lot of room -JS)
-#define sizeOfBankOfSequences  sizeOfSerializedSequence*16
+
 uint16_t encodeBuffer[sizeOfSerializedSequence]; 
 uint16_t decodeBuffer[sizeOfSerializedSequence];
-static uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
-
+uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
 MantaSequencer currentSequencer = SequencerOne; // current Sequencer is CURRENTLY EDITING SEQUENCER
@@ -296,11 +294,6 @@ void setCurrentSequencer(MantaSequencer seq)
 	
 }
 
-void initSHArrays(void)
-{
-	
-}
-
 bool blinkToggle;
 void blink(void)
 {
@@ -328,14 +321,9 @@ void initSequencer(void)
 {
 	sequencer_mode = 1;
 	
-	
-	
 	//memorySPIEraseBlock(preset_num); // DONT KEEP THIS
 	
-	
 	initTimers();
-	
-	initSHArrays(); //what was this supposed to do? currently it does nothing. JS
 	
 	// Sequencer Modes
 	pattern_type =				LeftRightRowUp;
@@ -374,15 +362,12 @@ void initSequencer(void)
 	{
 		tSequencer_init(&sequencer[i], PitchMode, 32);
 		
-		
 		tSequencer_encode(&sequencer[i], &encodeBuffer);
 		memoryInternalWriteSequencer(i, 0, &encodeBuffer);
 		
 		compositionMap[i][0] = true;
 		currentComp[i] = 0;
 	}
-	
-	
 	
 	setSequencerLEDsFor(currentSequencer);
 	
@@ -1505,8 +1490,6 @@ void releaseTopRightButton(void)
 	copyWhichComp = -1;
 	
 	if (key_vs_option == OptionMode) setCompositionLEDs();
-	
-	
 }
 
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
@@ -1517,9 +1500,8 @@ void touchBottomLeftButton(void)
 	allUIStepsOff(currentSequencer);
 	
 	setOptionLEDs();
-	
+
 	manta_set_LED_button(ButtonBottomLeft, Red);
-	
 }
 
 void releaseBottomLeftButton(void)
@@ -1527,8 +1509,6 @@ void releaseBottomLeftButton(void)
 	releaseBottomRightButton();
 	
 	key_vs_option = KeyboardMode;
-	
-	
 	
 	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentSequencer, 0);
 	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentSequencer, -1);
@@ -1948,7 +1928,6 @@ void setKeyboardLEDsFor(MantaSequencer seq, int note)
 	manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
 	manta_set_LED_button(ButtonBottomLeft, Off);
 	manta_set_LED_button(ButtonBottomRight, (playSubMode == SeqMode) ? Off : Amber);
-	
 	manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 }
 
@@ -2446,7 +2425,100 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 	for (int i = 0; i < sizeOfSerializedSequence; i++)
 	{
 		memoryInternalCompositionBuffer[destSeq][(destComp*sizeOfSerializedSequence) + i] = 
-			memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
+		memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
 	}
 	
+}
+
+// EXTERNAL MEMORY PLAN
+// a page is 256 bytes.
+// a sector is 16 pages (4096 bytes)
+// a block is 16 sectors (65535 bytes)
+
+// every preset will live in a block (there are plenty - we have 128 blocks and can only really use 90 presets
+// the remaining blocks can store user tunings, perhaps
+// every "sequence" takes up 620 bytes.
+
+// a block has 65535 bytes, and they will be set up like this:
+// Page 0 is the global settings
+// Page 1 is the Manta keyboard-mode preset settings
+// Page 2 is the MIDI host preset settings
+// Page 3 is the MIDI device preset settings (when connected to a computer)
+// Pages 4, 5, 6 is the current sequencer 1 (3 pages per sequence)
+// Pages 7, 8, 9 is the current sequencer 2 (3 pages per sequence)
+// Pages 10-29 is the composition collection for sequencer 1 (20 pages per sequence if there are 8 storable sequences)
+// Pages 30-49 is the composition collection for sequencer 2 (20 pages per sequence if there are 8 storable sequences)
+
+// sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
+
+#define NUM_PAGES_PER_SEQUENCE 3
+#define NUM_PAGES_PER_COMPOSITION 20
+#define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data
+#define COMPOSITIONS_PAGE_START 10 // which page starts the compositions data
+
+void storePresetToExternalMemory(void)
+{
+	uint16_t startingSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
+	//start by erasing the memory in the location we want to store
+	for (int i = 0; i < 4; i++)
+	{
+		memorySPIEraseSector(startingSector + i); //erase 4 sectors because that will give us enough room for a whole preset
+	}
+	
+	// TODO: save the global data and keyboard settings and whatnot here in the first few pages
+	//
+	
+	// now ready for the sequencer data
+	// create buffers and send over data of the local sequencer memory that is not saved as compositions yet
+	// both sequencer one and sequencer two
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		tSequencer_encode(&sequencer[i], &encodeBuffer);
+		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
+		{
+			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
+			memorySPIWrite(startingSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
+		}
+	}
+	//now save the composition mode sequences stored for each sequencer
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
+		{
+			int currentPageNumber = ((COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j) % 16);
+			int currentSector = (startingSector + (((i * NUM_PAGES_PER_COMPOSITION) + j) >> 4)); // right shift by 4 to do a divide by 16 to be sure compiler doesn't go into floats
+			memorySPIWrite(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
+		}
+	}
+}
+
+void retrievePresetFromExternalMemory(void)
+{
+	uint16_t startingSector = 	preset_num * 16;  // * 16 to get the sector number we are starting to grab from
+	
+	// TODO: retrieve the global data and keyboard settings and whatnot here in the first few pages
+	//
+	
+	// now ready for the sequencer data
+	// create buffers and grab the data to fill the local sequencer memory that is not saved as compositions yet
+	// both sequencer one and sequencer two
+	for (int i = 0; i < NUM_SEQ; i++)
+	{	
+		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
+		{
+			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
+			memorySPIRead(startingSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
+		}
+		tSequencer_decode(&sequencer[i], &encodeBuffer);
+	}
+	//now get the composition mode sequences stored for each sequencer
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
+		{
+			int currentPageNumber = ((COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j) % 16);
+			int currentSector = (startingSector + (((i * NUM_PAGES_PER_COMPOSITION) + j) >> 4)); // right shift by 4 to do a divide by 16 to be sure compiler doesn't go into floats
+			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
+		}
+	}
 }

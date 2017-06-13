@@ -122,6 +122,7 @@ extern uint8_t new_manta_attached;
 
 extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
+extern unsigned char preset_to_save_num;
 extern unsigned char savingActive;
 extern uint32_t clock_speed;
 extern uint8_t sequencer_mode;
@@ -140,6 +141,7 @@ void USB_Mode_Switch_Check(void);
 void clockHappened(void);
 void enterBootloader(void);
 void sendDataToExternalMemory(void);
+void savePreset(void);
 
 
 /*! \brief Opens the communication port

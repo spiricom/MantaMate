@@ -384,7 +384,7 @@ void uhi_hid_manta_sof(bool b_micro)
 {
 	UNUSED(b_micro);
 	
-	if (++blinkCount == 250)
+	if (++blinkCount >= 150)
 	{
 		blinkCount = 0;
 		blink();
@@ -392,7 +392,7 @@ void uhi_hid_manta_sof(bool b_micro)
 
 	if (clock_speed != 0)
 	{
-		if (USB_frame_counter == clock_speed) {
+		if (USB_frame_counter >= clock_speed) {
 			clockHappened();
 			USB_frame_counter = 0;
 		}
