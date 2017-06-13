@@ -12,7 +12,7 @@
 void BirlBreathPosOut(void)
 {
 	birlBreathPos = ((birlBreathPosHigh << 7) + (birlBreathPosLow1)) * 20.0 ; // * 20 to bring the 12 bit number up to 16 bit... 
-	Write7Seg(birlBreathPos / 32);
+	//Write7Seg(birlBreathPos / 32);
 	DAC16Send(1, birlBreathPos);
 }
 

@@ -321,8 +321,7 @@ void initSequencer(void)
 {
 	sequencer_mode = 1;
 	
-	//memorySPIEraseBlock(preset_num); // DONT KEEP THIS
-	
+	Write7Seg(preset_num);
 	initTimers();
 	
 	// Sequencer Modes
@@ -357,16 +356,39 @@ void initSequencer(void)
 	keyNoteOn = -1;
 	glideNoteOn = -1;
 	
-	seq1PvT = PitchMode; seq2PvT = PitchMode;
-	for (int i = 0; i < NUM_SEQ; i++)
+	//if preset_num == 0, then we are trying to initialize the blank default sequencer
+	if (preset_num == 0)
 	{
-		tSequencer_init(&sequencer[i], PitchMode, 32);
-		
-		tSequencer_encode(&sequencer[i], &encodeBuffer);
-		memoryInternalWriteSequencer(i, 0, &encodeBuffer);
-		
-		compositionMap[i][0] = true;
-		currentComp[i] = 0;
+		seq1PvT = PitchMode; seq2PvT = PitchMode;
+		for (int i = 0; i < NUM_SEQ; i++)
+		{
+			tSequencer_init(&sequencer[i], PitchMode, 32);
+			
+			tSequencer_encode(&sequencer[i], encodeBuffer);
+			memoryInternalWriteSequencer(i, 0, encodeBuffer);
+			
+			compositionMap[i][0] = true;
+			currentComp[i] = 0;
+		}
+	}
+
+	//otherwise we are loading a saved preset, so we need to prepare that data properly
+	else
+	{
+		/*
+		seq1PvT = PitchMode; seq2PvT = PitchMode;
+		for (int i = 0; i < NUM_SEQ; i++)
+		{
+			tSequencer_init(&sequencer[i], PitchMode, 32);
+			
+			tSequencer_encode(&sequencer[i], encodeBuffer);
+			memoryInternalWriteSequencer(i, 0, encodeBuffer);
+			
+			compositionMap[i][0] = true;
+			currentComp[i] = 0;
+			tSequencer_decode(&sequencer[i], decodeBuffer);
+		}
+		*/
 	}
 	
 	setSequencerLEDsFor(currentSequencer);
@@ -375,6 +397,7 @@ void initSequencer(void)
 
 	tc_start(tc3, TC3_CHANNEL);
 	manta_send_LED();
+
 }
 
 void sequencerStep(void)
@@ -639,8 +662,8 @@ void touchLowerHex(uint8_t hexagon)
 			{
 				if (compositionMap[whichSeq][whichComp])
 				{
-					memoryInternalReadSequencer(whichSeq, whichComp, &decodeBuffer);
-					tSequencer_decode(&sequencer[whichSeq], &decodeBuffer);
+					memoryInternalReadSequencer(whichSeq, whichComp, decodeBuffer);
+					tSequencer_decode(&sequencer[whichSeq], decodeBuffer);
 					
 					currentComp[whichSeq] = whichComp;
 					
@@ -655,8 +678,8 @@ void touchLowerHex(uint8_t hexagon)
 				manta_set_LED_hex(hexagon, Amber);
 				
 				compositionMap[whichSeq][whichComp] = true;
-				tSequencer_encode(&sequencer[whichSeq], &encodeBuffer);
-				memoryInternalWriteSequencer(whichSeq, whichComp, &encodeBuffer);
+				tSequencer_encode(&sequencer[whichSeq], encodeBuffer);
+				memoryInternalWriteSequencer(whichSeq, whichComp, encodeBuffer);
 			}
 			else if (compositionAction == CompositionCopy)
 			{
@@ -2458,11 +2481,11 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 
 void storePresetToExternalMemory(void)
 {
-	uint16_t startingSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
+	uint16_t currentSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
 	//start by erasing the memory in the location we want to store
 	for (int i = 0; i < 4; i++)
 	{
-		memorySPIEraseSector(startingSector + i); //erase 4 sectors because that will give us enough room for a whole preset
+		memorySPIEraseSector(currentSector + i); //erase 4 sectors because that will give us enough room for a whole preset
 	}
 	
 	// TODO: save the global data and keyboard settings and whatnot here in the first few pages
@@ -2473,11 +2496,11 @@ void storePresetToExternalMemory(void)
 	// both sequencer one and sequencer two
 	for (int i = 0; i < NUM_SEQ; i++)
 	{
-		tSequencer_encode(&sequencer[i], &encodeBuffer);
+		tSequencer_encode(&sequencer[i], encodeBuffer);
 		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
 		{
 			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIWrite(startingSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
+			memorySPIWrite(currentSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
 		}
 	}
 	//now save the composition mode sequences stored for each sequencer
@@ -2485,8 +2508,12 @@ void storePresetToExternalMemory(void)
 	{
 		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
 		{
-			int currentPageNumber = ((COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j) % 16);
-			int currentSector = (startingSector + (((i * NUM_PAGES_PER_COMPOSITION) + j) >> 4)); // right shift by 4 to do a divide by 16 to be sure compiler doesn't go into floats
+			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
+			if (currentPageNumber >= 16)
+			{
+				currentSector++;
+				currentPageNumber = 0;
+			}
 			memorySPIWrite(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
 		}
 	}
@@ -2494,8 +2521,7 @@ void storePresetToExternalMemory(void)
 
 void retrievePresetFromExternalMemory(void)
 {
-	uint16_t startingSector = 	preset_num * 16;  // * 16 to get the sector number we are starting to grab from
-	
+	uint16_t currentSector = preset_num * 16;  // * 16 to get the sector number we are starting to grab from
 	// TODO: retrieve the global data and keyboard settings and whatnot here in the first few pages
 	//
 	
@@ -2507,18 +2533,23 @@ void retrievePresetFromExternalMemory(void)
 		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
 		{
 			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIRead(startingSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
+			memorySPIRead(currentSector,  currentPageNumber ,  &decodeBuffer[currentPageNumber*256], 256);
 		}
-		tSequencer_decode(&sequencer[i], &encodeBuffer);
+
 	}
 	//now get the composition mode sequences stored for each sequencer
 	for (int i = 0; i < NUM_SEQ; i++)
 	{
 		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
 		{
-			int currentPageNumber = ((COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j) % 16);
-			int currentSector = (startingSector + (((i * NUM_PAGES_PER_COMPOSITION) + j) >> 4)); // right shift by 4 to do a divide by 16 to be sure compiler doesn't go into floats
-			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
+			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
+			if (currentPageNumber >= 16)
+			{
+				currentSector++;
+				currentPageNumber = 0;
+			}
+			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber*256], 256);
+			initSequencer();
 		}
 	}
 }

@@ -115,8 +115,6 @@ void ui_usb_mode_change(bool b_host_mode)
 
 //! Status of device enumeration
 static uhc_enum_status_t ui_enum_status=UHC_ENUM_DISCONNECT;
-//! Blink frequency depending on device speed
-static uint16_t ui_device_speed_blink;
 //! Notify the presence of a USB device mouse
 static bool ui_hid_joy_plug = false;
 static bool ui_hid_manta_plug = false;
@@ -134,13 +132,6 @@ void ui_host_vbus_error(void)
 
 void ui_host_connection_event(uhc_device_t *dev, bool b_present)
 {
-	LED_Off(LED0);
-	LED_Off(LED1);
-	LED_Off(LED2);
-	LED_Off(LED3);
-	LED_Off(LED4);
-	LED_Off(LED5);
-
 	if (b_present) {
 		LED_On(USB_CONNECTED_LED);
 	} else {
@@ -192,21 +183,7 @@ void ui_host_sof_event(void)
 
 	if (ui_enum_status == UHC_ENUM_SUCCESS) 
 	{
-
-		// Display device enumerated and in active mode
-		if (++counter_sof > ui_device_speed_blink) 
-		{
-			counter_sof = 0;
-			if (ui_hid_joy_plug) {
-				//LED_Toggle(LED7);
-			}
-			if (ui_midi_plug) {
-				//LED_Toggle(LED3);
-			}
-			if (ui_hid_manta_plug){
-				//LED_Toggle(LED2);
-			}
-		}
+		;
 	}
 }
 

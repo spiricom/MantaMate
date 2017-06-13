@@ -175,7 +175,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
-	if (DEBUG) Write7Seg(57);
+	//if (DEBUG) Write7Seg(57);
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);
 	ptr_iface = (usb_iface_desc_t*) dev->conf_desc;
 	b_iface_supported = false;
@@ -281,7 +281,7 @@ static void get_report_descriptor()
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
 			//MEMORY_printf_string("ERROR");
-			if (DEBUG) Write7Seg(77);
+			//if (DEBUG) Write7Seg(77);
 			return;
 		}
 	}

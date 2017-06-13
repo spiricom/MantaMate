@@ -67,7 +67,7 @@ typedef enum SequencerDataType
 
 typedef struct _tSequencer
 {
-
+	
 	tStep step[MAX_STEPS];
 	int phasor;
 	int currentStep,prevStep;
@@ -100,13 +100,13 @@ int			tSequencer_getStepFromHex	(tSequencer* const, uint8_t  hex);
 uint16_t	tSequencer_getParameterValue(tSequencer* const, uint8_t step, StepParameterType param);
 void		tSequencer_setParameterValue(tSequencer* const, uint8_t step, StepParameterType param, uint16_t value);
 
-void tSequencer_randomizePitch(tSequencer* const seq);
-void tSequencer_randomizeCV(tSequencer* const seq);
-void tSequencer_randomizeStepLength(tSequencer* const seq);
-void tSequencer_randomizeGlide(tSequencer* const seq);
-void tSequencer_randomizeToggled(tSequencer* const seq);
-void tSequencer_randomizeTrigger(tSequencer* const seq);
-void tSequencer_randomizeAll(tSequencer* const seq);
+void		tSequencer_randomizePitch(tSequencer* const seq);
+void		tSequencer_randomizeCV(tSequencer* const seq);
+void		tSequencer_randomizeStepLength(tSequencer* const seq);
+void		tSequencer_randomizeGlide(tSequencer* const seq);
+void		tSequencer_randomizeToggled(tSequencer* const seq);
+void		tSequencer_randomizeTrigger(tSequencer* const seq);
+void		tSequencer_randomizeAll(tSequencer* const seq);
 
 void        tSequencer_encode(tSequencer* const, uint16_t* sBuffer);
 void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);

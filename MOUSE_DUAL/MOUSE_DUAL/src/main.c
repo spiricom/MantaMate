@@ -202,7 +202,7 @@ int main(void){
 	preset_num = 0;
 	//delay_ms(600);
 	updatePreset();
-
+	Write7Seg(0);
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
@@ -230,8 +230,6 @@ static void tc1_irq(void)
 	
 	if (!joystick_mode)
 	{
-		LED_Off(LED1);
-	
 		if (seq1PvT == PitchMode)
 		{
 			DAC16Send(1, 0);
@@ -328,6 +326,7 @@ static void tc3_irq(void)
 			
 				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 			
+				// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
 				dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
 			}
 
@@ -901,7 +900,6 @@ void updatePreset(void)
 	}
 	if (preset_num >= 10)
 	{
-		initSequencer(); // TODO: this should actually check the memory for what mode to be in - should happen inside the retrievePreset function call after loading the data
 		retrievePresetFromExternalMemory();
 	}
 }

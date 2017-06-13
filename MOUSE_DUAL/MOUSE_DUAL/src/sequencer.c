@@ -111,7 +111,7 @@ PitchGlide,
 CVGlide
 */
 // we're using 16_bit ints even though we are only using the first 8 bits of them because using 8_bit ints didn't work for SPI sending functions for some reason... 
-// would be nice to figure out why and reduce the size of these arrays -JS
+// would be nice to figure out why and reduce the size of these arrays, since they are wasting space on the chip -JS
 void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 {
 	sBuffer[SeqOctave] = seq->octave;
