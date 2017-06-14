@@ -27,6 +27,17 @@ typedef enum GlobalOptionType
 } GlobalOptionType;
 // Typedef versions of Manta modes.
 
+
+typedef enum ConnectedDeviceType
+{
+	NoDeviceConnected = 0,
+	MantaConnected,
+	MIDIKeyboardConnected,
+	MIDIComputerConnected,
+	JoystickConnected
+} ConnectedDeviceType;
+// Typedef versions of Manta modes.
+
 typedef enum MantaSequencer {
 	SequencerOne = 0,
 	SequencerTwo,
@@ -40,7 +51,7 @@ typedef enum GlobalPreferences
 	TUNING_SELECT,
 	PORTAMENTO_TIME,
 	INTERNAL_CLOCK,
-	PREFERENCES_COUNT
+	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
 }GlobalPreferences;
 
 
@@ -182,36 +193,6 @@ KeyboardOptionMode key_vs_option;
 GlobalOptionType full_vs_split;
 
 GlobalOptionType seq1PvT, seq2PvT;
-
-//#define setRate(THIS,RATE)			THIS.setRate(&THIS,RATE)
-//#define tick0(THIS)					THIS.tick(&THIS)
-
-typedef enum ControlParameterType {
-	ControlParameterFeedback = 0,
-	ControlParameterDive,
-	ControlParameterSineDecay,
-	ControlParameterNoiseWidth,
-	ControlParameterNoiseDecay,
-	ControlParameterNoiseCutoff,
-	ControlParameterNil,
-} ControlParameterType;
-
-typedef enum ControlParamaterXYType {
-	ControlParameterBR = 0,
-	ControlParameterBL,
-	ControlParameterMR,
-	ControlParameterML,
-	ControlParameterTR,
-	ControlParameterTL,
-	ControlParameterXYNil,
-} ControlParameterXYType;
-
-typedef enum SmoothedParameterType {
-	SmoothedParameterDelay= 0,
-	SmoothedParameterSineFreq,
-	SmoothedParameterFeedback,
-	SmoothedParameterNil,
-} SmoothedParameterType;
 
 
 /* Ramp */

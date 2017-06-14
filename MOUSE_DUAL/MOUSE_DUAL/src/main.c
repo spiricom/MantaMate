@@ -119,6 +119,7 @@ unsigned char globalGlideMax = 99;
 
 GlobalPreferences preference_num = NO_PREFERENCES;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
+ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
 static volatile bool main_b_midi_enable = false;
 uint32_t dummycounter = 0;
@@ -959,6 +960,10 @@ void updateSave(void)
 void clockHappened(void)
 {
 	if (sequencer_mode) sequencerStep();
+	if (type_of_device_connected == MIDIComputerConnected)
+	{
+		ui_ext_gate_in();
+	}
 }
 
 

@@ -608,6 +608,7 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	uhi_hid_joy_dev.report_Rz_prev = 0;
 	uhi_hid_joy_dev.report_hat_prev = 0;
 	uhi_hid_joy_start_trans_report(dev->address);
+	type_of_device_connected = JoystickConnected;
 	UHI_HID_JOY_CHANGE(dev, true);
 	joystick_mode = true; 
 }
@@ -625,6 +626,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	free(hid_report_parser.reportDesc);
 	ibutt = 0;
 	UHI_HID_JOY_CHANGE(dev, false);
+	type_of_device_connected = NoDeviceConnected;
 	joystick_mode = false;
 }
 //@}

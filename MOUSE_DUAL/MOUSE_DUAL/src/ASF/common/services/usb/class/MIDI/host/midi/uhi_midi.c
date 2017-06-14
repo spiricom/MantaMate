@@ -207,12 +207,10 @@ void uhi_midi_enable(uhc_device_t* dev)
 	}
 
 	uhi_midi_dev.b_enabled = true;
-
+	type_of_device_connected = MIDIKeyboardConnected;
 	// Init value
 	initNoteStack();
 	manta_mapper = 0; // make sure there is no weird MIDI note mapping going on if the manta was previously being communicated with.
-	//firstMsg = 1;
-	//uhi_midi_sof(false); //was commented out originally when Jeff took over on this from Elaine - why? This should start the first transfer
 	UHI_MIDI_CHANGE(dev, true);
 }
 
@@ -222,6 +220,7 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 		return; // Device not enabled in this interface
 	}
 	uhi_midi_dev.dev = NULL;
+	type_of_device_connected = NoDeviceConnected;
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);
 	initNoteStack();

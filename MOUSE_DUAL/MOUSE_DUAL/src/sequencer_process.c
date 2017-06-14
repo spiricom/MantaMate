@@ -321,7 +321,7 @@ void initSequencer(void)
 {
 	sequencer_mode = 1;
 	
-	Write7Seg(preset_num);
+	Write7Seg(preset_num); // shouldn't have to do this here, but there's a bug that writes garbage to the 7Seg when plugging in a Manta, and this seems to fix it
 	initTimers();
 	
 	// Sequencer Modes
@@ -375,20 +375,16 @@ void initSequencer(void)
 	//otherwise we are loading a saved preset, so we need to prepare that data properly
 	else
 	{
-		/*
 		seq1PvT = PitchMode; seq2PvT = PitchMode;
 		for (int i = 0; i < NUM_SEQ; i++)
 		{
 			tSequencer_init(&sequencer[i], PitchMode, 32);
-			
 			tSequencer_encode(&sequencer[i], encodeBuffer);
 			memoryInternalWriteSequencer(i, 0, encodeBuffer);
-			
 			compositionMap[i][0] = true;
 			currentComp[i] = 0;
 			tSequencer_decode(&sequencer[i], decodeBuffer);
 		}
-		*/
 	}
 	
 	setSequencerLEDsFor(currentSequencer);
@@ -2474,6 +2470,9 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 
 // sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
 
+
+//global settings format:
+// byte 1 = seq1Pvt, seq2Pvt, sequencer mode, 
 #define NUM_PAGES_PER_SEQUENCE 3
 #define NUM_PAGES_PER_COMPOSITION 20
 #define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data

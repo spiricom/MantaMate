@@ -79,9 +79,6 @@ static void ui_disable_asynchronous_interrupt(void);
 static void ui_disable_asynchronous_interrupt(void)
 {
 	eic_disable_line(&AVR32_EIC, EXT_NMI);
-
-	/* Disable joystick input change ITs. */
-	gpio_disable_pin_interrupt(GPIO_JOYSTICK_PUSH);
 }
 //! @}
 
@@ -103,7 +100,7 @@ void ui_usb_mode_change(bool b_host_mode)
 {
 	ui_init();
 	if (b_host_mode) {
-		//LED_On(LED0);
+		;
 	}
 }
 //! @}
@@ -288,7 +285,7 @@ void ui_process(uint16_t framenumber)
 
 	if (clock_speed != 0)
 	{
-		if (USB_frame_counter == clock_speed) 
+		if (USB_frame_counter >= clock_speed) 
 		{
 			clockHappened();
 			USB_frame_counter = 0;
@@ -300,35 +297,21 @@ void ui_process(uint16_t framenumber)
 
 void ui_ext_gate_in(void)
 {
-	if(dummycounter % 2 == 1)
+	//allow a gate in to create a clock on the computer (via a MIDI note)
+	if (type_of_device_connected == MIDIComputerConnected)
 	{
-		//LED_On(LED4);
-		
-		//tuningTest(tuning_count);
-		//mySendBuf[0] = 0x09;
-		//mySendBuf[1] = 0x90;
-		//mySendBuf[2] = 0x3c;
-		//mySendBuf[3] = 0x78;
-		
-		//ui_my_midi_send();
-		//udi_midi_write_buf(mySendBuf, 4);
-	}
-	else
-	{
-		//LED_Off(LED4);
-		//tuningTest(tuning_count);
-		//mySendBuf[0] = 0x09;
-		//mySendBuf[1] = 0x90;
-		//mySendBuf[2] = 0x3c;
-		//mySendBuf[3] = 0x00;
-		//ui_my_midi_receive();
-		//ui_my_midi_send();
-		//udi_midi_write_buf(mySendBuf, 4);
-	}
-	//tuning_count++;
-	//if (tuning_count > 6)
-	//{
-	//	tuning_count = 0;
-	//}
+		//send note off for middle C
+		mySendBuf[0] = 0x09;
+		mySendBuf[1] = 0x90;
+		mySendBuf[2] = 0x3c;
+		mySendBuf[3] = 0x00;
+		ui_my_midi_send();
+		//then send a note on for middle C
+		mySendBuf[0] = 0x09;
+		mySendBuf[1] = 0x90;
+		mySendBuf[2] = 0x3c;
+		mySendBuf[3] = 0x78;
+		ui_my_midi_send();
+	}	
 }
 
