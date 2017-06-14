@@ -866,7 +866,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					}
 				}
 			}
-			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
 		}
 		if (clock_speed_displayed > 0)
 		{

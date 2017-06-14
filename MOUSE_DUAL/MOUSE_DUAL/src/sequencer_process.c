@@ -333,16 +333,16 @@ void initSequencer(void)
 	key_vs_option =				KeyboardMode;
 	playSubMode =				SeqMode; manta_set_LED_button(ButtonBottomRight, Off);
 	
-	tRampInit(&out00, 2000, 1, 1);
-	tRampInit(&out02, 2000, 1, 1);
-	tRampInit(&out10, 2000, 1, 1);
-	tRampInit(&out11, 2000, 1, 1);
-	tRampInit(&out12, 2000, 1, 1);
-	tRampInit(&out13, 2000, 1, 1);
-	tRampInit(&out20, 2000, 1, 1);
-	tRampInit(&out21, 2000, 1, 1);
-	tRampInit(&out22, 2000, 1, 1);
-	tRampInit(&out23, 2000, 1, 1);
+	tRampInit(&out00, 2000, 0, 1);
+	tRampInit(&out02, 2000, 0, 1);
+	tRampInit(&out10, 2000, 0, 1);
+	tRampInit(&out11, 2000, 0, 1);
+	tRampInit(&out12, 2000, 0, 1);
+	tRampInit(&out13, 2000, 0, 1);
+	tRampInit(&out20, 2000, 0, 1);
+	tRampInit(&out21, 2000, 0, 1);
+	tRampInit(&out22, 2000, 0, 1);
+	tRampInit(&out23, 2000, 0, 1);
 	
 	tNoteStack_init(&editStack,		32);
 	

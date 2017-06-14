@@ -438,7 +438,7 @@ void initKeys(int numVoices)
 	
 	for (int i = 0; i < 12; i++)
 	{
-		tRampInit(&keyRamp[i], 2000, 1, 1);
+		tRampInit(&keyRamp[i], 2000, 0, 1);
 	}
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
