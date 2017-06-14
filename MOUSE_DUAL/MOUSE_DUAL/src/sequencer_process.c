@@ -2459,7 +2459,7 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 // every "sequence" takes up 620 bytes.
 
 // a block has 65535 bytes, and they will be set up like this:
-// Page 0 is the global settings
+// Page 0 is the global settings and manta sequencer settings
 // Page 1 is the Manta keyboard-mode preset settings
 // Page 2 is the MIDI host preset settings
 // Page 3 is the MIDI device preset settings (when connected to a computer)
@@ -2472,7 +2472,7 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 
 
 //global settings format:
-// byte 1 = seq1Pvt, seq2Pvt, sequencer mode, 
+// byte 1 = seq1Pvt, seq2Pvt, sequencer_mode, clock_speed, compositions,  
 #define NUM_PAGES_PER_SEQUENCE 3
 #define NUM_PAGES_PER_COMPOSITION 20
 #define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data

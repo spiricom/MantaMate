@@ -203,7 +203,8 @@ bool udi_midi_enable(void)
 {
 	uint8_t port = 0;
 	udi_midi_nb_data_enabled = 0;
-	type_of_device_connected = MIDIComputerConnected;
+
+	LED_On(USB_CONNECTED_LED);
 	initNoteStack();
 	
 	// Initialize TX management
@@ -228,7 +229,7 @@ bool udi_midi_enable(void)
 	if (udi_midi_nb_data_enabled == UDI_MIDI_NB) {
 		udi_midi_data_running = true;
 	}
-	UDI_MIDI_ENABLE_EXT();
+	type_of_device_connected = MIDIComputerConnected;
 
 	return true;
 }
@@ -245,7 +246,7 @@ void udi_midi_disable(void)
 	udi_midi_nb_data_enabled = 0;
 	udi_midi_data_running = false;
 	type_of_device_connected = NoDeviceConnected;
-	UDI_MIDI_DISABLE_EXT();
+	LED_Off(USB_CONNECTED_LED);
 }
 
 void udi_audiocontrol_disable(void)

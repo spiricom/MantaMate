@@ -115,13 +115,12 @@ unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
 unsigned char globalGlide = 0;
 unsigned char globalGlideMax = 99;
-
+unsigned char suspendRetrieve = 0;
 
 GlobalPreferences preference_num = NO_PREFERENCES;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
-static volatile bool main_b_midi_enable = false;
 uint32_t dummycounter = 0;
 uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
@@ -601,28 +600,28 @@ static void int_handler_switches (void)
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
 	}
 	
-	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH1) )
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_DOWN_SWITCH) )
 	{		
 		//down switch
-		delay_us(500); // to de-bounce
+		delay_us(2000); // to de-bounce
 		Preset_Switch_Check(0);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
-		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH1);
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_DOWN_SWITCH);
 	}
 	
-	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH2) )
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_UP_SWITCH) )
 	{		
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(2000); // to de-bounce
 		Preset_Switch_Check(1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
-		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH2);
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_UP_SWITCH);
 	}
 	
 	else if( gpio_get_pin_interrupt_flag( GPIO_PREFERENCES_SWITCH) )
 	{
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(5000); // to de-bounce
 		//Preset_Switch_Check(1);
 		Preferences_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
@@ -632,7 +631,7 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_SAVE_SWITCH) )
 	{
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(5000); // to de-bounce
 		//Preset_Switch_Check(1);
 		Save_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
@@ -682,9 +681,10 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 				{
 					preset_num++;
+					
 					if (preset_num > 99)
 					{
 						preset_num = 99;
@@ -693,7 +693,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else 
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
 				{
 					if (preset_num <= 0)
 					{
@@ -713,7 +713,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 				{
 					preset_to_save_num++;
 					if (preset_to_save_num > 99)
@@ -724,7 +724,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
 				{
 					if (preset_to_save_num <= 10)
 					{
@@ -746,7 +746,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 		if (whichSwitch)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 			{
 				tuning++;
 				if (tuning >= numTunings)
@@ -757,7 +757,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
 			{
 				if (tuning <= 0)
 				{
@@ -777,7 +777,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 		if (whichSwitch)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 			{
 				globalGlide++;
 				if (globalGlide >= globalGlideMax)
@@ -788,7 +788,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
 			{
 				if (globalGlide <= 0)
 				{
@@ -808,7 +808,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 		if (whichSwitch)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 			{
 				clock_speed_displayed++;
 				if (clock_speed_displayed >= clock_speed_max)
@@ -819,7 +819,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
 			{
 				if (clock_speed_displayed <= 0)
 				{
@@ -901,7 +901,11 @@ void updatePreset(void)
 	}
 	if (preset_num >= 10)
 	{
-		retrievePresetFromExternalMemory();
+		if (!suspendRetrieve)
+		{
+			retrievePresetFromExternalMemory();
+		}
+
 	}
 }
 
@@ -1085,12 +1089,6 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	//send a value to one of the DAC channels to be converted to analog voltage
 	//DACnum is which type of output it goes to (0 = B, 1 = C)
 	
-	//for now, to correct for a mistake on the panel where the jacks are upside down, we reverse the DACvoice and DACnum numbers
-	//KLUDGE
-	//DACvoice = (3 - DACvoice);
-	//DACnum = (1 - DACnum);
-	//KLUDGE
-	
 	SPIbusy = 1;
 	if (spi_mode != TWELVEBIT)
 	{
@@ -1110,7 +1108,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC2_CS);
-		//dacwait1();
+		dacwait1(); // necessary wait?
 	}
 
 	if (DACnum == 1)
@@ -1122,7 +1120,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC3_CS);
-		dacwait1();
+		dacwait1(); // necessary wait?
 	}
 	SPIbusy = 0;
 }
@@ -1139,7 +1137,6 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 		spi_mode = SIXTEENBIT;
 	}
 	
-	//DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
@@ -1255,11 +1252,11 @@ void setupEIC(void)
 	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
 	  
-	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH1 , GPIO_PIN_CHANGE);	// PB02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH1/8), AVR32_INTC_INT0);
+	gpio_enable_pin_interrupt(GPIO_PRESET_DOWN_SWITCH , GPIO_PIN_CHANGE);	// PB02
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT0);
 	
-	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PA20
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH2/8), AVR32_INTC_INT0);
+	gpio_enable_pin_interrupt(GPIO_PRESET_UP_SWITCH , GPIO_PIN_CHANGE);	// PA20
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT0);
 	
 	gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT0);
@@ -1289,22 +1286,10 @@ void main_resume_action(void)
 
 void main_sof_action(void)
 {
-	if (!main_b_midi_enable)
-	return;
-	ui_process(udd_get_frame_number());
+	USB_frame_action(udd_get_frame_number());
 }
 
 
-bool main_midi_enable(void)
-{
-	main_b_midi_enable = true;
-	return true;
-}
-
-void main_midi_disable(void)
-{
-	main_b_midi_enable = false;
-}
 
 
 

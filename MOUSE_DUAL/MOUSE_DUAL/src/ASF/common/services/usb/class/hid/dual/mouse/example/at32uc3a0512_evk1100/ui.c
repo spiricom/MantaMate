@@ -174,16 +174,6 @@ void ui_host_wakeup_event(void)
 	ui_disable_asynchronous_interrupt();
 }
 
-void ui_host_sof_event(void)
-{
-	static uint16_t counter_sof = 0;
-
-	if (ui_enum_status == UHC_ENUM_SUCCESS) 
-	{
-		;
-	}
-}
-
 
 
 
@@ -239,7 +229,7 @@ void ui_midi_overflow(void)
 
 void ui_my_midi_receive(void)
 {
-	
+	//receive midi from a computer
 	uint16_t bytesToRead = 0;
 	
 	if (udi_midi_is_rx_ready()) {
@@ -264,7 +254,6 @@ void ui_my_midi_receive(void)
 void ui_my_midi_send(void)
 {
 	ui_midi_tx_start();
-	//uint8_t myValue = 0x09;
 	// Transfer UART RX fifo to CDC TX
 	if (!udi_midi_is_tx_ready()) {
 		// Fifo full
@@ -276,42 +265,105 @@ void ui_my_midi_send(void)
 }
 
 
+uint32_t upHeld = 0;
+uint32_t downHeld = 0;
+uint32_t holdTimeThresh = 8;
+static uint32_t buttonFrameCounter = 0;
+static uint32_t buttonHoldSpeed = 60;
 
-void ui_process(uint16_t framenumber)
+void USB_frame_action(uint16_t framenumber)
 {
-	ui_my_midi_receive();
 	
 	
-
+	//put things here that need to happen on every single USB frame   :D
+	
+	if (type_of_device_connected == MIDIComputerConnected)
+	{
+		ui_my_midi_receive(); //seems like we need to poll to receive on every SOF in device mode
+	}
+	
+	//step the internal clock
 	if (clock_speed != 0)
 	{
-		if (USB_frame_counter >= clock_speed) 
+		if (USB_frame_counter >= clock_speed)
 		{
 			clockHappened();
 			USB_frame_counter = 0;
 		}
 		USB_frame_counter++;
 	}
+
+
+	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
+	if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			upHeld++;
+			if (upHeld > holdTimeThresh)
+			{
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(1);
+			}
+			buttonFrameCounter = 0;
+		}	
+	}
+	else 
+	{
+		if (upHeld > 0)
+		{
+			suspendRetrieve = 0;
+			Preset_Switch_Check(1);
+		}
+		upHeld = 0;
+	}
+	
+	if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			downHeld++;
+			if (downHeld > holdTimeThresh)
+			{
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(0);
+			}
+			buttonFrameCounter = 0;
+		}
+
+	}
+	else
+	{
+		if (downHeld > 0)
+		{
+			suspendRetrieve = 0;
+			Preset_Switch_Check(0);
+		}
+		downHeld = 0;
+	}
+		
+	
+
 	
 }
 
 void ui_ext_gate_in(void)
 {
 	//allow a gate in to create a clock on the computer (via a MIDI note)
-	if (type_of_device_connected == MIDIComputerConnected)
-	{
-		//send note off for middle C
-		mySendBuf[0] = 0x09;
-		mySendBuf[1] = 0x90;
-		mySendBuf[2] = 0x3c;
-		mySendBuf[3] = 0x00;
-		ui_my_midi_send();
-		//then send a note on for middle C
-		mySendBuf[0] = 0x09;
-		mySendBuf[1] = 0x90;
-		mySendBuf[2] = 0x3c;
-		mySendBuf[3] = 0x78;
-		ui_my_midi_send();
-	}	
+
+	//send note off for middle C
+	mySendBuf[0] = 0x09;
+	mySendBuf[1] = 0x90;
+	mySendBuf[2] = 0x3c;
+	mySendBuf[3] = 0x00;
+	ui_my_midi_send();
+	//then send a note on for middle C
+	mySendBuf[0] = 0x09;
+	mySendBuf[1] = 0x90;
+	mySendBuf[2] = 0x3c;
+	mySendBuf[3] = 0x78;
+	ui_my_midi_send();
 }
 
