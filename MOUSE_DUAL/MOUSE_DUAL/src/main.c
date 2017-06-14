@@ -119,6 +119,7 @@ unsigned char suspendRetrieve = 0;
 
 GlobalPreferences preference_num = NO_PREFERENCES;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
+ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
 uint32_t dummycounter = 0;
@@ -131,6 +132,9 @@ uint8_t new_manta_attached = false;
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
+uint32_t tempoDivider = 3;
+uint32_t tempoDividerMax = 9;
+
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
 uint8_t sequencer_mode = 0; 
@@ -751,7 +755,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				tuning++;
 				if (tuning >= numTunings)
 				{
-					tuning = numTunings - 1;
+					tuning = numTunings - 1; // since they are zero indexed and "numTunings" is the actual count
 				}
 			}
 		}
@@ -782,7 +786,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				globalGlide++;
 				if (globalGlide >= globalGlideMax)
 				{
-					globalGlide = globalGlideMax - 1;
+					globalGlide = globalGlideMax;
 				}
 			}
 		}
@@ -806,33 +810,73 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	else if (preference_num == INTERNAL_CLOCK)
 	{
 
-		if (whichSwitch)
+		if (clock_pref == BPM)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+			if (whichSwitch)
 			{
-				clock_speed_displayed++;
-				if (clock_speed_displayed >= clock_speed_max)
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 				{
-					clock_speed_displayed = clock_speed_max - 1;
+					clock_speed_displayed++;
+					if (clock_speed_displayed >= clock_speed_max)
+					{
+						clock_speed_displayed = clock_speed_max;
+					}
 				}
 			}
+			else
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (clock_speed_displayed <= 0)
+					{
+						clock_speed_displayed = 0;
+					}
+					else
+					{
+						clock_speed_displayed--;
+					}
+				}
+			}
+			Write7Seg(clock_speed_displayed);
+		}
+		else if (clock_pref == CLOCK_DIVIDER)
+		{
+			if (whichSwitch)
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				{
+					tempoDivider++;
+					if (tempoDivider >= tempoDividerMax)
+					{
+						tempoDivider = tempoDividerMax;
+					}
+				}
+			}
+			else
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (tempoDivider <= 0)
+					{
+						tempoDivider = 0;
+					}
+					else
+					{
+						tempoDivider--;
+					}
+				}
+			}
+			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+		}
+		if (clock_speed_displayed > 0)
+		{
+			clock_speed = (480000 / (clock_speed_displayed + 60)) / (1 << tempoDivider);
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
-			{
-				if (clock_speed_displayed <= 0)
-				{
-					clock_speed_displayed = 0;
-				}
-				else
-				{
-					clock_speed_displayed--;
-				}
-			}
+			clock_speed = 0;
 		}
-		clock_speed = (clock_speed_displayed * 20);
-		Write7Seg(clock_speed_displayed);
+
 	}
 }
 
@@ -863,11 +907,31 @@ void Preferences_Switch_Check(void)
 
 void Save_Switch_Check(void)
 {
+	
 	if (!gpio_get_pin_value(GPIO_SAVE_SWITCH))
 	{
-		savingActive = !savingActive;
-		updateSave();
+		if (preference_num == NO_PREFERENCES) //we're in normal preset mode, which allows saving
+		{
+				savingActive = !savingActive;
+				updateSave();
+		}
+		else if (preference_num == INTERNAL_CLOCK)
+		{
+			if (clock_pref == CLOCK_DIVIDER)
+			{
+				//switch to BPM pref
+				clock_pref = BPM;
+				Write7Seg(clock_speed_displayed);
+			}
+			else if (clock_pref == BPM)
+			{
+				//switch to Clock Divider pref
+				clock_pref = CLOCK_DIVIDER;
+				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+			}
+		}
 	}
+
 }
 
 

@@ -274,7 +274,6 @@ static uint32_t buttonHoldSpeed = 60;
 void USB_frame_action(uint16_t framenumber)
 {
 	
-	
 	//put things here that need to happen on every single USB frame   :D
 	
 	if (type_of_device_connected == MIDIComputerConnected)

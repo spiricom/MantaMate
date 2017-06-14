@@ -54,6 +54,11 @@ typedef enum GlobalPreferences
 	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
 }GlobalPreferences;
 
+typedef enum ClockPreferences
+{
+	BPM,
+	CLOCK_DIVIDER
+}ClockPreferences;
 
 
 typedef enum MantaEditPlayMode {
