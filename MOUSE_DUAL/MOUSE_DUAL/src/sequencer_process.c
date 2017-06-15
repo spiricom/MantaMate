@@ -1567,6 +1567,10 @@ void releaseBottomRightButton(void)
 	compositionAction = CompositionRead;
 	
 	if (key_vs_option == OptionMode)	setCompositionLEDs();
+	else
+	{
+		setSequencerLEDsFor(currentSequencer);
+	}
 }
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
