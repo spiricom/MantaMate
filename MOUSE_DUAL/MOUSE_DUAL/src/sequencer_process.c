@@ -57,6 +57,7 @@ void setKeyboardLEDsFor		(MantaSequencer seq, int note);
 void setOptionLEDs			(void);
 void setCompositionLEDs     (void);
 void setSequencerLEDsFor	(MantaSequencer seq);
+void setSequencerLEDs		(void);
 void setTriggerPanelLEDsFor	(MantaSequencer seq, TriggerPanel panel);
 void uiStep					(MantaSequencer seq);
 void resetSliderMode		(void);
@@ -179,17 +180,12 @@ typedef enum OptionPanelButtonType
 	OptionPatternSix,
 	OptionPatternSeven,
 	OptionPatternEight,
-	OptionSeqOnePitchTrigger,
-	OptionSeqTwoPitchTrigger,
+	OptionPitch,
+	OptionTrigger,
 	OptionFullSplit,
-	OptionNilOne,
-	OptionNilTwo,
-	OptionNilThree,
-	OptionSeqLeft,
-	OptionSeqRight,
-	OptionPanelButtonTypeNil,
-	OptionEndPattern = OptionSeqOnePitchTrigger,
-	OptionEndMode = OptionNilOne,
+	OptionLeft,
+	OptionRight,
+	OptionNil
 	
 }OptionPanelButtonType;
 
@@ -203,14 +199,14 @@ OptionPanelButtonType optionModeButtons[16] =	{
 	OptionPatternSeven, 
 	OptionPatternEight,
 	
-	OptionSeqOnePitchTrigger, 
-	OptionSeqTwoPitchTrigger, 
+	OptionPitch, 
+	OptionTrigger, 
+	OptionNil,
 	OptionFullSplit,  
-	OptionNilOne, 
-	OptionNilTwo, 
-	OptionNilThree,
-	OptionSeqLeft, 
-	OptionSeqRight
+	OptionNil, 
+	OptionNil,
+	OptionLeft, 
+	OptionRight
 };
 
 
@@ -919,22 +915,6 @@ void switchToMode(MantaEditPlayMode mode)
 
 void releaseUpperHex(uint8_t hexagon)
 {
-
-	if (key_vs_option == OptionMode)
-	{
-		
-		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilTwo)
-		{
-			manta_set_LED_hex(MAX_STEPS+12, Off);
-			return;
-		}
-		
-		if (optionModeButtons[hexagon-MAX_STEPS] == OptionNilThree)
-		{
-			manta_set_LED_hex(MAX_STEPS+13, Off);
-			return;
-		}
-	}
 	if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
 	{
 		if (keyboard_pattern[hexagon-MAX_STEPS] < KeyboardEndOctave)
@@ -1296,14 +1276,14 @@ void touchUpperHex(uint8_t hexagon)
 		
 		OptionPanelButtonType whichOptionType = optionModeButtons[whichHex];
 		
-		if (whichOptionType < OptionEndPattern )
+		if (whichOptionType <= OptionPatternEight)
 		{
 			tSequencer_setPattern(&sequencer[currentSequencer], whichOptionType);
 				
 			prev_pattern_hex = current_pattern_hex;
 			current_pattern_hex = whichHex;
 		}
-		else if ((whichOptionType >= OptionSeqOnePitchTrigger) && (whichOptionType < OptionEndMode))
+		else if (whichOptionType == OptionPitch)
 		{
 			resetEditStack();
 			
@@ -1313,95 +1293,53 @@ void touchUpperHex(uint8_t hexagon)
 			currentHexUI = 0;
 				
 			currentUpperHexUI = 0;
-			
-			if (optionModeButtons[whichHex] == OptionSeqOnePitchTrigger)
+
+			if (sequencer[currentSequencer].pitchOrTrigger != PitchMode)
 			{
-				if (sequencer[SequencerOne].pitchOrTrigger == PitchMode)
-				{
-					tSequencer_init(&sequencer[SequencerOne], TriggerMode, MAX_STEPS); seq1PvT = TriggerMode;
-				}
-				else if (sequencer[SequencerOne].pitchOrTrigger == TriggerMode)
-				{
-					tSequencer_init(&sequencer[SequencerOne], PitchMode, MAX_STEPS); seq1PvT = PitchMode;
-				}
-				setCurrentSequencer(SequencerOne);
-			}
-			else if (whichOptionType == OptionSeqTwoPitchTrigger)
-			{
-				if (sequencer[SequencerTwo].pitchOrTrigger == PitchMode)
-				{
-					tSequencer_init(&sequencer[SequencerTwo], TriggerMode, MAX_STEPS); seq2PvT = TriggerMode;
-				}
-				else if (sequencer[SequencerTwo].pitchOrTrigger == TriggerMode)
-				{
-					tSequencer_init(&sequencer[SequencerTwo], PitchMode, MAX_STEPS); seq2PvT = PitchMode;
-				}
-				setCurrentSequencer(SequencerTwo);
-			}
-			else if (whichOptionType == OptionFullSplit)
-			{
-				if (full_vs_split == FullMode)			
-				{
-					full_vs_split = SplitMode;
-				}
-				else if (full_vs_split == SplitMode)	
-				{
-					full_vs_split = FullMode;
-				}
-				
-				setCurrentSequencer(SequencerOne);
-			} 
-			else
-			{
-				// No other mode, sorry.
+				tSequencer_init(&sequencer[currentSequencer], PitchMode, MAX_STEPS); seq1PvT = PitchMode;
+				seq1PvT = (currentSequencer == SequencerOne) ? PitchMode : seq1PvT;
+				seq2PvT = (currentSequencer == SequencerTwo) ? PitchMode : seq2PvT;
 			}
 			
-			if (full_vs_split == FullMode)
-			{
-				setSequencerLEDsFor(currentSequencer);
-			}
-			else //SplitMode
-			{
-				setSequencerLEDsFor(SequencerOne);
-				setSequencerLEDsFor(SequencerTwo);
-			}
-				
-			setOptionLEDs();
-		
 		}
-		else if ((whichOptionType == OptionSeqLeft) || (whichOptionType == OptionSeqRight))
+		else if (whichOptionType == OptionTrigger)
 		{
-			if (sequencer[currentSequencer].pitchOrTrigger == PitchMode)
+			resetEditStack();
+			
+			prev_option_hex = current_option_hex;
+			current_option_hex = whichHex;
+			
+			currentHexUI = 0;
+			
+			currentUpperHexUI = 0;
+
+			if (sequencer[currentSequencer].pitchOrTrigger != TriggerMode)
 			{
-				if (full_vs_split == FullMode)
-				{
-					prev_panel_hex = current_panel_hex;
-					current_panel_hex = whichHex;
-					
-					setCurrentSequencer(whichOptionType - OptionSeqLeft);
-					setSequencerLEDsFor(currentSequencer);
-				}
-			}
-			else // TriggerMode 
-			{
-				if (edit_vs_play == PlayToggleMode && full_vs_split == FullMode)
-				{
-					if ((whichHex - 14) != currentSequencer)
-					{
-						setCurrentSequencer(whichHex - 14);
-						
-						prev_panel_hex = current_panel_hex;
-						current_panel_hex = whichHex;
-						
-						setSequencerLEDsFor(currentSequencer);
-					}
-				}
+				tSequencer_init(&sequencer[currentSequencer], TriggerMode, MAX_STEPS); 
+				seq1PvT = (currentSequencer == SequencerOne) ? TriggerMode : seq1PvT;
+				seq2PvT = (currentSequencer == SequencerTwo) ? TriggerMode : seq2PvT;
 			}
 		}
+		else if (whichOptionType == OptionFullSplit)
+		{
+			full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
+		}
+		else if (full_vs_split == FullMode && whichOptionType == OptionLeft)
+		{
+			prev_panel_hex = current_panel_hex;
+			current_panel_hex = whichHex;
+			
+			setCurrentSequencer(SequencerOne);
+		}
+		else if (full_vs_split == FullMode && whichOptionType == OptionRight)
+		{
+			prev_panel_hex = current_panel_hex;
+			current_panel_hex = whichHex;
+			
+			setCurrentSequencer(SequencerTwo);
+		}
 		
-
 		setOptionLEDs();
-
 	}
 
 	//set memory variables
@@ -1509,7 +1447,7 @@ void releaseTopRightButton(void)
 	copyWhichComp = -1;
 	
 	if (key_vs_option == OptionMode) setCompositionLEDs();
-	else                             setSequencerLEDsFor(currentSequencer);
+	else                             setSequencerLEDs();
 }
 
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
@@ -1517,23 +1455,35 @@ void touchBottomLeftButton(void)
 {
 	key_vs_option = OptionMode;
 	
-	allUIStepsOff(currentSequencer);
+	allUIStepsOff(SequencerOne);
+	allUIStepsOff(SequencerTwo);
 	
 	setOptionLEDs();
 
 	manta_set_LED_button(ButtonBottomLeft, Red);
 }
 
-void releaseBottomLeftButton(void)
+void setSequencerLEDs(void)
 {
-	releaseBottomRightButton();
-	
+	if (full_vs_split == FullMode)
+	{
+		setSequencerLEDsFor(currentSequencer);
+	}
+	else //SplitMode
+	{
+		setSequencerLEDsFor(SequencerOne);
+		setSequencerLEDsFor(SequencerTwo);
+	}
+}
+
+void releaseBottomLeftButton(void)
+{	
 	key_vs_option = KeyboardMode;
 	
 	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentSequencer, 0);
 	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentSequencer, -1);
 	
-	setSequencerLEDsFor(currentSequencer);
+	setSequencerLEDs();
 
 	manta_set_LED_button(ButtonBottomLeft, Off);
 }
@@ -1566,7 +1516,7 @@ void releaseBottomRightButton(void)
 	compositionAction = CompositionRead;
 	
 	if (key_vs_option == OptionMode)	setCompositionLEDs();
-	else								setSequencerLEDsFor(currentSequencer);
+	else								setSequencerLEDs();
 }
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
@@ -2070,44 +2020,43 @@ void setOptionLEDs(void)
 {
 // ALSO SET COMPOSITION MODE LEDS
 	//change the keyboard LEDs to be the MODE leds
-	OptionPanelButtonType modeButton = OptionPanelButtonTypeNil;
-	uint8_t modeHex = 64;
+	OptionPanelButtonType option = OptionNil;
+	uint8_t hex = 64;
 	for (int i = 0; i < 16; i++)
 	{
-		modeButton = optionModeButtons[i];
-		modeHex = modeButton + MAX_STEPS;
-		if ((modeButton == OptionNilOne) || (modeButton == OptionNilTwo) || (modeButton == OptionNilThree))
+		option = optionModeButtons[i];
+		hex = i + MAX_STEPS;
+		
+		if (option == OptionNil)
 		{
-			manta_set_LED_hex(modeHex, Off);
+			manta_set_LED_hex(hex, Off);
 		}
-		else if ((modeButton >= OptionSeqOnePitchTrigger) && (modeButton < OptionEndMode))
+		else if (option == OptionPitch)
 		{
-			manta_set_LED_hex(modeHex, Amber);
+			manta_set_LED_hex(hex, (sequencer[currentSequencer].pitchOrTrigger == PitchMode) ? Red : Amber);
 		}
-		else if (modeButton < OptionEndPattern)
+		else if (option == OptionTrigger)
 		{
-			manta_set_LED_hex(modeHex, (i == sequencer[currentSequencer].pattern) ? Red : Amber);
+			manta_set_LED_hex(hex, (sequencer[currentSequencer].pitchOrTrigger == TriggerMode) ? Red : Amber);
 		}
-		else if ((modeButton == OptionSeqLeft) || (modeButton == OptionSeqRight))
+		else if (option == OptionFullSplit)
 		{
-			if (full_vs_split == FullMode && edit_vs_play != TrigToggleMode)
-			{
-				manta_set_LED_hex(modeHex, ((modeButton - OptionSeqLeft) == currentSequencer) ? Red : Amber);
-			}
-			else
-			{
-				manta_set_LED_hex(i+MAX_STEPS, Off);
-			}	
+			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? Amber : Red);
+		}
+		else if (option <= OptionPatternEight)
+		{
+			manta_set_LED_hex(hex, (option == sequencer[currentSequencer].pattern) ? Red : Amber);
+		}
+		else if (option == OptionRight)
+		{
+			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? ((currentSequencer == SequencerTwo) ? Red : Amber) : Off );
+		}
+		else if (option == OptionLeft)
+		{
+			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? ((currentSequencer == SequencerOne) ? Red : Amber) : Off );
 		}
 	}
-	
-    // Set Pitch / Trigger and Full / Split indicator LEDs
-	manta_set_LED_hex(MAX_STEPS + 8, (sequencer[SequencerOne].pitchOrTrigger == PitchMode) ? Amber : Red); 
 
-	manta_set_LED_hex(MAX_STEPS + 9, (sequencer[SequencerTwo].pitchOrTrigger == PitchMode) ? Amber : Red);
-
-	manta_set_LED_hex(MAX_STEPS + 10, (full_vs_split == FullMode) ? Amber : Red);
-	
 	manta_set_LED_button(ButtonBottomRight, Red); // Write
 	manta_set_LED_button(ButtonTopRight, Amber); // Copy
 	manta_set_LED_button(ButtonTopLeft, Off); // Nothing for now
