@@ -1509,6 +1509,7 @@ void releaseTopRightButton(void)
 	copyWhichComp = -1;
 	
 	if (key_vs_option == OptionMode) setCompositionLEDs();
+	else                             setSequencerLEDsFor(currentSequencer);
 }
 
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
@@ -1565,10 +1566,7 @@ void releaseBottomRightButton(void)
 	compositionAction = CompositionRead;
 	
 	if (key_vs_option == OptionMode)	setCompositionLEDs();
-	else
-	{
-		setSequencerLEDsFor(currentSequencer);
-	}
+	else								setSequencerLEDsFor(currentSequencer);
 }
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
