@@ -97,10 +97,7 @@
 #define USB_DEVICE_ATTACH_AUTO_DISABLE
 
 
-//TODO: should this be here? I added it 2/3/17 JOS
-#define UHD_ENABLE
-#define UDD_ENABLE
-/**
+/*
  * USB Device Callbacks definitions (Optional)
  * @{
  */

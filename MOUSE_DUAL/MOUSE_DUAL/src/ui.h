@@ -95,9 +95,6 @@ void ui_host_connection_event(uhc_device_t *dev, bool b_present);
 //! \brief Notify that a USB device or the host has wake up the USB line.
 void ui_host_wakeup_event(void);
 
-//! \brief Notify that a SOF has been sent (each 1 ms)
-void ui_host_sof_event(void);
-
 /*! \brief Notify the end of a USB device enumeration
  *
  * \param dev         Pointer on USB device information
@@ -149,7 +146,9 @@ void ui_test_finish(bool b_success);
 extern bool ui_midi_plug;
 extern uint8_t my_buf[128];
 
-
+extern uint32_t upHeld;
+extern uint32_t downHeld;
+extern uint32_t holdTimeThresh;
 
 /*! \brief Called when communication port is opened
  */
@@ -190,7 +189,7 @@ void ui_my_midi_receive(void);
  *
  * \param framenumber  Current frame number
  */
-void ui_process(uint16_t framenumber);
+void USB_frame_action(uint16_t framenumber);
 
 void ui_ext_gate_in(void);
 

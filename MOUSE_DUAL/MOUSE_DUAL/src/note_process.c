@@ -25,6 +25,8 @@ unsigned long kora1[12] = {0, 185, 230, 325, 405, 498, 551, 702, 885, 930, 1025,
 unsigned long meantone[12] = {0, 117, 193, 310, 386, 503, 579, 697, 773, 890, 966, 1083};
 unsigned long werckmeister1[12] = {0, 90, 192, 294, 390, 498, 588, 696, 792, 888, 996, 1092};
 unsigned long werckmeister3[12] = {0, 96, 204, 300, 396, 504, 600, 702, 792, 900, 1002, 1098};
+	
+unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 
 signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
 22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
@@ -36,19 +38,18 @@ signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 
 enum maps_t whichmap = NO_MAP;
-unsigned long scaledoctaveDACvalue = 54613; //was 54780, but this should be mathematically correct (65535/10/12 = numbers per semitone, * 100 to add resolution for fixed point operations)
+unsigned long scaledoctaveDACvalue = 54613; 
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
 uint8_t amplitude = 0;
 unsigned char lastButtVCA = 0; //0 if you want to turn this off
 
-unsigned int led_map[] = {LED3, LED2, LED1, LED0}; //map the voice number to the led number
 
 unsigned char numnotes = 0;
 unsigned char currentnote = 0;
 unsigned long maxkey = 0;
-unsigned char polymode = 0; //need to implement
+unsigned char polymode = 0;
 
 
 unsigned char changevoice[4]; // flags to indicate a voice has a new note value
@@ -58,15 +59,6 @@ unsigned char voicefound = 0; // have we found a polyphony voice slot for the in
 unsigned char voicecounter = 0;
 unsigned char alreadythere = 0;
 signed char checkstolen = -1;
-
-static uint8_t newUpperHexKeys = 0;
-static uint8_t newReleaseUpperHexKeys = 0;
-
-static uint8_t newLowerHexKeys = 0;
-static uint8_t newReleaseLowerHexKeys = 0;
-
-static uint8_t newFunctionButtonKeys = 0;
-static uint8_t newReleaseFunctionButtonKeys = 0;
 
 
 
@@ -102,10 +94,6 @@ void addNote(uint8_t noteVal, uint8_t vel)
 	uint8_t j;
 	checkstolen = -1;
 	signed int mappedNote = 0;
-
-	//it's a note-on -- add it to the monophonic stack
-	//if(numnotes == 0)
-	//	DAC16Send(3,0xFFFF);
 		
 	// this function needs to check the incoming note value against the currently used manta map if it's for the manta, in order to know not to sensors that don't represent notes (a -1 in the noteMap)
 	// it seems inefficient to calculate this twice, so we should store this and pass it to the calculateDACvalue instead of calculating it there, too. Not sure where to do that yet, as currently sendNote is called separately, and they don't know about each other.
@@ -450,7 +438,7 @@ void initKeys(int numVoices)
 	
 	for (int i = 0; i < 12; i++)
 	{
-		tRampInit(&keyRamp[i], 2000, 5, 1);
+		tRampInit(&keyRamp[i], 2000, 0, 1);
 	}
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
@@ -492,7 +480,6 @@ void releaseFunctionButtonKeys(MantaButton button)
 void processKeys(void)
 {
 	uint8_t i;
-	uint8_t hex_max = 0;
 
 	for (i = 0; i < 48; i++)
 	{

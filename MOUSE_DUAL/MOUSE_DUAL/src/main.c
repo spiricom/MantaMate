@@ -111,8 +111,17 @@ unsigned short DAC1outhigh = 0;
 unsigned short DAC1outlow = 0;
 unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
+unsigned char preset_to_save_num = 0;
+unsigned char savingActive = 0;
+unsigned char globalGlide = 0;
+unsigned char globalGlideMax = 99;
+unsigned char suspendRetrieve = 0;
 
-static volatile bool main_b_midi_enable = false;
+GlobalPreferences preference_num = NO_PREFERENCES;
+GlobalPreferences num_preferences = PREFERENCES_COUNT;
+ClockPreferences clock_pref = BPM;
+ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
+
 uint32_t dummycounter = 0;
 uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
@@ -121,8 +130,15 @@ uint8_t spi_mode = 0;
 uint8_t new_manta_attached = false;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
+uint32_t clock_speed_max = 99; 
+uint32_t clock_speed_displayed = 0;
+uint32_t tempoDivider = 3;
+uint32_t tempoDividerMax = 9;
+
+
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-uint8_t sequencer_mode = 0;  
+uint8_t sequencer_mode = 0; 
+uint8_t joystick_mode = 0; 
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -190,7 +206,7 @@ int main(void){
 	preset_num = 0;
 	//delay_ms(600);
 	updatePreset();
-
+	Write7Seg(0);
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
@@ -216,20 +232,20 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
-
-	LED_Off(LED1);
-	
-	if (seq1PvT == PitchMode)
+	if (!joystick_mode)
 	{
-		DAC16Send(1, 0);
-	}
-	else // TriggerMode
-	{
-		// Set 4 trigger outputs low
-		dacsend(0, 0, 0);
-		dacsend(1, 0, 0);
-		dacsend(0, 1, 0);
-		dacsend(1, 1, 0);
+		if (seq1PvT == PitchMode)
+		{
+			DAC16Send(1, 0);
+		}
+		else // TriggerMode
+		{
+			// Set 4 trigger outputs low
+			dacsend(0, 0, 0);
+			dacsend(1, 0, 0);
+			dacsend(0, 1, 0);
+			dacsend(1, 1, 0);
+		}
 	}
 }
 
@@ -240,17 +256,20 @@ static void tc2_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC2, TC2_CHANNEL);
 		
-	if (seq2PvT == PitchMode)
+	if (!joystick_mode)
 	{
-		DAC16Send(3, 0);
-	}
-	else // TriggerMode
-	{
-		// Set 4 trigger outputs low
-		dacsend(2, 0, 0);
-		dacsend(3, 0, 0);
-		dacsend(2, 1, 0);
-		dacsend(3, 1, 0);
+		if (seq2PvT == PitchMode)
+		{
+			DAC16Send(3, 0);
+		}
+		else // TriggerMode
+		{
+			// Set 4 trigger outputs low
+			dacsend(2, 0, 0);
+			dacsend(3, 0, 0);
+			dacsend(2, 1, 0);
+			dacsend(3, 1, 0);
+		}
 	}
 }
 
@@ -261,82 +280,62 @@ static void tc3_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 	
-	if (sequencer_mode)
+	if (!joystick_mode)
 	{
-		if (seq1PvT == PitchMode)
+		if (sequencer_mode)
 		{
-			// SequencerOne Pitch
-			DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
+			if (seq1PvT == PitchMode)
+			{
+				// SequencerOne Pitch
+				DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
 			
-			// SequencerOne CV1-CV2
-			dacsend(0, 0, tRampTick(&out10));
-			dacsend(1, 0, tRampTick(&out11));
-			// SequencerOne CV3-CV4
-			dacsend(0, 1, tRampTick(&out20));
-			dacsend(1, 1, tRampTick(&out21));
-		}
-		else //TriggerMode
-		{
-			DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
-			DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
-		}
+				// SequencerOne CV1-CV2
+				dacsend(0, 0, tRampTick(&out10));
+				dacsend(1, 0, tRampTick(&out11));
+				// SequencerOne CV3-CV4
+				dacsend(0, 1, tRampTick(&out20));
+				dacsend(1, 1, tRampTick(&out21));
+			}
+			else //TriggerMode
+			{
+				DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
+				DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
+			}
 		
-		if (seq2PvT == PitchMode)
-		{
-			// SequencerTwo Pitch
-			DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
+			if (seq2PvT == PitchMode)
+			{
+				// SequencerTwo Pitch
+				DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
 			
-			// SequencerTwo CV1-CV2
-			dacsend(2, 0, tRampTick(&out12));
-			dacsend(3, 0, tRampTick(&out13));
-			// SequencerTwo CV3-CV4
-			dacsend(2, 1, tRampTick(&out22));
-			dacsend(3, 1, tRampTick(&out23));
+				// SequencerTwo CV1-CV2
+				dacsend(2, 0, tRampTick(&out12));
+				dacsend(3, 0, tRampTick(&out13));
+				// SequencerTwo CV3-CV4
+				dacsend(2, 1, tRampTick(&out22));
+				dacsend(3, 1, tRampTick(&out23));
+			}
+			else //TriggerMode
+			{
+				DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
+				DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+			}
 		}
-		else //TriggerMode
+		else /// KeyMode
 		{
-			DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
-			DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+			for (int i = 0; i < polynum; i++)
+			{
+				DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
+			
+				dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
+			
+				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+			
+				// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
+				dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
+			}
+
 		}
 	}
-	else /// KeyMode
-	{
-		for (int i = 0; i < polynum; i++)
-		{
-			DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
-			
-			dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
-			
-			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-			
-			dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
-		}
-
-		
-	}
-	
-	
-	/* All lights on.
-	DAC16Send(0,30000);
-	DAC16Send(1,30000);
-	DAC16Send(2,30000);
-	DAC16Send(3,30000);
-	// SequencerOne CV1-CV2
-	dacsend(0, 0, 2000);
-	dacsend(1, 0, 2000);
-	// SequencerOne CV3-CV4
-	dacsend(0, 1, 2000);
-	dacsend(1, 1, 2000);
-	
-	// SequencerTwo CV1-CV2
-	dacsend(2, 0, 2000);
-	dacsend(3, 0, 2000);
-	// SequencerTwo CV3-CV4
-	dacsend(2, 1, 2000);
-	dacsend(3, 1, 2000);
-	*/
-
-		
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
@@ -592,7 +591,7 @@ static void eic_int_handler1(void)
 }
 
 
-// interrupt handler to find the state of the HOST/DEVICE switch on the panel
+// interrupt handler to find the state of the pushbutton switches on the panel and the USB vbus sensing pin
 __attribute__((__interrupt__))
 static void int_handler_switches (void)
 {
@@ -605,35 +604,30 @@ static void int_handler_switches (void)
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
 	}
 	
-	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH1) )
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_DOWN_SWITCH) )
 	{		
 		//down switch
-		delay_us(500); // to de-bounce
+		delay_us(2000); // to de-bounce
 		Preset_Switch_Check(0);
-		LED_On(LED2);
-		LED_Off(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
-		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH1);
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_DOWN_SWITCH);
 	}
 	
-	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_SWITCH2) )
+	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_UP_SWITCH) )
 	{		
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(2000); // to de-bounce
 		Preset_Switch_Check(1);
-		LED_Off(LED2);
-		LED_On(LED1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
-		gpio_clear_pin_interrupt_flag(GPIO_PRESET_SWITCH2);
+		gpio_clear_pin_interrupt_flag(GPIO_PRESET_UP_SWITCH);
 	}
 	
 	else if( gpio_get_pin_interrupt_flag( GPIO_PREFERENCES_SWITCH) )
 	{
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(5000); // to de-bounce
 		//Preset_Switch_Check(1);
-		LED_Off(LED4);
-		LED_On(LED0);
+		Preferences_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PREFERENCES_SWITCH);
 	}
@@ -641,10 +635,9 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_SAVE_SWITCH) )
 	{
 		//up switch
-		delay_us(500); // to de-bounce
+		delay_us(5000); // to de-bounce
 		//Preset_Switch_Check(1);
-		LED_Off(LED0);
-		LED_On(LED4);
+		Save_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_SAVE_SWITCH);
 	}
@@ -653,7 +646,6 @@ static void int_handler_switches (void)
 
 void USB_Mode_Switch_Check(void)
 {
-		
 		int myTemp = gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
 		
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
@@ -686,37 +678,262 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (whichSwitch)
-	{
-		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH2))
+	if (preference_num == NO_PREFERENCES)
+	{	
+		//if we are not in Save mode, then we are trying to instantaneously load a preset
+		if (!savingActive)
 		{
-			if (preset_num >= 99)
+			if (whichSwitch)
 			{
-				preset_num = 99;
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				{
+					preset_num++;
+					
+					if (preset_num > 99)
+					{
+						preset_num = 99;
+					}
+				}
+			}
+			else 
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (preset_num <= 0)
+					{
+						preset_num = 0;
+					}
+					else
+					{
+						preset_num--;
+					}
+				}
+			}
+			updatePreset();
+			Write7Seg(preset_num);
+		}
+		//otherwise we are currently navigating to save a preset into a slot
+		else
+		{
+			if (whichSwitch)
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				{
+					preset_to_save_num++;
+					if (preset_to_save_num > 99)
+					{
+						preset_to_save_num = 99;
+					}
+				}
 			}
 			else
 			{
-				preset_num++;
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (preset_to_save_num <= 10)
+					{
+						preset_to_save_num = 10;
+					}
+					else
+					{
+						preset_to_save_num--;
+					}
+				}
 			}
-			
+			//should make it blink for extra clarity
+			Write7Seg(preset_to_save_num);
 		}
 	}
-	else 
+	
+	else if (preference_num == TUNING_SELECT)
 	{
-		if (!gpio_get_pin_value(GPIO_PRESET_SWITCH1))
+
+		if (whichSwitch)
 		{
-			if (preset_num <= 0)
+			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
 			{
-				preset_num = 0;
+				tuning++;
+				if (tuning >= numTunings)
+				{
+					tuning = numTunings - 1; // since they are zero indexed and "numTunings" is the actual count
+				}
+			}
+		}
+		else
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+			{
+				if (tuning <= 0)
+				{
+					tuning = 0;
+				}
+				else
+				{
+					tuning--;
+				}
+			}
+		}
+		Write7Seg(tuning);
+	}
+	
+	else if (preference_num == PORTAMENTO_TIME)
+	{
+
+		if (whichSwitch)
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+			{
+				globalGlide++;
+				if (globalGlide >= globalGlideMax)
+				{
+					globalGlide = globalGlideMax;
+				}
+			}
+		}
+		else
+		{
+			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+			{
+				if (globalGlide <= 0)
+				{
+					globalGlide = 0;
+				}
+				else
+				{
+					globalGlide--;
+				}
+			}
+		}
+		Write7Seg(globalGlide);
+	}
+	
+	else if (preference_num == INTERNAL_CLOCK)
+	{
+
+		if (clock_pref == BPM)
+		{
+			if (whichSwitch)
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				{
+					clock_speed_displayed++;
+					if (clock_speed_displayed >= clock_speed_max)
+					{
+						clock_speed_displayed = clock_speed_max;
+					}
+				}
 			}
 			else
 			{
-				preset_num--;
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (clock_speed_displayed <= 0)
+					{
+						clock_speed_displayed = 0;
+					}
+					else
+					{
+						clock_speed_displayed--;
+					}
+				}
 			}
+			Write7Seg(clock_speed_displayed);
 		}
+		else if (clock_pref == CLOCK_DIVIDER)
+		{
+			if (whichSwitch)
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				{
+					tempoDivider++;
+					if (tempoDivider >= tempoDividerMax)
+					{
+						tempoDivider = tempoDividerMax;
+					}
+				}
+			}
+			else
+			{
+				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				{
+					if (tempoDivider <= 0)
+					{
+						tempoDivider = 0;
+					}
+					else
+					{
+						tempoDivider--;
+					}
+				}
+			}
+			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+		}
+		if (clock_speed_displayed > 0)
+		{
+			clock_speed = (480000 / (clock_speed_displayed + 60)) / (1 << tempoDivider);
+		}
+		else
+		{
+			clock_speed = 0;
+		}
+
 	}
-	updatePreset();
 }
+
+void Preferences_Switch_Check(void)
+{
+	if (!gpio_get_pin_value(GPIO_PREFERENCES_SWITCH))
+	{
+		//if we aren't in a current save state, act normal and change preferences
+		if (!savingActive)
+		{
+			preference_num++;
+			if (preference_num >= num_preferences)
+			{
+				preference_num = 0;
+			}
+			updatePreferences();
+		}
+		//otherwise the P button acts as a "cancel" button for the save preset state
+		else
+		{
+			//turn off save mode but don't store anything
+			savingActive = 0;
+			LED_Off(PRESET_SAVE_LED);
+		}
+
+	}
+}
+
+void Save_Switch_Check(void)
+{
+	
+	if (!gpio_get_pin_value(GPIO_SAVE_SWITCH))
+	{
+		if (preference_num == NO_PREFERENCES) //we're in normal preset mode, which allows saving
+		{
+				savingActive = !savingActive;
+				updateSave();
+		}
+		else if (preference_num == INTERNAL_CLOCK)
+		{
+			if (clock_pref == CLOCK_DIVIDER)
+			{
+				//switch to BPM pref
+				clock_pref = BPM;
+				Write7Seg(clock_speed_displayed);
+			}
+			else if (clock_pref == BPM)
+			{
+				//switch to Clock Divider pref
+				clock_pref = CLOCK_DIVIDER;
+				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+			}
+		}
+	}
+
+}
+
 
 void updatePreset(void)
 {
@@ -746,17 +963,76 @@ void updatePreset(void)
 		default: 
 		break;	
 	}
-	
-	Write7Seg(preset_num);
+	if (preset_num >= 10)
+	{
+		if (!suspendRetrieve)
+		{
+			retrievePresetFromExternalMemory();
+		}
+
+	}
+}
+
+void updatePreferences(void)
+{
+	switch(preference_num)
+	{
+		case NO_PREFERENCES:
+		LED_Off(LEFT_POINT_LED);
+		LED_Off(RIGHT_POINT_LED);
+		LED_Off(PREFERENCES_LED);
+		Write7Seg(preset_num);
+		break;
+		
+		case TUNING_SELECT:
+		LED_Off(LEFT_POINT_LED);
+		LED_On(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		Write7Seg(tuning);
+		break;
+		
+		case PORTAMENTO_TIME:
+		LED_On(LEFT_POINT_LED);
+		LED_Off(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		Write7Seg(globalGlide);
+		break;
+		
+		case INTERNAL_CLOCK:
+		LED_On(LEFT_POINT_LED);
+		LED_On(RIGHT_POINT_LED);
+		LED_On(PREFERENCES_LED);
+		Write7Seg(clock_speed_displayed);
+		break;
+	}
+}
+
+void updateSave(void)
+{
+	if (savingActive)
+	{
+		LED_On(PRESET_SAVE_LED);
+		//jump to the first available user preset slot if you are on the default factory presets
+		if (preset_to_save_num <= 10)
+		{
+			preset_to_save_num = 10;
+		}
+	}
+	else
+	{
+		storePresetToExternalMemory();
+		LED_Off(PRESET_SAVE_LED);
+	}
 }
 
 void clockHappened(void)
 {
-	
 	if (sequencer_mode) sequencerStep();
-
+	if (type_of_device_connected == MIDIComputerConnected)
+	{
+		ui_ext_gate_in();
+	}
 }
-
 
 
 
@@ -877,12 +1153,6 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 	//send a value to one of the DAC channels to be converted to analog voltage
 	//DACnum is which type of output it goes to (0 = B, 1 = C)
 	
-	//for now, to correct for a mistake on the panel where the jacks are upside down, we reverse the DACvoice and DACnum numbers
-	//KLUDGE
-	//DACvoice = (3 - DACvoice);
-	//DACnum = (1 - DACnum);
-	//KLUDGE
-	
 	SPIbusy = 1;
 	if (spi_mode != TWELVEBIT)
 	{
@@ -902,7 +1172,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC2_CS);
-		//dacwait1();
+		dacwait1(); // necessary wait?
 	}
 
 	if (DACnum == 1)
@@ -914,7 +1184,7 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC3_CS);
-		dacwait1();
+		dacwait1(); // necessary wait?
 	}
 	SPIbusy = 0;
 }
@@ -931,7 +1201,6 @@ void DAC16Send(unsigned char DAC16voice, unsigned short DAC16val)
 		spi_mode = SIXTEENBIT;
 	}
 	
-	//DAC16voice = (3 - DAC16voice); //for now, since the panel jacks are accidentally upside down, we'll reverse the DAC voice number
 	daccontrol = (16 | (DAC16voice << 1));
 	DAC1outhigh = ((daccontrol << 8) + (DAC16val >> 8));
 	DAC1outlow = ((DAC16val & 255) << 8);
@@ -1047,11 +1316,11 @@ void setupEIC(void)
 	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
 	  
-	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH1 , GPIO_PIN_CHANGE);	// PB02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH1/8), AVR32_INTC_INT0);
+	gpio_enable_pin_interrupt(GPIO_PRESET_DOWN_SWITCH , GPIO_PIN_CHANGE);	// PB02
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT0);
 	
-	gpio_enable_pin_interrupt(GPIO_PRESET_SWITCH2 , GPIO_PIN_CHANGE);	// PA20
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_SWITCH2/8), AVR32_INTC_INT0);
+	gpio_enable_pin_interrupt(GPIO_PRESET_UP_SWITCH , GPIO_PIN_CHANGE);	// PA20
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT0);
 	
 	gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
 	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT0);
@@ -1081,22 +1350,10 @@ void main_resume_action(void)
 
 void main_sof_action(void)
 {
-	if (!main_b_midi_enable)
-	return;
-	ui_process(udd_get_frame_number());
+	USB_frame_action(udd_get_frame_number());
 }
 
 
-bool main_midi_enable(void)
-{
-	main_b_midi_enable = true;
-	return true;
-}
-
-void main_midi_disable(void)
-{
-	main_b_midi_enable = false;
-}
 
 
 

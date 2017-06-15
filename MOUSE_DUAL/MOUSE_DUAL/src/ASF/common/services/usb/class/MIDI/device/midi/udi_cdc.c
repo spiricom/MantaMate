@@ -199,12 +199,12 @@ static volatile bool udi_midi_tx_both_buf_to_send[UDI_MIDI_NB];
 
 //@}
 
-//TODO THIS NEEDS TO BE FIXED FOR MIDI
 bool udi_midi_enable(void)
 {
 	uint8_t port = 0;
 	udi_midi_nb_data_enabled = 0;
-	
+
+	LED_On(USB_CONNECTED_LED);
 	initNoteStack();
 	
 	// Initialize TX management
@@ -229,7 +229,7 @@ bool udi_midi_enable(void)
 	if (udi_midi_nb_data_enabled == UDI_MIDI_NB) {
 		udi_midi_data_running = true;
 	}
-	UDI_MIDI_ENABLE_EXT();
+	type_of_device_connected = MIDIComputerConnected;
 
 	return true;
 }
@@ -245,7 +245,8 @@ void udi_midi_disable(void)
 {
 	udi_midi_nb_data_enabled = 0;
 	udi_midi_data_running = false;
-	UDI_MIDI_DISABLE_EXT();
+	type_of_device_connected = NoDeviceConnected;
+	LED_Off(USB_CONNECTED_LED);
 }
 
 void udi_audiocontrol_disable(void)
@@ -343,89 +344,6 @@ void udi_audiocontrol_sof_notify(void)
 	//udi_midi_tx_send(port_notify);
 }
 
-//-------------------------------------------------
-//------- Internal routines to control serial line
-/* 
-
-
-static uint8_t udi_cdc_setup_to_port(void)
-{
-	uint8_t port;
-
-	switch (udd_g_ctrlreq.req.wIndex & 0xFF) {
-#define UDI_CDC_IFACE_COMM_TO_PORT(iface, unused) \
-	case UDI_CDC_COMM_IFACE_NUMBER_##iface: \
-		port = iface; \
-		break;
-	MREPEAT(UDI_CDC_PORT_NB, UDI_CDC_IFACE_COMM_TO_PORT, ~)
-#undef UDI_CDC_IFACE_COMM_TO_PORT
-	default:
-		port = 0;
-		break;
-	}
-	return port;
-}
-*/
-/*
-
-static void udi_cdc_ctrl_state_notify(uint8_t port, udd_ep_id_t ep)
-{
-#if UDI_CDC_PORT_NB == 1 // To optimize code
-	port = 0;
-#endif
-
-	// Send it if possible and state changed
-	if ((!udi_cdc_serial_state_msg_ongoing[port])
-			&& (udi_cdc_state[port] != uid_cdc_state_msg[port].value)) {
-		// Fill notification message
-		uid_cdc_state_msg[port].value = udi_cdc_state[port];
-		// Send notification message
-		udi_cdc_serial_state_msg_ongoing[port] =
-				udd_ep_run(ep,
-				false,
-				(uint8_t *) & uid_cdc_state_msg[port],
-				sizeof(uid_cdc_state_msg[0]),
-				udi_cdc_serial_state_msg_sent);
-	}
-}
-*/
-
-/*
-static void udi_cdc_serial_state_msg_sent(udd_ep_status_t status, iram_size_t n, udd_ep_id_t ep)
-{
-	uint8_t port;
-	UNUSED(n);
-	UNUSED(status);
-
-	switch (ep) {
-#define UDI_CDC_GET_PORT_FROM_COMM_EP(iface, unused) \
-	case UDI_CDC_COMM_EP_##iface: \
-		port = iface; \
-		break;
-	MREPEAT(UDI_CDC_PORT_NB, UDI_CDC_GET_PORT_FROM_COMM_EP, ~)
-#undef UDI_CDC_GET_PORT_FROM_COMM_EP
-	default:
-		port = 0;
-		break;
-	}
-
-	udi_cdc_serial_state_msg_ongoing[port] = false;
-
-	// For the irregular signals like break, the incoming ring signal,
-	// or the overrun error state, this will reset their values to zero
-	// and again will not send another notification until their state changes.
-	udi_cdc_state[port] &= ~(CDC_SERIAL_STATE_BREAK |
-			CDC_SERIAL_STATE_RING |
-			CDC_SERIAL_STATE_FRAMING |
-			CDC_SERIAL_STATE_PARITY | CDC_SERIAL_STATE_OVERRUN);
-	uid_cdc_state_msg[port].value &= ~(CDC_SERIAL_STATE_BREAK |
-			CDC_SERIAL_STATE_RING |
-			CDC_SERIAL_STATE_FRAMING |
-			CDC_SERIAL_STATE_PARITY | CDC_SERIAL_STATE_OVERRUN);
-	// Send it if possible and state changed
-	udi_cdc_ctrl_state_notify(port, ep);
-}
-*/
 
 //-------------------------------------------------
 //------- Internal routines to process data transfer
@@ -538,7 +456,7 @@ static void udi_midi_tx_send(uint8_t port)
 		return; // Already ongoing or wait next SOF to send next data
 	}
 
-//how does tx_sof_num get filled?
+	//how does tx_sof_num get filled?
 	if (udi_midi_tx_sof_num[port] == udd_get_frame_number()) {
 		return; // Wait next SOF to send next data
 	}

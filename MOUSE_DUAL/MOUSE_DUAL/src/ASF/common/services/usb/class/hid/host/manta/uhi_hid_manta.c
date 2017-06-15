@@ -186,7 +186,6 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					if (dev->dev_desc.iSerialNumber < 70)
 					{
 						firstEdition = true;
-						Write7Seg(99); // TODO: remove this once it's been verified that it works - JS
 					}
 					else
 					{
@@ -256,6 +255,7 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
+	type_of_device_connected = MantaConnected;
 	initNoteStack();
 	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
 	//memset(lights,0,HEX_BYTES*2+SLIDER_BYTES); removed this because it seems more efficient to manipulate the manta hid send report directly. It's possible that there's a problem with that, which means will need to bring back this separate array.
@@ -282,6 +282,7 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	free(uhi_hid_manta_dev.report);
 	UHI_HID_MANTA_CHANGE(dev, false);
 	manta_mapper = 0;
+	type_of_device_connected = NoDeviceConnected;
 	initNoteStack();
 }
 
@@ -385,7 +386,7 @@ void uhi_hid_manta_sof(bool b_micro)
 {
 	UNUSED(b_micro);
 	
-	if (++blinkCount == 250)
+	if (++blinkCount >= 150)
 	{
 		blinkCount = 0;
 		blink();
@@ -393,7 +394,7 @@ void uhi_hid_manta_sof(bool b_micro)
 
 	if (clock_speed != 0)
 	{
-		if (USB_frame_counter == clock_speed) {
+		if (USB_frame_counter >= clock_speed) {
 			clockHappened();
 			USB_frame_counter = 0;
 		}

@@ -532,7 +532,8 @@ static void uhc_enumeration_step11(void)
 
 /**
  * \brief Device enumeration step 12
- * Requests the first USB structure of the USB configuration descriptor.
+ * Requests the 
+  USB structure of the USB configuration descriptor.
  *
  * \param add           USB address of the setup request
  * \param status        Transfer status

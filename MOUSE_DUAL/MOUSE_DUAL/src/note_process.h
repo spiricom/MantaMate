@@ -19,6 +19,8 @@ uint8_t sysVol;  // should probably initialize by reading from MIDI device
 
 extern unsigned char polymode; 
 extern unsigned char polynum;
+extern unsigned char tuning;
+extern unsigned long numTunings;
 
 tRamp keyRamp[12];
 unsigned char polyVoiceBusy[4];

@@ -7,7 +7,7 @@
 
 #include "utilities.h"
 
-#define COMPUTE_INC() r->inc = ((r->dest-r->curr)/r->time * r->inv_sr_ms)*((float)r->samples_per_tick)
+#define COMPUTE_INC() (r->time>0) ? (r->inc = ((r->dest-r->curr)/r->time * r->inv_sr_ms)*((float)r->samples_per_tick)) : (r->inc = (r->dest-r->curr))
 
 int tRampSetTime(tRamp *r, float time) {
 	r->time = time;

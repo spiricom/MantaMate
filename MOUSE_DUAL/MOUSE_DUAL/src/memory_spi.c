@@ -5,6 +5,13 @@
  *  Author: Jeff Snyder
  */ 
 
+//S25FL164K0XMFA011 is the chip (or a newer chip in the same family)
+
+//a page is 256 bytes. 
+// a sector is 16 pages (4096 bytes)
+// a block is 16 sectors (65535 bytes)
+
+
 #include "main.h"
 #include "memory_spi.h"
 
@@ -16,6 +23,7 @@ uint16_t myNumbers[10] = {1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9, 10};
 uint16_t myCrazyNumbers[10] = {17,7,17,7,17,7,17,7,17,7};
 	
 uint16_t busy;
+
 static void memorySPIWaitWhileBusy(void)
 {
 	
@@ -60,7 +68,7 @@ static void memorySPIWriteEnable(void)
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 }
 
-void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes) // numWords?
+void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
 {
 	// Write Enable
 	memorySPIWriteEnable();
@@ -73,12 +81,11 @@ void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes) // num
 	for (int i = 0; i < numBytes; i++)
 	{
 		spi_write(MEMORY_SPI, (buffer[i]&0xffff));
-		//spi_write(MEMORY_SPI, (buffer[i]&0xff00)>>8);
 	}
 	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 	
-	// Wait til Write done
+	// Wait until Write done
 	memorySPIWaitWhileBusy();
 }
 
@@ -112,7 +119,7 @@ void memorySPIEraseSector(uint16_t sector)
 	memorySPIWriteAddress(sector, 0);
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 	
-	// Wait til Erase done
+	// Wait until Erase done
 	memorySPIWaitWhileBusy();
 }
 
@@ -129,7 +136,7 @@ void memorySPIEraseBlock(uint16_t block)
 	memorySPIWriteAddress((block << 4), 0);
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 	
-	// Wait til Erase done
+	// Wait until Erase done
 	memorySPIWaitWhileBusy();
 }
 
@@ -146,6 +153,10 @@ void memorySPIWriteSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
 	}
 	
 }
+
+//a page is 256 bytes.
+// a sector is 16 pages (4096 bytes)
+// a block is 16 sectors (65535 bytes)
 
 void memorySPIReadSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
 {

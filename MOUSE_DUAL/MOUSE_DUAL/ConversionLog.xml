@@ -1,0 +1,230 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type='text/xsl' href='ConversionLog.xslt'?>
+<conversion conversiontitle="Upgrade Report - Atmel Software Framework Upgrade Log" subtitle1="Upgrading Modules From" subtitle2="to" date="Thursday, June 8, 2017" time="10:45 PM">
+  <general>
+    <log timestamp="06-08-2017 22-45-22">
+      <message>Unloading project</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-22">
+      <message>Project unload complete.</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-43">
+      <message>Backing up of project started.</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-44">
+      <message>Project backup completed.</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-44">
+      <message>Reloading project after backup.</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-46">
+      <message>Project reload complete.</message>
+    </log>
+    <log timestamp="06-08-2017 22-45-46">
+      <message>Upgrading of project started.</message>
+    </log>
+    <log timestamp="06-08-2017 22-46-32">
+      <message>Project upgrade complete</message>
+    </log>
+  </general>
+  <revert versiontext="3.28.1" description="Reverting from version">
+    <moduleinfo name="EVK1100">
+      <action description="Delete framework file 'src\ASF\avr32\boards\evk1100\led.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\boards\evk1100\evk1100.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/boards/evk1100' from include search path." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/boards' from include search path." result="SUCCESS" resulttext="" />
+      <action description="Remove defined symbol 'BOARD=EVK1100'." result="SUCCESS" resulttext="" />
+      <action description="Remove Assembler Flag '-DBOARD=EVK1100'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Generic board support">
+      <action description="Delete framework file 'src\ASF\common\boards\board.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/common/boards' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Compiler abstraction layer and code utilities">
+      <action description="Delete framework file 'src\ASF\avr32\utils\preprocessor\preprocessor.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\preprocessor\mrepeat.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\preprocessor\stringz.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\status_codes.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\compiler.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\header_files\uc3d_defines_fix.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\header_files\uc3l3_l4_defines_fix.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\preprocessor\tpaste.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/utils/preprocessor' from include search path." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/utils' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Generic Makefile for 32-bit AVR">
+      <action description="Delete framework file 'src\ASF\avr32\utils\make\Makefile.batchisp.in'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\make\Makefile.avr32program.in'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\make\Makefile.avr32.in'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Append a trampoline to perform a jump over the bootloader section">
+      <action description="Delete framework file 'src\ASF\avr32\utils\startup\trampoline_uc3.S'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\utils\startup\trampoline_uc3.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/utils' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Execution startup routine, startup_uc3.o">
+      <action description="Delete framework file 'src\ASF\avr32\utils\startup\startup_uc3.S'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Part identification macros">
+      <action description="Delete framework file 'src\ASF\common\utils\parts.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/common/utils' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Interrupt management - UC3 implementation">
+      <action description="Delete framework file 'src\ASF\common\utils\interrupt\interrupt_avr32.h'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\common\utils\interrupt.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/common/utils' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="INTC - Interrupt Controller enabled">
+      <action description="Delete framework file 'src\ASF\avr32\drivers\intc\intc.c'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\drivers\intc\intc.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/drivers/intc' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Exception handlers enabled">
+      <action description="Delete framework file 'src\ASF\avr32\drivers\intc\exception.S'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="EVK1100 LED support enabled">
+      <action description="Delete framework file 'src\ASF\avr32\boards\evk1100\led.c'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/boards/evk1100' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="GPIO - General-Purpose Input/Output">
+      <action description="Delete framework file 'src\ASF\avr32\drivers\gpio\gpio.c'." result="SUCCESS" resulttext="" />
+      <action description="Delete framework file 'src\ASF\avr32\drivers\gpio\gpio.h'." result="SUCCESS" resulttext="" />
+      <action description="Remove folder '../src/ASF/avr32/drivers/gpio' from include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="EVK1100 initialization support enabled">
+      <action description="Delete framework file 'src\ASF\avr32\boards\evk1100\init.c'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+  </revert>
+  <revert versiontext="3.28.1" description="Reverting from version" />
+  <update versiontext="3.32.0" description="Upgrading to version">
+    <moduleinfo name="EVK1100">
+      <action description="Import framework file as 'src\ASF\avr32\boards\evk1100\led.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\boards\evk1100\evk1100.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/boards/evk1100' to include search path." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/boards' to include search path." result="SUCCESS" resulttext="" />
+      <action description="Define symbol 'BOARD=EVK1100'." result="SUCCESS" resulttext="" />
+      <action description="Add Assembler Flag '-DBOARD=EVK1100'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Generic board support">
+      <action description="Import framework file as 'src\ASF\common\boards\board.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/boards' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Compiler abstraction layer and code utilities">
+      <action description="Import framework file as 'src\ASF\avr32\utils\preprocessor\preprocessor.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\preprocessor\mrepeat.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\preprocessor\stringz.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\status_codes.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\compiler.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\header_files\uc3d_defines_fix.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\header_files\uc3l3_l4_defines_fix.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\preprocessor\tpaste.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/utils/preprocessor' to include search path." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/utils' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Generic Makefile for 32-bit AVR">
+      <action description="Import framework file as 'src\ASF\avr32\utils\make\Makefile.batchisp.in'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\make\Makefile.avr32program.in'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\make\Makefile.avr32.in'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Append a trampoline to perform a jump over the bootloader section">
+      <action description="Import framework file as 'src\ASF\avr32\utils\startup\trampoline_uc3.S'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\utils\startup\trampoline_uc3.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/utils' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Execution startup routine, startup_uc3.o">
+      <action description="Import framework file as 'src\ASF\avr32\utils\startup\startup_uc3.S'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Part identification macros">
+      <action description="Import framework file as 'src\ASF\common\utils\parts.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/utils' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Interrupt management - UC3 implementation">
+      <action description="Import framework file as 'src\ASF\common\utils\interrupt\interrupt_avr32.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\utils\interrupt.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/utils' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="INTC - Interrupt Controller enabled">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\intc.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\intc.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/drivers/intc' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Exception handlers enabled">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\exception.S'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="EVK1100 LED support enabled">
+      <action description="Import framework file as 'src\ASF\avr32\boards\evk1100\led.c'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/boards/evk1100' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="GPIO - General-Purpose Input/Output">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\gpio\gpio.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\gpio\gpio.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/avr32/drivers/gpio' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="EVK1100 initialization support enabled">
+      <action description="Import framework file as 'src\ASF\avr32\boards\evk1100\init.c'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+  </update>
+  <update versiontext="3.32.0" description="Upgrading to version">
+    <moduleinfo name="GPIO - General-Purpose Input/Output">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\gpio\gpio.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\gpio\gpio.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="INTC - Interrupt Controller">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\intc.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\intc.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="TC - Timer/Counter">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\tc\tc.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\tc\tc.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="TWI - Two-Wire Interface">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\twi\twi.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\twi\twi.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\Config\conf_twi.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Exception support">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\intc\exception.S'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="WDT Watchdog Timer - UC3 A0/A1/A3/A4/B0/B1 implementation">
+      <action description="Import framework file as 'src\ASF\avr32\drivers\wdt\wdt.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\avr32\drivers\wdt\wdt.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="System Clock Control - UC3 A implementation">
+      <action description="Import framework file as 'src\Config\conf_clock.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="Sleep manager - UC3 implementation">
+      <action description="Import framework file as 'src\Config\conf_sleepmgr.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="TWI - Two-Wire Interface - UC3 A/B implementation">
+      <action description="Import framework file as 'src\ASF\common\services\twi\twi_master.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\twi\uc3_twi\twi_master.h'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="USB Device - UC3 A/B implementation">
+      <action description="Define symbol 'UDD_ENABLE'." result="SUCCESS" resulttext="" />
+      <action description="Add Assembler Flag '-DUDD_ENABLE'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="USB Host driver - UC3 A/B implementation">
+      <action description="Define symbol 'UHD_ENABLE'." result="SUCCESS" resulttext="" />
+      <action description="Add Assembler Flag '-DUHD_ENABLE'." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="USB HID Library (Device)">
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\udi_hid.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\udi_hid.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/services/usb/class/hid/device' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="USB Device HID Mouse (Single Interface Device)">
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\mouse\udi_hid_mouse.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\mouse\udi_hid_mouse_desc.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\mouse\udi_hid_mouse_conf.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\device\mouse\udi_hid_mouse.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\Config\conf_usb.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/services/usb/class/hid/device/mouse' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+    <moduleinfo name="USB Host HID Mouse (Single Class support)">
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\host\mouse\uhi_hid_mouse.c'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\ASF\common\services\usb\class\hid\host\mouse\uhi_hid_mouse.h'." result="SUCCESS" resulttext="" />
+      <action description="Import framework file as 'src\Config\conf_usb_host.h'." result="SUCCESS" resulttext="" />
+      <action description="Add folder '../src/ASF/common/services/usb/class/hid/host/mouse' to include search path." result="SUCCESS" resulttext="" />
+    </moduleinfo>
+  </update>
+</conversion>
