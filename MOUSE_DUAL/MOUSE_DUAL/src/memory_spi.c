@@ -142,7 +142,7 @@ void memorySPIEraseBlock(uint16_t block)
 
 void memorySPIWriteSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
 {
-	int thisBlock = (whichPreset << 5); // 16 sectors in block
+	int thisBlock = (whichPreset << 4); // 16 sectors in block
 	int pageCount = whichSeq * 4; // 4 pages per sequence
 	
 	for (int i = 0; i < 4; i++) // write each page
@@ -160,7 +160,7 @@ void memorySPIWriteSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
 
 void memorySPIReadSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
 {
-	int thisBlock = (whichPreset << 5);
+	int thisBlock = (whichPreset << 4);
 	int pageCount = whichSeq * 4;
 	
 	for (int i = 0; i < 4; i++)

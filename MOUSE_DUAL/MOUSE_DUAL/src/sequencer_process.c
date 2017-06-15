@@ -1495,6 +1495,7 @@ void releaseBottomRightButton(void)
 	else								setSequencerLEDs();
 }
 
+uint16_t testval = 0;
 void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 {
 	int note = hexUIToStep(currentHexUI);
@@ -1510,12 +1511,10 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		{
 			setParameterForEditStackSteps(currentSequencer, CV1, val);
 			//sequencer[currentSequencer].step[note].cv1 = val;
-			
 		}
 		else // SliderTwo
 		{
-			setParameterForEditStackSteps(currentSequencer, CV2, val);
-			//sequencer[currentSequencer].step[note].cv2 = val;
+			setParameterForEditStackSteps(currentSequencer, CV2, val << 4);
 		}
 		
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
@@ -1528,7 +1527,8 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			else
 			{
-				DAC16Send(2*currentSequencer+1, val);
+				testval = val << 5;
+				DAC16Send(2*currentSequencer+1, val << 4);
 			}
 			
 		}
