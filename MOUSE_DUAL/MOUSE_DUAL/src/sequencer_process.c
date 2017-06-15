@@ -9,7 +9,6 @@
 #include "note_process.h"
 #include "uhi_hid_manta.h"
 #include "utilities.h"
-#include "sequencer.h"
 //#include "7Segment.h"
 
 #define NUM_COMP 14
@@ -210,10 +209,6 @@ OptionPanelButtonType optionModeButtons[16] =	{
 };
 
 
-
-tSequencer sequencer[NUM_SEQ];
-
-
 uint8_t amberHexes[NUM_SEQ][MAX_STEPS];
 
 int editNoteOn; 
@@ -329,17 +324,6 @@ void initSequencer(void)
 	key_vs_option =				KeyboardMode;
 	playSubMode =				SeqMode; manta_set_LED_button(ButtonBottomRight, Off);
 	
-	tRampInit(&out00, 2000, 0, 1);
-	tRampInit(&out02, 2000, 0, 1);
-	tRampInit(&out10, 2000, 0, 1);
-	tRampInit(&out11, 2000, 0, 1);
-	tRampInit(&out12, 2000, 0, 1);
-	tRampInit(&out13, 2000, 0, 1);
-	tRampInit(&out20, 2000, 0, 1);
-	tRampInit(&out21, 2000, 0, 1);
-	tRampInit(&out22, 2000, 0, 1);
-	tRampInit(&out23, 2000, 0, 1);
-	
 	tNoteStack_init(&editStack,		32);
 	
 	resetEditStack();
@@ -397,44 +381,36 @@ void sequencerStep(void)
 	
 	int offset,cstep,curr;
 	
-	for (int i = 0; i < NUM_SEQ; i++)
+	for (int seq = 0; seq < NUM_SEQ; seq++)
 	{
-		offset = i * 2;
+		offset = seq * 2;
 		
-		cstep = sequencer[i].currentStep;
+		cstep = sequencer[seq].currentStep;
 		
-		sequencer[i].lengthCounter += 1;
+		sequencer[seq].lengthCounter += 1;
 		
-		if (sequencer[i].lengthCounter >= sequencer[i].step[cstep].length)
+		if (sequencer[seq].lengthCounter >= sequencer[seq].step[cstep].length)
 		{
-			tSequencer_next(&sequencer[i]); // Move to next step, seq 1.
+			tSequencer_next(&sequencer[seq]); // Move to next step, seq 1.
 			
-			curr = sequencer[i].currentStep;
+			curr = sequencer[seq].currentStep;
 			
-			if (sequencer[i].stepGo)
+			if (sequencer[seq].stepGo)
 			{
-				if (sequencer[i].pitchOrTrigger == PitchMode)
+				if (sequencer[seq].pitchOrTrigger == PitchMode)
 				{
-					dacSendPitchMode(i, curr);
+					dacSendPitchMode(seq, curr);
 				}
 				else // TriggerMode
 				{
-					dacSendTriggerMode(i, curr);
+					dacSendTriggerMode(seq, curr);
 				}
 
 				// Start sequencer 1 and 2 timers: tc1, tc2.
 				// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
-				if (i == SequencerOne)
-				{
-					tc_start(tc1, TC1_CHANNEL);
-				}
-				else // SequencerTwo
-				{
-					tc_start(tc2, TC2_CHANNEL);
-				}
-
+				tc_start(tc1, TC1_CHANNEL);
 			}
-			sequencer[i].lengthCounter = 0;
+			sequencer[seq].lengthCounter = 0;
 		}
 	}
 	
@@ -1546,7 +1522,15 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 		if (tNoteStack_contains(&editStack, uiHexCurrentStep) != -1)
 		{
-			dacsend(currentSequencer * 2 + sliderNum, 0, val);
+			if (sliderNum == SliderOne)
+			{
+				dacsend(currentSequencer * 2, 1, val);
+			}
+			else
+			{
+				DAC16Send(2*currentSequencer+1, val);
+			}
+			
 		}
 	}
 	else if (currentMantaSliderMode == SliderModeTwo)
@@ -1568,7 +1552,14 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		
 		if (tNoteStack_contains(&editStack,uiHexCurrentStep) != -1)
 		{
-			dacsend(currentSequencer * 2 + sliderNum, 1, val);
+			if (sliderNum == SliderOne)
+			{
+				dacsend(currentSequencer * 2 + 1, 0, val);
+			}
+			else
+			{
+				dacsend(currentSequencer * 2 + 1, 1, val);
+			}
 		}
 	}
 	else if (currentMantaSliderMode == SliderModeThree)
@@ -2084,17 +2075,10 @@ float destTEMP= .0f;
 
 void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 {
-	int offset = 2;
-	if (seq ==SequencerOne)
-	{
-		offset = 0;
-	}
-	
 	if (sequencer[seq].step[step].note)
 	{
 		// Configure PitchGlide
-		tRamp* glide = &out00;
-		if (seq == SequencerTwo) glide = &out02;
+		tRamp* glide = &out[seq][CVPITCH];
 		
 		uint16_t glideTime =  sequencer[seq].step[step].pglide >> 3;
 		if (glideTime < 5) glideTime = 5;
@@ -2106,76 +2090,44 @@ void dacSendPitchMode(MantaSequencer seq, uint8_t step)
 		glideTime =  sequencer[seq].step[step].cvglide >> 3;
 		if (glideTime < 5) glideTime = 5;
 		
-		if (seq == SequencerOne) 
-		{
-			tRampSetTime(&out20, glideTime);
-			tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv3);
-			
-			tRampSetTime(&out21, glideTime);
-			tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv4);
-			
-			tRampSetTime(&out10, glideTime);
-			tRampSetDest(&out10, (float) sequencer[SequencerOne].step[step].cv1);
-					
-			tRampSetTime(&out11, glideTime);
-			tRampSetDest(&out11, (float) sequencer[SequencerOne].step[step].cv2);
-			
-		} 
-		else //SequencerTwo
-		{
-			tRampSetTime(&out22, glideTime);
-			tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv3);
-			
-			tRampSetTime(&out23, glideTime);
-			tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv4);
-			
-			tRampSetTime(&out12, glideTime);
-			tRampSetDest(&out12, (float) sequencer[SequencerTwo].step[step].cv1);
-			
-			tRampSetTime(&out13, glideTime);
-			tRampSetDest(&out13, (float) sequencer[SequencerTwo].step[step].cv2);
-			
-		}
+
+		tRampSetTime(&out[seq][CV1P], glideTime);
+		tRampSetDest(&out[seq][CV1P], (float) sequencer[seq].step[step].cv1);
 		
+		tRampSetTime(&out[seq][CV2P], glideTime);
+		tRampSetDest(&out[seq][CV2P], (float) sequencer[seq].step[step].cv2);
+		
+		tRampSetTime(&out[seq][CV3P], glideTime);
+		tRampSetDest(&out[seq][CV3P], (float) sequencer[seq].step[step].cv3);
+		
+		tRampSetTime(&out[seq][CV4P], glideTime);
+		tRampSetDest(&out[seq][CV4P], (float) sequencer[seq].step[step].cv4);
 		
 		// Send Trigger
-		DAC16Send(offset+1, 65535);
+		dacsend(2*seq,0,4095);
 	}
 }
 
+
 void dacSendTriggerMode(MantaSequencer seq, uint8_t step)
 {
-
-	int offset = 0;
-	if (seq == SequencerTwo) offset = 2;
-	
 	// Configure CVGlide
 	uint16_t glideTime =  sequencer[seq].step[step].cvglide >> 3;
 	if (glideTime < 5) glideTime = 5;
 	
-	if (seq == SequencerOne)
-	{
-		tRampSetTime(&out20, glideTime);
-		tRampSetDest(&out20, (float) sequencer[SequencerOne].step[step].cv1);
+
+	tRampSetTime(&out[seq][CV1T], glideTime);
+	tRampSetDest(&out[seq][CV1T], (float) sequencer[seq].step[step].cv1);
 		
-		tRampSetTime(&out21, glideTime);
-		tRampSetDest(&out21, (float) sequencer[SequencerOne].step[step].cv2);
-		
-	}
-	else //SequencerTwo
-	{
-		tRampSetTime(&out22, glideTime);
-		tRampSetDest(&out22, (float) sequencer[SequencerTwo].step[step].cv1);
-		
-		tRampSetTime(&out23, glideTime);
-		tRampSetDest(&out23, (float) sequencer[SequencerTwo].step[step].cv2);
-	}
+	tRampSetTime(&out[seq][CV2T], glideTime);
+	tRampSetDest(&out[seq][CV2T], (float) sequencer[seq].step[step].cv2);
+
 	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(offset+0, 0, sequencer[seq].step[step].on[0] * 4095);
-	dacsend(offset+1, 0, sequencer[seq].step[step].on[1] * 4095);
-	dacsend(offset+0, 1, sequencer[seq].step[step].on[2] * 4095);
-	dacsend(offset+1, 1, sequencer[seq].step[step].on[3] * 4095);
+	dacsend(2*seq+0, 0, sequencer[seq].step[step].on[0] * 4095);
+	dacsend(2*seq+1, 0, sequencer[seq].step[step].on[1] * 4095);
+	dacsend(2*seq+0, 1, sequencer[seq].step[step].on[2] * 4095);
+	dacsend(2*seq+1, 1, sequencer[seq].step[step].on[3] * 4095);
 }
 
 // UTILITIES

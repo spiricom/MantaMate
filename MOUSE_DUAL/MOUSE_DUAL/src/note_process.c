@@ -435,11 +435,7 @@ void initKeys(int numVoices)
 	else				polymode = 0;
 	
 	polynum = numVoices;
-	
-	for (int i = 0; i < 12; i++)
-	{
-		tRampInit(&keyRamp[i], 2000, 0, 1);
-	}
+
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	tc_start(tc3, TC3_CHANNEL);
@@ -539,13 +535,13 @@ void noteOut()
 		{
 			if (numnotes != 0)
 			{
-				tRampSetDest(&keyRamp[0],calculateDACvalue(notestack[0][0]));
+				tRampSetDest(&out[0][CVPITCH],calculateDACvalue(notestack[0][0]));
 				
-				tRampSetDest(&keyRamp[1], 0xfff);
+				tRampSetDest(&out[0][CVTRIGGER], 0xfff);
 			}
 			else
 			{
-				tRampSetDest(&keyRamp[1], 0x000);
+				tRampSetDest(&out[0][CVTRIGGER], 0x000);
 			}
 			notehappened = 0;
 			noteoffhappened = 0;
@@ -558,18 +554,19 @@ void noteOut()
 		{
 			for (i = 0; i < polynum; i++)
 			{
+				int inst = (int)(i/2);
 				if (changevoice[i])
 				{
 					//lcd_clear_line(i+1);
 					if (polyVoiceBusy[i])
 					{
-						tRampSetDest(&keyRamp[3*i], calculateDACvalue(polyVoiceNote[i]));
+						tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(polyVoiceNote[i]));
 						
-						tRampSetDest(&keyRamp[3*i+1], 0xfff);
+						tRampSetDest(&out[inst][CVTRIGGER], 0xfff);
 					}
 					else
 					{
-						tRampSetDest(&keyRamp[3*i+1], 0x000);
+						tRampSetDest(&out[inst][CVTRIGGER], 0x000);
 					}
 					
 					changevoice[i] = 0;
