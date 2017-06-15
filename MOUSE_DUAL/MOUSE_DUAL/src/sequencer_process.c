@@ -1324,14 +1324,14 @@ void touchUpperHex(uint8_t hexagon)
 		{
 			full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
 		}
-		else if (full_vs_split == FullMode && whichOptionType == OptionLeft)
+		else if (whichOptionType == OptionLeft)
 		{
 			prev_panel_hex = current_panel_hex;
 			current_panel_hex = whichHex;
 			
 			setCurrentSequencer(SequencerOne);
 		}
-		else if (full_vs_split == FullMode && whichOptionType == OptionRight)
+		else if (whichOptionType == OptionRight)
 		{
 			prev_panel_hex = current_panel_hex;
 			current_panel_hex = whichHex;
@@ -2047,13 +2047,13 @@ void setOptionLEDs(void)
 		{
 			manta_set_LED_hex(hex, (option == sequencer[currentSequencer].pattern) ? Red : Amber);
 		}
-		else if (option == OptionRight)
-		{
-			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? ((currentSequencer == SequencerTwo) ? Red : Amber) : Off );
-		}
 		else if (option == OptionLeft)
 		{
-			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? ((currentSequencer == SequencerOne) ? Red : Amber) : Off );
+			manta_set_LED_hex(hex, (currentSequencer == SequencerOne) ? Red : Amber);
+		}
+		else if (option == OptionRight)
+		{
+			manta_set_LED_hex(hex, (currentSequencer == SequencerTwo) ? Red : Amber);
 		}
 	}
 
