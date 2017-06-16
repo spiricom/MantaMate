@@ -208,7 +208,6 @@ int main(void){
 			tRampInit(&out[i][j], 2000, 0, 1);
 	}
 	
-	currentDevice = DeviceManta;
 	currentInstrument = InstrumentOne;
 	//start off on preset 0;
 	preset_num = 0;

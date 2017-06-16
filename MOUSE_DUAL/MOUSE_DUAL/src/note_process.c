@@ -199,9 +199,9 @@ void releaseLowerHexKey(int hex)
 			
 			tKeyboard_noteOff(keyboard, hex);
 		
-			for(int i =0; i < keyboard->numVoices; i++)
+			for(int v =0; v < keyboard->numVoices; v++)
 			{
-				if(!keyboard->polyVoiceBusy[i]) dacsend(i,1,0);
+				if (!keyboard->polyVoiceBusy[v]) dacsend(v,1,0);
 			}
 		}
 	}
@@ -274,7 +274,7 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 // reads the current state and sets output voltages, leds and 7 seg display
 void dacSendKeyboard(void)
 {
-	if (currentDevice == DeviceManta)
+	if (type_of_device_connected == MantaConnected)
 	{
 		for (int inst = 0; inst < NUM_INST; inst++)
 		{
@@ -307,7 +307,7 @@ void dacSendKeyboard(void)
 			}
 		}
 	}
-	else if (currentDevice == DeviceMidi)
+	else
 	{
 		if (midiKeyboard.noteOn)
 		{

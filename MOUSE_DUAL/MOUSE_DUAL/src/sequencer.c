@@ -633,7 +633,7 @@ void tKeyboard_noteOff(tKeyboard* const k, uint8_t noteVal)
 		if (first != -1)
 		k->currentNote = first;
 
-
+/*
 		int j = 0;
 		//now check if there are any polyphony voices waiting that got stolen.
 		// USE NOTESTACKNEXT FOR THIS!!!!
@@ -659,6 +659,7 @@ void tKeyboard_noteOff(tKeyboard* const k, uint8_t noteVal)
 			}
 			j++;
 		}
+		*/
 	}
 
 	
