@@ -137,7 +137,7 @@ uint32_t tempoDividerMax = 9;
 
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-uint8_t sequencer_mode = 0; 
+
 uint8_t joystick_mode = 0; 
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
@@ -208,6 +208,8 @@ int main(void){
 			tRampInit(&out[i][j], 2000, 0, 1);
 	}
 	
+	currentDevice = DeviceManta;
+	currentInstrument = InstrumentOne;
 	//start off on preset 0;
 	preset_num = 0;
 	//delay_ms(600);
@@ -238,23 +240,25 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
-	if (!joystick_mode)
+	for (int inst = 0; inst < 2; inst++)
 	{
-		for (int seq = 0; seq < 2; seq++)
+		tMantaInstrument* instrument = &manta[inst];
+		if (instrument->type == SequencerInstrument)
 		{
-			if (sequencer[seq].pitchOrTrigger == PitchMode)
+			if (instrument->sequencer.pitchOrTrigger == PitchMode)
 			{
-				dacsend(2*seq, 0, 0);
+				dacsend(2*inst, 0, 0);
 			}
 			else // TriggerMode
 			{
 				// Set 4 trigger outputs low
-				dacsend(2*seq+0, 0, 0);
-				dacsend(2*seq+1, 0, 0);
-				dacsend(2*seq+0, 1, 0);
-				dacsend(2*seq+1, 1, 0);
+				dacsend(2*inst+0, 0, 0);
+				dacsend(2*inst+1, 0, 0);
+				dacsend(2*inst+0, 1, 0);
+				dacsend(2*inst+1, 1, 0);
 			}
 		}
+		
 	}
 }
 
@@ -273,51 +277,52 @@ static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
+
+
 	
-	if (!joystick_mode)
-	{
-		if (sequencer_mode)
-		{
-			for (int seq = 0; seq < 2; seq++)
+			for (int inst = 0; inst < 2; inst++)
 			{
-				if (sequencer[seq].pitchOrTrigger == PitchMode)
-				{
-					// Sequencer Pitch
-					DAC16Send(2*seq+0, tRampTick(&out[seq][CVPITCH]) * UINT16_MAX);
-
-					// Sequencer CV1-CV2
-					dacsend(2*seq+0, 1, tRampTick(&out[seq][CV1P]));
-					DAC16Send(2*seq+1,  tRampTick(&out[seq][CV2P]));
-					
-					// Sequencer CV3-CV4
-					dacsend(2*seq+1, 0, tRampTick(&out[seq][CV3P]));
-					dacsend(2*seq+1, 1, tRampTick(&out[seq][CV4P]));
-				}
-				else //TriggerMode
-				{
-					DAC16Send(2*seq+0, ((uint16_t)tRampTick(&out[seq][CV1T])) << 4);
-					DAC16Send(2*seq+1, ((uint16_t)tRampTick(&out[seq][CV2T])) << 4);
-				}
-			}
-		}
-		else /// KeyMode
-		{
-			for (int i = 0; i < polynum; i++)
-			{
-				int inst = (int)(i/2);
+				tMantaInstrument* instrument = &manta[inst];
 				
-				DAC16Send	(i,    tRampTick(&out[inst][3*inst+CVPITCH]));
-			
-				dacsend		(i,0,  tRampTick(&out[inst][3*inst+CVTRIGGER]));
-			
-				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-			
-				// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-				dacsend     (i,1,  butt_states[polyVoiceNote[i]] * 16);
-			}
+				if (instrument->type == SequencerInstrument)
+				{
+					if (instrument->sequencer.pitchOrTrigger == PitchMode)
+					{
+						// Sequencer Pitch
+						DAC16Send(2*inst+0, tRampTick(&out[inst][CVPITCH]) * UINT16_MAX);
 
-		}
-	}
+						// Sequencer CV1-CV2
+						dacsend(2*inst+0, 1, tRampTick(&out[inst][CV1P]));
+						DAC16Send(2*inst+1,  tRampTick(&out[inst][CV2P]));
+						
+						// Sequencer CV3-CV4
+						dacsend(2*inst+1, 0, tRampTick(&out[inst][CV3P]));
+						dacsend(2*inst+1, 1, tRampTick(&out[inst][CV4P]));
+					}
+					else //TriggerMode
+					{
+						DAC16Send(2*inst+0, ((uint16_t)tRampTick(&out[inst][CV1T])) << 4);
+						DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
+					}
+				}
+				else // KeyboardInstrument
+				{ 
+					for (int i = 0; i < instrument->keyboard.numVoices; i++)
+					{
+						int row = (int)(i/2);
+						
+						DAC16Send	(i,    tRampTick(&out[inst][3*row+CVPITCH]));
+						
+						dacsend		(i,0,  tRampTick(&out[inst][3*row+CVTRIGGER]));
+						
+						// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+						
+						// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
+						dacsend     (i,1,  butt_states[instrument->keyboard.polyVoiceNote[i]] * 16);
+					}
+				}
+				
+			}
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
@@ -1009,7 +1014,8 @@ void updateSave(void)
 
 void clockHappened(void)
 {
-	if (sequencer_mode) sequencerStep();
+	if (manta[InstrumentOne].type == SequencerInstrument || manta[InstrumentTwo].type == SequencerInstrument) sequencerStep();
+	
 	if (type_of_device_connected == MIDIComputerConnected)
 	{
 		ui_ext_gate_in();

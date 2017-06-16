@@ -209,7 +209,7 @@ void uhi_midi_enable(uhc_device_t* dev)
 	uhi_midi_dev.b_enabled = true;
 	type_of_device_connected = MIDIKeyboardConnected;
 	// Init value
-	initNoteStack();
+	//initNoteStack();
 	manta_mapper = 0; // make sure there is no weird MIDI note mapping going on if the manta was previously being communicated with.
 	UHI_MIDI_CHANGE(dev, true);
 }
@@ -223,7 +223,7 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 	type_of_device_connected = NoDeviceConnected;
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);
-	initNoteStack();
+	//initNoteStack();
 }
 //@}
 
@@ -665,26 +665,21 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 		case 144:
 			if (msgByte2)
 			{
-				addNote(msgByte1,msgByte2);
+				tKeyboard_noteOn(&midiKeyboard, msgByte1, msgByte2);
 			}
-			//to deal with note-offs represented as a note-on with zero velocity
-			else
+			else //to deal with note-offs represented as a note-on with zero velocity
 			{
-				removeNote(msgByte1);
+				tKeyboard_noteOff(&midiKeyboard, msgByte1);
 			}
-			noteOut();
-			midiVol();
 			break;
 		case 128:
-			removeNote(msgByte1);
-			noteOut();
-			midiVol();
+			tKeyboard_noteOff(&midiKeyboard, msgByte1);
+			dacSendKeyboard();
 			break;
 		// control change
 		case 176:
 			//controlChange(msgByte1,msgByte2);
 			//LED_On(LED2);
-			//midiVol();
 			break;
 		// program change	
 		case 192:

@@ -15,6 +15,12 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+typedef enum BOOL 
+{
+	FALSE = 0,
+	TRUE = 1
+	}BOOL;
+
 #include "stdint.h"
 
 //------------------  S T R U C T U R E S  -------------------
@@ -38,12 +44,11 @@ typedef enum ConnectedDeviceType
 } ConnectedDeviceType;
 // Typedef versions of Manta modes.
 
-typedef enum MantaSequencer {
-	SequencerOne = 0,
-	SequencerTwo,
-	SequencerBoth,
-	SequencerNil,
-} MantaSequencer;
+typedef enum MantaInstrument {
+	InstrumentOne = 0,
+	InstrumentTwo,
+	InstrumentNil
+} MantaInstrument;
 
 typedef enum GlobalPreferences
 {

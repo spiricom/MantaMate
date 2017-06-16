@@ -36,6 +36,7 @@ typedef struct _tStep
 	uint16_t length;  
 	uint16_t cv1;       
 	uint16_t cv2; 
+	uint16_t cvglide;
 	   
 	// Pitch only
 	uint8_t note;   
@@ -45,9 +46,7 @@ typedef struct _tStep
 	uint16_t fine;   
 	uint16_t octave;
 	uint16_t kbdhex;
-	
 	uint16_t pglide;
-	uint16_t cvglide;
 	
 	// Trigger only
 	uint8_t on[4];
@@ -82,6 +81,8 @@ typedef struct _tSequencer
 	
 } tSequencer;
 
+
+
 int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
 void		tSequencer_next				(tSequencer* const);
 int			tSequencer_toggleStep		(tSequencer* const, uint8_t step);
@@ -110,6 +111,33 @@ void		tSequencer_randomizeAll(tSequencer* const seq);
 
 void        tSequencer_encode(tSequencer* const, uint16_t* sBuffer);
 void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);
+
+
+#define MAX_VOICES 4
+
+typedef struct _tKeyboard
+{
+	uint8_t numVoices;
+	uint8_t numPlaying;
+	
+	tNoteStack notes;
+	tNoteStack vels;
+	
+	int polyVoiceBusy[MAX_VOICES];
+	int polyVoiceNote[MAX_VOICES];
+	
+	int changevoice[MAX_VOICES];
+	
+	int currentNote;
+	
+	BOOL noteOn;
+	BOOL noteOff;
+	
+} tKeyboard;
+
+void tKeyboard_init(tKeyboard* const k, int numVoices);
+void tKeyboard_noteOn(tKeyboard* const k, int noteVal, uint8_t vel);
+void tKeyboard_noteOff(tKeyboard* const k, uint8_t noteVal);
 
 
 #endif /* SEQUENCER_H_ */

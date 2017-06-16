@@ -60,9 +60,41 @@
 #include "conf_usb_host.h"
 #include "ui.h"
 
+
 #define TEST_MEMORY 0
 
-tSequencer sequencer[NUM_SEQ];
+typedef enum MantaMateDeviceType
+{
+	DeviceManta,
+	DeviceMidi,
+	DeviceComputer,
+	DeviceController	
+} MantaMateDeviceType;
+
+MantaMateDeviceType currentDevice;
+
+typedef enum MantaInstrumentType
+{
+	SequencerInstrument,
+	KeyboardInstrument,
+	MantaInstrumentTypeNil
+}MantaInstrumentType;
+	
+MantaInstrument currentInstrument; 
+	
+typedef struct _tMantaInstrument
+{
+	tKeyboard	keyboard;
+	tSequencer	sequencer;
+	
+	MantaInstrumentType type;
+} tMantaInstrument;
+
+tKeyboard midiKeyboard;
+	
+
+tMantaInstrument manta[NUM_INST];
+
 tRamp out[2][6];
 
 uint8_t readData;
@@ -146,7 +178,6 @@ extern unsigned char preset_num;
 extern unsigned char preset_to_save_num;
 extern unsigned char savingActive;
 extern uint32_t clock_speed;
-extern uint8_t sequencer_mode;
 extern uint8_t joystick_mode;
 extern uint32_t USB_frame_counter;
 extern ConnectedDeviceType type_of_device_connected;

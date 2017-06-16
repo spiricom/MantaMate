@@ -11,11 +11,11 @@
 
 #include "sequencer.h"
 
-#define NUM_SEQ 2
+#define NUM_INST 2
 #define sizeOfSerializedSequence  620 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
 #define sizeOfBankOfSequences  sizeOfSerializedSequence*16
 
-extern uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences];
+extern uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences];
 
 void sequencerStep(void);
 

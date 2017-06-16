@@ -506,5 +506,98 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	return 0;
 }
 
+//ADDING A NOTE
+// move all the notes into the next higher index and put the new note in index 0
+// first figure out how many notes are currently in the stack
+// next, copy the last note in the stack from its index (k) into the next index (k+1)
+// now, do that for each note, moving from the last to the first index
+// when you get to index 0, after copying it, put the new note in index
+
+void tKeyboard_noteOn(tKeyboard* const k, int noteVal, uint8_t vel)
+{
+	tNoteStack_add(&k->notes, noteVal);
+	tNoteStack_add(&k->vels, noteVal);
+
+	//also, assign a new polyphony voice to the note on for the polyphony handling
+	BOOL foundVoice = FALSE;
+	for (int i = 0; i < k->numVoices; i++)
+	{
+		if (k->polyVoiceBusy[i] == 0)
+		{
+			k->polyVoiceNote[i] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+			k->polyVoiceBusy[i] = 1;
+			k->changevoice[i] = 1;
+			foundVoice = TRUE;
+		}
+	}
+	
+	if (!foundVoice)
+	{
+		int lastVoice = k->numVoices -1;
+		k->polyVoiceNote[lastVoice] = noteVal;
+		k->polyVoiceBusy[lastVoice] = 1;
+		k->changevoice[lastVoice] = 1;
+	}
+	
+	k->numPlaying++;
+	k->noteOn = TRUE;
+	k->currentNote = tNoteStack_first(&k->notes);
+
+}
+
+//REMOVING A NOTE
+//first, find the note in the stack
+//then, remove it
+//move everything to the right of it (if it's not negative 1) one index number less
+//replace the last position with -1
+void tKeyboard_noteOff(tKeyboard* const k, uint8_t noteVal)
+{
+	tNoteStack_remove(&k->notes, noteVal);
+	
+	int stolenVoice = -1;
+
+	//also, remove that note from the polyphony array if it's there.
+	for (int i = 0; i < k->numVoices; i++)
+	{
+		if (k->polyVoiceNote[i] == noteVal)
+		{
+			k->polyVoiceBusy[i] = 0;
+			k->changevoice[i] = 1;
+			stolenVoice = i;
+		}
+	}
+	
+	int first = tNoteStack_first(&k->notes);
+	if (first != -1)
+	k->currentNote = first;
+
+
+	int j = 0;
+	//now check if there are any polyphony voices waiting that got stolen.
+	// USE NOTESTACKNEXT FOR THIS!!!!
+	while(stolenVoice >= 0 && j < k->numPlaying)
+	{
+		//if you find a held note in the notestack
+		int note = tNoteStack_get(&k->notes, j);
+		if (note != -1)
+		{
+			//check if it has no voice associated with it
+			for (int n = 0; n < k->numVoices; n++)
+			{
+				if ((k->polyVoiceNote[n] == note) && (k->polyVoiceBusy[n] == 1)) break;
+			}
+			
+			// if you didn't find it, use the voice that was just released to sound it.
+			k->polyVoiceNote[stolenVoice] = note;
+			k->polyVoiceBusy[stolenVoice] = 1;
+			k->changevoice[stolenVoice] = 1;
+			k->noteOff = TRUE;
+			stolenVoice = -1;
+
+		}
+		j++;
+	}
+}
+
 
 
