@@ -506,6 +506,38 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	return 0;
 }
 
+unsigned long twelvetet[12] = {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100};
+unsigned long overtonejust[12] = {0, 111, 203, 316, 386, 498, 551, 702, 813, 884, 968, 1088};
+unsigned long kora1[12] = {0, 185, 230, 325, 405, 498, 551, 702, 885, 930, 1025, 1105};
+unsigned long meantone[12] = {0, 117, 193, 310, 386, 503, 579, 697, 773, 890, 966, 1083};
+unsigned long werckmeister1[12] = {0, 90, 192, 294, 390, 498, 588, 696, 792, 888, 996, 1092};
+unsigned long werckmeister3[12] = {0, 96, 204, 300, 396, 504, 600, 702, 792, 900, 1002, 1098};
+
+unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
+
+signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
+22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
+
+signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
+18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
+
+signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
+14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
+
+void tKeyboard_init(tKeyboard* const k, int numVoices)
+{
+	k->whichmap = NO_MAP;
+	k->numVoices = numVoices;
+	k->numPlaying = 0;
+	
+	k->currentNote = 0;
+	k->noteOn = FALSE;
+	k->noteOff = FALSE;
+	
+	tNoteStack_init(&k->notes,MAX_NUM_NOTES);
+	
+}
+
 //ADDING A NOTE
 // move all the notes into the next higher index and put the new note in index 0
 // first figure out how many notes are currently in the stack
@@ -515,33 +547,50 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 
 void tKeyboard_noteOn(tKeyboard* const k, int noteVal, uint8_t vel)
 {
-	tNoteStack_add(&k->notes, noteVal);
-	tNoteStack_add(&k->vels, noteVal);
+	signed int mappedNote = 0;
+	
 
-	//also, assign a new polyphony voice to the note on for the polyphony handling
-	BOOL foundVoice = FALSE;
-	for (int i = 0; i < k->numVoices; i++)
+
+	switch(k->whichmap)
 	{
-		if (k->polyVoiceBusy[i] == 0)
+		case WICKI_HAYDEN: mappedNote = whmap[noteVal]; break;    // wicki-hayden
+		case HARMONIC: mappedNote = harmonicmap[noteVal]; break;  // harmonic
+		case PIANO: mappedNote = pianomap[noteVal]; break;		// piano map
+		default: mappedNote = noteVal; break;                     // no map
+	}
+
+
+	if (mappedNote >= 0)
+	{
+		
+		tNoteStack_add(&k->notes, noteVal);
+
+		//also, assign a new polyphony voice to the note on for the polyphony handling
+		BOOL foundVoice = FALSE;
+		for (int i = 0; i < k->numVoices; i++)
 		{
-			k->polyVoiceNote[i] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
-			k->polyVoiceBusy[i] = 1;
-			k->changevoice[i] = 1;
-			foundVoice = TRUE;
+			if (k->polyVoiceBusy[i] == 0)
+			{
+				k->polyVoiceNote[i] = noteVal;  // store the new note in a voice if a voice is free - store it without the offset and transpose (just 0-31).
+				k->polyVoiceBusy[i] = 1;
+				k->changevoice[i] = 1;
+				foundVoice = TRUE;
+			}
 		}
-	}
 	
-	if (!foundVoice)
-	{
-		int lastVoice = k->numVoices -1;
-		k->polyVoiceNote[lastVoice] = noteVal;
-		k->polyVoiceBusy[lastVoice] = 1;
-		k->changevoice[lastVoice] = 1;
-	}
+		if (!foundVoice)
+		{
+			int lastVoice = k->numVoices -1;
+			k->polyVoiceNote[lastVoice] = noteVal;
+			k->polyVoiceBusy[lastVoice] = 1;
+			k->changevoice[lastVoice] = 1;
+		}
 	
-	k->numPlaying++;
-	k->noteOn = TRUE;
-	k->currentNote = tNoteStack_first(&k->notes);
+		k->numPlaying++;
+		k->noteOn = TRUE;
+		k->currentNote = tNoteStack_first(&k->notes);
+	
+	}
 
 }
 
@@ -551,52 +600,68 @@ void tKeyboard_noteOn(tKeyboard* const k, int noteVal, uint8_t vel)
 //move everything to the right of it (if it's not negative 1) one index number less
 //replace the last position with -1
 void tKeyboard_noteOff(tKeyboard* const k, uint8_t noteVal)
-{
-	tNoteStack_remove(&k->notes, noteVal);
-	
+{	
 	int stolenVoice = -1;
-
-	//also, remove that note from the polyphony array if it's there.
-	for (int i = 0; i < k->numVoices; i++)
-	{
-		if (k->polyVoiceNote[i] == noteVal)
-		{
-			k->polyVoiceBusy[i] = 0;
-			k->changevoice[i] = 1;
-			stolenVoice = i;
-		}
-	}
 	
-	int first = tNoteStack_first(&k->notes);
-	if (first != -1)
-	k->currentNote = first;
+	signed int mappedNote = 0;
+	
 
-
-	int j = 0;
-	//now check if there are any polyphony voices waiting that got stolen.
-	// USE NOTESTACKNEXT FOR THIS!!!!
-	while(stolenVoice >= 0 && j < k->numPlaying)
+	switch(k->whichmap)
 	{
-		//if you find a held note in the notestack
-		int note = tNoteStack_get(&k->notes, j);
-		if (note != -1)
-		{
-			//check if it has no voice associated with it
-			for (int n = 0; n < k->numVoices; n++)
-			{
-				if ((k->polyVoiceNote[n] == note) && (k->polyVoiceBusy[n] == 1)) break;
-			}
-			
-			// if you didn't find it, use the voice that was just released to sound it.
-			k->polyVoiceNote[stolenVoice] = note;
-			k->polyVoiceBusy[stolenVoice] = 1;
-			k->changevoice[stolenVoice] = 1;
-			k->noteOff = TRUE;
-			stolenVoice = -1;
-
-		}
-		j++;
+		case WICKI_HAYDEN: mappedNote = whmap[noteVal]; break;    // wicki-hayden
+		case HARMONIC: mappedNote = harmonicmap[noteVal]; break;  // harmonic
+		case PIANO: mappedNote = pianomap[noteVal]; break;		// piano map
+		default: mappedNote = noteVal; break;                     // no map
 	}
+
+
+	if (mappedNote >= 0)
+	{
+		tNoteStack_remove(&k->notes, noteVal);
+		//also, remove that note from the polyphony array if it's there.
+		for (int i = 0; i < k->numVoices; i++)
+		{
+			if (k->polyVoiceNote[i] == noteVal)
+			{
+				k->polyVoiceBusy[i] = 0;
+				k->changevoice[i] = 1;
+				stolenVoice = i;
+			}
+		}
+		
+		int first = tNoteStack_first(&k->notes);
+		if (first != -1)
+		k->currentNote = first;
+
+
+		int j = 0;
+		//now check if there are any polyphony voices waiting that got stolen.
+		// USE NOTESTACKNEXT FOR THIS!!!!
+		while(stolenVoice >= 0 && j < k->numPlaying)
+		{
+			//if you find a held note in the notestack
+			int note = tNoteStack_get(&k->notes, j);
+			if (note != -1)
+			{
+				//check if it has no voice associated with it
+				for (int n = 0; n < k->numVoices; n++)
+				{
+					if ((k->polyVoiceNote[n] == note) && (k->polyVoiceBusy[n] == 1)) break;
+				}
+				
+				// if you didn't find it, use the voice that was just released to sound it.
+				k->polyVoiceNote[stolenVoice] = note;
+				k->polyVoiceBusy[stolenVoice] = 1;
+				k->changevoice[stolenVoice] = 1;
+				k->noteOff = TRUE;
+				stolenVoice = -1;
+
+			}
+			j++;
+		}
+	}
+
+	
 }
 
 

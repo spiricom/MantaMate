@@ -202,9 +202,9 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
-	for (int i = 0; i < 12; i++)
+	for (int i = 0; i < 2; i++)
 	{
-		for (int j = 0; j < 12; j++)
+		for (int j = 0; j < 6; j++)
 			tRampInit(&out[i][j], 2000, 0, 1);
 	}
 	
@@ -1014,7 +1014,8 @@ void updateSave(void)
 
 void clockHappened(void)
 {
-	if (manta[InstrumentOne].type == SequencerInstrument || manta[InstrumentTwo].type == SequencerInstrument) sequencerStep();
+	if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
+	if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
 	
 	if (type_of_device_connected == MIDIComputerConnected)
 	{

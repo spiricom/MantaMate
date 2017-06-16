@@ -58,7 +58,6 @@ void setCompositionLEDs     (void);
 void setSequencerLEDsFor	(MantaInstrument);
 void setSequencerLEDs		(void);
 void setTriggerPanelLEDsFor	(MantaInstrument, TriggerPanel panel);
-void uiStep					(MantaInstrument);
 void resetSliderMode		(void);
 
 // UTILITIES
@@ -328,6 +327,7 @@ void initSequencer(void)
 	{
 		for (int i = 0; i < NUM_INST; i++)
 		{
+			manta[i].type = SequencerInstrument;
 			tSequencer_init(&manta[i].sequencer, PitchMode, 32);
 			
 			tSequencer_encode(&manta[i].sequencer, encodeBuffer);
@@ -361,76 +361,57 @@ void initSequencer(void)
 
 }
 
-void sequencerStep(void)
+void sequencerStep(MantaInstrument inst)
 {
 	
 	int offset,cstep,curr;
 	
-	for (int inst = 0; inst < NUM_INST; inst++)
+	tSequencer* sequencer = &manta[inst].sequencer;
+		
+	offset = inst * 2;
+		
+	cstep = sequencer->currentStep;
+		
+	sequencer->lengthCounter += 1;
+		
+	if (sequencer->lengthCounter >= sequencer->step[cstep].length)
 	{
-		tSequencer* sequencer;
-		if (manta[inst].type != SequencerInstrument)	continue;
-		else											sequencer = &manta[inst].sequencer;
-		
-		offset = inst * 2;
-		
-		cstep = sequencer->currentStep;
-		
-		sequencer->lengthCounter += 1;
-		
-		if (sequencer->lengthCounter >= sequencer->step[cstep].length)
+		tSequencer_next(sequencer); // Move to next step, seq 1.
+			
+		curr = sequencer->currentStep;
+			
+		if (sequencer->stepGo)
 		{
-			tSequencer_next(sequencer); // Move to next step, seq 1.
-			
-			curr = sequencer->currentStep;
-			
-			if (sequencer->stepGo)
+			if (sequencer->pitchOrTrigger == PitchMode)
 			{
-				if (sequencer->pitchOrTrigger == PitchMode)
-				{
-					dacSendPitchMode(inst, curr);
-				}
-				else // TriggerMode
-				{
-					dacSendTriggerMode(inst, curr);
-				}
-
-				// Start sequencer 1 and 2 timers: tc1, tc2.
-				// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
-				tc_start(tc1, TC1_CHANNEL);
+				dacSendPitchMode(inst, curr);
 			}
-			sequencer->lengthCounter = 0;
+			else // TriggerMode
+			{
+				dacSendTriggerMode(inst, curr);
+			}
+
+			// Start sequencer 1 and 2 timers: tc1, tc2.
+			// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
+			tc_start(tc1, TC1_CHANNEL);
 		}
-		
+		sequencer->lengthCounter = 0;
 	}
 	
-	// UI
-	if (full_vs_split == FullMode) 
-	{
-		uiStep(currentInstrument);
-	}
-	else
-	{
-		uiStep(InstrumentOne);
-		uiStep(InstrumentTwo);
-	}
+	uiStep(inst);
+
 }
 
 MantaButton lastFunctionButton;
 
 void processSequencer(void)
 {
-	// this is the function to take input from the Manta and figure out what to do with it.
-	// the manta data is in a global array called butt_states[i]
-	// look at processKeys() for an example of how to find changes in the data. This function will get called even when nothing is different about the data the manta is sending - it hasn't parsed it yet to know whether there is a significant change (i.e a new hexagon button press)
-	int i = 0;
 	uint8_t newHexUIOn = 0;
 	uint8_t newHexUIOff = 0;
 	uint8_t newUpperHexUI = 0;
 
-	
 	//check the sequencer step hexagons
-	for (i = 0; i < MAX_STEPS; i++)
+	for (int i = 0; i < MAX_STEPS; i++)
 	{
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
@@ -460,7 +441,7 @@ void processSequencer(void)
 	}
 	
 	//check the upper keyboard selector notes
-	for (i = MAX_STEPS; i < 48; i++)
+	for (int i = MAX_STEPS; i < 48; i++)
 	{
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
@@ -477,7 +458,7 @@ void processSequencer(void)
 		pastbutt_states[i] = butt_states[i];
 	}
 	
-	for (i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
 		{
@@ -1684,6 +1665,8 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 void uiStep(MantaInstrument inst)
 {
 	if (key_vs_option == OptionMode) return;
+	
+	if (full_vs_split == FullMode && inst != currentInstrument) return;
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
 	

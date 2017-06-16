@@ -8,36 +8,12 @@
 #include "note_process.h"
 
 
-enum maps_t
-{
-	NO_MAP,
-	WICKI_HAYDEN,
-	HARMONIC,
-	PIANO
-};
 
-static unsigned short calculateDACvalue(uint8_t noteVal);
+unsigned short calculateDACvalue(enum maps_t whichmap, uint8_t noteVal);
 extern unsigned char preset_num;
 
-unsigned long twelvetet[12] = {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100};
-unsigned long overtonejust[12] = {0, 111, 203, 316, 386, 498, 551, 702, 813, 884, 968, 1088};
-unsigned long kora1[12] = {0, 185, 230, 325, 405, 498, 551, 702, 885, 930, 1025, 1105};
-unsigned long meantone[12] = {0, 117, 193, 310, 386, 503, 579, 697, 773, 890, 966, 1083};
-unsigned long werckmeister1[12] = {0, 90, 192, 294, 390, 498, 588, 696, 792, 888, 996, 1092};
-unsigned long werckmeister3[12] = {0, 96, 204, 300, 396, 504, 600, 702, 792, 900, 1002, 1098};
-	
-unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 
-signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
-22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
 
-signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,\
-18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
-
-signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
-14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
-
-enum maps_t whichmap = NO_MAP;
 unsigned long scaledoctaveDACvalue = 54613; 
 unsigned char tuning = 0;
 signed char transpose = 0;
@@ -60,7 +36,7 @@ signed char checkstolen = -1;
 
 
 
-unsigned short calculateDACvalue(uint8_t noteVal)
+unsigned short calculateDACvalue(enum maps_t whichmap, uint8_t noteVal)
 {
 	signed long pitchclass;
 	unsigned long templongnote = 0;
@@ -69,31 +45,31 @@ unsigned short calculateDACvalue(uint8_t noteVal)
 	unsigned short DAC1val;
 	unsigned int note;
 	
-	if (manta_mapper == 1)
+
+	switch(whichmap)
 	{
-		switch(whichmap)
-		{
-			case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
-			case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
-			case PIANO: note = pianomap[noteVal]; break;		// piano map
-			default: note = noteVal; break;                     // no map
-		}
+		case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
+		case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
+		case PIANO: note = pianomap[noteVal]; break;		// piano map
+		default: note = noteVal; break;                     // no map
 	}
-	else
-	{
-		note = noteVal;
-	}
+
 	
 	//templong = ((noteval + offset + transpose) * 54612);  // original simple equal temperament
 	pitchclass = ((note + transpose + 24) % 12);  // add 24 to make it positive and centered on C
 	virtualnote = (note + 13 + transpose - pitchclass);
-	
-	if (tuning == 0)		templongnote = (twelvetet[pitchclass] * scaledoctaveDACvalue);
-	else if (tuning == 1)	templongnote = (overtonejust[pitchclass] * scaledoctaveDACvalue);
-	else if (tuning == 2)	templongnote = (kora1[pitchclass] * scaledoctaveDACvalue);
-	else if (tuning == 3)	templongnote = (meantone[pitchclass] * scaledoctaveDACvalue);
-	else if (tuning == 4)	templongnote = (werckmeister1[pitchclass] * scaledoctaveDACvalue);
-	else if (tuning == 5)	templongnote = (werckmeister3[pitchclass] * scaledoctaveDACvalue);
+	if (tuning == 0)
+	templongnote = (twelvetet[pitchclass] * scaledoctaveDACvalue);
+	else if (tuning == 1)
+	templongnote = (overtonejust[pitchclass] * scaledoctaveDACvalue);
+	else if (tuning == 2)
+	templongnote = (kora1[pitchclass] * scaledoctaveDACvalue);
+	else if (tuning == 3)
+	templongnote = (meantone[pitchclass] * scaledoctaveDACvalue);
+	else if (tuning == 4)
+	templongnote = (werckmeister1[pitchclass] * scaledoctaveDACvalue);
+	else if (tuning == 5)
+	templongnote = (werckmeister3[pitchclass] * scaledoctaveDACvalue);
 	
 	templongnote = (templongnote / 10000);
 	templongoctave = ((virtualnote + octaveoffset) * scaledoctaveDACvalue);
@@ -176,24 +152,19 @@ void resetMantaUI(void)
 	
 }
 
-void tKeyboard_init(tKeyboard* const k, int numVoices)
-{
-	k->numVoices = numVoices;
-	k->numPlaying = 0;
-	
-	k->currentNote = 0;
-	k->noteOn = false;
-	k->noteOff = false;
-	
-	tNoteStack_init(&k->notes,MAX_NUM_NOTES);
-	tNoteStack_init(&k->vels,MAX_NUM_NOTES);
-	
-}
+
 
 void initKeys(int numVoices)
 {
 
-
+	for (int i = 0; i < NUM_INST; i++)
+	{
+		manta[i].type = KeyboardInstrument;
+		
+		tKeyboard* keyboard = &manta[i].keyboard;
+		
+		tKeyboard_init(keyboard,numVoices);
+	}
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	tc_start(tc3, TC3_CHANNEL);
@@ -230,8 +201,7 @@ void releaseLowerHexKey(int hex)
 		
 			for(int i =0; i < keyboard->numVoices; i++)
 			{
-				if(!keyboard->polyVoiceBusy[i])
-				dacsend(i,1,0);
+				if(!keyboard->polyVoiceBusy[i]) dacsend(i,1,0);
 			}
 		}
 	}
@@ -310,7 +280,7 @@ void dacSendKeyboard(void)
 		{
 			tKeyboard* keyboard = &manta[inst].keyboard;
 
-			if (keyboard->noteOn)
+			if (keyboard->noteOn == TRUE)
 			{
 				for (int i = 0; i < keyboard->numVoices; i++)
 				{
@@ -320,7 +290,7 @@ void dacSendKeyboard(void)
 						//lcd_clear_line(i+1);
 						if (keyboard->polyVoiceBusy[i])
 						{
-							tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(keyboard->polyVoiceNote[i]));
+							tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(keyboard->whichmap, keyboard->polyVoiceNote[i]));
 							
 							tRampSetDest(&out[inst][CVTRIGGER], 0xfff);
 						}
@@ -330,8 +300,8 @@ void dacSendKeyboard(void)
 						}
 						
 						keyboard->changevoice[i] = 0;
-						keyboard->noteOn = false;
-						keyboard->noteOff = false;
+						keyboard->noteOn = FALSE;
+						keyboard->noteOff = FALSE;
 					}
 				}
 			}
@@ -349,7 +319,7 @@ void dacSendKeyboard(void)
 					//lcd_clear_line(i+1);
 					if (midiKeyboard.polyVoiceBusy[i])
 					{
-						tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(midiKeyboard.polyVoiceNote[i]));
+						tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(midiKeyboard.whichmap, midiKeyboard.polyVoiceNote[i]));
 						
 						tRampSetDest(&out[inst][CVTRIGGER], 0xfff);
 					}
@@ -359,8 +329,8 @@ void dacSendKeyboard(void)
 					}
 					
 					midiKeyboard.changevoice[i] = 0;
-					midiKeyboard.noteOn = false;
-					midiKeyboard.noteOff = false;
+					midiKeyboard.noteOn = FALSE;
+					midiKeyboard.noteOff = FALSE;
 				}
 			}
 		}
@@ -372,10 +342,10 @@ void dacSendKeyboard(void)
 void tuningTest(uint8_t whichOct)
 {
 
-	DAC16Send(0, calculateDACvalue(12 * whichOct));
-	DAC16Send(1, calculateDACvalue(12 * whichOct));
-	DAC16Send(2, calculateDACvalue(12 * whichOct));
-	DAC16Send(3, calculateDACvalue(12 * whichOct));
+	DAC16Send(0, calculateDACvalue(NO_MAP, 12 * whichOct));
+	DAC16Send(1, calculateDACvalue(NO_MAP, 12 * whichOct));
+	DAC16Send(2, calculateDACvalue(NO_MAP, 12 * whichOct));
+	DAC16Send(3, calculateDACvalue(NO_MAP, 12 * whichOct));
 	dacsend(0,1,0xfff);
 	dacsend(1,1,0xfff);
 	dacsend(2,1,0xfff);

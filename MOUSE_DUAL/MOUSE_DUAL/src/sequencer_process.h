@@ -17,7 +17,8 @@
 
 extern uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences];
 
-void sequencerStep(void);
+void sequencerStep(MantaInstrument inst);
+void uiStep					(MantaInstrument);
 
 void processSequencer(void);
 

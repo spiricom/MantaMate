@@ -115,13 +115,35 @@ void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);
 
 #define MAX_VOICES 4
 
+enum maps_t
+{
+	NO_MAP,
+	WICKI_HAYDEN,
+	HARMONIC,
+	PIANO
+};
+
+unsigned long twelvetet[12];
+unsigned long overtonejust[12];
+unsigned long kora1[12];
+unsigned long meantone[12];
+unsigned long werckmeister1[12];
+unsigned long werckmeister3[12];
+
+unsigned long numTunings; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
+
+signed int whmap[48] ;
+
+signed int harmonicmap[48];
+
+signed int pianomap[48];
+
 typedef struct _tKeyboard
 {
 	uint8_t numVoices;
 	uint8_t numPlaying;
 	
 	tNoteStack notes;
-	tNoteStack vels;
 	
 	int polyVoiceBusy[MAX_VOICES];
 	int polyVoiceNote[MAX_VOICES];
@@ -132,6 +154,8 @@ typedef struct _tKeyboard
 	
 	BOOL noteOn;
 	BOOL noteOff;
+	
+	enum maps_t whichmap;
 	
 } tKeyboard;
 
