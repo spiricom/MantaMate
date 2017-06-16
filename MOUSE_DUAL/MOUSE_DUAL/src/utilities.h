@@ -47,7 +47,7 @@ typedef enum MantaSequencer {
 
 typedef enum GlobalPreferences
 {
-	NO_PREFERENCES,
+	PRESET_SELECT,
 	TUNING_SELECT,
 	PORTAMENTO_TIME,
 	INTERNAL_CLOCK,

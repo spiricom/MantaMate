@@ -130,6 +130,8 @@ extern uint8_t joystick_mode;
 extern uint32_t USB_frame_counter;
 extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
+extern unsigned char number_for_7Seg;
+extern unsigned char blank7Seg;
 
 //set up the external interrupt for the gate input
 void setupEIC(void);

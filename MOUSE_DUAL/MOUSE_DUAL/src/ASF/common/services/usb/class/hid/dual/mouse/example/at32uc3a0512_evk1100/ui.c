@@ -270,7 +270,8 @@ uint32_t downHeld = 0;
 uint32_t holdTimeThresh = 8;
 static uint32_t buttonFrameCounter = 0;
 static uint32_t buttonHoldSpeed = 60;
-
+static uint32_t blink7SegCounter = 0;
+static uint32_t blinkSpeed7Seg = 250;
 void USB_frame_action(uint16_t framenumber)
 {
 	
@@ -343,7 +344,23 @@ void USB_frame_action(uint16_t framenumber)
 		downHeld = 0;
 	}
 		
+	blink7SegCounter++;
 	
+	if (blink7SegCounter >= blinkSpeed7Seg)
+	{
+		blink7SegCounter = 0;
+		
+		if (savingActive)
+		{
+			blank7Seg = !blank7Seg;
+			Write7Seg(number_for_7Seg);
+		}
+		else
+		{
+			blank7Seg = 0;
+			Write7Seg(number_for_7Seg);
+		}
+	}
 
 	
 }

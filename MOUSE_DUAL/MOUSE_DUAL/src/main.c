@@ -116,8 +116,10 @@ unsigned char savingActive = 0;
 unsigned char globalGlide = 0;
 unsigned char globalGlideMax = 99;
 unsigned char suspendRetrieve = 0;
+unsigned char number_for_7Seg = 0;
+unsigned char blank7Seg = 0;
 
-GlobalPreferences preference_num = NO_PREFERENCES;
+GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
@@ -678,7 +680,7 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (preference_num == NO_PREFERENCES)
+	if (preference_num == PRESET_SELECT)
 	{	
 		//if we are not in Save mode, then we are trying to instantaneously load a preset
 		if (!savingActive)
@@ -910,7 +912,7 @@ void Save_Switch_Check(void)
 	
 	if (!gpio_get_pin_value(GPIO_SAVE_SWITCH))
 	{
-		if (preference_num == NO_PREFERENCES) //we're in normal preset mode, which allows saving
+		if (preference_num == PRESET_SELECT) //we're in normal preset mode, which allows saving
 		{
 				savingActive = !savingActive;
 				updateSave();
@@ -977,7 +979,7 @@ void updatePreferences(void)
 {
 	switch(preference_num)
 	{
-		case NO_PREFERENCES:
+		case PRESET_SELECT:
 		LED_Off(LEFT_POINT_LED);
 		LED_Off(RIGHT_POINT_LED);
 		LED_Off(PREFERENCES_LED);
@@ -1016,11 +1018,14 @@ void updateSave(void)
 		if (preset_to_save_num <= 10)
 		{
 			preset_to_save_num = 10;
+			Write7Seg(preset_to_save_num);
 		}
 	}
 	else
 	{
 		storePresetToExternalMemory();
+		preset_num = preset_to_save_num;
+		Write7Seg(preset_num);
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
