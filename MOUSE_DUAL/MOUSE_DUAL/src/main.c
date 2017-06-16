@@ -204,6 +204,12 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
+	for (int i = 0; i < 12; i++)
+	{
+		for (int j = 0; j < 12; j++)
+			tRampInit(&out[i][j], 2000, 0, 1);
+	}
+	
 	//start off on preset 0;
 	preset_num = 0;
 	//delay_ms(600);
@@ -236,17 +242,20 @@ static void tc1_irq(void)
 	
 	if (!joystick_mode)
 	{
-		if (seq1PvT == PitchMode)
+		for (int seq = 0; seq < 2; seq++)
 		{
-			DAC16Send(1, 0);
-		}
-		else // TriggerMode
-		{
-			// Set 4 trigger outputs low
-			dacsend(0, 0, 0);
-			dacsend(1, 0, 0);
-			dacsend(0, 1, 0);
-			dacsend(1, 1, 0);
+			if (sequencer[seq].pitchOrTrigger == PitchMode)
+			{
+				dacsend(2*seq, 0, 0);
+			}
+			else // TriggerMode
+			{
+				// Set 4 trigger outputs low
+				dacsend(2*seq+0, 0, 0);
+				dacsend(2*seq+1, 0, 0);
+				dacsend(2*seq+0, 1, 0);
+				dacsend(2*seq+1, 1, 0);
+			}
 		}
 	}
 }
@@ -258,21 +267,6 @@ static void tc2_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC2, TC2_CHANNEL);
 		
-	if (!joystick_mode)
-	{
-		if (seq2PvT == PitchMode)
-		{
-			DAC16Send(3, 0);
-		}
-		else // TriggerMode
-		{
-			// Set 4 trigger outputs low
-			dacsend(2, 0, 0);
-			dacsend(3, 0, 0);
-			dacsend(2, 1, 0);
-			dacsend(3, 1, 0);
-		}
-	}
 }
 
 // Glide timer.
@@ -286,49 +280,37 @@ static void tc3_irq(void)
 	{
 		if (sequencer_mode)
 		{
-			if (seq1PvT == PitchMode)
+			for (int seq = 0; seq < 2; seq++)
 			{
-				// SequencerOne Pitch
-				DAC16Send(0, tRampTick(&out00) * UINT16_MAX);
-			
-				// SequencerOne CV1-CV2
-				dacsend(0, 0, tRampTick(&out10));
-				dacsend(1, 0, tRampTick(&out11));
-				// SequencerOne CV3-CV4
-				dacsend(0, 1, tRampTick(&out20));
-				dacsend(1, 1, tRampTick(&out21));
-			}
-			else //TriggerMode
-			{
-				DAC16Send(0, ((uint16_t)tRampTick(&out20)) << 4);
-				DAC16Send(1, ((uint16_t)tRampTick(&out21)) << 4);
-			}
-		
-			if (seq2PvT == PitchMode)
-			{
-				// SequencerTwo Pitch
-				DAC16Send(2, tRampTick(&out02) * UINT16_MAX);
-			
-				// SequencerTwo CV1-CV2
-				dacsend(2, 0, tRampTick(&out12));
-				dacsend(3, 0, tRampTick(&out13));
-				// SequencerTwo CV3-CV4
-				dacsend(2, 1, tRampTick(&out22));
-				dacsend(3, 1, tRampTick(&out23));
-			}
-			else //TriggerMode
-			{
-				DAC16Send(2, ((uint16_t)tRampTick(&out22)) << 4);
-				DAC16Send(3, ((uint16_t)tRampTick(&out23)) << 4);
+				if (sequencer[seq].pitchOrTrigger == PitchMode)
+				{
+					// Sequencer Pitch
+					DAC16Send(2*seq+0, tRampTick(&out[seq][CVPITCH]) * UINT16_MAX);
+
+					// Sequencer CV1-CV2
+					dacsend(2*seq+0, 1, tRampTick(&out[seq][CV1P]));
+					DAC16Send(2*seq+1,  tRampTick(&out[seq][CV2P]));
+					
+					// Sequencer CV3-CV4
+					dacsend(2*seq+1, 0, tRampTick(&out[seq][CV3P]));
+					dacsend(2*seq+1, 1, tRampTick(&out[seq][CV4P]));
+				}
+				else //TriggerMode
+				{
+					DAC16Send(2*seq+0, ((uint16_t)tRampTick(&out[seq][CV1T])) << 4);
+					DAC16Send(2*seq+1, ((uint16_t)tRampTick(&out[seq][CV2T])) << 4);
+				}
 			}
 		}
 		else /// KeyMode
 		{
 			for (int i = 0; i < polynum; i++)
 			{
-				DAC16Send	(i,    tRampTick(&keyRamp[3*i]));
+				int inst = (int)(i/2);
+				
+				DAC16Send	(i,    tRampTick(&out[inst][3*inst+CVPITCH]));
 			
-				dacsend		(i,0,  tRampTick(&keyRamp[3*i+1]));
+				dacsend		(i,0,  tRampTick(&out[inst][3*inst+CVTRIGGER]));
 			
 				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 			

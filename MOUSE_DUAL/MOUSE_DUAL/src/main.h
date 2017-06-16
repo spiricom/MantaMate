@@ -62,6 +62,9 @@
 
 #define TEST_MEMORY 0
 
+tSequencer sequencer[NUM_SEQ];
+tRamp out[2][6];
+
 uint8_t readData;
 
 uint8_t* readDataArray[256];
@@ -73,6 +76,23 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
+#define CVPITCH 0
+#define CVTRIGGER 1
+#define CV1P 2
+#define CV2P 3
+#define CV3P 4
+#define CV4P 5
+
+#define CVMAX 2
+
+#define CV1T  0
+#define CV2T  3
+#define CVTRIG1 1
+#define CVTRIG2 2
+#define CVTRIG3 4
+#define CVTRIG4 5
+
+
 tRamp out00;
 tRamp out02;
 
@@ -81,6 +101,7 @@ tRamp out11;
 tRamp out12;
 tRamp out13;
 tRamp out20;
+
 tRamp out21;
 tRamp out22;
 tRamp out23;
