@@ -6,7 +6,6 @@
  */ 
 
 //S25FL164K0XMFA011 is the chip (or a newer chip in the same family)
-
 //a page is 256 bytes. 
 // a sector is 16 pages (4096 bytes)
 // a block is 16 sectors (65535 bytes)
@@ -14,19 +13,21 @@
 
 #include "main.h"
 #include "memory_spi.h"
+#include "sequencer_process.h"
+#include "sequencer.h"
 
-uint16_t myReadBuffer1[1000];
-int whichSector = 2;
-uint16_t myOddNumbers[10] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
-uint16_t myEvenNumbers[10] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
-uint16_t myNumbers[10] = {1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9, 10};
-uint16_t myCrazyNumbers[10] = {17,7,17,7,17,7,17,7,17,7};
-	
+
+//external memory variables
+uint32_t sectors_left_to_erase = 0;
+uint16_t currentSector = 0;
+uint16_t currentPage = 0;
+uint16_t startingSector = 0;
+uint32_t pages_left_to_store = 0;
+uint32_t pages_left_to_retrieve = 0;
 uint16_t busy;
 
-static void memorySPIWaitWhileBusy(void)
+int memorySPICheckIfBusy(void)
 {
-	
 	memoryWait();gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
 	
 	spi_write(MEMORY_SPI, 0x05); //0x05 (read status register 1)
@@ -35,19 +36,12 @@ static void memorySPIWaitWhileBusy(void)
 	int count = 0;
 	int total = 0;
 	busy = 1;
-	while (busy & 1)
-	{
-		spi_write(MEMORY_SPI, 0x00);
-		spi_read(MEMORY_SPI, &busy);
-		
-		//if (++count == 50) { count = 0; Write7Seg(erasing & 1);}
-		//total++;
-	} 
+	spi_write(MEMORY_SPI, 0x00);
+	spi_read(MEMORY_SPI, &busy);
 	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
-	
+	return (busy & 1);
 }
-
 
 static void memorySPIWriteAddress(uint16_t sector, uint16_t page)
 {
@@ -68,6 +62,7 @@ static void memorySPIWriteEnable(void)
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 }
 
+//no longer blocking!  Must check status before doing anything else with memory chip (it will not be ready otherwise)
 void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
 {
 	// Write Enable
@@ -84,9 +79,6 @@ void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
 	}
 	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// Wait until Write done
-	memorySPIWaitWhileBusy();
 }
 
 void memorySPIRead(int sector, int page, uint16_t* buffer, int numBytes)
@@ -102,12 +94,11 @@ void memorySPIRead(int sector, int page, uint16_t* buffer, int numBytes)
 		spi_write(MEMORY_SPI, 0x00);
 		spi_read(MEMORY_SPI, &buffer[i]);
 	}
-	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
 }
 
 // Sector can be 0-2047
-// Will block / synchronous / sequential / might never return / P = NP
+// No longer blocking - need to check the status before doing anything else with memory chip!   P is still = NP 4eva
 void memorySPIEraseSector(uint16_t sector)
 {
 	// Write Enable
@@ -118,13 +109,10 @@ void memorySPIEraseSector(uint16_t sector)
 	spi_write(MEMORY_SPI, 0x20);
 	memorySPIWriteAddress(sector, 0);
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// Wait until Erase done
-	memorySPIWaitWhileBusy();
 }
 
 // Block 0 - 127
-// Will block / synchronous / sequential / might never return / P = NP
+// No longer blocking - need to check the status before doing anything else with memory chip!  P is still = NP  4eva
 void memorySPIEraseBlock(uint16_t block)
 {
 	// Write Enable
@@ -135,72 +123,198 @@ void memorySPIEraseBlock(uint16_t block)
 	spi_write(MEMORY_SPI, 0xd8);
 	memorySPIWriteAddress((block << 4), 0);
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
-	
-	// Wait until Erase done
-	memorySPIWaitWhileBusy();
 }
 
-void memorySPIWriteSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
-{
-	int thisBlock = (whichPreset << 4); // 16 sectors in block
-	int pageCount = whichSeq * 4; // 4 pages per sequence
-	
-	for (int i = 0; i < 4; i++) // write each page
-	{
-		int thisSector = (int)((pageCount + i) / 16);
-		int thisPage = ((pageCount + i) % 16);
-		memorySPIWrite(thisBlock + thisSector, thisPage, &buffer[i*128], 256);
-	}
-	
-}
-
-//a page is 256 bytes.
+// EXTERNAL MEMORY PLAN
+// a page is 256 bytes.
 // a sector is 16 pages (4096 bytes)
 // a block is 16 sectors (65535 bytes)
 
-void memorySPIReadSequencer(int whichPreset, int whichSeq, uint16_t* buffer)
+// every preset will live in a block (there are plenty - we have 128 blocks and can only really use 90 presets
+// the remaining blocks can store user tunings, perhaps
+// every "sequence" takes up 620 bytes.
+
+// a block has 65535 bytes, and they will be set up like this:
+// Page 0 is the global settings and manta sequencer settings
+// Page 1 is the Manta keyboard-mode preset settings
+// Page 2 is the MIDI host preset settings
+// Page 3 is the MIDI device preset settings (when connected to a computer)
+// Pages 4, 5, 6 is the current sequencer 1 (3 pages per sequence)
+// Pages 7, 8, 9 is the current sequencer 2 (3 pages per sequence)
+// Pages 10-43 is the composition collection for sequencer 1 (34 pages per sequence if there are 14 storable sequences)
+// Pages 44-77 is the composition collection for sequencer 2 (34 pages per sequence if there are 14 storable sequences)
+
+// sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
+
+//global settings format:
+// byte 1 = seq1Pvt, seq2Pvt, sequencer_mode, clock_speed, compositions,  
+#define NUM_COMPOSITIONS 2
+#define NUM_PAGES_PER_SEQUENCE 3
+#define NUM_PAGES_PER_COMPOSITION 34
+#define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data  -- this is non zero so that we can have a few pages to store global prefs and non-Manta things before the sequencer stuff
+#define COMPOSITIONS_PAGE_START 10 // which page starts the compositions data
+#define NUM_PAGES_PER_PRESET (CURRENT_SEQUENCE_PAGE_START + (NUM_PAGES_PER_SEQUENCE*2) + (NUM_PAGES_PER_COMPOSITION*2))
+#define NUM_SECTORS_THAT_NEED_TO_BE_ERASED 5
+
+uint8_t whichSequence = 0;
+uint8_t sequencePageNumber = 0;
+
+void initiateStoringPresetToExternalMemory(void)
 {
-	int thisBlock = (whichPreset << 4);
-	int pageCount = whichSeq * 4;
+	startingSector = preset_to_save_num * 16;  // * 16 to get the sector number we will store it in
+	currentSector = preset_to_save_num * 16;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage = 0; //start on the first page
 	
-	for (int i = 0; i < 4; i++)
-	{
-		int thisSector = (int)((pageCount + i) / 16);
-		int thisPage = ((pageCount + i) % 16);
-		memorySPIRead(thisBlock + thisSector, thisPage, &buffer[i*128], 256);
-	}
+	tSequencer_encode(&sequencer[0], encodeBuffer[0]); //fill a buffer with the local sequencers
+	tSequencer_encode(&sequencer[1], encodeBuffer[1]); //one for each
 	
+	//start by erasing the memory in the location we want to store
+	sectors_left_to_erase = NUM_SECTORS_THAT_NEED_TO_BE_ERASED; //erase 5 sectors because that will give us enough room for a whole preset
+	pages_left_to_store = NUM_PAGES_PER_PRESET; //set the variable for the total number of pages to count down from while we store them
+	memorySPIEraseSector(currentSector); 
+	sectors_left_to_erase--;
+	savePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
-
-
-void sendDataToExternalMemory(void)
+void continueStoringPresetToExternalMemory(void)
 {
-	memorySPIEraseBlock(0);
-
-	memorySPIWrite(whichSector,  1,  myOddNumbers, 10);
-	
-	memorySPIWrite(whichSector, 5,  myEvenNumbers, 10);
-	
-	memorySPIWrite(whichSector, 3,  myNumbers, 10);
-	
-	memorySPIWrite(whichSector, 7,  myCrazyNumbers, 10);
-	
-	memorySPIRead(whichSector, 1, &myReadBuffer1[0], 10);
-	
-	memorySPIRead(whichSector, 5, &myReadBuffer1[10], 10);
-	
-	memorySPIRead(whichSector, 3, &myReadBuffer1[20], 10);
-	
-	memorySPIRead(whichSector, 7, &myReadBuffer1[30], 10);
-	
-	while(true)
+	//there are still sectors to erase, do those
+	if (sectors_left_to_erase > 0)
 	{
-		for (int i = 0; i < 40; i++)
+		currentSector++;
+		memorySPIEraseSector(currentSector); //erase 5 sectors because that will give us enough room for a whole preset
+		sectors_left_to_erase--;
+	}
+	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
+	else if (pages_left_to_store > 0)
+	{
+		//otherwise we are ready to start saving data
+		
+		// store a page
+		if (currentPage == 0)
 		{
-			Write7Seg(myReadBuffer1[i]);
+			currentSector = startingSector; // start back at the beginning of the memory location for this preset (it was incremented to erase)
+			//store global prefs data structure
+		}
+		else if (currentPage == 1)
+		{
+			//store MIDI prefs data structure
+		}
+		else if (currentPage == 2)
+		{
+			//store joystick prefs data structure
+		}
+		else if (currentPage == 3)
+		{
+			//store Manta keyboard mode prefs data structure
+		}
+		
+		//store Manta Sequencer data
+		//first store the local memory of sequencers 1 and 2
+		else if ((currentPage >= CURRENT_SEQUENCE_PAGE_START) && (currentPage < COMPOSITIONS_PAGE_START))
+		{
+			whichSequence = (uint16_t)((currentPage - CURRENT_SEQUENCE_PAGE_START) / NUM_PAGES_PER_SEQUENCE);
+			sequencePageNumber = (currentPage - CURRENT_SEQUENCE_PAGE_START) % NUM_PAGES_PER_SEQUENCE;
+			memorySPIWrite(currentSector,  (currentPage % 16) ,  &encodeBuffer[whichSequence][sequencePageNumber], 256);
+		}
 			
-			delay_ms(500);
+		//then store the compositions for both sequencers
+		else if ((currentPage >= COMPOSITIONS_PAGE_START) && (currentPage < NUM_PAGES_PER_PRESET))
+		{
+			whichSequence = (uint16_t)((currentPage - COMPOSITIONS_PAGE_START) / NUM_PAGES_PER_COMPOSITION);
+			sequencePageNumber = (currentPage - COMPOSITIONS_PAGE_START) % NUM_PAGES_PER_COMPOSITION;
+			memorySPIWrite(currentSector,  (currentPage % 16) ,  &memoryInternalCompositionBuffer[whichSequence][sequencePageNumber], 256);
+		}
+		//update variables for next round
+		currentPage++;
+		pages_left_to_store--;
+		currentSector = (startingSector + (uint16_t)(currentPage / 16)); //increment the current Sector whenever currentPage wraps over 16
+	}
+	else //otherwise save is done!
+	{
+		//mark the save procedure as finished
+		savePending = 0;	
+		LED_Off(PRESET_SAVE_LED);
+	}
+	//Write7Seg(pages_left_to_store);
+}
+/*
+void storePresetToExternalMemory(void)
+{
+	uint16_t currentSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
+	//start by erasing the memory in the location we want to store
+	for (int i = 0; i < 5; i++)
+	{
+		memorySPIEraseSector(currentSector + i); //erase 5 sectors because that will give us enough room for a whole preset
+	} 
+	
+	// TODO: save the global data and keyboard settings and whatnot here in the first few pages
+	//
+	
+	// now ready for the sequencer data
+	// create buffers and send over data of the local sequencer memory that is not saved as compositions yet
+	// both sequencer one and sequencer two
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		tSequencer_encode(&sequencer[i], encodeBuffer);
+		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
+		{
+			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
+			memorySPIWrite(currentSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
 		}
 	}
+	//now save the composition mode sequences stored for each sequencer
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
+		{
+			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
+			if (currentPageNumber >= 16)
+			{
+				currentSector++;
+				currentPageNumber = 0;
+			}
+			memorySPIWrite(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
+		}
+	}
+}
+*/
+
+void retrievePresetFromExternalMemory(void)
+{
+	
+	/*
+	
+	uint16_t currentSector = preset_num * 16;  // * 16 to get the sector number we are starting to grab from
+	// TODO: retrieve the global data and keyboard settings and whatnot here in the first few pages
+	//
+	
+	// now ready for the sequencer data
+	// create buffers and grab the data to fill the local sequencer memory that is not saved as compositions yet
+	// both sequencer one and sequencer two
+	for (int i = 0; i < NUM_SEQ; i++)
+	{	
+		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
+		{
+			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
+			memorySPIRead(currentSector,  currentPageNumber ,  &decodeBuffer[currentPageNumber*256], 256);
+		}
+
+	}
+	//now get the composition mode sequences stored for each sequencer
+	for (int i = 0; i < NUM_SEQ; i++)
+	{
+		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
+		{
+			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
+			if (currentPageNumber >= 16)
+			{
+				currentSector++;
+				currentPageNumber = 0;
+			}
+			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber*256], 256);
+			initSequencer();
+		}
+	}
+	*/
 }

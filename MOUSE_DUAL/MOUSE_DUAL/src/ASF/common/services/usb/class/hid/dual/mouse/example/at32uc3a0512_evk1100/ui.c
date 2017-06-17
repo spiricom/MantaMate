@@ -361,8 +361,6 @@ void USB_frame_action(uint16_t framenumber)
 			Write7Seg(number_for_7Seg);
 		}
 	}
-
-	
 }
 
 void ui_ext_gate_in(void)

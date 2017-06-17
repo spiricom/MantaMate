@@ -113,6 +113,7 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
+unsigned char savePending = 0;
 unsigned char globalGlide = 0;
 unsigned char globalGlideMax = 99;
 unsigned char suspendRetrieve = 0;
@@ -219,6 +220,14 @@ int main(void){
 	// As a consequence, the user application only has to play with the power modes.
 	
 	while (true) {	
+		
+		if (savePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringPresetToExternalMemory();
+			}
+		}
 		sleepmgr_enter_sleep();
 		if (new_manta_attached)
 		{
@@ -1005,10 +1014,9 @@ void updateSave(void)
 	}
 	else
 	{
-		storePresetToExternalMemory();
+		initiateStoringPresetToExternalMemory();
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
-		LED_Off(PRESET_SAVE_LED);
 	}
 }
 

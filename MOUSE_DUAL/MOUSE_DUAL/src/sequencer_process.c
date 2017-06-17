@@ -228,8 +228,8 @@ uint8_t range_top = 15;
 uint8_t range_bottom = 0;
 
 
-uint16_t encodeBuffer[sizeOfSerializedSequence]; 
-uint16_t decodeBuffer[sizeOfSerializedSequence];
+uint16_t encodeBuffer[NUM_SEQ][sizeOfSerializedSequence]; 
+uint16_t decodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
 uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
@@ -2352,106 +2352,3 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 	
 }
 
-// EXTERNAL MEMORY PLAN
-// a page is 256 bytes.
-// a sector is 16 pages (4096 bytes)
-// a block is 16 sectors (65535 bytes)
-
-// every preset will live in a block (there are plenty - we have 128 blocks and can only really use 90 presets
-// the remaining blocks can store user tunings, perhaps
-// every "sequence" takes up 620 bytes.
-
-// a block has 65535 bytes, and they will be set up like this:
-// Page 0 is the global settings and manta sequencer settings
-// Page 1 is the Manta keyboard-mode preset settings
-// Page 2 is the MIDI host preset settings
-// Page 3 is the MIDI device preset settings (when connected to a computer)
-// Pages 4, 5, 6 is the current sequencer 1 (3 pages per sequence)
-// Pages 7, 8, 9 is the current sequencer 2 (3 pages per sequence)
-// Pages 10-29 is the composition collection for sequencer 1 (20 pages per sequence if there are 8 storable sequences)
-// Pages 30-49 is the composition collection for sequencer 2 (20 pages per sequence if there are 8 storable sequences)
-
-// sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
-
-
-//global settings format:
-// byte 1 = seq1Pvt, seq2Pvt, sequencer_mode, clock_speed, compositions,  
-#define NUM_PAGES_PER_SEQUENCE 3
-#define NUM_PAGES_PER_COMPOSITION 20
-#define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data
-#define COMPOSITIONS_PAGE_START 10 // which page starts the compositions data
-
-void storePresetToExternalMemory(void)
-{
-	uint16_t currentSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
-	//start by erasing the memory in the location we want to store
-	for (int i = 0; i < 4; i++)
-	{
-		memorySPIEraseSector(currentSector + i); //erase 4 sectors because that will give us enough room for a whole preset
-	}
-	
-	// TODO: save the global data and keyboard settings and whatnot here in the first few pages
-	//
-	
-	// now ready for the sequencer data
-	// create buffers and send over data of the local sequencer memory that is not saved as compositions yet
-	// both sequencer one and sequencer two
-	for (int i = 0; i < NUM_SEQ; i++)
-	{
-		tSequencer_encode(&sequencer[i], encodeBuffer);
-		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
-		{
-			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIWrite(currentSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
-		}
-	}
-	//now save the composition mode sequences stored for each sequencer
-	for (int i = 0; i < NUM_SEQ; i++)
-	{
-		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
-		{
-			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
-			if (currentPageNumber >= 16)
-			{
-				currentSector++;
-				currentPageNumber = 0;
-			}
-			memorySPIWrite(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
-		}
-	}
-}
-
-void retrievePresetFromExternalMemory(void)
-{
-	uint16_t currentSector = preset_num * 16;  // * 16 to get the sector number we are starting to grab from
-	// TODO: retrieve the global data and keyboard settings and whatnot here in the first few pages
-	//
-	
-	// now ready for the sequencer data
-	// create buffers and grab the data to fill the local sequencer memory that is not saved as compositions yet
-	// both sequencer one and sequencer two
-	for (int i = 0; i < NUM_SEQ; i++)
-	{	
-		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
-		{
-			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIRead(currentSector,  currentPageNumber ,  &decodeBuffer[currentPageNumber*256], 256);
-		}
-
-	}
-	//now get the composition mode sequences stored for each sequencer
-	for (int i = 0; i < NUM_SEQ; i++)
-	{
-		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
-		{
-			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
-			if (currentPageNumber >= 16)
-			{
-				currentSector++;
-				currentPageNumber = 0;
-			}
-			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber*256], 256);
-			initSequencer();
-		}
-	}
-}

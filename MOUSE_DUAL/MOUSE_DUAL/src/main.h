@@ -145,6 +145,7 @@ extern uint8_t manta_data_lock;
 extern unsigned char preset_num;
 extern unsigned char preset_to_save_num;
 extern unsigned char savingActive;
+extern unsigned char savePending;
 extern uint32_t clock_speed;
 extern uint8_t sequencer_mode;
 extern uint8_t joystick_mode;

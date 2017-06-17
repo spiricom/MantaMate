@@ -13,8 +13,10 @@
 
 #define NUM_SEQ 2
 #define sizeOfSerializedSequence  620 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
-#define sizeOfBankOfSequences  sizeOfSerializedSequence*16
+#define sizeOfBankOfSequences  sizeOfSerializedSequence*14 //there are now 14 possible sequence slots in composition mode
 
+extern uint16_t encodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
+extern uint16_t decodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
 extern uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences];
 
 void sequencerStep(void);
@@ -28,7 +30,8 @@ void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer);
 void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer);
 void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int destComp);
 
-void storePresetToExternalMemory(void);
+void initializeStoringPresetToExternalMemory(void);
+void continueStoringPresetToExternalMemory(void);
 void retrievePresetFromExternalMemory(void);
 
 
