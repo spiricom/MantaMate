@@ -15,8 +15,9 @@ extern uint16_t currentSector;
 extern uint16_t currentPage;
 extern uint16_t startingSector;
 extern uint32_t pages_left_to_store;
-extern uint32_t pages_left_to_retrieve;
-
+extern uint32_t pages_left_to_load;
+extern unsigned char savePending;
+extern unsigned char loadPending;
 // Memory SPI
 
 int memorySPICheckIfBusy(void);
@@ -27,5 +28,7 @@ void memorySPIEraseBlock(uint16_t block); // Block 0 - 127
 
 void initiateStoringPresetToExternalMemory(void);
 void continueStoringPresetToExternalMemory(void);
+void initiateLoadingPresetFromExternalMemory(void);
+void continueLoadingPresetFromExternalMemory(void);
 
 #endif /* MEMORY_SPI_H_ */

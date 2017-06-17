@@ -230,7 +230,7 @@ uint8_t range_bottom = 0;
 
 uint16_t encodeBuffer[NUM_SEQ][sizeOfSerializedSequence]; 
 uint16_t decodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
-uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
+uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences]; //8680 is 620 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 /* - - - - - - - - MantaState (touch events + history) - - - */
 MantaSequencer currentSequencer = SequencerOne; // current Sequencer is CURRENTLY EDITING SEQUENCER

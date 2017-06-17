@@ -113,7 +113,6 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
-unsigned char savePending = 0;
 unsigned char globalGlide = 0;
 unsigned char globalGlideMax = 99;
 unsigned char suspendRetrieve = 0;
@@ -221,11 +220,19 @@ int main(void){
 	
 	while (true) {	
 		
+		//currently putting low priority things like this in the main loop, as it should be the most background processes
 		if (savePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringPresetToExternalMemory();
+			}
+		}
+		if (loadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingPresetFromExternalMemory();
 			}
 		}
 		sleepmgr_enter_sleep();
@@ -960,7 +967,7 @@ void updatePreset(void)
 	{
 		if (!suspendRetrieve)
 		{
-			retrievePresetFromExternalMemory();
+			initiateLoadingPresetFromExternalMemory();
 		}
 
 	}

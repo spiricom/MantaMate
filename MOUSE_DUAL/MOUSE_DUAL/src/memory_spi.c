@@ -23,7 +23,9 @@ uint16_t currentSector = 0;
 uint16_t currentPage = 0;
 uint16_t startingSector = 0;
 uint32_t pages_left_to_store = 0;
-uint32_t pages_left_to_retrieve = 0;
+uint32_t pages_left_to_load = 0;
+unsigned char savePending = 0;
+unsigned char loadPending = 0;
 uint16_t busy;
 
 int memorySPICheckIfBusy(void)
@@ -280,41 +282,68 @@ void storePresetToExternalMemory(void)
 }
 */
 
-void retrievePresetFromExternalMemory(void)
+void initiateLoadingPresetFromExternalMemory(void)
 {
+	startingSector = preset_num * 16;  // * 16 to get the sector number we will store it in
+	currentSector = preset_num * 16;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage = 0; //start on the first page
+		
+	pages_left_to_load = NUM_PAGES_PER_PRESET; //set the variable for the total number of pages to count down from while we store them
+    continueLoadingPresetFromExternalMemory();
+	loadPending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 	
-	/*
-	
-	uint16_t currentSector = preset_num * 16;  // * 16 to get the sector number we are starting to grab from
-	// TODO: retrieve the global data and keyboard settings and whatnot here in the first few pages
-	//
-	
-	// now ready for the sequencer data
-	// create buffers and grab the data to fill the local sequencer memory that is not saved as compositions yet
-	// both sequencer one and sequencer two
-	for (int i = 0; i < NUM_SEQ; i++)
-	{	
-		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
-		{
-			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIRead(currentSector,  currentPageNumber ,  &decodeBuffer[currentPageNumber*256], 256);
-		}
+}
 
-	}
-	//now get the composition mode sequences stored for each sequencer
-	for (int i = 0; i < NUM_SEQ; i++)
+void continueLoadingPresetFromExternalMemory(void)
+{
+
+	if (pages_left_to_load > 0)
 	{
-		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
+		// load a page
+		if (currentPage == 0)
 		{
-			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
-			if (currentPageNumber >= 16)
-			{
-				currentSector++;
-				currentPageNumber = 0;
-			}
-			memorySPIRead(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber*256], 256);
-			initSequencer();
+			//load global prefs data structure
 		}
+		else if (currentPage == 1)
+		{
+			//load MIDI prefs data structure
+		}
+		else if (currentPage == 2)
+		{
+			//load joystick prefs data structure
+		}
+		else if (currentPage == 3)
+		{
+			//load Manta keyboard mode prefs data structure
+		}
+		
+		//load Manta Sequencer data
+		//first load the local memory of sequencers 1 and 2
+		else if ((currentPage >= CURRENT_SEQUENCE_PAGE_START) && (currentPage < COMPOSITIONS_PAGE_START))
+		{
+			whichSequence = (uint16_t)((currentPage - CURRENT_SEQUENCE_PAGE_START) / NUM_PAGES_PER_SEQUENCE);
+			sequencePageNumber = (currentPage - CURRENT_SEQUENCE_PAGE_START) % NUM_PAGES_PER_SEQUENCE;
+			memorySPIRead(currentSector,  (currentPage % 16) ,  &decodeBuffer[whichSequence][sequencePageNumber], 256);
+		}
+		
+		//then load the compositions for both sequencers
+		else if ((currentPage >= COMPOSITIONS_PAGE_START) && (currentPage < NUM_PAGES_PER_PRESET))
+		{
+			whichSequence = (uint16_t)((currentPage - COMPOSITIONS_PAGE_START) / NUM_PAGES_PER_COMPOSITION);
+			sequencePageNumber = (currentPage - COMPOSITIONS_PAGE_START) % NUM_PAGES_PER_COMPOSITION;
+			memorySPIRead(currentSector,  (currentPage % 16) ,  &memoryInternalCompositionBuffer[whichSequence][sequencePageNumber], 256);
+		}
+		//update variables for next round
+		currentPage++;
+		pages_left_to_load--;
+		currentSector = (startingSector + (uint16_t)(currentPage / 16)); //increment the current Sector whenever currentPage wraps over 16
 	}
-	*/
+	else //otherwise load is done!
+	{
+		//mark the load procedure as finished
+		loadPending = 0;
+		initSequencer(); //TODO: shouldn't actually do this here - need to be more smart about loading the necessary memory and initializing correctly
+		tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
+		tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
+	}
 }
