@@ -361,7 +361,7 @@ void initSequencer(void)
 			tSequencer_init(&sequencer[i], PitchMode, 32);
 			compositionMap[i][0] = true; // should actually load the real composition map, but need to actually store it in the presets first
 			currentComp[i] = 0; // also - not sure this makes sense anymore. Now there is a separate "local sequence" that is distinct from teh compositions, and that's what is loaded. So technical composition 0 is not loaded
-			tSequencer_decode(&sequencer[i], decodeBuffer);
+			tSequencer_decode(&sequencer[i], decodeBuffer[i]);
 		}
 	}
 	

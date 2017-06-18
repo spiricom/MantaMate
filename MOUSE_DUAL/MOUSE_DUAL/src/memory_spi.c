@@ -343,7 +343,7 @@ void continueLoadingPresetFromExternalMemory(void)
 		//mark the load procedure as finished
 		loadPending = 0;
 		initSequencer(); //TODO: shouldn't actually do this here - need to be more smart about loading the necessary memory and initializing correctly
-		tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
-		tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
+		//tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
+		//tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
 	}
 }
