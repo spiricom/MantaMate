@@ -360,7 +360,6 @@ void initSequencer(void)
 		{
 			tSequencer_init(&sequencer[i], PitchMode, 32);
 			tSequencer_encode(&sequencer[i], encodeBuffer);
-			memoryInternalWriteSequencer(i, 0, encodeBuffer);
 			compositionMap[i][0] = true;
 			currentComp[i] = 0;
 			tSequencer_decode(&sequencer[i], decodeBuffer);

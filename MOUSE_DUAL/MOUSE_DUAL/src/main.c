@@ -961,7 +961,7 @@ void updatePreset(void)
 		break;
 		
 		default: 
-		break;	
+		break;	 
 	}
 	if (preset_num >= 10)
 	{
