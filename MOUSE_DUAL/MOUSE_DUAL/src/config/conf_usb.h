@@ -57,12 +57,8 @@
  */
 
 //! Device definition (mandatory)
-#define  USB_DEVICE_VENDOR_ID             USB_VID_ATMEL
-#if BOARD == UC3B_BOARD_CONTROLLER
-# define  USB_DEVICE_PRODUCT_ID            USB_PID_ATMEL_UC3_CDC_DEBUG
-#else
-# define  USB_DEVICE_PRODUCT_ID            USB_PID_ATMEL_ASF_CDC
-#endif
+#define  USB_DEVICE_VENDOR_ID             0x16D0 //Snyderphonics Vendor ID
+#define	 USB_DEVICE_PRODUCT_ID			  0x0C1A //MantaMate Product ID
 #define  USB_DEVICE_MAJOR_VERSION         1
 #define  USB_DEVICE_MINOR_VERSION         0
 #define  USB_DEVICE_POWER                 100 // Consumption on Vbus line (mA)

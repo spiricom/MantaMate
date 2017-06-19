@@ -63,7 +63,7 @@
  */
 
 //! Value for field bcdUSB
-#define  USB_V2_0    0x0010 //!< USB Specification version 2.00
+#define  USB_V2_0    0x0110 //!< USB Specification version 2.00
 #define  USB_V2_1    0x1001 //!< USB Specification version 2.01
 
 /*! \name Generic definitions (Class, subclass and protocol)

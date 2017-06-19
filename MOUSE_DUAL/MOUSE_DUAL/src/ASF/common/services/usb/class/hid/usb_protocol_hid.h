@@ -60,6 +60,7 @@
 //! \name Possible Class value
 //@{
 #define  HID_CLASS                            0x03
+#define  VENDOR_SPECIFIC_CLASS                            0xFF
 //@}
 
 //! \name Possible SubClass value

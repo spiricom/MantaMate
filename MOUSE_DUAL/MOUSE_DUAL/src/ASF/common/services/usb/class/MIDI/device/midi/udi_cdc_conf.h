@@ -64,7 +64,7 @@ extern "C" {
  */
 
 //! Control endpoint size (Endpoint 0)
-#define  USB_DEVICE_EP_CTRL_SIZE       64
+#define  USB_DEVICE_EP_CTRL_SIZE       32
 
 
 /**

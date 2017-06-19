@@ -47,7 +47,7 @@
 #include <asf.h>
 #include "main.h"
 
-
+#define DEBUG 0
 #define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 #define UNCONFIGUREDMODE 0
 #define HOSTMODE 1

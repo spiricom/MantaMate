@@ -174,9 +174,9 @@ COMPILER_PACK_RESET()
 	.jack_out_ext.bDescriptorSubtype = MIDI_OUT_JACK,\
 	.jack_out_ext.bJackType          = EXTERNAL,\
 	.jack_out_ext.bjackID            = 0x04,\
-	.jack_out_emb.bNrInputPins       = 0x01,\
-	.jack_out_emb.baSourceID         = 0x01,\
-	.jack_out_emb.baSourcePin        = 0x01,\
+	.jack_out_ext.bNrInputPins       = 0x01,\
+	.jack_out_ext.baSourceID         = 0x01,\
+	.jack_out_ext.baSourcePin        = 0x01,\
 	.jack_out_ext.iJack              = 0x00,\
 	.ep_out.ep.bLength               = sizeof(usb_midi_ep_desc_t),\
 	.ep_out.ep.bDescriptorType       = USB_DT_ENDPOINT,\

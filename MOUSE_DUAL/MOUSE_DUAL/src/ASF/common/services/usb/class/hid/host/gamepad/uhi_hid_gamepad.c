@@ -152,7 +152,7 @@ static hid_report_parser_t hid_report_parser = {
 };
 
 // initialize global hid joystick struct
-static uhi_hid_joy_dev_t uhi_hid_joy_dev = {
+static uhi_hid_joy_dev_t uhi_hid_game_dev = {
 	.dev = NULL,
 	.report = NULL,
 };
@@ -164,14 +164,14 @@ const char ItemSize[4]={0,1,2,4};
  * @{
  */
 
-uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
+uhc_enum_status_t uhi_hid_game_install(uhc_device_t* dev)
 {
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
 	int i;
 
-	if (uhi_hid_joy_dev.dev != NULL) {
+	if (uhi_hid_game_dev.dev != NULL) {
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
@@ -190,8 +190,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				// USB HID Joystick interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
-			}
-			else {
+			} else {
 				// Stop allocation endpoint(s)
 				b_iface_supported = false;
 			}
@@ -202,13 +201,13 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				break;
 			}
 			//how many descriptors and what type, make some space to store
-			uhi_hid_joy_dev.numDesc = ((usb_hid_descriptor_t*) ptr_iface)->bNumDescriptors;
-			uhi_hid_joy_dev.DescType = (uint8_t *) malloc(uhi_hid_joy_dev.numDesc);
-			uhi_hid_joy_dev.DescSize = (uint16_t *) malloc(2*uhi_hid_joy_dev.numDesc);
-			for (i = 0; i < uhi_hid_joy_dev.numDesc; i++)
+			uhi_hid_game_dev.numDesc = ((usb_hid_descriptor_t*) ptr_iface)->bNumDescriptors;
+			uhi_hid_game_dev.DescType = (uint8_t *) malloc(uhi_hid_game_dev.numDesc);
+			uhi_hid_game_dev.DescSize = (uint16_t *) malloc(2*uhi_hid_game_dev.numDesc);
+			for (i = 0; i < uhi_hid_game_dev.numDesc; i++)
 			{
-				uhi_hid_joy_dev.DescType[i] = ((usb_hid_descriptor_t*) ptr_iface)->bRDescriptorType;
-				uhi_hid_joy_dev.DescSize[i] = (((usb_hid_descriptor_t*) ptr_iface)->wDescriptorLength)>>8;
+				uhi_hid_game_dev.DescType[i] = ((usb_hid_descriptor_t*) ptr_iface)->bRDescriptorType;
+				uhi_hid_game_dev.DescSize[i] = (((usb_hid_descriptor_t*) ptr_iface)->wDescriptorLength)>>8;
 			}
 			break;
 		
@@ -221,11 +220,11 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				return UHC_ENUM_HARDWARE_LIMIT; // Endpoint allocation fail
 			}
 			Assert(((usb_ep_desc_t*) ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
-			uhi_hid_joy_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
-			uhi_hid_joy_dev.report_size =
+			uhi_hid_game_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
+			uhi_hid_game_dev.report_size =
 					le16_to_cpu(((usb_ep_desc_t*) ptr_iface)->wMaxPacketSize);
-			uhi_hid_joy_dev.report = malloc(uhi_hid_joy_dev.report_size);
-			if (uhi_hid_joy_dev.report == NULL) {
+			uhi_hid_game_dev.report = malloc(uhi_hid_game_dev.report_size);
+			if (uhi_hid_game_dev.report == NULL) {
 				Assert(false);
 				return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
 			}
@@ -241,7 +240,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	if (!b_iface_supported) {
 		return UHC_ENUM_UNSUPPORTED; // No interface supported
 	}
-	uhi_hid_joy_dev.dev = dev;
+	uhi_hid_game_dev.dev = dev;
 	// All endpoints of all interfaces supported allocated
 	
 	get_report_descriptor();
@@ -260,7 +259,7 @@ static void get_report_descriptor()
 	usb_setup_req_t req;
 	int i;
 	
-	for (i = 0; i < uhi_hid_joy_dev.numDesc; i++)
+	for (i = 0; i < uhi_hid_game_dev.numDesc; i++)
 	{	
 		ResetParser();
 		
@@ -268,17 +267,17 @@ static void get_report_descriptor()
 		req.bRequest = USB_REQ_GET_DESCRIPTOR;
 		req.wValue = (USB_DT_HID_REPORT << 8);
 		req.wIndex = 0;
-		req.wLength = uhi_hid_joy_dev.DescSize[i] + 0x40;
+		req.wLength = uhi_hid_game_dev.DescSize[i] + 0x40;
 		
-		hid_report_parser.reportDesc_size = uhi_hid_joy_dev.DescSize[i];
+		hid_report_parser.reportDesc_size = uhi_hid_game_dev.DescSize[i];
 		
 		if (hid_report_parser.reportDesc != NULL)
-			hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_joy_dev.DescSize[i]);
-		else hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_joy_dev.DescSize[i]);
+			hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_game_dev.DescSize[i]);
+		else hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_game_dev.DescSize[i]);
 
 		// After a USB reset, the reallocation is required
 		if (!uhd_setup_request(1, &req, (uint8_t *) hid_report_parser.reportDesc, 
-			uhi_hid_joy_dev.DescSize[i], NULL, parse_report_descriptor)) 
+			uhi_hid_game_dev.DescSize[i], NULL, parse_report_descriptor)) 
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
 			//MEMORY_printf_string("ERROR");
@@ -595,38 +594,38 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 	}
 }
 
-void uhi_hid_joy_enable(uhc_device_t* dev)
+void uhi_hid_game_enable(uhc_device_t* dev)
 {
-	if (uhi_hid_joy_dev.dev != dev) {
+	if (uhi_hid_game_dev.dev != dev) {
 		return;  // No interface to enable
 	}
 
 	// Init value
-	uhi_hid_joy_dev.report_butt_prev = 0;
-	uhi_hid_joy_dev.report_y_prev = 0;
-	uhi_hid_joy_dev.report_x_prev = 0;
-	uhi_hid_joy_dev.report_slider_prev = 0;
-	uhi_hid_joy_dev.report_Rz_prev = 0;
-	uhi_hid_joy_dev.report_hat_prev = 0;
-	uhi_hid_joy_start_trans_report(dev->address);
+	uhi_hid_game_dev.report_butt_prev = 0;
+	uhi_hid_game_dev.report_y_prev = 0;
+	uhi_hid_game_dev.report_x_prev = 0;
+	uhi_hid_game_dev.report_slider_prev = 0;
+	uhi_hid_game_dev.report_Rz_prev = 0;
+	uhi_hid_game_dev.report_hat_prev = 0;
+	uhi_hid_game_start_trans_report(dev->address);
 	type_of_device_connected = JoystickConnected;
-	UHI_HID_JOY_CHANGE(dev, true);
+	UHI_HID_GAME_CHANGE(dev, true);
 	joystick_mode = true; 
 }
 
-void uhi_hid_joy_uninstall(uhc_device_t* dev)
+void uhi_hid_game_uninstall(uhc_device_t* dev)
 {
-	if (uhi_hid_joy_dev.dev != dev) {
+	if (uhi_hid_game_dev.dev != dev) {
 		return; // Device not enabled in this interface
 	}
-	uhi_hid_joy_dev.dev = NULL; 
-	Assert(uhi_hid_joy_dev.report!=NULL);
-	free(uhi_hid_joy_dev.report);
-	free(uhi_hid_joy_dev.DescType);
-	free(uhi_hid_joy_dev.DescSize);
+	uhi_hid_game_dev.dev = NULL; 
+	Assert(uhi_hid_game_dev.report!=NULL);
+	free(uhi_hid_game_dev.report);
+	free(uhi_hid_game_dev.DescType);
+	free(uhi_hid_game_dev.DescSize);
 	free(hid_report_parser.reportDesc);
 	ibutt = 0;
-	UHI_HID_JOY_CHANGE(dev, false);
+	UHI_HID_GAME_CHANGE(dev, false);
 	type_of_device_connected = NoDeviceConnected;
 	joystick_mode = false;
 }
@@ -642,16 +641,11 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
  *
  * \param add   USB address to use
  */
-static void uhi_hid_joy_start_trans_report(usb_add_t add)
+static void uhi_hid_game_start_trans_report(usb_add_t add)
 {
 	// Start transfer on interrupt endpoint IN
-	// right now, this hack forces reception on endpoint 1 (129) because some devices with multiple endpoints would go to the last endpoint instead of 1.
-	/*uhd_ep_run(add, 129, true, uhi_hid_joy_dev.report,
-		uhi_hid_joy_dev.report_size, 0, uhi_hid_joy_report_reception);
-		*/
-	uhd_ep_run(add, uhi_hid_joy_dev.ep_in, true, uhi_hid_joy_dev.report,
-			uhi_hid_joy_dev.report_size, 0, uhi_hid_joy_report_reception);
-			
+	uhd_ep_run(add, uhi_hid_game_dev.ep_in, true, uhi_hid_game_dev.report,
+			uhi_hid_game_dev.report_size, 0, uhi_hid_game_report_reception);
 }
 
 static uint32_t shift(uint8_t size, uint8_t offset) {
@@ -662,17 +656,17 @@ static uint32_t shift(uint8_t size, uint8_t offset) {
 	
 	total = size;
 	index = offset/8;
-	state_new = (uhi_hid_joy_dev.report[index]>>(offset%8));  // add the first (partial) byte
+	state_new = (uhi_hid_game_dev.report[index]>>(offset%8));  // add the first (partial) byte
 	i = 8 - offset % 8;
 	
 	while(i <= total - 8)  // add a full byte
 	{
-		state_new += uhi_hid_joy_dev.report[++index] << i;
+		state_new += uhi_hid_game_dev.report[++index] << i;
 		i += 8;
 	}
 	if(i < total)  // add the last partial byte
 	{
-		state_new += (uhi_hid_joy_dev.report[++index] & (0xFF>>(8-(offset+size)%8)))<<i;
+		state_new += (uhi_hid_game_dev.report[++index] & (0xFF>>(8-(offset+size)%8)))<<i;
 		i += (offset+size)%8;
 	}
 	
@@ -694,7 +688,7 @@ int find_highest_bit(int val)
  * \param status        Transfer status
  * \param nb_transfered Number of data transfered
  */
-static void uhi_hid_joy_report_reception(
+static void uhi_hid_game_report_reception(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
@@ -717,7 +711,7 @@ static void uhi_hid_joy_report_reception(
 	UNUSED(ep);
 
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
-		uhi_hid_joy_start_trans_report(add);
+		uhi_hid_game_start_trans_report(add);
 		return; // HID mouse transfer restart
 	}
 
@@ -726,12 +720,12 @@ static void uhi_hid_joy_report_reception(
 	}
 	
 	// Decode buttons
-	butt_prev = uhi_hid_joy_dev.report_butt_prev;
-	slider_prev = uhi_hid_joy_dev.report_slider_prev;
-	hat_prev = uhi_hid_joy_dev.report_hat_prev;
-	Rz_prev = uhi_hid_joy_dev.report_Rz_prev;
-	x_prev = uhi_hid_joy_dev.report_x_prev;
-	y_prev = uhi_hid_joy_dev.report_y_prev;
+	butt_prev = uhi_hid_game_dev.report_butt_prev;
+	slider_prev = uhi_hid_game_dev.report_slider_prev;
+	hat_prev = uhi_hid_game_dev.report_hat_prev;
+	Rz_prev = uhi_hid_game_dev.report_Rz_prev;
+	x_prev = uhi_hid_game_dev.report_x_prev;
+	y_prev = uhi_hid_game_dev.report_y_prev;
 	
 	butt_new = 0;
 	i = 0;
