@@ -9,13 +9,13 @@
 #ifndef NOTE_PROCESS_H_
 #define NOTE_PROCESS_H_
 
+#include "keyboard.h"
+
 #include <stdint.h>
 #include "7Segment.h"
 #include <math.h>
 #include <asf.h>
 #include "main.h"
-
-#include "notestack.h"
 
 uint8_t sysVol;  // should probably initialize by reading from MIDI device
 

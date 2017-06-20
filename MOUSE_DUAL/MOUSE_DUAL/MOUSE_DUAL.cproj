@@ -574,6 +574,12 @@
     <Compile Include="src\ASF\avr32\drivers\tc\tc.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\keyboard.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\keyboard.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\memory_spi.c">
       <SubType>compile</SubType>
     </Compile>

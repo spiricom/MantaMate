@@ -15,7 +15,7 @@ typedef struct _tNoteStack
 	// max size 32
 	
 	// -1 in unsigned notestack is actually going to represented as 255. may cause issues if we aren't careful. should change.
-	uint8_t notestack[MAX_NUM_NOTES];
+	int notestack[MAX_NUM_NOTES];
 	uint8_t pos;
 	uint8_t size;
 	uint8_t capacity;

@@ -175,5 +175,7 @@ int tNoteStack_init(tNoteStack* const ns, uint8_t cap)
 	ns->pos = 0;
 	ns->capacity = cap;
 	
+	for (int i = 0; i < MAX_NUM_NOTES; i++) ns->notestack[i] = -1;
+	
 	return 0;
 }

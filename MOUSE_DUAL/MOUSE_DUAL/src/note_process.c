@@ -7,9 +7,7 @@
 
 #include "note_process.h"
 
-
-
-unsigned short calculateDACvalue(enum maps_t whichmap, uint8_t noteVal);
+unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal);
 extern unsigned char preset_num;
 
 
@@ -36,7 +34,7 @@ signed char checkstolen = -1;
 
 
 
-unsigned short calculateDACvalue(enum maps_t whichmap, uint8_t noteVal)
+unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 {
 	signed long pitchclass;
 	unsigned long templongnote = 0;
@@ -48,9 +46,9 @@ unsigned short calculateDACvalue(enum maps_t whichmap, uint8_t noteVal)
 
 	switch(whichmap)
 	{
-		case WICKI_HAYDEN: note = whmap[noteVal]; break;    // wicki-hayden
-		case HARMONIC: note = harmonicmap[noteVal]; break;  // harmonic
-		case PIANO: note = pianomap[noteVal]; break;		// piano map
+		case WickiHaydenMap: note = whmap[noteVal]; break;    // wicki-hayden
+		case HarmonicMap: note = harmonicmap[noteVal]; break;  // harmonic
+		case PianoMap: note = pianomap[noteVal]; break;		// piano map
 		default: note = noteVal; break;                     // no map
 	}
 
@@ -157,14 +155,22 @@ void resetMantaUI(void)
 void initKeys(int numVoices)
 {
 
-	for (int i = 0; i < NUM_INST; i++)
+	if (numVoices < 3)
 	{
-		manta[i].type = KeyboardInstrument;
-		
-		tKeyboard* keyboard = &manta[i].keyboard;
-		
-		tKeyboard_init(keyboard,numVoices);
+		for (int i = 0; i < NUM_INST; i++)
+		{
+			manta[i].type = KeyboardInstrument;
+			
+			tKeyboard* keyboard = &manta[i].keyboard;
+			
+			tKeyboard_init(keyboard,numVoices);
+		}
 	}
+	else 
+	{
+		
+	}
+	
 	
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	tc_start(tc3, TC3_CHANNEL);
@@ -186,6 +192,8 @@ void touchLowerHexKey(int hex, uint8_t weight)
 		if (manta[i].type == KeyboardInstrument) tKeyboard_noteOn(&manta[i].keyboard, hex, weight);
 	}
 	
+	dacSendKeyboard();
+	
 	manta_set_LED_hex(hex, Amber);	
 }
 
@@ -198,13 +206,10 @@ void releaseLowerHexKey(int hex)
 			tKeyboard* keyboard = &manta[i].keyboard;
 			
 			tKeyboard_noteOff(keyboard, hex);
-		
-			for(int v =0; v < keyboard->numVoices; v++)
-			{
-				if (!keyboard->polyVoiceBusy[v]) dacsend(v,1,0);
-			}
 		}
 	}
+	
+	dacSendKeyboard();
 	
 	manta_set_LED_hex(hex, Off);
 }
@@ -234,7 +239,6 @@ void processKeys(void)
 			{
 				touchLowerHexKey(i, butt_states[i]);
 			}
-
 			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 			{
 				releaseLowerHexKey(i);
@@ -261,7 +265,7 @@ void processKeys(void)
 		past_func_button_states[i] = func_button_states[i];
 	}
 
-	dacSendKeyboard();
+	
 }
 
 
@@ -269,7 +273,6 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 {
 	// DO THIS
 }
-
 
 // reads the current state and sets output voltages, leds and 7 seg display
 void dacSendKeyboard(void)
@@ -280,72 +283,39 @@ void dacSendKeyboard(void)
 		{
 			tKeyboard* keyboard = &manta[inst].keyboard;
 
-			if (keyboard->noteOn == TRUE)
+			for (int i = 0; i < keyboard->numVoices; i++)
 			{
-				for (int i = 0; i < keyboard->numVoices; i++)
+				int inst = (int)(i/2);
+				
+				int note = keyboard->voices[i];
+				if (note >= 0)
 				{
-					int inst = (int)(i/2);
-					if (keyboard->changevoice[i])
-					{
-						//lcd_clear_line(i+1);
-						if (keyboard->polyVoiceBusy[i])
-						{
-							tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(keyboard->whichmap, keyboard->polyVoiceNote[i]));
-							
-							tRampSetDest(&out[inst][CVTRIGGER], 0xfff);
-						}
-						else
-						{
-							tRampSetDest(&out[inst][CVTRIGGER], 0x000);
-						}
-						
-						keyboard->changevoice[i] = 0;
-						keyboard->noteOn = FALSE;
-						keyboard->noteOff = FALSE;
-					}
+					tRampSetDest(&out[inst][3*((inst == InstrumentOne)?(i):(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
+					
+					dacsend		(i,0, 0xfff);
 				}
+				else
+				{
+					dacsend		(i,0, 0x000);
+				}
+
 			}
 		}
 	}
 	else
 	{
-		if (midiKeyboard.noteOn)
-		{
-			for (int i = 0; i < midiKeyboard.numVoices; i++)
-			{
-				int inst = (int)(i/2);
-				if (midiKeyboard.changevoice[i])
-				{
-					//lcd_clear_line(i+1);
-					if (midiKeyboard.polyVoiceBusy[i])
-					{
-						tRampSetDest(&out[inst][CVPITCH], calculateDACvalue(midiKeyboard.whichmap, midiKeyboard.polyVoiceNote[i]));
-						
-						tRampSetDest(&out[inst][CVTRIGGER], 0xfff);
-					}
-					else
-					{
-						tRampSetDest(&out[inst][CVTRIGGER], 0x000);
-					}
-					
-					midiKeyboard.changevoice[i] = 0;
-					midiKeyboard.noteOn = FALSE;
-					midiKeyboard.noteOff = FALSE;
-				}
-			}
-		}
+		
 	}
-	
-	
 }
 
-void tuningTest(uint8_t whichOct)
+
+void tuningTest(uint8_t oct)
 {
 
-	DAC16Send(0, calculateDACvalue(NO_MAP, 12 * whichOct));
-	DAC16Send(1, calculateDACvalue(NO_MAP, 12 * whichOct));
-	DAC16Send(2, calculateDACvalue(NO_MAP, 12 * whichOct));
-	DAC16Send(3, calculateDACvalue(NO_MAP, 12 * whichOct));
+	DAC16Send(0, calculateDACvalue(MantaMapNil, 12 * oct));
+	DAC16Send(1, calculateDACvalue(MantaMapNil, 12 * oct));
+	DAC16Send(2, calculateDACvalue(MantaMapNil, 12 * oct));
+	DAC16Send(3, calculateDACvalue(MantaMapNil, 12 * oct));
 	dacsend(0,1,0xfff);
 	dacsend(1,1,0xfff);
 	dacsend(2,1,0xfff);

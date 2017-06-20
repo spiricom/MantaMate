@@ -15,10 +15,20 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+typedef enum MantaMap
+{
+	WickiHaydenMap,
+	HarmonicMap,
+	PianoMap,
+	MantaMapNil
+} MantaMap;
+
 typedef enum BOOL 
 {
 	FALSE = 0,
-	TRUE = 1
+	TRUE = 1,
+	LO = FALSE,
+	HI = TRUE
 	}BOOL;
 
 #include "stdint.h"
