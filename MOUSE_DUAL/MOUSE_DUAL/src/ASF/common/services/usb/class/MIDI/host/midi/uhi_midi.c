@@ -487,11 +487,10 @@ iram_size_t nb_transferred)
 	}
 	else if (UHD_TRANS_NOERROR != status) {
 		// Abort transfer
-		LED_On(LED5);
+
 		line->b_trans_ongoing  = false;
 		return;
 	}
-	LED_Off(LED5);
 	// Update SOF tag, if it is a short packet
 	if (nb_transferred != line->buffer_size) {
 		if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {

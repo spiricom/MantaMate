@@ -283,6 +283,8 @@ typedef uint8_t usb_add_t;
  */
 #define  USB_EP_DIR_IN        0x80
 
+#define  USB_EP_DIR_IN2        0x81
+
 /**
  * \brief Endpoint transfer direction is OUT
  */

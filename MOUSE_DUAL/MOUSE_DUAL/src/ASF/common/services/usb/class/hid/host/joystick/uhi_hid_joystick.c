@@ -217,19 +217,26 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 			if (!b_iface_supported) {
 				break;
 			}
-			if (!uhd_ep_alloc(dev->address, (usb_ep_desc_t*) ptr_iface)) {
-				return UHC_ENUM_HARDWARE_LIMIT; // Endpoint allocation fail
-			}
-			Assert(((usb_ep_desc_t*) ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
-			uhi_hid_joy_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
-			uhi_hid_joy_dev.report_size =
-					le16_to_cpu(((usb_ep_desc_t*) ptr_iface)->wMaxPacketSize);
-			uhi_hid_joy_dev.report = malloc(uhi_hid_joy_dev.report_size);
-			if (uhi_hid_joy_dev.report == NULL) {
-				Assert(false);
-				return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
-			}
 			
+			//only pay attention to input endpoints, ignore output endpoints
+			if (((usb_ep_desc_t*) ptr_iface)->bEndpointAddress & USB_EP_DIR_IN)
+			{
+				if (!uhd_ep_alloc(dev->address, (usb_ep_desc_t*) ptr_iface)) {
+					return UHC_ENUM_HARDWARE_LIMIT; // Endpoint allocation fail
+				}
+			
+
+				Assert(((usb_ep_desc_t*) ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
+				uhi_hid_joy_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
+				uhi_hid_joy_dev.report_size =
+				le16_to_cpu(((usb_ep_desc_t*) ptr_iface)->wMaxPacketSize);
+				uhi_hid_joy_dev.report = malloc(uhi_hid_joy_dev.report_size);
+				if (uhi_hid_joy_dev.report == NULL) {
+					Assert(false);
+					return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
+				}
+			}
+
 		default:
 			// Ignore descriptor
 			break;
@@ -244,8 +251,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	uhi_hid_joy_dev.dev = dev;
 	// All endpoints of all interfaces supported allocated
 	
-	get_report_descriptor();
-	
+	//used to get report descriptor here JS
 	
 	return UHC_ENUM_SUCCESS;
 }
@@ -597,10 +603,14 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 
 void uhi_hid_joy_enable(uhc_device_t* dev)
 {
+	
+	
+
+	
 	if (uhi_hid_joy_dev.dev != dev) {
 		return;  // No interface to enable
 	}
-
+	get_report_descriptor();
 	// Init value
 	uhi_hid_joy_dev.report_butt_prev = 0;
 	uhi_hid_joy_dev.report_y_prev = 0;
