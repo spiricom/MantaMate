@@ -575,6 +575,12 @@
     <Compile Include="src\ASF\avr32\drivers\tc\tc.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\tuning.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\tuning.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\midi.h">
       <SubType>compile</SubType>
     </Compile>

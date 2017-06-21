@@ -4,6 +4,8 @@
 
 src\ASF\avr32\drivers\tc\tc.c
 
+src\tuning.c
+
 src\midi.c
 
 src\memory_spi.c

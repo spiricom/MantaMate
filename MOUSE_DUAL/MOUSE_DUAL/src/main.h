@@ -59,6 +59,7 @@
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
 #include "ui.h"
+#include "tuning.h"
 
 #define TEST_MEMORY 0
 
