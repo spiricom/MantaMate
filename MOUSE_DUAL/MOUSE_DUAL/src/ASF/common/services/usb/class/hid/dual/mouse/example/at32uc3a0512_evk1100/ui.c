@@ -296,7 +296,7 @@ void USB_frame_action(uint16_t framenumber)
 
 
 	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
-	if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+	if (panelSwitches.up)
 	{
 		buttonFrameCounter++;
 		if (buttonFrameCounter > buttonHoldSpeed)
@@ -320,7 +320,7 @@ void USB_frame_action(uint16_t framenumber)
 		upHeld = 0;
 	}
 	
-	if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+	if (panelSwitches.down)
 	{
 		buttonFrameCounter++;
 		if (buttonFrameCounter > buttonHoldSpeed)

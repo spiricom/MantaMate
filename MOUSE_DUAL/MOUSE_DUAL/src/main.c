@@ -47,7 +47,6 @@
 #include <asf.h>
 #include "main.h"
 
-#define DEBUG 0
 #define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 #define UNCONFIGUREDMODE 0
 #define HOSTMODE 1
@@ -103,6 +102,15 @@ spi_options_t spiOptionsMemory =
 	.stay_act     = 1,
 	.spi_mode     = 0,
 	.modfdis      = 1
+};
+
+
+tSwitches  panelSwitches =
+{
+	.up				= 0,
+	.down			= 0,
+	.save			= 0,
+	.preferences	= 0
 };
 
 unsigned short dacouthigh = 0;
@@ -599,6 +607,7 @@ static void int_handler_switches (void)
 	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
 	{	// PA11 generated the interrupt.
 		delay_us(5000); // to de-bounce
+		
 		USB_Mode_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
@@ -608,6 +617,7 @@ static void int_handler_switches (void)
 	{		
 		//down switch
 		delay_us(2000); // to de-bounce
+		panelSwitches.down = (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH));
 		Preset_Switch_Check(0);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_DOWN_SWITCH);
@@ -617,6 +627,7 @@ static void int_handler_switches (void)
 	{		
 		//up switch
 		delay_us(2000); // to de-bounce
+		panelSwitches.up = (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH));
 		Preset_Switch_Check(1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_UP_SWITCH);
@@ -625,8 +636,8 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_PREFERENCES_SWITCH) )
 	{
 		//up switch
-		delay_us(5000); // to de-bounce
-		//Preset_Switch_Check(1);
+		delay_us(2000); // to de-bounce
+		panelSwitches.preferences = (!gpio_get_pin_value(GPIO_PREFERENCES_SWITCH));
 		Preferences_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PREFERENCES_SWITCH);
@@ -635,8 +646,8 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_SAVE_SWITCH) )
 	{
 		//up switch
-		delay_us(5000); // to de-bounce
-		//Preset_Switch_Check(1);
+		delay_us(2000); // to de-bounce
+		panelSwitches.save = (!gpio_get_pin_value(GPIO_SAVE_SWITCH));
 		Save_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_SAVE_SWITCH);
@@ -685,7 +696,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				if (panelSwitches.up)
 				{
 					preset_num++;
 					
@@ -697,7 +708,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else 
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				if (panelSwitches.down)
 				{
 					if (preset_num <= 0)
 					{
@@ -717,7 +728,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				if (panelSwitches.up)
 				{
 					preset_to_save_num++;
 					if (preset_to_save_num > 99)
@@ -728,7 +739,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				if (panelSwitches.down)
 				{
 					if (preset_to_save_num <= 10)
 					{
@@ -750,7 +761,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 		if (whichSwitch)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+			if (panelSwitches.up)
 			{
 				tuning++;
 				if (tuning >= numTunings)
@@ -761,7 +772,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+			if (panelSwitches.down)
 			{
 				if (tuning <= 0)
 				{
@@ -781,7 +792,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 		if (whichSwitch)
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+			if (panelSwitches.up)
 			{
 				globalGlide++;
 				if (globalGlide >= globalGlideMax)
@@ -792,7 +803,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else
 		{
-			if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+			if (panelSwitches.down)
 			{
 				if (globalGlide <= 0)
 				{
@@ -814,7 +825,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				if (panelSwitches.up)
 				{
 					clock_speed_displayed++;
 					if (clock_speed_displayed >= clock_speed_max)
@@ -825,7 +836,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				if (panelSwitches.down)
 				{
 					if (clock_speed_displayed <= 0)
 					{
@@ -843,7 +854,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (whichSwitch)
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_UP_SWITCH))
+				if (panelSwitches.up)
 				{
 					tempoDivider++;
 					if (tempoDivider >= tempoDividerMax)
@@ -854,7 +865,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			else
 			{
-				if (!gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH))
+				if (panelSwitches.down)
 				{
 					if (tempoDivider <= 0)
 					{
@@ -882,7 +893,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 void Preferences_Switch_Check(void)
 {
-	if (!gpio_get_pin_value(GPIO_PREFERENCES_SWITCH))
+	if (panelSwitches.preferences)
 	{
 		//if we aren't in a current save state, act normal and change preferences
 		if (!savingActive)
@@ -908,7 +919,7 @@ void Preferences_Switch_Check(void)
 void Save_Switch_Check(void)
 {
 	
-	if (!gpio_get_pin_value(GPIO_SAVE_SWITCH))
+	if (panelSwitches.save)
 	{
 		if (preference_num == PRESET_SELECT) //we're in normal preset mode, which allows saving
 		{

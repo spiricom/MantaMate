@@ -134,6 +134,7 @@ void initTimers (void);
 extern uint16_t lengthDB;
 extern int slider;
 
+extern tSwitches panelSwitches;
 
 //global variables that everything which includes main.h should be able to see
 extern uint32_t dummycounter;

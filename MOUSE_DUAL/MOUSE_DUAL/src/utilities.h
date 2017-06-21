@@ -183,6 +183,13 @@ typedef enum StepParameterType {
 }StepParameterType;
 
 
+typedef struct _tSwitches {
+	int up;
+	int down;
+	int save;
+	int preferences;
+} tSwitches;
+
 // Sequencer Modes
 SequencerPatternType pattern_type;
 
