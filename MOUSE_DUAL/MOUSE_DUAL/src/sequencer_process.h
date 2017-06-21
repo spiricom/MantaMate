@@ -17,10 +17,12 @@
 
 extern uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences];
 
+
+
 void sequencerStep(MantaInstrument inst);
 void uiStep					(MantaInstrument);
 
-void processSequencer(void);
+void processHexTouch(void);
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);
 

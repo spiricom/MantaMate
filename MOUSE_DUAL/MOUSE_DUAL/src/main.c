@@ -202,11 +202,17 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
+	int count = 0;
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 6; j++)
+		{
 			tRampInit(&out[i][j], 2000, 0, 1);
+			fullOut[count++] = &out[i][j];
+		}
 	}
+	
+	
 	
 	currentInstrument = InstrumentOne;
 	//start off on preset 0;
@@ -275,8 +281,8 @@ __attribute__((__interrupt__))
 static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
+	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
 	for (int inst = 0; inst < 2; inst++)
 	{
@@ -307,13 +313,13 @@ static void tc3_irq(void)
 		{ 
 			for (int i = 0; i < instrument->keyboard.numVoices; i++)
 			{
-						
-				DAC16Send	(i,    tRampTick(&out[inst][3*((inst == InstrumentOne)?(i):(i-2))+CVPITCH]));
+					
+				DAC16Send	((inst == InstrumentOne) ? i : (i + 2),    tRampTick(&out[inst][3*((inst == InstrumentOne)?(i):(i-2))+CVPITCH]));
 						
 				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 						
 				// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-				dacsend     (i,1,  butt_states[instrument->keyboard.voices[i]] * 16);
+				dacsend     ((inst == InstrumentOne) ? i : (i + 2),1,  butt_states[instrument->keyboard.voices[i]] * 16);
 			}
 		}
 				

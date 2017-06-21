@@ -187,42 +187,64 @@ void initKeys(int numVoices)
 
 void touchLowerHexKey(int hex, uint8_t weight)
 {
-	for (int i = 0; i < NUM_INST; i++)
+	if (manta[currentInstrument].type == KeyboardInstrument) 
 	{
-		if (manta[i].type == KeyboardInstrument) tKeyboard_noteOn(&manta[i].keyboard, hex, weight);
+		tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
+		dacSendKeyboard(currentInstrument);
+		manta_set_LED_hex(hex, Amber);
 	}
-	
-	dacSendKeyboard();
-	
-	manta_set_LED_hex(hex, Amber);	
 }
 
 void releaseLowerHexKey(int hex)
 {
-	for (int i = 0; i < NUM_INST; i++)
-	{	
-		if (manta[i].type == KeyboardInstrument) 
-		{
-			tKeyboard* keyboard = &manta[i].keyboard;
-			
-			tKeyboard_noteOff(keyboard, hex);
-		}
+	if (manta[currentInstrument].type == KeyboardInstrument)
+	{
+		tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
+		dacSendKeyboard(currentInstrument);
+		manta_set_LED_hex(hex, Off);
 	}
-	
-	dacSendKeyboard();
-	
-	manta_set_LED_hex(hex, Off);
 }
 
 void touchFunctionButtonKeys(MantaButton button)
 {
+	if (button == ButtonTopLeft)
+	{
+		// step up
+	}
+	else if (button == ButtonTopRight)
+	{
+		// step up 
+	}
+	else if (button == ButtonBottomRight)
+	{
+		// toggle octave/semitone
+	}
+	else if (button == ButtonBottomLeft)
+	{
+		touchBottomLeftButton();
+	}
 	
 	
 }
 
 void releaseFunctionButtonKeys(MantaButton button)
 {
-	
+	if (button == ButtonTopLeft)
+	{
+		
+	}
+	else if (button == ButtonTopRight)
+	{
+		
+	}
+	else if (button == ButtonBottomRight)
+	{
+		// toggle octave/semitone
+	}
+	else if (button == ButtonBottomLeft)
+	{
+		releaseBottomLeftButton();
+	}
 	
 }
 
@@ -232,21 +254,17 @@ void processKeys(void)
 
 	for (i = 0; i < 48; i++)
 	{
-		//if the current sensor value of a key is positive and it was zero on last count
-		if (!manta_data_lock) // manta_data_lock == 0
+		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
 		{
-			if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
-			{
-				touchLowerHexKey(i, butt_states[i]);
-			}
-			else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
-			{
-				releaseLowerHexKey(i);
-			}
-
-			// update the past keymap array (stores the previous values of every key's sensor reading)
-			pastbutt_states[i] = butt_states[i];
+			touchLowerHexKey(i, butt_states[i]);
 		}
+		else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
+		{
+			releaseLowerHexKey(i);
+		}
+
+		// update the past keymap array (stores the previous values of every key's sensor reading)
+		pastbutt_states[i] = butt_states[i];
 		
 	}
 	
@@ -275,37 +293,32 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 }
 
 // reads the current state and sets output voltages, leds and 7 seg display
-void dacSendKeyboard(void)
+void dacSendKeyboard(MantaInstrument which)
 {
-	if (type_of_device_connected == MantaConnected)
+	tKeyboard* keyboard;
+	
+	if (which == InstrumentFull)	keyboard = &midiKeyboard;
+	else							keyboard = &manta[which].keyboard;
+	
+
+	for (int i = 0; i < keyboard->numVoices; i++)
 	{
-		for (int inst = 0; inst < NUM_INST; inst++)
+		int group = (int)(i/2);
+			
+		int note = keyboard->voices[i];
+		if (note >= 0)
 		{
-			tKeyboard* keyboard = &manta[inst].keyboard;
-
-			for (int i = 0; i < keyboard->numVoices; i++)
-			{
-				int inst = (int)(i/2);
+			tRampSetDest(&out[group][3*((group == InstrumentOne)?i:(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
 				
-				int note = keyboard->voices[i];
-				if (note >= 0)
-				{
-					tRampSetDest(&out[inst][3*((inst == InstrumentOne)?(i):(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
-					
-					dacsend		(i,0, 0xfff);
-				}
-				else
-				{
-					dacsend		(i,0, 0x000);
-				}
-
-			}
+			dacsend		((group == InstrumentOne) ? i : (i + 2), 0, 0xfff);
 		}
+		else
+		{
+			dacsend		((group == InstrumentOne) ? i : (i + 2), 0, 0x000);
+		}
+
 	}
-	else
-	{
-		
-	}
+
 }
 
 

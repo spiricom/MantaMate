@@ -25,7 +25,7 @@ extern unsigned long numTunings;
 
 void initKeys(int numVoices);
 void processKeys(void);
-void dacSendKeyboard(void);
+void dacSendKeyboard(MantaInstrument);
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
 
 void addNote(uint8_t noteVal, uint8_t vel);

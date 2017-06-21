@@ -16,6 +16,7 @@ unsigned long werckmeister3[12] = {0, 96, 204, 300, 396, 504, 600, 702, 792, 900
 
 unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 
+
 signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,\
 22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
 
@@ -28,12 +29,63 @@ signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 void tHex_init(tHex* const hex, int which)
 {
 	hex->active = FALSE;
-	hex->gate = LO;
-	hex->trigger = LO;
 	hex->weight = 0;
-	hex->voice = -1;
 	hex->pitch = which;
 }
+
+
+void tKeyboard_setKeymap(tKeyboard* const keyboard, MantaMap map)
+{
+	keyboard->map = map;
+	
+	signed int* keymap;
+	
+	if (map == HarmonicMap)			keymap = harmonicmap;
+	else if (map == PianoMap)		keymap = pianomap;
+	else if (map == WickiHaydenMap)	keymap = whmap;
+	else if (map == MantaMapNil)
+	{
+		for (int i = 0; i < 48; i++)
+		{
+			keyboard->hexes[i].hexmap = i;
+		}
+		return;
+	}
+	
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].hexmap = keymap[i];
+	}
+	
+}
+
+/*
+void tKeyboard_setTuning(tKeyboard* const keyboard, MantaTuning tuning)
+{
+	keyboard->tuning = tuning;
+	
+	unsigned long* scale;
+	
+	if (tuning == TwelveTetTuning)			scale = twelvetet;
+	else if (tuning == OvertoneJustTuning)	scale = overtonejust;
+	else if (tuning == Kora1Tuning)			scale = kora1;
+	else if (tuning == MeantoneTuning)		scale = meantone;
+	else if (tuning == Werckmeister1Tuning)	scale = werckmeister1;
+	else if (tuning == Werckmeister3Tuning)	scale = werckmeister3;
+	else if (tuning == MantaTuningNil)		scale = twelvetet;
+
+	for (int i = 0; i < 48; i++)
+	{
+		int degree = keyboard->hexes[i].hexmap;
+		
+		if (degree >= 0)
+		{
+			degree = degree % 12;
+			keyboard->hexes[i].pitch = scale[degree];
+		}
+	}
+}
+*/
 
 void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 {
@@ -58,23 +110,12 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 //ADDING A NOTE
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 {
-	signed int mappedNote = 0;
-	/*
-	switch( keyboard->map )
+	// if not in keymap or already on stack, dont do anything. else, add that note.
+	if ((keyboard->hexes[note].hexmap < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
+	else
 	{
-		case WickiHaydenMap:mappedNote = whmap[note];		break;		// wicki-hayden
-		case HarmonicMap:mappedNote = harmonicmap[note];	break;		// harmonic
-		case PianoMap:mappedNote = pianomap[note];			break;		// piano map
-		default:mappedNote = note;							break;		// no map
-	}
-*/
+		tNoteStack_add(&keyboard->stack, note);
 
-	//if (mappedNote >= 0)
-	{
-		
-		if (tNoteStack_contains(&keyboard->stack, note) < 0) tNoteStack_add(&keyboard->stack, note);
-		else return;
-		
 		BOOL found = FALSE;
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{
@@ -84,7 +125,6 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 				
 				keyboard->voices[i] = note;
 				keyboard->lastVoiceToChange = i;
-				keyboard->gates[i] = HI;
 				
 				keyboard->hexes[note].active = TRUE;
 				
@@ -101,35 +141,17 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 			keyboard->voices[whichVoice] = note;
 			keyboard->hexes[note].active = TRUE;
 		}
-		
 	}
-
 }
+
 int otherNote = 0;
+
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 {
-	signed int mappedNote = 0;
-	/*
-	switch( keyboard->map )
+	// if not in keymap, return. else remove that note.
+	if (keyboard->hexes[note].hexmap < 0) return;
+	else
 	{
-		case WickiHaydenMap:
-		mappedNote = whmap[note];
-		break;    // wicki-hayden
-		case HarmonicMap:
-		mappedNote = harmonicmap[note];
-		break;  // harmonic
-		case PianoMap:
-		mappedNote = pianomap[note];
-		break;		// piano map
-		default:
-		mappedNote = note;
-		break;                     // no map
-	}
-
-
-	if (mappedNote >= 0)*/
-	{
-		
 		tNoteStack_remove(&keyboard->stack, note);
 		
 		keyboard->hexes[note].active = FALSE;
@@ -141,7 +163,6 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 			{
 				keyboard->voices[i] = -1;
 				keyboard->lastVoiceToChange = i;
-				keyboard->gates[i] = LO;
 				
 				deactivatedVoice = i;
 				break;
@@ -171,14 +192,12 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 					
 					keyboard->lastVoiceToChange = deactivatedVoice;
 					keyboard->hexes[otherNote].active = TRUE;
-					
-					keyboard->gates[deactivatedVoice] = HI;
 				}
 			}
 		}
-		
-		
-		
 	}
+		
+		
+
 }
 

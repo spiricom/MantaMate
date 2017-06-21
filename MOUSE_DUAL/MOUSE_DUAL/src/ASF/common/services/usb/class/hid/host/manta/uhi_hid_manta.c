@@ -361,10 +361,7 @@ static void uhi_hid_manta_report_reception(
 		processSliders(1, val);
 	}
 	
-	
-	if (manta[InstrumentOne].type == SequencerInstrument || manta[InstrumentTwo].type == SequencerInstrument) processSequencer();
-	
-	if (manta[InstrumentOne].type == KeyboardInstrument || manta[InstrumentTwo].type == KeyboardInstrument) processKeys();
+	processHexTouch();
 
 	manta_send_LED();
 	

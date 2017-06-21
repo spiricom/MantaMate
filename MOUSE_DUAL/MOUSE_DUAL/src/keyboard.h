@@ -33,11 +33,9 @@ signed int pianomap[48];
 
 typedef struct _tHex
 {
-	int voice;
+	int hexmap;
 	int pitch;
 	BOOL active;
-	BOOL gate;
-	BOOL trigger;
 	uint16_t weight;
 	
 } tHex;
@@ -56,14 +54,14 @@ typedef struct _tKeyboard
 	tHex hexes[48];
 	
 	int voices[MAX_VOICES];
-	BOOL triggers[MAX_VOICES];
-	BOOL gates[MAX_VOICES];
 	
 	int lastVoiceToChange;
 	
 	tNoteStack stack;
 	
 	MantaMap map;
+	
+	MantaTuning tuning;
 	
 } tKeyboard;
 
@@ -73,6 +71,10 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices);
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
 
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
+
+void tKeyboard_setKeymap(tKeyboard* const keyboard, MantaMap map);
+
+void tKeyboard_setTuning(tKeyboard* const keyboard, MantaTuning tuning);
 
 
 #endif /* KEYBOARD_H_ */

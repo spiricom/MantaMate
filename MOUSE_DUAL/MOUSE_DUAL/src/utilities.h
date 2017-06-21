@@ -23,6 +23,17 @@ typedef enum MantaMap
 	MantaMapNil
 } MantaMap;
 
+typedef enum MantaTuning
+{
+	TwelveTetTuning,
+	OvertoneJustTuning,
+	Kora1Tuning,
+	MeantoneTuning,
+	Werckmeister1Tuning,
+	Werckmeister3Tuning,
+	MantaTuningNil
+} MantaTuning;
+
 typedef enum BOOL 
 {
 	FALSE = 0,
@@ -57,6 +68,7 @@ typedef enum ConnectedDeviceType
 typedef enum MantaInstrument {
 	InstrumentOne = 0,
 	InstrumentTwo,
+	InstrumentFull,
 	InstrumentNil
 } MantaInstrument;
 
@@ -197,9 +209,6 @@ typedef enum StepParameterType {
 	On4
 }StepParameterType;
 
-
-// Sequencer Modes
-SequencerPatternType pattern_type;
 
 MantaSliderMode prevMantaSliderMode;
 MantaSliderMode prevMantaSliderModeForOctaveHexDisable;
