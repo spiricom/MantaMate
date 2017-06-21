@@ -62,8 +62,6 @@
 #include "tuning.h"
 
 
-#define TEST_MEMORY 0
-
 typedef enum MantaMateDeviceType
 {
 	DeviceManta,

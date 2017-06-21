@@ -15,12 +15,6 @@
 
 
 
-unsigned long twelvetet[12];
-unsigned long overtonejust[12];
-unsigned long kora1[12];
-unsigned long meantone[12];
-unsigned long werckmeister1[12];
-unsigned long werckmeister3[12];
 
 unsigned long numTunings; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 

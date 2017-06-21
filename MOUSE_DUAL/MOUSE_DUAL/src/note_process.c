@@ -14,7 +14,7 @@ extern unsigned char preset_num;
 unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 
 
-unsigned long scaledoctaveDACvalue = 54613; 
+uint64_t scaledoctaveDACvalue = 54613; 
 unsigned char tuning = 0;
 signed char transpose = 0;
 unsigned char octaveoffset = 0;
@@ -59,17 +59,17 @@ unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 	pitchclass = ((note + transpose + 24) % 12);  // add 24 to make it positive and centered on C
 	virtualnote = (note + 13 + transpose - pitchclass);
 	if (tuning == 0)
-	templongnote = (twelvetet[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (twelvetet[pitchclass + 1] * scaledoctaveDACvalue);
 	else if (tuning == 1)
-	templongnote = (overtonejust[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (overtonejust[pitchclass + 1] * scaledoctaveDACvalue);
 	else if (tuning == 2)
-	templongnote = (kora1[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (kora1[pitchclass + 1] * scaledoctaveDACvalue);
 	else if (tuning == 3)
-	templongnote = (meantone[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (meantone[pitchclass + 1] * scaledoctaveDACvalue);
 	else if (tuning == 4)
-	templongnote = (werckmeister1[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (werckmeister1[pitchclass + 1] * scaledoctaveDACvalue);
 	else if (tuning == 5)
-	templongnote = (werckmeister3[pitchclass] * scaledoctaveDACvalue);
+	templongnote = (werckmeister3[pitchclass + 1] * scaledoctaveDACvalue);
 	
 	templongnote = (templongnote / 1000000);
 	templongoctave = ((virtualnote + octaveoffset) * scaledoctaveDACvalue);
@@ -324,14 +324,25 @@ void dacSendKeyboard(MantaInstrument which)
 
 void tuningTest(uint8_t oct)
 {
+	while(1)
+	{
+		
+		DAC16Send(0, calculateDACvalue(MantaMapNil, oct));
+		DAC16Send(1, calculateDACvalue(MantaMapNil, oct));
+		DAC16Send(2, calculateDACvalue(MantaMapNil, oct));
+		DAC16Send(3, calculateDACvalue(MantaMapNil, oct));
+		dacsend(0,1,0xfff);
+		dacsend(1,1,0xfff);
+		dacsend(2,1,0xfff);
+		dacsend(3,1,0xfff);
+		oct++;
+		if (oct >= 127)
+		{
+			oct = 0;
+		}
+		delay_ms(400);
+		
+	}
 
-	DAC16Send(0, calculateDACvalue(MantaMapNil, 12 * oct));
-	DAC16Send(1, calculateDACvalue(MantaMapNil, 12 * oct));
-	DAC16Send(2, calculateDACvalue(MantaMapNil, 12 * oct));
-	DAC16Send(3, calculateDACvalue(MantaMapNil, 12 * oct));
-	dacsend(0,1,0xfff);
-	dacsend(1,1,0xfff);
-	dacsend(2,1,0xfff);
-	dacsend(3,1,0xfff);
 	
 }
