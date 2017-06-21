@@ -303,18 +303,16 @@ void dacSendKeyboard(MantaInstrument which)
 
 	for (int i = 0; i < keyboard->numVoices; i++)
 	{
-		int group = (int)(i/2);
-			
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			tRampSetDest(&out[group][3*((group == InstrumentOne)?i:(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
+			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
 				
-			dacsend		((group == InstrumentOne) ? i : (i + 2), 0, 0xfff);
+			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0xfff);
 		}
 		else
 		{
-			dacsend		((group == InstrumentOne) ? i : (i + 2), 0, 0x000);
+			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0x000);
 		}
 
 	}
