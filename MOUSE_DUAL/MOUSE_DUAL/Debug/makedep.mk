@@ -6,6 +6,8 @@ src\ASF\avr32\drivers\tc\tc.c
 
 src\midi.c
 
+src\keyboard.c
+
 src\memory_spi.c
 
 src\note_process_utilities.c

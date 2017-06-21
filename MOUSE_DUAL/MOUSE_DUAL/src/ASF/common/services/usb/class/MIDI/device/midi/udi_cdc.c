@@ -206,7 +206,7 @@ bool udi_midi_enable(void)
 	udi_midi_nb_data_enabled = 0;
 
 	LED_On(USB_CONNECTED_LED);
-	initNoteStack();
+	//initNoteStack();
 	
 	// Initialize TX management
 	udi_midi_tx_trans_ongoing[port] = false;

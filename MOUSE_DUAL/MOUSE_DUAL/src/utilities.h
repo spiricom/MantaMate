@@ -15,6 +15,33 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+typedef enum MantaMap
+{
+	WickiHaydenMap,
+	HarmonicMap,
+	PianoMap,
+	MantaMapNil
+} MantaMap;
+
+typedef enum MantaTuning
+{
+	TwelveTetTuning,
+	OvertoneJustTuning,
+	Kora1Tuning,
+	MeantoneTuning,
+	Werckmeister1Tuning,
+	Werckmeister3Tuning,
+	MantaTuningNil
+} MantaTuning;
+
+typedef enum BOOL 
+{
+	FALSE = 0,
+	TRUE = 1,
+	LO = FALSE,
+	HI = TRUE
+	}BOOL;
+
 #include "stdint.h"
 
 //------------------  S T R U C T U R E S  -------------------
@@ -38,12 +65,12 @@ typedef enum ConnectedDeviceType
 } ConnectedDeviceType;
 // Typedef versions of Manta modes.
 
-typedef enum MantaSequencer {
-	SequencerOne = 0,
-	SequencerTwo,
-	SequencerBoth,
-	SequencerNil,
-} MantaSequencer;
+typedef enum MantaInstrument {
+	InstrumentOne = 0,
+	InstrumentTwo,
+	InstrumentFull,
+	InstrumentNil
+} MantaInstrument;
 
 typedef enum GlobalPreferences
 {
@@ -182,9 +209,6 @@ typedef enum StepParameterType {
 	On4
 }StepParameterType;
 
-
-// Sequencer Modes
-SequencerPatternType pattern_type;
 
 MantaSliderMode prevMantaSliderMode;
 MantaSliderMode prevMantaSliderModeForOctaveHexDisable;

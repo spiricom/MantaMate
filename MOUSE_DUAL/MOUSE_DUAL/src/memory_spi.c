@@ -167,8 +167,8 @@ void initiateStoringPresetToExternalMemory(void)
 	currentSector = preset_to_save_num * 16;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
 	currentPage = 0; //start on the first page
 	
-	tSequencer_encode(&sequencer[0], encodeBuffer[0]); //fill a buffer with the local sequencers
-	tSequencer_encode(&sequencer[1], encodeBuffer[1]); //one for each
+	tSequencer_encode(&manta[InstrumentOne].sequencer, encodeBuffer[0]); //fill a buffer with the local sequencers
+	tSequencer_encode(&manta[InstrumentTwo].sequencer, encodeBuffer[1]); //one for each
 	
 	//start by erasing the memory in the location we want to store
 	sectors_left_to_erase = NUM_SECTORS_THAT_NEED_TO_BE_ERASED; //erase 5 sectors because that will give us enough room for a whole preset
