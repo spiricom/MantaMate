@@ -38,12 +38,12 @@ signed char checkstolen = -1;
 
 unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 {
-	signed long pitchclass;
-	unsigned long long templongnote = 0;
-	unsigned int virtualnote;
-	unsigned long templongoctave;
-	unsigned short DAC1val;
-	unsigned int note;
+	uint32_t pitchclass;
+	uint64_t templongnote = 0;
+	uint32_t virtualnote;
+	uint32_t templongoctave;
+	uint32_t DAC1val;
+	uint32_t note;
 	
 
 	switch(whichmap)
@@ -55,7 +55,8 @@ unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 	}
 
 	
-	//templong = ((noteval + offset + transpose) * 54612);  // original simple equal temperament
+	//templongnote = (noteVal * 54612);  // original simple equal temperament
+	
 	pitchclass = ((note + transpose + 24) % 12);  // add 24 to make it positive and centered on C
 	virtualnote = (note + 13 + transpose - pitchclass);
 	if (tuning == 0)
@@ -75,7 +76,13 @@ unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 	templongoctave = ((virtualnote + octaveoffset) * scaledoctaveDACvalue);
 	templongoctave = (templongoctave / 100);
 	DAC1val = templongnote + templongoctave;
-	return DAC1val;
+	if (DAC1val > 65535)
+	{
+		DAC1val = 65535;
+	}
+	return (uint16_t)DAC1val;
+	
+	//return (uint16_t) templongnote;
 }
 
 void joyVol(uint16_t slider_val) {
@@ -340,7 +347,7 @@ void tuningTest(uint8_t oct)
 		{
 			oct = 0;
 		}
-		delay_ms(400);
+		delay_ms(100);
 		
 	}
 

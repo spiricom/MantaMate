@@ -198,7 +198,7 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
-	tuningTest(1);
+	//tuningTest(1);
 
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
