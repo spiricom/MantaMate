@@ -15,6 +15,7 @@
 #include "main.h"
 #include "note_process.h"
 #include "7Segment.h"
+#include "midi.h"
 #include <string.h>
 
 #ifdef USB_HOST_HUB_SUPPORT
@@ -84,13 +85,9 @@ static bool uhi_midi_tx_update(uhi_midi_line_t *line);
 static void uhi_midi_tx_send(usb_add_t add, usb_ep_t ep,
 uhd_trans_status_t status, iram_size_t nb_transferred);
 bool uhi_midi_is_rx_ready(void);
-uint16_t parseMIDI(uint16_t);
-static void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2);
 iram_size_t uhi_midi_get_nb_received(void);
 int uhi_midi_getc(void);
 iram_size_t uhi_midi_read_buf(void* buf, iram_size_t size);
-
-uint8_t firstMessage = 0;
 
 /**
  * \name Functions required by UHC
@@ -185,7 +182,7 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 	}
 	
 	// we added this because sometime USB MIDI devices give garbage in the first transfer
-	firstMessage = 1;
+	firstMIDIMessage = 1;
 	
 	// All endpoints of all interfaces supported allocated
 	if(uhi_midi_dev.line_rx.ep_data)
@@ -227,10 +224,6 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 }
 //@}
 
-/**
- * \name Internal routines
- */
-//@{
 
 static void uhi_midi_free_device(void)
 {
@@ -510,189 +503,6 @@ iram_size_t nb_transferred)
 	uhi_midi_rx_update(line);
 }
 
-/*
-static bool uhi_midi_tx_update(uhi_midi_line_t *line)
-{
-	irqflags_t flags;
-	uhi_midi_buf_t *buf;
-
-	flags = cpu_irq_save();
-	// Check if transfer is already on-going
-	if (line->b_trans_ongoing) {
-		cpu_irq_restore(flags);
-		return false;
-	}
-	// Check if transfer must be delayed after the next SOF
-	if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
-		if (line->sof == uhd_get_microframe_number()) {
-			cpu_irq_restore(flags);
-			return false;
-		}
-		} else {
-		if (line->sof == uhd_get_frame_number()) {
-			cpu_irq_restore(flags);
-			return false;
-		}
-	}
-
-	// Send the current buffer if not empty
-	buf = &line->buffer[line->buf_sel];
-	if (buf->nb == 0) {
-		cpu_irq_restore(flags);
-		return false;
-	}
-
-	// Change current buffer to next buffer
-	line->buf_sel = (line->buf_sel == 0)? 1 : 0;
-
-	// Start transfer
-	line->b_trans_ongoing = true;
-	cpu_irq_restore(flags);
-
-	return uhd_ep_run(
-	uhi_midi_dev.dev->address,
-	line->ep_data,
-	true,
-	buf->ptr,
-	buf->nb,
-	1000,
-	uhi_midi_tx_send);
-}
-
-
-static void uhi_midi_tx_send(
-usb_add_t add,
-usb_ep_t ep,
-uhd_trans_status_t status,
-iram_size_t nb_transferred)
-{
-	uhi_midi_line_t *line;
-	uhi_midi_buf_t *buf;
-	irqflags_t flags;
-	UNUSED(add);
-
-	flags = cpu_irq_save();
-
-	// Search port corresponding at endpoint
-	while (1) {
-		line = &(uhi_midi_dev.line_tx);
-		if (ep != line->ep_data) {
-			cpu_irq_restore(flags);
-			return;  // something went wrong
-		}
-	}
-
-	if (UHD_TRANS_NOERROR != status) {
-		// Abort transfer
-		line->b_trans_ongoing  = false;
-		cpu_irq_restore(flags);
-		return;
-	}
-
-	// Update SOF tag, if it is a short packet
-	if (nb_transferred != line->buffer_size) {
-		if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
-			line->sof = uhd_get_microframe_number();
-			} else {
-			line->sof = uhd_get_frame_number();
-		}
-	}
-
-	// Update buffer structure
-	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0 ];
-	buf->nb = 0;
-	line->b_trans_ongoing  = false;
-	cpu_irq_restore(flags);
-
-	// Manage new transfer
-	uhi_midi_tx_update(line);
-}
-*/
-
-uint16_t parseMIDI(uint16_t howManyNew)
-{
-	uint8_t ctrlByte;
-	uint8_t msgByte1;
-	uint8_t msgByte2;
-	uint16_t i = 0;
-	uint8_t endOfData = 0;
-	
-	if (firstMessage == 1)
-	{
-		firstMessage = 0;
-		return 0;
-	}
-	while(endOfData == 0)
-	{
-		if (my_buf[i] > 0)
-		{
-			ctrlByte = my_buf[i+1];
-			msgByte1 = my_buf[i+2];
-			msgByte2 = my_buf[i+3];
-			handleMIDIMessage(ctrlByte,msgByte1,msgByte2);
-			i = i + 4;
-			if (( i >= UHI_MIDI_BUFFER_SIZE) || (i >= howManyNew))
-			{
-				endOfData = 1;
-			}
-		}	
-		else
-		{
-			endOfData = 1;
-		}
-		//Write7Seg(i);
-	}
-
-	//Write7Seg(i);
-	return i;
-}
-
-void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
-{
-	uint8_t control = ctrlByte & 0xf0;
-
-	//uint8_t channel = ctrlByte & 0x0f;
-	
-	
-	//lcd_clear_line(1);
-	//MEMORY_printf_string("control: %u",ctrlByte);
-	//lcd_clear_line(2);
-	//MEMORY_printf_string("note: %u", msgByte1);
-
-	switch(control)
-	{
-		case 144:
-			if (msgByte2)
-			{
-				addNote(msgByte1,msgByte2);
-			}
-			//to deal with note-offs represented as a note-on with zero velocity
-			else
-			{
-				removeNote(msgByte1);
-			}
-			noteOut();
-			midiVol();
-			break;
-		case 128:
-			removeNote(msgByte1);
-			noteOut();
-			midiVol();
-			break;
-		// control change
-		case 176:
-			//controlChange(msgByte1,msgByte2);
-			//LED_On(LED2);
-			//midiVol();
-			break;
-		// program change	
-		case 192:
-			//programChange(msgByte1);
-			break;
-		default:
-			break;
-	}
-}
 
 bool uhi_midi_is_rx_ready(void)
 {

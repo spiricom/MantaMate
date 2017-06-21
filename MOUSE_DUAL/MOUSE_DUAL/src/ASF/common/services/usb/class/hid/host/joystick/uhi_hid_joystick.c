@@ -603,10 +603,6 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 
 void uhi_hid_joy_enable(uhc_device_t* dev)
 {
-	
-	
-
-	
 	if (uhi_hid_joy_dev.dev != dev) {
 		return;  // No interface to enable
 	}

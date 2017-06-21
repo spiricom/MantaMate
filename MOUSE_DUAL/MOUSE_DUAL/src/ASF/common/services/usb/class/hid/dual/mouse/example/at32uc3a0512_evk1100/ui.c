@@ -50,6 +50,7 @@
 #include "7Segment.h"
 #include "udi_cdc.h"
 #include "note_process.h"
+#include "midi.h"
 
 uint8_t myReceiveBuf[64];
 uint8_t mySendBuf[64];
@@ -159,6 +160,8 @@ void ui_uhi_midi_change(uhc_device_t * dev, bool b_plug)
 
 void my_callback_midi_rx_notify(void)
 {
+	//receive MIDI from a device  like a keyboard (when in host mode)
+	
 	uint16_t bytesToRead = 0;
 	//LED_On(LED0);
 	while (uhi_midi_is_rx_ready()) {
@@ -197,34 +200,32 @@ void ui_test_finish(bool b_success)
 
 void ui_midi_rx_start(void)
 {
-	LED_On(LED2);
-	
-	//udi_midi_tx_send(0);
+	;
 }
 
 void ui_midi_rx_stop(void)
 {
-	LED_Off(LED2);
+	;
 }
 
 void ui_midi_tx_start(void)
 {
-	//LED_On(LED_AMBER1);
+
 }
 
 void ui_midi_tx_stop(void)
 {
-	//LED_Off(LED_AMBER1);
+
 }
 
 void ui_midi_error(void)
 {
-	//LED_On(LED_BI0_RED);
+
 }
 
 void ui_midi_overflow(void)
 {
-	//LED_On(LED_BI1_RED);
+
 }
 
 void ui_my_midi_receive(void)

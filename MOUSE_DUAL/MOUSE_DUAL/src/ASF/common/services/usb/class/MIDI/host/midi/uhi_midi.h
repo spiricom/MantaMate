@@ -52,7 +52,6 @@ iram_size_t uhi_midi_read_buf(void* buf, iram_size_t size);
 
 iram_size_t uhi_midi_get_nb_received(void);
 bool uhi_midi_is_rx_ready(void);
-uint16_t parseMIDI(uint16_t);
 
 #ifdef __cplusplus
 }

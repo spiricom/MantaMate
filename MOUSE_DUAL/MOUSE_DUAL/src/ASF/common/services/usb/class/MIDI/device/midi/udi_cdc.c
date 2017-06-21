@@ -51,6 +51,7 @@
 #include "udd.h"
 #include "udc.h"
 #include "udi_cdc.h"
+#include "midi.h"
 #include <string.h>
 
 #define UDI_MIDI_IN_BUFFER_SIZE 64
