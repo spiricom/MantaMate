@@ -100,12 +100,12 @@ void tNoteStack_setCapacity(tNoteStack* const ns, uint8_t cap)
 {
 	if (cap <= 0)
 		ns->capacity = 1;
-	else if (cap <= 32)
+	else if (cap <= MAX_NUM_NOTES)
 		ns->capacity = cap;
 	else
-		ns->capacity = 32;
+		ns->capacity = MAX_NUM_NOTES;
 		
-	for (int i = cap; i < 32; i++)
+	for (int i = cap; i < MAX_NUM_NOTES; i++)
 	{
 		if (ns->notestack != -1)
 		{
@@ -127,7 +127,7 @@ int tNoteStack_getSize(tNoteStack* const ns)
 
 void tNoteStack_clear(tNoteStack* const ns)
 {
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < MAX_NUM_NOTES; i++)
 	{
 		ns->notestack[i] = -1;
 	}
@@ -159,6 +159,11 @@ int tNoteStack_next(tNoteStack* const ns)
 	}
 }
 
+int tNoteStack_get(tNoteStack* const ns, int which)
+{
+	return ns->notestack[which];
+}
+
 uint8_t tNoteStack_first(tNoteStack* const ns)
 {
 	return ns->notestack[0];
@@ -169,6 +174,8 @@ int tNoteStack_init(tNoteStack* const ns, uint8_t cap)
 	ns->size = 0;
 	ns->pos = 0;
 	ns->capacity = cap;
+	
+	for (int i = 0; i < MAX_NUM_NOTES; i++) ns->notestack[i] = -1;
 	
 	return 0;
 }

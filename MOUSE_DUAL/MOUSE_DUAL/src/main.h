@@ -61,10 +61,44 @@
 #include "ui.h"
 #include "tuning.h"
 
+
 #define TEST_MEMORY 0
 
-tSequencer sequencer[NUM_SEQ];
+typedef enum MantaMateDeviceType
+{
+	DeviceManta,
+	DeviceMidi,
+	DeviceComputer,
+	DeviceController	
+} MantaMateDeviceType;
+
+MantaMateDeviceType currentDevice;
+
+typedef enum MantaInstrumentType
+{
+	SequencerInstrument,
+	KeyboardInstrument,
+	MantaInstrumentTypeNil
+}MantaInstrumentType;
+	
+MantaInstrument currentInstrument; 
+	
+typedef struct _tMantaInstrument
+{
+	tKeyboard	keyboard;
+	tSequencer	sequencer;
+	
+	MantaInstrumentType type;
+} tMantaInstrument;
+
+tKeyboard midiKeyboard;
+	
+
+tMantaInstrument manta[NUM_INST];
+
 tRamp out[2][6];
+
+tRamp* fullOut[12];
 
 uint8_t readData;
 
@@ -148,13 +182,39 @@ extern unsigned char preset_num;
 extern unsigned char preset_to_save_num;
 extern unsigned char savingActive;
 extern uint32_t clock_speed;
-extern uint8_t sequencer_mode;
 extern uint8_t joystick_mode;
 extern uint32_t USB_frame_counter;
 extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
+
+// UI
+void touchLowerHexKey(int hex, uint8_t weight);
+void releaseLowerHexKey(int hex);
+void touchFunctionButtonKeys(MantaButton button);
+void releaseFunctionButtonKeys(MantaButton button);
+
+void touchLowerHex				(uint8_t hexagon);
+void touchLowerHexOptionMode	(uint8_t hexagon);
+
+void releaseLowerHex			(uint8_t hexagon);
+void releaseLowerHexOptionMode	(uint8_t hexagon);
+
+void touchUpperHex				(uint8_t hexagon);
+void touchUpperHexOptionMode	(uint8_t hexagon);
+
+void releaseUpperHex			(uint8_t hexagon);
+void releaseUpperHexOptionMode	(uint8_t hexagon);
+
+void touchTopLeftButton			(void);
+void releaseTopLeftButton		(void);
+void touchTopRightButton		(void);
+void releaseTopRightButton		(void);
+void touchBottomLeftButton		(void);
+void releaseBottomLeftButton	(void);
+void touchBottomRightButton		(void);
+void releaseBottomRightButton	(void);
 
 //set up the external interrupt for the gate input
 void setupEIC(void);

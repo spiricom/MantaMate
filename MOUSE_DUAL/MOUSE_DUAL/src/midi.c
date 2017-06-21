@@ -71,23 +71,22 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 	{
 		switch(control)
 		{
+
 			case 144:
-			if (msgByte2)
-			{
-				addNote(msgByte1,msgByte2);
-			}
-			//to deal with note-offs represented as a note-on with zero velocity
-			else
-			{
-				removeNote(msgByte1);
-			}
-			noteOut();
-			midiVol();
-			break;
+				if (msgByte2)
+				{
+					tKeyboard_noteOn(&midiKeyboard, msgByte1, msgByte2);
+					dacSendKeyboard(InstrumentFull);
+				}
+				else //to deal with note-offs represented as a note-on with zero velocity
+				{
+					tKeyboard_noteOff(&midiKeyboard, msgByte1);
+					dacSendKeyboard(InstrumentFull);
+				}
+				break;
 			case 128:
-			removeNote(msgByte1);
-			noteOut();
-			midiVol();
+				tKeyboard_noteOff(&midiKeyboard, msgByte1);
+				dacSendKeyboard(InstrumentFull);
 			break;
 			// control change
 			case 176:

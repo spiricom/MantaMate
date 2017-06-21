@@ -9,6 +9,8 @@
 #ifndef NOTE_PROCESS_H_
 #define NOTE_PROCESS_H_
 
+#include "keyboard.h"
+
 #include <stdint.h>
 #include "7Segment.h"
 #include <math.h>
@@ -17,28 +19,17 @@
 
 uint8_t sysVol;  // should probably initialize by reading from MIDI device
 
-extern unsigned char polymode; 
-extern unsigned char polynum;
 extern unsigned char tuning;
 extern unsigned long numTunings;
 
 
-unsigned char polyVoiceBusy[4];
-unsigned char polynum;
-unsigned char polyVoiceNote[4];
-signed char notestack[48][2];
-
 void initKeys(int numVoices);
 void processKeys(void);
+void dacSendKeyboard(MantaInstrument);
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
-
-void initNoteStack(void);
 
 void addNote(uint8_t noteVal, uint8_t vel);
 void removeNote(uint8_t noteVal);
-
-void mantaVol(uint8_t *butts);
-void midiVol(void);
 
 void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);

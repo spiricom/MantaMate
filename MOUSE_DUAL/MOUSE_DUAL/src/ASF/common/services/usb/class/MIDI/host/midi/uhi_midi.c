@@ -206,7 +206,7 @@ void uhi_midi_enable(uhc_device_t* dev)
 	uhi_midi_dev.b_enabled = true;
 	type_of_device_connected = MIDIKeyboardConnected;
 	// Init value
-	initNoteStack();
+	//initNoteStack();
 	manta_mapper = 0; // make sure there is no weird MIDI note mapping going on if the manta was previously being communicated with.
 	UHI_MIDI_CHANGE(dev, true);
 }
@@ -220,7 +220,7 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 	type_of_device_connected = NoDeviceConnected;
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);
-	initNoteStack();
+	//initNoteStack();
 }
 //@}
 
@@ -503,6 +503,105 @@ iram_size_t nb_transferred)
 	uhi_midi_rx_update(line);
 }
 
+
+/*
+static bool uhi_midi_tx_update(uhi_midi_line_t *line)
+{
+	irqflags_t flags;
+	uhi_midi_buf_t *buf;
+
+	flags = cpu_irq_save();
+	// Check if transfer is already on-going
+	if (line->b_trans_ongoing) {
+		cpu_irq_restore(flags);
+		return false;
+	}
+	// Check if transfer must be delayed after the next SOF
+	if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
+		if (line->sof == uhd_get_microframe_number()) {
+			cpu_irq_restore(flags);
+			return false;
+		}
+		} else {
+		if (line->sof == uhd_get_frame_number()) {
+			cpu_irq_restore(flags);
+			return false;
+		}
+	}
+
+	// Send the current buffer if not empty
+	buf = &line->buffer[line->buf_sel];
+	if (buf->nb == 0) {
+		cpu_irq_restore(flags);
+		return false;
+	}
+
+	// Change current buffer to next buffer
+	line->buf_sel = (line->buf_sel == 0)? 1 : 0;
+
+	// Start transfer
+	line->b_trans_ongoing = true;
+	cpu_irq_restore(flags);
+
+	return uhd_ep_run(
+	uhi_midi_dev.dev->address,
+	line->ep_data,
+	true,
+	buf->ptr,
+	buf->nb,
+	1000,
+	uhi_midi_tx_send);
+}
+
+
+static void uhi_midi_tx_send(
+usb_add_t add,
+usb_ep_t ep,
+uhd_trans_status_t status,
+iram_size_t nb_transferred)
+{
+	uhi_midi_line_t *line;
+	uhi_midi_buf_t *buf;
+	irqflags_t flags;
+	UNUSED(add);
+
+	flags = cpu_irq_save();
+
+	// Search port corresponding at endpoint
+	while (1) {
+		line = &(uhi_midi_dev.line_tx);
+		if (ep != line->ep_data) {
+			cpu_irq_restore(flags);
+			return;  // something went wrong
+		}
+	}
+
+	if (UHD_TRANS_NOERROR != status) {
+		// Abort transfer
+		line->b_trans_ongoing  = false;
+		cpu_irq_restore(flags);
+		return;
+	}
+
+	// Update SOF tag, if it is a short packet
+	if (nb_transferred != line->buffer_size) {
+		if (uhi_midi_dev.dev->speed == UHD_SPEED_HIGH) {
+			line->sof = uhd_get_microframe_number();
+			} else {
+			line->sof = uhd_get_frame_number();
+		}
+	}
+
+	// Update buffer structure
+	buf = &line->buffer[(line->buf_sel == 0) ? 1 : 0 ];
+	buf->nb = 0;
+	line->b_trans_ongoing  = false;
+	cpu_irq_restore(flags);
+
+	// Manage new transfer
+	uhi_midi_tx_update(line);
+}
+*/
 
 bool uhi_midi_is_rx_ready(void)
 {

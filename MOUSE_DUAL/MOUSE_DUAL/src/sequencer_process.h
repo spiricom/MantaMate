@@ -11,17 +11,19 @@
 
 #include "sequencer.h"
 
-#define NUM_SEQ 2
+#define NUM_INST 2
 #define sizeOfSerializedSequence  620 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
 #define sizeOfBankOfSequences  sizeOfSerializedSequence*14 //there are now 14 possible sequence slots in composition mode
 
-extern uint16_t encodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
-extern uint16_t decodeBuffer[NUM_SEQ][sizeOfSerializedSequence];
-extern uint16_t memoryInternalCompositionBuffer[NUM_SEQ][sizeOfBankOfSequences];
+extern uint16_t encodeBuffer[NUM_INST][sizeOfSerializedSequence];
+extern uint16_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
+extern uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences];
 
-void sequencerStep(void);
 
-void processSequencer(void);
+void sequencerStep(MantaInstrument inst);
+void uiStep					(MantaInstrument);
+
+void processHexTouch(void);
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);
 
