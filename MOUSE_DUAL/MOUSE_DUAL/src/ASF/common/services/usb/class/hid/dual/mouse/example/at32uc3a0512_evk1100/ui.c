@@ -296,7 +296,7 @@ void USB_frame_action(uint16_t framenumber)
 
 
 	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
-	if (panelSwitches.up)
+	if (upSwitch())
 	{
 		buttonFrameCounter++;
 		if (buttonFrameCounter > buttonHoldSpeed)
@@ -320,7 +320,7 @@ void USB_frame_action(uint16_t framenumber)
 		upHeld = 0;
 	}
 	
-	if (panelSwitches.down)
+	if (downSwitch())
 	{
 		buttonFrameCounter++;
 		if (buttonFrameCounter > buttonHoldSpeed)

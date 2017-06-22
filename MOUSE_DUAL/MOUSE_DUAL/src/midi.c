@@ -6,9 +6,7 @@
  *  Author: Jeff Snyder
  */ 
 
-#include "main.h"
 #include "midi.h"
-#include <asf.h>
 
 
 uint8_t firstMIDIMessage = 0;
@@ -54,7 +52,7 @@ uint16_t parseMIDI(uint16_t howManyNew)
 
 uint16_t sysexByteCounter = 0;
 uint8_t inSysex = 0;
-static uint8_t sysexBuffer[512];
+static uint8_t sysexBuffer[1024];
 
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
@@ -141,7 +139,6 @@ void parseSysex(void)
 {
 	int tuningPresetToStore = 0;
 	int fullPresetToStore = 0;
-	
 	//check which kind of sysex message it is (tuning or preset storage)
 	if (sysexBuffer[0] == 1) //it's tuning
 	{
@@ -150,9 +147,9 @@ void parseSysex(void)
 		//iterate through the sysex array and do what we need to do with the message
 		for (int i = 2; i < sysexByteCounter; i++) //only go up to the element right before the "end" message happened
 		{
-			
+			tuning8BitBuffer[i -2] = sysexBuffer[i];
 		}
-		
+		initiateStoringTuningToExternalMemory(tuningPresetToStore);
 	}
 	else // it's full preset storage
 	{
@@ -181,4 +178,10 @@ void startSysexMessage(int msgByte1, int msgByte2)
 			inSysex = 1;
 		}
 	}
+}
+
+void sendSysexSaveConfim(void)
+{
+	LED_On(PRESET_SAVE_LED);
+	
 }

@@ -14,16 +14,18 @@
 extern uint8_t tuning;
 
 extern uint64_t scaledoctaveDACvalue;
-extern signed char transpose;
 
-const uint32_t tunings[99][129];	
+const uint32_t factoryTunings[99][129];	
+
+extern uint32_t externalTuning[129];
+extern uint32_t localTuningTemp[129];
+extern uint16_t tuning8BitBuffer[768];
 
 extern uint16_t tuningDACTable[128];
 
-
 void loadTuning(void);
-void computeTuningDACTable(void);
-unsigned short calculateDACvalue(uint8_t noteVal);
+void computeTuningDACTable(TuningLoadLocation local_or_external);
+unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external);
 
 
 #endif /* TUNING_H_ */

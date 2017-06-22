@@ -19,8 +19,9 @@
 #include "main.h"
 
 
+uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal);
 
-unsigned short lookupDACvalue(MantaMap whichmap, uint8_t noteVal);
+unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose);
 
 void initKeys(int numVoices);
 void processKeys(void);
@@ -34,36 +35,8 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);
 
 void noteOut(void);
-void joyVol(uint16_t slider_val);
 
 void tuningTest(uint8_t whichOct);
 
-// Birl
-#define FINGERMAX 11
-#define FINGERMIN 10
-#define FINGERMAX_SCALE (1.0/(float)(FINGERMAX-FINGERMIN))
-
-void controlChangeBirl(uint8_t ctrlNum, uint8_t val);
-void birlPitchOut(void);
-float_t calculateBirlPitch(void);
-void BirlBreathNegOut(void);
-void BirlBreathPosOut(void);
-
-uint16_t finger[11];
-uint8_t finger_lowbytes[11];
-uint8_t finger_highbytes[11];
-uint16_t birlBreathPos;
-uint8_t birlBreathPosHigh;
-uint8_t birlBreathPosLow1;
-uint8_t birlBreathPosLow2;
-uint16_t birlBreathNeg;
-uint8_t birlBreathNegHigh;
-uint8_t birlBreathNegLow1;
-uint8_t birlBreathNegLow2;
-
-float_t fingerFloat[11];
-
-float_t	birlOctave;
-float_t	birlOffset;
 
 #endif /* NOTE_PROCESS_H_ */

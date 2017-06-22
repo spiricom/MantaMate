@@ -13,11 +13,6 @@
 
 #include "notestack.h"
 
-
-
-
-unsigned long numTunings; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
-
 signed int whmap[48] ;
 
 signed int harmonicmap[48];
@@ -56,6 +51,8 @@ typedef struct _tKeyboard
 	MantaMap map;
 	
 	MantaTuning tuning;
+	
+	signed int transpose;
 	
 } tKeyboard;
 

@@ -167,8 +167,6 @@ void initTimers (void);
 extern uint16_t lengthDB;
 extern int slider;
 
-extern tSwitches panelSwitches;
-
 //global variables that everything which includes main.h should be able to see
 extern uint32_t dummycounter;
 extern uint8_t manta_mapper;
@@ -186,6 +184,8 @@ extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
+
+unsigned char tuningLoading;
 
 // UI
 void touchLowerHexKey(int hex, uint8_t weight);
@@ -227,6 +227,11 @@ void clockHappened(void);
 void enterBootloader(void);
 void sendDataToExternalMemory(void);
 void savePreset(void);
+
+uint8_t upSwitch(void);
+uint8_t downSwitch(void);
+uint8_t preferencesSwitch(void);
+uint8_t saveSwitch(void);
 
 
 /*! \brief Opens the communication port

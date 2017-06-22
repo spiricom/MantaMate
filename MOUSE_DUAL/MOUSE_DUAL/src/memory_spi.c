@@ -11,10 +11,9 @@
 // a block is 16 sectors (65535 bytes)
 
 
-#include "main.h"
+
 #include "memory_spi.h"
-#include "sequencer_process.h"
-#include "sequencer.h"
+
 
 
 //external memory variables
@@ -26,6 +25,8 @@ uint32_t pages_left_to_store = 0;
 uint32_t pages_left_to_load = 0;
 unsigned char savePending = 0;
 unsigned char loadPending = 0;
+unsigned char tuningSavePending = 0;
+unsigned char tuningLoadPending = 0;
 uint16_t busy;
 
 int memorySPICheckIfBusy(void)
@@ -132,8 +133,11 @@ void memorySPIEraseBlock(uint16_t block)
 // a sector is 16 pages (4096 bytes)
 // a block is 16 sectors (65535 bytes)
 
-// every preset will live in a block (there are plenty - we have 128 blocks and can only really use 90 presets
-// the remaining blocks can store user tunings, perhaps
+// every preset will live in a block (block 0-89)
+// user tunings start at block 100, and there is one tuning per sector (so sectors 1600-1690)
+
+
+//in the presets:
 // every "sequence" takes up 620 bytes.
 
 // a block has 65535 bytes, and they will be set up like this:
@@ -156,6 +160,7 @@ void memorySPIEraseBlock(uint16_t block)
 #define CURRENT_SEQUENCE_PAGE_START 4 // which page starts the current sequencer data  -- this is non zero so that we can have a few pages to store global prefs and non-Manta things before the sequencer stuff
 #define COMPOSITIONS_PAGE_START 10 // which page starts the compositions data
 #define NUM_PAGES_PER_PRESET (CURRENT_SEQUENCE_PAGE_START + (NUM_PAGES_PER_SEQUENCE*2) + (NUM_PAGES_PER_COMPOSITION*2))
+#define NUM_PAGES_PER_TUNING 3
 #define NUM_SECTORS_THAT_NEED_TO_BE_ERASED 5
 
 uint8_t whichSequence = 0;
@@ -240,47 +245,42 @@ void continueStoringPresetToExternalMemory(void)
 	}
 	//Write7Seg(pages_left_to_store);
 }
-/*
-void storePresetToExternalMemory(void)
+
+
+
+
+void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
 {
-	uint16_t currentSector = 	preset_to_save_num * 16;  //*16 to get the sector number we will store it in
+	currentSector = tuning_num_to_save + 1600;  // user tuning 0-89 are sectors 1600-1689
+	currentPage = 0; //start on the first page
+	
 	//start by erasing the memory in the location we want to store
-	for (int i = 0; i < 5; i++)
-	{
-		memorySPIEraseSector(currentSector + i); //erase 5 sectors because that will give us enough room for a whole preset
-	} 
-	
-	// TODO: save the global data and keyboard settings and whatnot here in the first few pages
-	//
-	
-	// now ready for the sequencer data
-	// create buffers and send over data of the local sequencer memory that is not saved as compositions yet
-	// both sequencer one and sequencer two
-	for (int i = 0; i < NUM_SEQ; i++)
-	{
-		tSequencer_encode(&sequencer[i], encodeBuffer);
-		for (int j = 0; j < NUM_PAGES_PER_SEQUENCE; j++)
-		{
-			int currentPageNumber = CURRENT_SEQUENCE_PAGE_START + (i * NUM_PAGES_PER_SEQUENCE) + j;
-			memorySPIWrite(currentSector,  currentPageNumber ,  &encodeBuffer[currentPageNumber], 256);
-		}
-	}
-	//now save the composition mode sequences stored for each sequencer
-	for (int i = 0; i < NUM_SEQ; i++)
-	{
-		for (int j = 0; j < NUM_PAGES_PER_COMPOSITION; j++) // write each page
-		{
-			int currentPageNumber = (COMPOSITIONS_PAGE_START + (i * NUM_PAGES_PER_COMPOSITION) + j);
-			if (currentPageNumber >= 16)
-			{
-				currentSector++;
-				currentPageNumber = 0;
-			}
-			memorySPIWrite(currentSector, currentPageNumber, &memoryInternalCompositionBuffer[i][currentPageNumber], 256);
-		}
-	}
+	LED_On(PRESET_SAVE_LED);
+	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	memorySPIEraseSector(currentSector); //we only need to erase one sector per tuning
+	tuningSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
-*/
+
+void continueStoringTuningToExternalMemory(void)
+{
+	//if there are bytes to store, write those bytes!
+	if (pages_left_to_store > 0)
+	{
+		memorySPIWrite(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], 256);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_store--;
+	}
+	else //otherwise save is done!
+	{
+		//mark the save procedure as finished
+		tuningSavePending = 0;
+		sendSysexSaveConfim(); //let the computer know that the save completed correctly
+		LED_Off(PRESET_SAVE_LED);
+	}
+	//Write7Seg(pages_left_to_store);
+}
 
 void initiateLoadingPresetFromExternalMemory(void)
 {
@@ -290,7 +290,7 @@ void initiateLoadingPresetFromExternalMemory(void)
 		
 	pages_left_to_load = NUM_PAGES_PER_PRESET; //set the variable for the total number of pages to count down from while we store them
     continueLoadingPresetFromExternalMemory();
-	loadPending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	loadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 	
 }
 
@@ -343,6 +343,62 @@ void continueLoadingPresetFromExternalMemory(void)
 		//mark the load procedure as finished
 		loadPending = 0;
 		initSequencer(); //TODO: shouldn't actually do this here - need to be more smart about loading the necessary memory and initializing correctly
+		//tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
+		//tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
+	}
+}
+
+
+void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load)
+{
+	currentSector = tuning_to_load + 1600;  // set sector to the location of the tuning we want to load
+	currentPage = 0; //start on the first page
+		
+	pages_left_to_load = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	continueLoadingTuningFromExternalMemory();
+	tuningLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+}
+
+
+void continueLoadingTuningFromExternalMemory(void)
+{
+	if (pages_left_to_load > 0)
+	{
+		memorySPIRead(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], 256);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_load--;
+	}
+	else //otherwise load is done!
+	{
+		//mark the load procedure as finished
+		tuningLoadPending = 0;
+		
+		uint16_t location_in_tuning_array = 0;	
+		uint32_t tempPitch = 0;
+		for (int i = 0; i < 516; i+=4) //could make this smarter, since it very likely loads a pile of zeros into that array
+		{
+			tempPitch = 0;
+			tempPitch = (tuning8BitBuffer[i] << 21);
+			tempPitch += (tuning8BitBuffer[i+1] << 14);
+			tempPitch += (tuning8BitBuffer[i+2] << 7);
+			tempPitch += tuning8BitBuffer[i+3];
+			
+			externalTuning[location_in_tuning_array] = tempPitch;
+			location_in_tuning_array++;
+		}
+		
+		if (externalTuning[0] > 0) //if there is a user stored tuning at that location (we can tell because the first element of the array is the cardinality, which is non-zero for saved tunings. This relies on blank memory being zeroed. Not sure that's true, maybe should save a specific byte to check in each sector where a tuning was written
+		{
+			computeTuningDACTable(External);
+		}
+		else
+		{
+			computeTuningDACTable(Local);
+		}
+
+		
 		//tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
 		//tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
 	}

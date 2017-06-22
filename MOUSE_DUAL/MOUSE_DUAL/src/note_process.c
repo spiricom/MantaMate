@@ -26,11 +26,10 @@ signed char checkstolen = -1;
 
 
 
-
-unsigned short lookupDACvalue(MantaMap whichmap, uint8_t noteVal)
+uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal)
 {
+
 	uint8_t note = 0;
-	
 	switch(whichmap)
 	{
 		case WickiHaydenMap: note = whmap[noteVal]; break;    // wicki-hayden
@@ -38,15 +37,16 @@ unsigned short lookupDACvalue(MantaMap whichmap, uint8_t noteVal)
 		case PianoMap: note = pianomap[noteVal]; break;		// piano map
 		default: note = noteVal; break;                     // no map
 	}
+	return note;
+}	
 	
-	return tuningDACTable[(note + transpose)];
 
+	
+unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose)
+{
+	return tuningDACTable[(noteVal + transpose)];
 }
 
-void joyVol(uint16_t slider_val) {
-	//dacsend(0, 0, slider_val << 4);
-	//dacsend(1, 0, slider_val << 4);
-}
 
  
 //For the MIDI keyboards knobs
@@ -273,7 +273,9 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], lookupDACvalue(keyboard->map, note));
+			
+			uint8_t mappedNote = applyNoteMap(keyboard->map, note);
+			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], lookupDACvalue(mappedNote, keyboard->transpose));
 				
 			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0xfff);
 		}
@@ -292,10 +294,10 @@ void tuningTest(uint8_t oct)
 	while(1)
 	{
 		
-		DAC16Send(0, lookupDACvalue(MantaMapNil, oct));
-		DAC16Send(1, lookupDACvalue(MantaMapNil, oct));
-		DAC16Send(2, lookupDACvalue(MantaMapNil, oct));
-		DAC16Send(3, lookupDACvalue(MantaMapNil, oct));
+		DAC16Send(0, lookupDACvalue(oct, 0));
+		DAC16Send(1, lookupDACvalue(oct, 0));
+		DAC16Send(2, lookupDACvalue(oct, 0));
+		DAC16Send(3, lookupDACvalue(oct, 0));
 		dacsend(0,1,0xfff);
 		dacsend(1,1,0xfff);
 		dacsend(2,1,0xfff);

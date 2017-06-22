@@ -194,6 +194,11 @@ typedef enum TriggerPanel {
 	PanelFour,
 } TriggerPanel;
 
+typedef enum TuningLoadLocation {
+	Local = 0,
+	External
+} TuningLoadLocation;
+
 typedef enum StepParameterType {
 	Toggled = 0,
 	Length,
@@ -214,13 +219,6 @@ typedef enum StepParameterType {
 	On4
 }StepParameterType;
 
-
-typedef struct _tSwitches {
-	int up;
-	int down;
-	int save;
-	int preferences;
-} tSwitches;
 
 // Sequencer Modes
 SequencerPatternType pattern_type;
