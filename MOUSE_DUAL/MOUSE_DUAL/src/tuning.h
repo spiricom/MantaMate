@@ -9,16 +9,21 @@
 #ifndef TUNING_H_
 #define TUNING_H_
 
-extern uint32_t twelvetet[13];
-extern uint32_t overtonejust[13];
-extern uint32_t kora1[13];
-extern uint32_t meantone[13];
-extern uint32_t werckmeister1[13];
-extern uint32_t werckmeister3[13];
+#include <asf.h>
 
-extern uint32_t userTuning[128];
+extern uint8_t tuning;
+
+extern uint64_t scaledoctaveDACvalue;
+extern signed char transpose;
+
+const uint32_t tunings[99][129];	
+
+extern uint16_t tuningDACTable[128];
 
 
+void loadTuning(void);
+void computeTuningDACTable(void);
+unsigned short calculateDACvalue(uint8_t noteVal);
 
 
 #endif /* TUNING_H_ */

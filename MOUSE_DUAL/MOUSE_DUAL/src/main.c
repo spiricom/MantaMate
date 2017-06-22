@@ -199,7 +199,8 @@ int main(void){
 	DACsetup();
 	
 	//tuningTest(1);
-
+	
+	loadTuning();
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -760,9 +761,9 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			if (panelSwitches.up)
 			{
 				tuning++;
-				if (tuning >= numTunings)
+				if (tuning >= 99)
 				{
-					tuning = numTunings - 1; // since they are zero indexed and "numTunings" is the actual count
+					tuning = 99; 
 				}
 			}
 		}
@@ -780,6 +781,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 		}
+		loadTuning();
 		Write7Seg(tuning);
 	}
 	

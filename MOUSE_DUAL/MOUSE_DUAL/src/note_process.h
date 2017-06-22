@@ -9,19 +9,18 @@
 #ifndef NOTE_PROCESS_H_
 #define NOTE_PROCESS_H_
 
-#include "keyboard.h"
 
+#include "keyboard.h"
 #include <stdint.h>
 #include "7Segment.h"
 #include <math.h>
 #include <asf.h>
+#include "tuning.h"
 #include "main.h"
 
-uint8_t sysVol;  // should probably initialize by reading from MIDI device
 
-extern unsigned char tuning;
-extern unsigned long numTunings;
 
+unsigned short lookupDACvalue(MantaMap whichmap, uint8_t noteVal);
 
 void initKeys(int numVoices);
 void processKeys(void);

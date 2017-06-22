@@ -52,6 +52,7 @@
 #include "memory_spi.h"
 
 #include "7Segment.h"
+#include "tuning.h"
 
 #include "note_process.h"
 #include "sequencer_process.h"
@@ -59,7 +60,6 @@
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
 #include "ui.h"
-#include "tuning.h"
 
 
 typedef enum MantaMateDeviceType

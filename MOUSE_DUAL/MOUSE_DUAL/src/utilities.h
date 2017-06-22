@@ -31,6 +31,11 @@ typedef enum MantaTuning
 	MeantoneTuning,
 	Werckmeister1Tuning,
 	Werckmeister3Tuning,
+	GeorgianTuning,
+	HighlandBagpipeTuning,
+	YoungLMPianoTuning,
+	Partch43Tuning,
+	LoadedUserTuning,
 	MantaTuningNil
 } MantaTuning;
 

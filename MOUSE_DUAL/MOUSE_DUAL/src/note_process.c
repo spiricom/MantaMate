@@ -6,18 +6,9 @@
  */ 
 
 #include "note_process.h"
-#include "tuning.h"
 
-unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal);
-extern unsigned char preset_num;
 	
-unsigned long numTunings = 6; // we need to think about how to structure this more flexibly. Should maybe be a Tunings struct that includes structs that define the tunings, and then we won't have to manually edit this. Also important for users being able to upload tunings via computer.
 
-
-uint64_t scaledoctaveDACvalue = 54613; 
-unsigned char tuning = 0;
-signed char transpose = 0;
-unsigned char octaveoffset = 0;
 uint8_t amplitude = 0;
 unsigned char lastButtVCA = 0; //0 if you want to turn this off
 
@@ -36,16 +27,10 @@ signed char checkstolen = -1;
 
 
 
-unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
+unsigned short lookupDACvalue(MantaMap whichmap, uint8_t noteVal)
 {
-	uint32_t pitchclass;
-	uint64_t templongnote = 0;
-	uint32_t virtualnote;
-	uint32_t templongoctave;
-	uint32_t DAC1val;
-	uint32_t note;
+	uint8_t note = 0;
 	
-
 	switch(whichmap)
 	{
 		case WickiHaydenMap: note = whmap[noteVal]; break;    // wicki-hayden
@@ -53,36 +38,9 @@ unsigned short calculateDACvalue(MantaMap whichmap, uint8_t noteVal)
 		case PianoMap: note = pianomap[noteVal]; break;		// piano map
 		default: note = noteVal; break;                     // no map
 	}
+	
+	return tuningDACTable[(note + transpose)];
 
-	
-	//templongnote = (noteVal * 54612);  // original simple equal temperament
-	
-	pitchclass = ((note + transpose + 24) % 12);  // add 24 to make it positive and centered on C
-	virtualnote = (note + 13 + transpose - pitchclass);
-	if (tuning == 0)
-	templongnote = (twelvetet[pitchclass + 1] * scaledoctaveDACvalue);
-	else if (tuning == 1)
-	templongnote = (overtonejust[pitchclass + 1] * scaledoctaveDACvalue);
-	else if (tuning == 2)
-	templongnote = (kora1[pitchclass + 1] * scaledoctaveDACvalue);
-	else if (tuning == 3)
-	templongnote = (meantone[pitchclass + 1] * scaledoctaveDACvalue);
-	else if (tuning == 4)
-	templongnote = (werckmeister1[pitchclass + 1] * scaledoctaveDACvalue);
-	else if (tuning == 5)
-	templongnote = (werckmeister3[pitchclass + 1] * scaledoctaveDACvalue);
-	
-	templongnote = (templongnote / 1000000);
-	templongoctave = ((virtualnote + octaveoffset) * scaledoctaveDACvalue);
-	templongoctave = (templongoctave / 100);
-	DAC1val = templongnote + templongoctave;
-	if (DAC1val > 65535)
-	{
-		DAC1val = 65535;
-	}
-	return (uint16_t)DAC1val;
-	
-	//return (uint16_t) templongnote;
 }
 
 void joyVol(uint16_t slider_val) {
@@ -315,7 +273,7 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], calculateDACvalue(keyboard->map, note));
+			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], lookupDACvalue(keyboard->map, note));
 				
 			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0xfff);
 		}
@@ -334,10 +292,10 @@ void tuningTest(uint8_t oct)
 	while(1)
 	{
 		
-		DAC16Send(0, calculateDACvalue(MantaMapNil, oct));
-		DAC16Send(1, calculateDACvalue(MantaMapNil, oct));
-		DAC16Send(2, calculateDACvalue(MantaMapNil, oct));
-		DAC16Send(3, calculateDACvalue(MantaMapNil, oct));
+		DAC16Send(0, lookupDACvalue(MantaMapNil, oct));
+		DAC16Send(1, lookupDACvalue(MantaMapNil, oct));
+		DAC16Send(2, lookupDACvalue(MantaMapNil, oct));
+		DAC16Send(3, lookupDACvalue(MantaMapNil, oct));
 		dacsend(0,1,0xfff);
 		dacsend(1,1,0xfff);
 		dacsend(2,1,0xfff);

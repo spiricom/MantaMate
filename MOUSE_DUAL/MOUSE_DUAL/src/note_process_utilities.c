@@ -132,7 +132,7 @@ void controlChangeBirl(uint8_t ctrlNum, uint8_t val)
 		
 		break;
 		case 7:
-		sysVol = val;
+		
 		break;
 		case 8:
 		
