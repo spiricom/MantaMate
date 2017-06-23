@@ -273,6 +273,7 @@ static uint32_t buttonFrameCounter = 0;
 static uint32_t buttonHoldSpeed = 60;
 static uint32_t blink7SegCounter = 0;
 static uint32_t blinkSpeed7Seg = 250;
+
 void USB_frame_action(uint16_t framenumber)
 {
 	
@@ -368,7 +369,7 @@ void ui_ext_gate_in(void)
 {
 	//allow a gate in to create a clock on the computer (via a MIDI note)
 
-	//send note off for middle C
+	//send note off for middle 
 	mySendBuf[0] = 0x09;
 	mySendBuf[1] = 0x90;
 	mySendBuf[2] = 0x3c;

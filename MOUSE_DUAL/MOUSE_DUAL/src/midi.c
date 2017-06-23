@@ -52,7 +52,7 @@ uint16_t parseMIDI(uint16_t howManyNew)
 
 uint16_t sysexByteCounter = 0;
 uint8_t inSysex = 0;
-static uint8_t sysexBuffer[1024];
+uint8_t sysexBuffer[1024];
 
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
@@ -183,5 +183,9 @@ void startSysexMessage(int msgByte1, int msgByte2)
 void sendSysexSaveConfim(void)
 {
 	LED_On(PRESET_SAVE_LED);
-	
+	mySendBuf[0] = 0x09;
+	mySendBuf[1] = 0xF0;
+	mySendBuf[2] = 0x49;
+	mySendBuf[3] = 0xF7;
+	ui_my_midi_send();
 }

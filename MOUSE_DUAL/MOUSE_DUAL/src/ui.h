@@ -145,6 +145,7 @@ void ui_test_finish(bool b_success);
 
 extern bool ui_midi_plug;
 extern uint8_t my_buf[128];
+extern uint8_t mySendBuf[64];
 
 extern uint32_t upHeld;
 extern uint32_t downHeld;
@@ -183,6 +184,8 @@ void ui_midi_error(void);
 void ui_midi_overflow(void);
 
 void ui_my_midi_receive(void);
+
+void ui_my_midi_send(void);
 
 /*! \brief This process is called each 1ms
  * It is called only if the USB interface is enabled.

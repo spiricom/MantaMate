@@ -790,8 +790,10 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					}
 				}
 			}
-
-			loadTuning();
+			if (!suspendRetrieve)
+			{
+					loadTuning();
+			}
 			Write7Seg(tuning);
 		}
 	}

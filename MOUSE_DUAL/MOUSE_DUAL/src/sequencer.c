@@ -105,7 +105,6 @@ CV4,
 Pitch,
 Fine,
 Octave,
-Note,
 KbdHex,
 PitchGlide,
 CVGlide

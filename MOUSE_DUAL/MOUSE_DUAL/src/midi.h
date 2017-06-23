@@ -11,11 +11,12 @@
 
 #include "main.h"
 #include "tuning.h"
+#include "ui.h"
 #include <asf.h>
 
 uint16_t sysexByteCounter;
 uint8_t inSysex;
-static uint8_t sysexBuffer[1024];
+uint8_t sysexBuffer[1024];
 extern uint8_t firstMIDIMessage;
 
 uint16_t parseMIDI(uint16_t howManyNew);

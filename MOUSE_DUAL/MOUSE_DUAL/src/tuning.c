@@ -36,7 +36,7 @@ uint16_t tuningDACTable[128];
 void loadTuning(void)
 {
 	tuningLoading = 1;
-	if (tuning >= 10)
+	if (tuning >= 1)
 	{
 		initiateLoadingTuningFromExternalMemory(tuning);
 	}

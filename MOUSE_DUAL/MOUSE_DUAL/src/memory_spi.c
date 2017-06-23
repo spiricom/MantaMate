@@ -251,11 +251,11 @@ void continueStoringPresetToExternalMemory(void)
 
 void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
 {
-	currentSector = tuning_num_to_save + 1600;  // user tuning 0-89 are sectors 1600-1689
+	currentSector = tuning_num_to_save + 1600;  // user tuning 1-99 are sectors 1601-1699
 	currentPage = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
-	LED_On(PRESET_SAVE_LED);
+	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
 	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
 	memorySPIEraseSector(currentSector); //we only need to erase one sector per tuning
 	tuningSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
@@ -389,7 +389,7 @@ void continueLoadingTuningFromExternalMemory(void)
 			location_in_tuning_array++;
 		}
 		
-		if (externalTuning[0] > 0) //if there is a user stored tuning at that location (we can tell because the first element of the array is the cardinality, which is non-zero for saved tunings. This relies on blank memory being zeroed. Not sure that's true, maybe should save a specific byte to check in each sector where a tuning was written
+		if ((externalTuning[0] > 0) && (externalTuning[0] < 128)) //if there is a user stored tuning at that location (we can tell because the first element of the array is the cardinality, which is between 1-127 inclusive for valid tunings
 		{
 			computeTuningDACTable(External);
 		}
@@ -397,9 +397,5 @@ void continueLoadingTuningFromExternalMemory(void)
 		{
 			computeTuningDACTable(Local);
 		}
-
-		
-		//tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
-		//tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
 	}
 }
