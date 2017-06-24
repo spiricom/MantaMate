@@ -73,18 +73,18 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 144:
 				if (msgByte2)
 				{
-					tKeyboard_noteOn(&midiKeyboard, msgByte1, msgByte2);
-					dacSendKeyboard(InstrumentFull);
+					tKeyboard_noteOn(&fullKeyboard, msgByte1, msgByte2);
+					dacSendKeyboard(InstrumentNil);
 				}
 				else //to deal with note-offs represented as a note-on with zero velocity
 				{
-					tKeyboard_noteOff(&midiKeyboard, msgByte1);
-					dacSendKeyboard(InstrumentFull);
+					tKeyboard_noteOff(&fullKeyboard, msgByte1);
+					dacSendKeyboard(InstrumentNil);
 				}
 				break;
 			case 128:
-				tKeyboard_noteOff(&midiKeyboard, msgByte1);
-				dacSendKeyboard(InstrumentFull);
+				tKeyboard_noteOff(&fullKeyboard, msgByte1);
+				dacSendKeyboard(InstrumentNil);
 			break;
 			// control change
 			case 176:

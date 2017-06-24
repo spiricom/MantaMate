@@ -203,11 +203,11 @@ int main(void){
 		for (int j = 0; j < 6; j++)
 		{
 			tRampInit(&out[i][j], 2000, 0, 1);
-			fullOut[count++] = &out[i][j];
 		}
 	}
 	
 	
+	takeover = FALSE;
 	
 	currentInstrument = InstrumentOne;
 	//start off on preset 0;
@@ -313,46 +313,64 @@ static void tc3_irq(void)
 
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
-	for (int inst = 0; inst < 2; inst++)
+	
+	if (!takeover) // Dual instrument, not takeover
 	{
-		tMantaInstrument* instrument = &manta[inst];
-				
-		if (instrument->type == SequencerInstrument)
+		for (int inst = 0; inst < 2; inst++)
 		{
-			if (instrument->sequencer.pitchOrTrigger == PitchMode)
+			tMantaInstrument* instrument = &manta[inst];
+			
+			if (instrument->type == SequencerInstrument)
 			{
-				// Sequencer Pitch
-				DAC16Send(2*inst+0, tRampTick(&out[inst][CVPITCH]) * UINT16_MAX);
+				if (instrument->sequencer.pitchOrTrigger == PitchMode)
+				{
+					// Sequencer Pitch
+					DAC16Send(2*inst+0, tRampTick(&out[inst][CVPITCH]) * UINT16_MAX);
 
-				// Sequencer CV1-CV2
-				dacsend(2*inst+0, 1, tRampTick(&out[inst][CV1P]));
-				DAC16Send(2*inst+1,  tRampTick(&out[inst][CV2P]));
-						
-				// Sequencer CV3-CV4
-				dacsend(2*inst+1, 0, tRampTick(&out[inst][CV3P]));
-				dacsend(2*inst+1, 1, tRampTick(&out[inst][CV4P]));
-			}
-			else //TriggerMode
-			{
-				DAC16Send(2*inst+0, ((uint16_t)tRampTick(&out[inst][CV1T])) << 4);
-				DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
-			}
-		}
-		else // KeyboardInstrument
-		{ 
-			for (int i = 0; i < instrument->keyboard.numVoices; i++)
-			{
+					// Sequencer CV1-CV2
+					dacsend(2*inst+0, 1, tRampTick(&out[inst][CV1P]));
+					DAC16Send(2*inst+1,  tRampTick(&out[inst][CV2P]));
 					
-				DAC16Send	((inst == InstrumentOne) ? i : (i + 2),    tRampTick(&out[inst][3*((inst == InstrumentOne)?(i):(i-2))+CVPITCH]));
-						
-				// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-						
-				// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-				dacsend     ((inst == InstrumentOne) ? i : (i + 2),1,  butt_states[instrument->keyboard.voices[i]] * 16);
+					// Sequencer CV3-CV4
+					dacsend(2*inst+1, 0, tRampTick(&out[inst][CV3P]));
+					dacsend(2*inst+1, 1, tRampTick(&out[inst][CV4P]));
+				}
+				else //TriggerMode
+				{
+					DAC16Send(2*inst+0, ((uint16_t)tRampTick(&out[inst][CV1T])) << 4);
+					DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
+				}
 			}
+			else // KeyboardInstrument
+			{
+				for (int i = 0; i < instrument->keyboard.numVoices; i++)
+				{
+					
+					DAC16Send	(i + 2*inst,    tRampTick(&out[inst][3*i+CVPITCH]));
+					
+					// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+					
+					// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
+					dacsend     (i + 2*inst, 1,  butt_states[instrument->keyboard.voices[i]] * 16);
+				}
+			}
+			
 		}
-				
 	}
+	else // Takeover mode
+	{
+		for (int i = 0; i < fullKeyboard.numVoices; i++)
+		{
+			int inst = (int) i / 2;
+			DAC16Send	(i, tRampTick(&out[inst][3*i+CVPITCH]));
+			
+			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
+			
+			// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
+			dacsend     (i, 1,  butt_states[fullKeyboard.voices[i]] * 16);
+		}
+	}
+	
 }
 
 static void tc1_init(volatile avr32_tc_t *tc)
