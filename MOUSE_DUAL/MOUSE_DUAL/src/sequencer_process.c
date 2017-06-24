@@ -353,6 +353,7 @@ void initSequencer(void)
 void sequencerStep(MantaInstrument inst)
 {
 	if (takeover) return;
+	
 	int offset,cstep,curr;
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
@@ -1079,6 +1080,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
+		takeover = FALSE;
+		
 		currentHexUI = 0;
 		
 		currentUpperHexUI = 0;
@@ -1100,6 +1103,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
+		
+		takeover = FALSE;
 		
 		currentHexUI = 0;
 		
