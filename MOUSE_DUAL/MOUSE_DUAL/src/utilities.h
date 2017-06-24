@@ -73,7 +73,6 @@ typedef enum ConnectedDeviceType
 typedef enum MantaInstrument {
 	InstrumentOne = 0,
 	InstrumentTwo,
-	InstrumentFull,
 	InstrumentNil
 } MantaInstrument;
 
@@ -138,13 +137,6 @@ typedef enum MantaButton {
 	PlayModeButton2 = ButtonBottomRight,
 	ButtonNil
 }MantaButton;
-
-typedef enum KeyboardOptionMode
-{
-	KeyboardMode,
-	OptionMode,
-	KeyboardOptionModeNil,
-}KeyboardOptionMode;
 
 typedef enum 
 Action
@@ -231,7 +223,9 @@ MantaSliderMode currentMantaSliderMode;
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
 MantaPlaySubMode playSubMode;
-KeyboardOptionMode key_vs_option;
+
+BOOL shiftOption1;
+BOOL shiftOption2;
 
 GlobalOptionType full_vs_split;
 

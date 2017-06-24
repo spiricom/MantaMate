@@ -24,12 +24,8 @@ uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal);
 unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose);
 
 void initKeys(int numVoices);
-void processKeys(void);
 void dacSendKeyboard(MantaInstrument);
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
-
-void addNote(uint8_t noteVal, uint8_t vel);
-void removeNote(uint8_t noteVal);
 
 void controlChange(uint8_t ctrlNum, uint8_t val);
 void programChange(uint8_t programNum);

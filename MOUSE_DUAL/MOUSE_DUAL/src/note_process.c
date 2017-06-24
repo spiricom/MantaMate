@@ -121,8 +121,7 @@ void resetMantaUI(void)
 
 void initKeys(int numVoices)
 {
-
-	if (numVoices < 3)
+	if (numVoices < 2)
 	{
 		for (int i = 0; i < NUM_INST; i++)
 		{
@@ -133,12 +132,12 @@ void initKeys(int numVoices)
 			tKeyboard_init(keyboard,numVoices);
 		}
 	}
-	else 
+	else // Takeover mode
 	{
-		
+		takeover = TRUE;
+		tKeyboard_init(&fullKeyboard, numVoices);
 	}
-	
-	
+
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	tc_start(tc3, TC3_CHANNEL);
 	
@@ -154,20 +153,45 @@ void initKeys(int numVoices)
 
 void touchLowerHexKey(int hex, uint8_t weight)
 {
-	if (manta[currentInstrument].type == KeyboardInstrument) 
+	tKeyboard* keyboard;
+	
+	
+	if (!takeover)
+	{ 
+		if (manta[currentInstrument].type == KeyboardInstrument)
+		{
+			tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
+			dacSendKeyboard(currentInstrument);
+			manta_set_LED_hex(hex, Amber);
+		}
+	}
+	else 
 	{
-		tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
-		dacSendKeyboard(currentInstrument);
+		tKeyboard_noteOn(&fullKeyboard, hex, weight);
+		dacSendKeyboard(InstrumentNil);
 		manta_set_LED_hex(hex, Amber);
 	}
+
+	
+
+	
 }
 
 void releaseLowerHexKey(int hex)
 {
-	if (manta[currentInstrument].type == KeyboardInstrument)
+	if (!takeover)
 	{
-		tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
-		dacSendKeyboard(currentInstrument);
+		if (manta[currentInstrument].type == KeyboardInstrument)
+		{
+			tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
+			dacSendKeyboard(currentInstrument);
+			manta_set_LED_hex(hex, Off);
+		}
+	}
+	else
+	{
+		tKeyboard_noteOff(&fullKeyboard, hex);
+		dacSendKeyboard(InstrumentNil);
 		manta_set_LED_hex(hex, Off);
 	}
 }
@@ -215,45 +239,6 @@ void releaseFunctionButtonKeys(MantaButton button)
 	
 }
 
-void processKeys(void)
-{
-	uint8_t i;
-
-	for (i = 0; i < 48; i++)
-	{
-		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0))
-		{
-			touchLowerHexKey(i, butt_states[i]);
-		}
-		else if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
-		{
-			releaseLowerHexKey(i);
-		}
-
-		// update the past keymap array (stores the previous values of every key's sensor reading)
-		pastbutt_states[i] = butt_states[i];
-		
-	}
-	
-	for (i = 0; i < 4; i++)
-	{
-		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
-		{
-			touchFunctionButtonKeys(i);
-		}
-		
-		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
-		{
-			touchFunctionButtonKeys(i);
-		}
-		
-		past_func_button_states[i] = func_button_states[i];
-	}
-
-	
-}
-
-
 void processSliderKeys(uint8_t sliderNum, uint16_t val)
 {
 	// DO THIS
@@ -264,8 +249,14 @@ void dacSendKeyboard(MantaInstrument which)
 {
 	tKeyboard* keyboard;
 	
-	if (which == InstrumentFull)	keyboard = &midiKeyboard;
-	else							keyboard = &manta[which].keyboard;
+	if (takeover || (which == InstrumentNil))	
+	{
+		keyboard = &fullKeyboard;
+	}
+	else			
+	{
+		keyboard = &manta[which].keyboard;
+	}
 	
 
 	for (int i = 0; i < keyboard->numVoices; i++)
@@ -273,15 +264,14 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			
 			uint8_t mappedNote = applyNoteMap(keyboard->map, note);
-			tRampSetDest(&out[which][3*((which == InstrumentOne)?i:(i-2))+CVPITCH], lookupDACvalue(mappedNote, keyboard->transpose));
+			tRampSetDest(&out[takeover ? (int)(i/2) : which][3*i+CVPITCH], lookupDACvalue(mappedNote, keyboard->transpose));
 				
-			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0xfff);
+			dacsend		(takeover ? i : (which*2), 0, 0xfff);
 		}
 		else
 		{
-			dacsend		((which == InstrumentOne) ? i : (i + 2), 0, 0x000);
+			dacsend		(takeover ? i : (which*2), 0, 0x000);
 		}
 
 	}

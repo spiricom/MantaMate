@@ -76,6 +76,7 @@ typedef enum MantaInstrumentType
 {
 	SequencerInstrument,
 	KeyboardInstrument,
+	DirectInstrument,
 	MantaInstrumentTypeNil
 }MantaInstrumentType;
 	
@@ -89,14 +90,15 @@ typedef struct _tMantaInstrument
 	MantaInstrumentType type;
 } tMantaInstrument;
 
-tKeyboard midiKeyboard;
+tKeyboard fullKeyboard;
+
+BOOL takeover;
 	
 
 tMantaInstrument manta[NUM_INST];
 
 tRamp out[2][6];
 
-tRamp* fullOut[12];
 
 uint8_t readData;
 

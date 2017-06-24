@@ -266,7 +266,7 @@ void blink(void)
 {
 	blinkToggle = (blinkToggle == true) ? false : true;		   
 	
-	if (key_vs_option == OptionMode && compositionAction == CompositionCopy)
+	if (shiftOption1 && compositionAction == CompositionCopy)
 	{
 		for (int inst = 0; inst < 2; inst++)
 		{
@@ -289,12 +289,15 @@ void initSequencer(void)
 	Write7Seg(preset_num); // shouldn't have to do this here, but there's a bug that writes garbage to the 7Seg when plugging in a Manta, and this seems to fix it
 	initTimers();
 	
+	takeover = FALSE;
+	
 	// Sequencer Modes
 	currentMantaSliderMode =	SliderModeOne;
 	prevMantaSliderMode =		SliderModeOne;
 	edit_vs_play =				PlayToggleMode; manta_set_LED_button(ButtonTopRight, Amber);
 	currentFunctionButton =		ButtonTopLeft;
-	key_vs_option =				KeyboardMode;
+	shiftOption1 =				FALSE;
+	shiftOption2 =				FALSE;
 	playSubMode =				SeqMode; manta_set_LED_button(ButtonBottomRight, Off);
 	
 	tNoteStack_init(&editStack,		32);
@@ -349,7 +352,7 @@ void initSequencer(void)
 
 void sequencerStep(MantaInstrument inst)
 {
-	
+	if (takeover) return;
 	int offset,cstep,curr;
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
@@ -403,7 +406,7 @@ void processHexTouch(void)
 		// RELEASE
 		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
 		{
-			if (key_vs_option == OptionMode)
+			if (shiftOption1)
 			{
 				if (i < MAX_STEPS)	releaseLowerHexOptionMode(i);
 				else				releaseUpperHexOptionMode(i);
@@ -443,7 +446,7 @@ void processHexTouch(void)
 		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0)) // TOUCH
 		{
 			
-			if (key_vs_option == OptionMode) 
+			if (shiftOption1) 
 			{
 				if (i < MAX_STEPS)	touchLowerHexOptionMode(i);
 				else				touchUpperHexOptionMode(i);
@@ -475,10 +478,6 @@ void processHexTouch(void)
 					touchLowerHexKey(i, butt_states[i]);
 				}
 			}
-			
-			
-			
-
 		}
 		
 		pastbutt_states[i] = butt_states[i];
@@ -555,7 +554,25 @@ int first, last;
 
 void setKeyboardConfigLEDs	(void)
 {
-	for (int i = 0; i < 32; i++) manta_set_LED_hex(i, Off);
+	for (int i = 0; i < 32; i++)
+	{
+		manta_set_LED_hex(i, Off);
+	}
+	
+	int numVoices = 0;
+	
+	if (takeover)	numVoices = fullKeyboard.numVoices;
+	else			numVoices = manta[currentInstrument].keyboard.numVoices;
+	
+	for (int i = 32; i < 36; i++)
+	{
+		manta_set_LED_hex(i, (numVoices == ((i - 32) + 1)) ? Red : Amber);
+	}
+	
+	for (int i = 36; i < 40; i++)
+	{
+		manta_set_LED_hex(i, Off);
+	}
 	
 }
 
@@ -585,7 +602,7 @@ void setCompositionLEDs(void)
 
 void touchLowerHexOptionMode(uint8_t hexagon)
 {
-	if (key_vs_option == OptionMode)
+	if (shiftOption1)
 	{
 		MantaInstrument whichInst = (hexagon < 16) ? InstrumentOne : InstrumentTwo;
 		int whichComp = (hexagon < 16) ? hexagon : (hexagon - 16);
@@ -787,7 +804,7 @@ void touchLowerHex(uint8_t hexagon)
 			}
 		}
 
-		if (key_vs_option == KeyboardMode)
+		if (!shiftOption1)
 		{
 			if (edit_vs_play != TrigToggleMode)
 			{
@@ -875,10 +892,6 @@ void switchToMode(MantaEditPlayMode mode)
 	}
 }
 
-void releaseUpperHexOptionMode(uint8_t hexagon)
-{
-	
-}
 
 void releaseUpperHex(uint8_t hexagon)
 {
@@ -925,7 +938,7 @@ void releaseUpperHex(uint8_t hexagon)
 			}
 		}
 		
-		if (key_vs_option == KeyboardMode)
+		if (!shiftOption1)
 		{
 			if ((keyboard_pattern[hexagon-MAX_STEPS] == KeyboardPanelOctaveDown) || (keyboard_pattern[hexagon-MAX_STEPS] == KeyboardPanelOctaveUp))
 			{
@@ -991,6 +1004,23 @@ void allUIStepsOff(MantaInstrument inst)
 	}
 }
 
+BOOL shiftKeyboard = FALSE;
+
+void releaseUpperHexOptionMode(uint8_t hexagon)
+{
+	uint8_t whichHex = hexagon - MAX_STEPS;
+	
+	OptionPanelButtonType whichOptionType = optionModeButtons[whichHex];
+	
+	if (whichOptionType == OptionKeyboard)
+	{
+		shiftKeyboard = FALSE;
+		
+		setOptionLEDs();
+	}
+}
+
+int testnumvoices;
 void touchUpperHexOptionMode(uint8_t hexagon)
 {
 	prevUpperHexUI = currentUpperHexUI;
@@ -999,16 +1029,48 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 	
+	MantaInstrumentType type = manta[currentInstrument].type;
+	
 	uint8_t whichHex = hexagon - MAX_STEPS;
 	
 	OptionPanelButtonType whichOptionType = optionModeButtons[whichHex];
 	
+	
 	if (whichOptionType <= OptionPatternEight)
 	{
-		tSequencer_setPattern(sequencer, whichOptionType);
+		if (type == KeyboardInstrument)
+		{
+			int numVoices = whichOptionType + 1;
+			testnumvoices = numVoices;
+			if (numVoices == 1)
+			{
+				takeover = FALSE;
+			
+				tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+			
+				tKeyboard_init(keyboard, 1);
+			}
+			else if (numVoices == 2)
+			{
+				initKeys(2);
+			}
+			else if (numVoices == 3)
+			{
+				initKeys(3);
+			}
+			else if (numVoices == 4)
+			{
+				initKeys(4);
+			}
+		}
+		else
+		{
+			tSequencer_setPattern(sequencer, whichOptionType);
 		
-		prev_pattern_hex = current_pattern_hex;
-		current_pattern_hex = whichHex;
+			prev_pattern_hex = current_pattern_hex;
+			current_pattern_hex = whichHex;
+		}
+		
 	}
 	else if (whichOptionType == OptionPitch)
 	{
@@ -1058,6 +1120,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		resetEditStack();
 		
+		shiftKeyboard = TRUE;
+		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
@@ -1076,14 +1140,14 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
 	}
-	else if (whichOptionType == OptionLeft)
+	else if (!takeover && whichOptionType == OptionLeft)
 	{
 		prev_panel_hex = current_panel_hex;
 		current_panel_hex = whichHex;
 		
 		setCurrentInstrument(InstrumentOne);
 	}
-	else if (whichOptionType == OptionRight)
+	else if (!takeover && whichOptionType == OptionRight)
 	{
 		prev_panel_hex = current_panel_hex;
 		current_panel_hex = whichHex;
@@ -1105,8 +1169,7 @@ void touchUpperHex(uint8_t hexagon)
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 	
-
-	if (key_vs_option == KeyboardMode)
+	if (!shiftOption1)
 	{
 		if (sequencer->pitchOrTrigger == PitchMode)
 		{
@@ -1394,7 +1457,7 @@ void setKeyboardLEDs(void)
 // ~ ~ ~ ~ TOP LEFT BUTTON ~ ~ ~ ~ //
 void touchTopLeftButton(void)
 {
-	if (key_vs_option == OptionMode) return;
+	if (shiftOption1) return;
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	
@@ -1431,62 +1494,70 @@ void touchTopLeftButton(void)
 
 void releaseTopLeftButton(void)
 {
-	if (key_vs_option == OptionMode) return;
+	if (shiftOption1) return;
 	
 }
 
 // ~ ~ ~ ~ TOP RIGHT BUTTON ~ ~ ~ ~ //
 void touchTopRightButton(void)
 {
-	if (key_vs_option == OptionMode)
+	if (manta[currentInstrument].type == SequencerInstrument)
 	{
-		compositionAction = CompositionCopy;
+		if (shiftOption1)
+		{
+			compositionAction = CompositionCopy;
 		
-		return;
-	}
+			return;
+		}
 	
-	resetEditStack();
+		resetEditStack();
 	
-	if (full_vs_split == SplitMode)
-	{
-		setSequencerLEDsFor(InstrumentOne);
-		setSequencerLEDsFor(InstrumentTwo);
+		if (full_vs_split == SplitMode)
+		{
+			setSequencerLEDsFor(InstrumentOne);
+			setSequencerLEDsFor(InstrumentTwo);
+		}
+		else
+		{
+			setSequencerLEDsFor(currentInstrument);
+		}
+	
+		if (edit_vs_play == PlayToggleMode)
+		{
+			switchToMode(EditMode);
+		}
+		else // EditMode
+		{
+			switchToMode(PlayToggleMode);
+		}
+	
+		setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
 	}
 	else
 	{
-		setSequencerLEDsFor(currentInstrument);
+		// Tranpose up 
+		
 	}
-	
-	if (edit_vs_play == PlayToggleMode)
-	{
-		switchToMode(EditMode);
-	}
-	else // EditMode
-	{
-		switchToMode(PlayToggleMode);
-	}
-	
-	setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
 }
 
 void releaseTopRightButton(void)
 {
-	compositionAction = CompositionRead;
-	copyStage = 0;
-	copyWhichInst = InstrumentNil;
-	copyWhichComp = -1;
-	
-	if (key_vs_option == OptionMode) setCompositionLEDs();
-	else                             setSequencerLEDs();
+	if (manta[currentInstrument].type == SequencerInstrument)
+	{
+		compositionAction = CompositionRead;
+		copyStage = 0;
+		copyWhichInst = InstrumentNil;
+		copyWhichComp = -1;
+		
+		if (shiftOption1)	setCompositionLEDs();
+		else				setSequencerLEDs();
+	}
 }
 
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
 void touchBottomLeftButton(void)
 {
-	key_vs_option = OptionMode;
-	
-	allUIStepsOff(InstrumentOne);
-	allUIStepsOff(InstrumentTwo);
+	shiftOption1 = TRUE;
 	
 	setOptionLEDs();
 
@@ -1496,7 +1567,7 @@ void touchBottomLeftButton(void)
 
 void releaseBottomLeftButton(void)
 {	
-	key_vs_option = KeyboardMode;
+	shiftOption1 = FALSE;
 	
 	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
 	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
@@ -1511,13 +1582,15 @@ void releaseBottomLeftButton(void)
 // ~ ~ ~ ~ BOTTOM RIGHT BUTTON ~ ~ ~ ~ //
 void touchBottomRightButton(void)
 {
-	if (key_vs_option == OptionMode)
+	if (shiftOption1)
 	{
 		compositionAction = CompositionWrite;
 		setCompositionLEDs();
 	}
 	else 
 	{
+		shiftOption2 = TRUE;
+		
 		if (playSubMode == SeqMode)
 		{
 			playSubMode = ArpMode;
@@ -1535,8 +1608,12 @@ void releaseBottomRightButton(void)
 {
 	compositionAction = CompositionRead;
 	
-	if (key_vs_option == OptionMode)	setCompositionLEDs();
-	else								setSequencerLEDs();
+	if (shiftOption1)	setCompositionLEDs();
+	else				
+	{
+		shiftOption2 = FALSE;
+		setSequencerLEDs();
+	}
 }
 
 uint16_t testval = 0;
@@ -1735,7 +1812,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 void uiStep(MantaInstrument inst)
 {
-	if (key_vs_option == OptionMode) return;
+	if (shiftOption1) return;
 	
 	if (full_vs_split == FullMode && inst != currentInstrument) return;
 	
@@ -2056,8 +2133,6 @@ void setSequencerLEDsFor(MantaInstrument inst)
 			manta_set_LED_hex(editStack.notestack[i], Red);
 		}
 	}
-	
-	return;
 }
 
 void setOptionLEDs(void)
@@ -2065,6 +2140,9 @@ void setOptionLEDs(void)
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+	
+	allUIStepsOff(InstrumentOne);
+	allUIStepsOff(InstrumentTwo);
 	
 	MantaInstrumentType type = manta[currentInstrument].type;
 
@@ -2097,39 +2175,52 @@ void setOptionLEDs(void)
 		}
 		else if (option == OptionFullSplit)
 		{
-			manta_set_LED_hex(hex, (full_vs_split == FullMode) ? Amber : Red);
+			MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
+			
+			if ((type1 == SequencerInstrument || type1 == DirectInstrument) && (type2 == SequencerInstrument || type2 == DirectInstrument))
+				manta_set_LED_hex(hex, (full_vs_split == FullMode) ? Amber : Red);
+			else
+				manta_set_LED_hex(hex, Off);
 		}
 		else if (option <= OptionPatternEight)
 		{
-			manta_set_LED_hex(hex, (option == sequencer->pattern) ? Red : Amber);
+			manta_set_LED_hex(hex, (option == sequencer->pattern) ? Red : Amber);	
 		}
-		else if (option == OptionLeft)
+		else if (!takeover && option == OptionLeft)
 		{
 			manta_set_LED_hex(hex, (currentInstrument == InstrumentOne) ? Red : Amber);
 		}
-		else if (option == OptionRight)
+		else if (!takeover && option == OptionRight)
 		{
 			manta_set_LED_hex(hex, (currentInstrument == InstrumentTwo) ? Red : Amber);
 		}
 	}
 
-	
-	if (manta[currentInstrument].type == SequencerInstrument)   
+	if (!takeover)
 	{
-		manta_set_LED_button(ButtonBottomRight, Red); // Write
-		manta_set_LED_button(ButtonTopRight, Amber); // Copy
-		manta_set_LED_button(ButtonTopLeft, Off); // Nothing for now
-		
-		setCompositionLEDs();
+		if (manta[currentInstrument].type == SequencerInstrument)
+		{
+			manta_set_LED_button(ButtonBottomRight, Red); // Write
+			manta_set_LED_button(ButtonTopRight, Amber); // Copy
+			manta_set_LED_button(ButtonTopLeft, Off); // Nothing for now
+			
+			setCompositionLEDs();
+		}
+		else if (manta[currentInstrument].type == KeyboardInstrument)
+		{
+			setKeyboardConfigLEDs();
+		}
+		else // DirectInstrument
+		{
+			
+		}
 	}
-	else if (manta[currentInstrument].type == KeyboardInstrument)
-	{    
+	else
+	{
 		setKeyboardConfigLEDs();
 	}
-	else // DirectInstrument
-	{
-		
-	}
+	
+	
 
 }
 
