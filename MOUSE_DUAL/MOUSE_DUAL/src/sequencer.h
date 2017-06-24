@@ -74,7 +74,7 @@ typedef struct _tSequencer
 	tNoteStack notestack;
 	uint8_t lengthCounter;
 	
-	int octave;
+	int8_t octave;
 	SequencerPatternType pattern;
 	int maxLength;
 	GlobalOptionType pitchOrTrigger;

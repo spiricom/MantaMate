@@ -2418,7 +2418,7 @@ void downOctaveForEditStackSteps(MantaInstrument inst)
 	{
 		tStep* theStep = &(sequencer->step[hexUIToStep(editStack.notestack[i])]);
 
-		if (theStep->octave < 7)	theStep->octave -= 1;
+		if (theStep->octave > 0)	theStep->octave -= 1;
 	}
 }
 uint8_t hexUIToStep(uint8_t hexagon)
