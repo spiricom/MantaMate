@@ -43,12 +43,11 @@
 /*
  * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
  */
-
 #include "conf_usb_host.h"
 #include "usb_protocol.h"
 #include "uhd.h"
 #include "uhc.h"
-#include "uhi_hid_joystick.h"
+#include "uhi_hid_keyboard.h"
 #include <string.h>
 #include "main.h"
 #include <fastmath.h>
@@ -87,26 +86,26 @@
 #define Rz 0x35
 #define SLIDER 0x36
 
-uint8_t UHI_HID_JOY_MOV_X;
-uint8_t UHI_HID_JOY_MOV_Y;
+uint8_t UHI_HID_keyboard_MOV_X;
+uint8_t UHI_HID_keyboard_MOV_Y;
 uint8_t X_SIZE;
 uint8_t Y_SIZE;
-uint8_t UHI_HID_JOY_BUTT[MAX_BUTTS];
+uint8_t UHI_HID_keyboard_BUTT[MAX_BUTTS];
 uint8_t NUM_BUTTS[MAX_BUTTS];
 uint8_t BUTT_SIZE[MAX_BUTTS];
-uint8_t UHI_HID_JOY_HAT;
+uint8_t UHI_HID_keyboard_HAT;
 uint8_t HAT_SIZE;
-uint8_t UHI_HID_JOY_SLIDER;
+uint8_t UHI_HID_keyboard_SLIDER;
 uint8_t SLIDER_SIZE;
-uint8_t UHI_HID_JOY_THROTTLE;
+uint8_t UHI_HID_keyboard_THROTTLE;
 uint8_t THROTTLE_SIZE;
-uint8_t UHI_HID_JOY_Rz; //joystick twistiness-ness
+uint8_t UHI_HID_keyboard_Rz; //keyboard twistiness-ness
 uint8_t Rz_SIZE;
 uint8_t X_LOGICAL_MAX_BITS;
 uint8_t Y_LOGICAL_MAX_BITS;
 uint8_t Rz_LOGICAL_MAX_BITS;
 uint8_t SLIDER_LOGICAL_MAX_BITS;
-
+uint8_t keyboard_button = 0;
 //@}
 
 /**
@@ -123,23 +122,22 @@ uint8_t SLIDER_LOGICAL_MAX_BITS;
  * \name Internal routines
  */
 //@{
-static void get_report_descriptor(void);
-static void parse_report_descriptor(
+static void get_keyboard_report_descriptor(void);
+static void parse_keyboard_report_descriptor(
 		usb_add_t add,
 		uhd_trans_status_t status,
 		uint16_t nb_transfered);
-static void uhi_hid_joy_start_trans_report(usb_add_t add);
-static void uhi_hid_joy_report_reception(
+static void uhi_hid_keyboard_start_trans_report(usb_add_t add);
+static void uhi_hid_keyboard_report_reception(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered);
 		
-static uint32_t shift(uint8_t size, uint8_t offset);
-static void findDataOffset(void);
-static void ResetParser(void);
-int find_highest_bit(int);
-static void display_joystick_sizes(void);
+static uint32_t keyboard_shift(uint8_t size, uint8_t offset);
+static void findKeyboardDataOffset(void);
+static void ResetKeyboardParser(void);
+static void display_keyboard_sizes(void);
 //@}
 
 // initialize global report parser
@@ -151,27 +149,27 @@ static hid_report_parser_t hid_report_parser = {
 	.usage_size = 0,
 };
 
-// initialize global hid joystick struct
-static uhi_hid_joy_dev_t uhi_hid_joy_dev = {
+// initialize global hid keyboard struct
+static uhi_hid_keyboard_dev_t uhi_hid_keyboard_dev = {
 	.dev = NULL,
 	.report = NULL,
 };
 
-const char ItemSize[4]={0,1,2,4};
+const char keyboard_ItemSize[4]={0,1,2,4};
 
 /**
  * \name Functions required by UHC
  * @{
  */
 
-uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
+uhc_enum_status_t uhi_hid_keyboard_install(uhc_device_t* dev)
 {
 	bool b_iface_supported;
 	uint16_t conf_desc_lgt;
 	usb_iface_desc_t *ptr_iface;
 	int i;
 
-	if (uhi_hid_joy_dev.dev != NULL) {
+	if (uhi_hid_keyboard_dev.dev != NULL) {
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	}
@@ -185,9 +183,9 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 
 		case USB_DT_INTERFACE: // if it's some kind of interface (my interpretation)
 			if ((ptr_iface->bInterfaceClass   == HID_CLASS)
-			&& ((ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC) || (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_KEYBOARD))
-			&& dev->dev_desc.idProduct != 0x2424) { // and it's not a manta
-				// USB HID Joystick interface found
+			&& (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_KEYBOARD))
+			{
+				// USB HID keyboard interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
 			}
@@ -202,13 +200,13 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				break;
 			}
 			//how many descriptors and what type, make some space to store
-			uhi_hid_joy_dev.numDesc = ((usb_hid_descriptor_t*) ptr_iface)->bNumDescriptors;
-			uhi_hid_joy_dev.DescType = (uint8_t *) malloc(uhi_hid_joy_dev.numDesc);
-			uhi_hid_joy_dev.DescSize = (uint16_t *) malloc(2*uhi_hid_joy_dev.numDesc);
-			for (i = 0; i < uhi_hid_joy_dev.numDesc; i++)
+			uhi_hid_keyboard_dev.numDesc = ((usb_hid_descriptor_t*) ptr_iface)->bNumDescriptors;
+			uhi_hid_keyboard_dev.DescType = (uint8_t *) malloc(uhi_hid_keyboard_dev.numDesc);
+			uhi_hid_keyboard_dev.DescSize = (uint16_t *) malloc(2*uhi_hid_keyboard_dev.numDesc);
+			for (i = 0; i < uhi_hid_keyboard_dev.numDesc; i++)
 			{
-				uhi_hid_joy_dev.DescType[i] = ((usb_hid_descriptor_t*) ptr_iface)->bRDescriptorType;
-				uhi_hid_joy_dev.DescSize[i] = (((usb_hid_descriptor_t*) ptr_iface)->wDescriptorLength)>>8;
+				uhi_hid_keyboard_dev.DescType[i] = ((usb_hid_descriptor_t*) ptr_iface)->bRDescriptorType;
+				uhi_hid_keyboard_dev.DescSize[i] = (((usb_hid_descriptor_t*) ptr_iface)->wDescriptorLength)>>8;
 			}
 			break;
 		
@@ -227,11 +225,11 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 			
 
 				Assert(((usb_ep_desc_t*) ptr_iface)->bEndpointAddress & USB_EP_DIR_IN);
-				uhi_hid_joy_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
-				uhi_hid_joy_dev.report_size =
+				uhi_hid_keyboard_dev.ep_in = ((usb_ep_desc_t*) ptr_iface)->bEndpointAddress;
+				uhi_hid_keyboard_dev.report_size =
 				le16_to_cpu(((usb_ep_desc_t*) ptr_iface)->wMaxPacketSize);
-				uhi_hid_joy_dev.report = malloc(uhi_hid_joy_dev.report_size);
-				if (uhi_hid_joy_dev.report == NULL) {
+				uhi_hid_keyboard_dev.report = malloc(uhi_hid_keyboard_dev.report_size);
+				if (uhi_hid_keyboard_dev.report == NULL) {
 					Assert(false);
 					return UHC_ENUM_MEMORY_LIMIT; // Internal RAM allocation fail
 				}
@@ -248,7 +246,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	if (!b_iface_supported) {
 		return UHC_ENUM_UNSUPPORTED; // No interface supported
 	}
-	uhi_hid_joy_dev.dev = dev;
+	uhi_hid_keyboard_dev.dev = dev;
 	// All endpoints of all interfaces supported allocated
 	
 	//used to get report descriptor here JS
@@ -256,35 +254,35 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	return UHC_ENUM_SUCCESS;
 }
 
-// called after uhi_hid_joy_install has run checks and after space has been allocated
+// called after uhi_hid_keyboard_install has run checks and after space has been allocated
 // but wtf is it actually doing?
 // this appears to step through the report, allocating space in hid_report_parser.reportDesc
 // but it also seems to be overwritten with each iteration, so it seems like nothing is kept? 
 // confused.
-static void get_report_descriptor()
+static void get_keyboard_report_descriptor()
 {
 	usb_setup_req_t req;
 	int i;
 	
-	for (i = 0; i < uhi_hid_joy_dev.numDesc; i++)
+	for (i = 0; i < uhi_hid_keyboard_dev.numDesc; i++)
 	{	
-		ResetParser();
+		ResetKeyboardParser();
 		
 		req.bmRequestType = USB_REQ_RECIP_INTERFACE|USB_REQ_TYPE_STANDARD|USB_REQ_DIR_IN;
 		req.bRequest = USB_REQ_GET_DESCRIPTOR;
 		req.wValue = (USB_DT_HID_REPORT << 8);
 		req.wIndex = 0;
-		req.wLength = uhi_hid_joy_dev.DescSize[i] + 0x40;
+		req.wLength = uhi_hid_keyboard_dev.DescSize[i] + 0x40;
 		
-		hid_report_parser.reportDesc_size = uhi_hid_joy_dev.DescSize[i];
+		hid_report_parser.reportDesc_size = uhi_hid_keyboard_dev.DescSize[i];
 		
 		if (hid_report_parser.reportDesc != NULL)
-			hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_joy_dev.DescSize[i]);
-		else hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_joy_dev.DescSize[i]);
+			hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_keyboard_dev.DescSize[i]);
+		else hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_keyboard_dev.DescSize[i]);
 
 		// After a USB reset, the reallocation is required
 		if (!uhd_setup_request(1, &req, (uint8_t *) hid_report_parser.reportDesc, 
-			uhi_hid_joy_dev.DescSize[i], NULL, parse_report_descriptor)) 
+			uhi_hid_keyboard_dev.DescSize[i], NULL, parse_keyboard_report_descriptor)) 
 		{
 			//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
 			//MEMORY_printf_string("ERROR");
@@ -294,13 +292,13 @@ static void get_report_descriptor()
 	}
 }
 
-static void ResetLocalState(hid_report_parser_t * hid_report_parser)
+static void ResetKeyboardLocalState(hid_report_parser_t * hid_report_parser)
 {
 	hid_report_parser->usage_size = 0;
 	memset(hid_report_parser->usage_tab,0,sizeof(hid_report_parser->usage_tab));
 }
 
-uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType)
+uint8_t* GetKeyboardReportOffset(const uint8_t ireport, const uint8_t ReportType)
 {
 	uint16_t pos = 0;
 	while(pos < MAX_REPORT && hid_report_parser.offset_tab[pos][1] != 0)
@@ -322,7 +320,7 @@ uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType)
 }
 
 
-static void ResetParser(void)
+static void ResetKeyboardParser(void)
 {
 	hid_report_parser.pos=0;
 	hid_report_parser.count=0;
@@ -338,10 +336,7 @@ static void ResetParser(void)
 	memset(&NUM_BUTTS,0,sizeof(NUM_BUTTS));
 }
 
-//hid_data pData[16]; //random large number - idk it seems very hex :D
-uint8_t ibutt = 0;
-
-static void findDataOffset(void)
+static void findKeyboardDataOffset(void)
 {
 	uint8_t offset = hid_report_parser.data.offset;
 	switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].u_page)
@@ -350,21 +345,21 @@ static void findDataOffset(void)
 			switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].usage)
 			{
 				case USAGEX:
-					UHI_HID_JOY_MOV_X = offset;
+					UHI_HID_keyboard_MOV_X = offset;
 					X_SIZE = hid_report_parser.data.size;
-					X_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+					X_LOGICAL_MAX_BITS = find_keyboard_highest_bit(hid_report_parser.data.log_max);
 					break;
 				case USAGEY:
-					UHI_HID_JOY_MOV_Y = offset;
+					UHI_HID_keyboard_MOV_Y = offset;
 					Y_SIZE = hid_report_parser.data.size;
-					Y_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+					Y_LOGICAL_MAX_BITS = find_keyboard_highest_bit(hid_report_parser.data.log_max);
 					break;
 				case HAT_SWITCH:
-					UHI_HID_JOY_HAT = offset;
+					UHI_HID_keyboard_HAT = offset;
 					HAT_SIZE = hid_report_parser.data.size;
 					break;
 				case SLIDER:
-					UHI_HID_JOY_SLIDER = offset;
+					UHI_HID_keyboard_SLIDER = offset;
 					SLIDER_SIZE = hid_report_parser.data.size;
 					//fixes problem where data size defaults to 1 if not defined, we think that 8 bits must be defaults
 					if (SLIDER_SIZE == 1)
@@ -373,14 +368,14 @@ static void findDataOffset(void)
 						SLIDER_LOGICAL_MAX_BITS = 8;
 					} else
 					{
-						SLIDER_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+						SLIDER_LOGICAL_MAX_BITS = find_keyboard_highest_bit(hid_report_parser.data.log_max);
 					}
 					
 					break;
 				case Rz:
-					UHI_HID_JOY_Rz = offset;
+					UHI_HID_keyboard_Rz = offset;
 					Rz_SIZE = hid_report_parser.data.size;
-					Rz_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+					Rz_LOGICAL_MAX_BITS = find_keyboard_highest_bit(hid_report_parser.data.log_max);
 					break;
 				default:
 					break;
@@ -390,18 +385,18 @@ static void findDataOffset(void)
 			switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].usage)
 			{
 				case THROTTLE:
-					UHI_HID_JOY_THROTTLE = offset;
+					UHI_HID_keyboard_THROTTLE = offset;
 					THROTTLE_SIZE = hid_report_parser.data.size;
 					break;
 				default:
 					break;
 			}
 		case BUTTON:
-			if(NUM_BUTTS[ibutt] == 0 && hid_report_parser.report_count == hid_report_parser.count)
+			if(NUM_BUTTS[keyboard_button] == 0 && hid_report_parser.report_count == hid_report_parser.count)
 			{
-				UHI_HID_JOY_BUTT[ibutt] = offset;
-				NUM_BUTTS[ibutt] = hid_report_parser.report_count;
-				BUTT_SIZE[ibutt++] = hid_report_parser.data.size;
+				UHI_HID_keyboard_BUTT[keyboard_button] = offset;
+				NUM_BUTTS[keyboard_button] = hid_report_parser.report_count;
+				BUTT_SIZE[keyboard_button++] = hid_report_parser.data.size;
 			}
 			break;
 		default:
@@ -413,7 +408,7 @@ static void findDataOffset(void)
 // i think this is where the descriptor is parsed. 
 // perhaps this will illuminate the earlier functions
 
-static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
+static void parse_keyboard_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 	uint16_t nb_transfered)
 {	
 	while(hid_report_parser.pos < hid_report_parser.reportDesc_size)
@@ -425,14 +420,14 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 			hid_report_parser.val = 0;
 			int i;
 			unsigned long valTmp=0;
-			for (i=0;i<ItemSize[hid_report_parser.item & SIZE_MASK];i++)
+			for (i=0;i<keyboard_ItemSize[hid_report_parser.item & SIZE_MASK];i++)
 			{
 				memcpy(&valTmp, &hid_report_parser.reportDesc[(hid_report_parser.pos)+i], 1);
 				hid_report_parser.val += valTmp >> ((3-i)*8);
 				valTmp=0;
 			}
 			/* Pos on next item */
-			hid_report_parser.pos += ItemSize[hid_report_parser.item & SIZE_MASK];
+			hid_report_parser.pos += keyboard_ItemSize[hid_report_parser.item & SIZE_MASK];
 		}
 		
 		switch(hid_report_parser.item & ITEM_MASK)
@@ -490,7 +485,7 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 					hid_report_parser.data.path.node[hid_report_parser.data.path.size].usage = hid_report_parser.val & 0x7F;
 					hid_report_parser.data.path.size++;
 				}
-				ResetLocalState(&hid_report_parser); 
+				ResetKeyboardLocalState(&hid_report_parser); 
 				break;
 			}
 			case ITEM_END_COLLECTION :
@@ -499,7 +494,7 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 				/* Remove Index if any */
 				if(hid_report_parser.data.path.node[hid_report_parser.data.path.size].u_page == 0xFF)
 					hid_report_parser.data.path.size--;
-				ResetLocalState(&hid_report_parser); 
+				ResetKeyboardLocalState(&hid_report_parser); 
 				break;
 			}
 			case ITEM_FEATURE :
@@ -543,16 +538,16 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 				hid_report_parser.data.attribute = (uint8_t) hid_report_parser.val;
 
 				// Store offset
-				hid_report_parser.data.offset = *GetReportOffset(hid_report_parser.data.ireport, (uint8_t) (hid_report_parser.item & ITEM_MASK));
+				hid_report_parser.data.offset = *GetKeyboardReportOffset(hid_report_parser.data.ireport, (uint8_t) (hid_report_parser.item & ITEM_MASK));
 
 				// Get Object in pData
 				// --------------------------------------------------------------------------
 				//memcpy(&pData[hid_report_parser.nobject - 1], &hid_report_parser.data, sizeof(hid_data));
-				findDataOffset();
+				findKeyboardDataOffset();
 				// --------------------------------------------------------------------------
 
 				// Increment Report Offset
-				*GetReportOffset(hid_report_parser.data.ireport, (uint8_t) (hid_report_parser.item & ITEM_MASK)) += hid_report_parser.data.size;
+				*GetKeyboardReportOffset(hid_report_parser.data.ireport, (uint8_t) (hid_report_parser.item & ITEM_MASK)) += hid_report_parser.data.size;
 
 				// Remove path last node
 				hid_report_parser.data.path.size--;
@@ -560,7 +555,7 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 				// Decrement count
 				hid_report_parser.count--;
 				if (hid_report_parser.count == 0) {
-					ResetLocalState(&hid_report_parser);
+					ResetKeyboardLocalState(&hid_report_parser);
 				}
 				break;
 			}
@@ -601,40 +596,36 @@ static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 	}
 }
 
-void uhi_hid_joy_enable(uhc_device_t* dev)
+void uhi_hid_keyboard_enable(uhc_device_t* dev)
 {
-	if (uhi_hid_joy_dev.dev != dev) {
+	if (uhi_hid_keyboard_dev.dev != dev) {
 		return;  // No interface to enable
 	}
-	get_report_descriptor();
+	get_keyboard_report_descriptor();
 	// Init value
-	uhi_hid_joy_dev.report_butt_prev = 0;
-	uhi_hid_joy_dev.report_y_prev = 0;
-	uhi_hid_joy_dev.report_x_prev = 0;
-	uhi_hid_joy_dev.report_slider_prev = 0;
-	uhi_hid_joy_dev.report_Rz_prev = 0;
-	uhi_hid_joy_dev.report_hat_prev = 0;
-	uhi_hid_joy_start_trans_report(dev->address);
-	type_of_device_connected = JoystickConnected;
-	UHI_HID_JOY_CHANGE(dev, true);
-	joystick_mode = true; 
+	uhi_hid_keyboard_dev.report_butt_prev = 0;
+	uhi_hid_keyboard_dev.report_y_prev = 0;
+	uhi_hid_keyboard_dev.report_x_prev = 0;
+	uhi_hid_keyboard_dev.report_slider_prev = 0;
+	uhi_hid_keyboard_dev.report_Rz_prev = 0;
+	uhi_hid_keyboard_dev.report_hat_prev = 0;
+	uhi_hid_keyboard_start_trans_report(dev->address);
+	type_of_device_connected = HIDKeyboardConnected;
 }
 
-void uhi_hid_joy_uninstall(uhc_device_t* dev)
+void uhi_hid_keyboard_uninstall(uhc_device_t* dev)
 {
-	if (uhi_hid_joy_dev.dev != dev) {
+	if (uhi_hid_keyboard_dev.dev != dev) {
 		return; // Device not enabled in this interface
 	}
-	uhi_hid_joy_dev.dev = NULL; 
-	Assert(uhi_hid_joy_dev.report!=NULL);
-	free(uhi_hid_joy_dev.report);
-	free(uhi_hid_joy_dev.DescType);
-	free(uhi_hid_joy_dev.DescSize);
+	uhi_hid_keyboard_dev.dev = NULL; 
+	Assert(uhi_hid_keyboard_dev.report!=NULL);
+	free(uhi_hid_keyboard_dev.report);
+	free(uhi_hid_keyboard_dev.DescType);
+	free(uhi_hid_keyboard_dev.DescSize);
 	free(hid_report_parser.reportDesc);
-	ibutt = 0;
-	UHI_HID_JOY_CHANGE(dev, false);
+	keyboard_button = 0;
 	type_of_device_connected = NoDeviceConnected;
-	joystick_mode = false;
 }
 //@}
 
@@ -648,59 +639,27 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
  *
  * \param add   USB address to use
  */
-static void uhi_hid_joy_start_trans_report(usb_add_t add)
+static void uhi_hid_keyboard_start_trans_report(usb_add_t add)
 {
 	// Start transfer on interrupt endpoint IN
 	// right now, this hack forces reception on endpoint 1 (129) because some devices with multiple endpoints would go to the last endpoint instead of 1.
-	/*uhd_ep_run(add, 129, true, uhi_hid_joy_dev.report,
-		uhi_hid_joy_dev.report_size, 0, uhi_hid_joy_report_reception);
+	/*uhd_ep_run(add, 129, true, uhi_hid_keyboard_dev.report,
+		uhi_hid_keyboard_dev.report_size, 0, uhi_hid_keyboard_report_reception);
 		*/
-	uhd_ep_run(add, uhi_hid_joy_dev.ep_in, true, uhi_hid_joy_dev.report,
-			uhi_hid_joy_dev.report_size, 0, uhi_hid_joy_report_reception);
+	uhd_ep_run(add, uhi_hid_keyboard_dev.ep_in, true, uhi_hid_keyboard_dev.report,
+			uhi_hid_keyboard_dev.report_size, 0, uhi_hid_keyboard_report_reception);
 			
 }
 
-static uint32_t shift(uint8_t size, uint8_t offset) {
-	uint8_t total;
-	uint8_t index;
-	uint32_t state_new;
-	uint8_t i;
-	
-	total = size;
-	index = offset/8;
-	state_new = (uhi_hid_joy_dev.report[index]>>(offset%8));  // add the first (partial) byte
-	i = 8 - offset % 8;
-	
-	while(i <= total - 8)  // add a full byte
-	{
-		state_new += uhi_hid_joy_dev.report[++index] << i;
-		i += 8;
-	}
-	if(i < total)  // add the last partial byte
-	{
-		state_new += (uhi_hid_joy_dev.report[++index] & (0xFF>>(8-(offset+size)%8)))<<i;
-		i += (offset+size)%8;
-	}
-	
-	return state_new;
-}
-
-int find_highest_bit(int val)
-{
-	unsigned int count = 1;
-	while (val >>= 1)
-		count++;
-	return count;
-}
-
 /**
- * \brief Decodes the HID joystick report received. based on the hid mouse example by atmel
+ * \brief Decodes the HID keyboard report received. based on the hid mouse example by atmel
  *
  * \param add           USB address used by the transfer
  * \param status        Transfer status
  * \param nb_transfered Number of data transfered
  */
-static void uhi_hid_joy_report_reception(
+
+static void uhi_hid_keyboard_report_reception(
 		usb_add_t add,
 		usb_ep_t ep,
 		uhd_trans_status_t status,
@@ -723,7 +682,7 @@ static void uhi_hid_joy_report_reception(
 	UNUSED(ep);
 
 	if ((status == UHD_TRANS_NOTRESPONDING) || (status == UHD_TRANS_TIMEOUT)) {
-		uhi_hid_joy_start_trans_report(add);
+		uhi_hid_keyboard_start_trans_report(add);
 		return; // HID mouse transfer restart
 	}
 
@@ -732,12 +691,12 @@ static void uhi_hid_joy_report_reception(
 	}
 	
 	// Decode buttons
-	butt_prev = uhi_hid_joy_dev.report_butt_prev;
-	slider_prev = uhi_hid_joy_dev.report_slider_prev;
-	hat_prev = uhi_hid_joy_dev.report_hat_prev;
-	Rz_prev = uhi_hid_joy_dev.report_Rz_prev;
-	x_prev = uhi_hid_joy_dev.report_x_prev;
-	y_prev = uhi_hid_joy_dev.report_y_prev;
+	butt_prev = uhi_hid_keyboard_dev.report_butt_prev;
+	slider_prev = uhi_hid_keyboard_dev.report_slider_prev;
+	hat_prev = uhi_hid_keyboard_dev.report_hat_prev;
+	Rz_prev = uhi_hid_keyboard_dev.report_Rz_prev;
+	x_prev = uhi_hid_keyboard_dev.report_x_prev;
+	y_prev = uhi_hid_keyboard_dev.report_y_prev;
 	
 	butt_new = 0;
 	i = 0;
@@ -745,46 +704,46 @@ static void uhi_hid_joy_report_reception(
 	
 	// This combines all the "banks" of buttons into a single series of bits
 	// button 1 is the lowest bit 
-	for(b=0; b < ibutt; b++)
+	for(b=0; b < keyboard_button; b++)
 	{
-		butt_new += shift(NUM_BUTTS[b]*BUTT_SIZE[b], UHI_HID_JOY_BUTT[b]) << i;
+		butt_new += keyboard_shift(NUM_BUTTS[b]*BUTT_SIZE[b], UHI_HID_keyboard_BUTT[b]) << i;
 		i += NUM_BUTTS[b]*BUTT_SIZE[b];
 		n_total_buttons += NUM_BUTTS[b];
 	}
 	
-	x_new = shift(X_SIZE, UHI_HID_JOY_MOV_X);
-	y_new = shift(Y_SIZE, UHI_HID_JOY_MOV_Y);
-	hat_new = shift(HAT_SIZE, UHI_HID_JOY_HAT);
-	Rz_new = shift(Rz_SIZE, UHI_HID_JOY_Rz);
-	slider_new = shift(SLIDER_SIZE, UHI_HID_JOY_SLIDER);
+	x_new = keyboard_shift(X_SIZE, UHI_HID_keyboard_MOV_X);
+	y_new = keyboard_shift(Y_SIZE, UHI_HID_keyboard_MOV_Y);
+	hat_new = keyboard_shift(HAT_SIZE, UHI_HID_keyboard_HAT);
+	Rz_new = keyboard_shift(Rz_SIZE, UHI_HID_keyboard_Rz);
+	slider_new = keyboard_shift(SLIDER_SIZE, UHI_HID_keyboard_SLIDER);
 	
 	// We assume that there are 4 continuous controls X,Y,Rz,slider
 	// this might not be true for all controllers
 	if (x_prev != x_new) {
-		uhi_hid_joy_dev.report_x_prev = x_new;
+		uhi_hid_keyboard_dev.report_x_prev = x_new;
 		DAC16Send(0, x_new << (16-X_LOGICAL_MAX_BITS));
 	}
 	
 	if (y_prev != y_new) {
-		uhi_hid_joy_dev.report_y_prev = y_new;
+		uhi_hid_keyboard_dev.report_y_prev = y_new;
 		int y_value = ((2 << Y_SIZE) - 1) - y_new; // this inverts the y direction
 		DAC16Send(1, y_value << (16-Y_LOGICAL_MAX_BITS));
 	}
 	
 	if(Rz_prev != Rz_new) {
-		uhi_hid_joy_dev.report_Rz_prev = Rz_new;
+		uhi_hid_keyboard_dev.report_Rz_prev = Rz_new;
 		DAC16Send(2, Rz_new << (16-Rz_LOGICAL_MAX_BITS));
 	}
 	
 	if(slider_prev != slider_new )
 	{
-		uhi_hid_joy_dev.report_slider_prev = slider_new;
+		uhi_hid_keyboard_dev.report_slider_prev = slider_new;
 		DAC16Send(3, slider_new << (16-SLIDER_LOGICAL_MAX_BITS));
 	}	
 	
 	if(butt_prev != butt_new)
 	{
-		uhi_hid_joy_dev.report_butt_prev = butt_new;
+		uhi_hid_keyboard_dev.report_butt_prev = butt_new;
 		int my_mask = 1;
 		int n_butts_mapped_so_far = 0;
 		int n_dacs_available = 8; //TODO: magic. because we assumed 4 continuous controllers, that leaves 8 dacs available
@@ -798,7 +757,7 @@ static void uhi_hid_joy_report_reception(
 			
 			if (n_butts_mapped_so_far == 0)
 			{
-				if (DEBUG) Write7Seg(butt_state);
+				;
 			}
 			n_butts_mapped_so_far++;
 		}
@@ -806,33 +765,32 @@ static void uhi_hid_joy_report_reception(
 	
 	// unused for now
 	if(hat_prev != hat_new) {
-		uhi_hid_joy_dev.report_hat_prev = hat_new;
+		uhi_hid_keyboard_dev.report_hat_prev = hat_new;
 	}
 	
 	// start the next transfer. this looks like it starts some crazy loop,
 	// but it follows the example code given by atmel
-	uhi_hid_joy_start_trans_report(add);
+	uhi_hid_keyboard_start_trans_report(add);
 }
-
-static int loop_counter = 0;
-static void display_joystick_sizes(void)
+uint8_t loop_counter = 0;
+static void display_keyboard_sizes(void)
 {
 	switch((loop_counter / 100) % 5)
 	{
 		case 0:
-			Write7Seg(UHI_HID_JOY_MOV_X);
+			Write7Seg(UHI_HID_keyboard_MOV_X);
 			break;
 		case 1:
-			Write7Seg(UHI_HID_JOY_MOV_Y);
+			Write7Seg(UHI_HID_keyboard_MOV_Y);
 			break;
 		case 2:
-			Write7Seg(UHI_HID_JOY_HAT);
+			Write7Seg(UHI_HID_keyboard_HAT);
 			break;
 		case 3:
-			Write7Seg(UHI_HID_JOY_Rz);
+			Write7Seg(UHI_HID_keyboard_Rz);
 			break;
 		case 4: 
-			Write7Seg(UHI_HID_JOY_SLIDER);
+			Write7Seg(UHI_HID_keyboard_SLIDER);
 			break;
 		default:
 			Write7Seg(99);
@@ -840,5 +798,35 @@ static void display_joystick_sizes(void)
 	loop_counter++;
 }
 
-//@}
-//@}
+static uint32_t keyboard_shift(uint8_t size, uint8_t offset) {
+	uint8_t total;
+	uint8_t index;
+	uint32_t state_new;
+	uint8_t i;
+	
+	total = size;
+	index = offset/8;
+	state_new = (uhi_hid_keyboard_dev.report[index]>>(offset%8));  // add the first (partial) byte
+	i = 8 - offset % 8;
+	
+	while(i <= total - 8)  // add a full byte
+	{
+		state_new += uhi_hid_keyboard_dev.report[++index] << i;
+		i += 8;
+	}
+	if(i < total)  // add the last partial byte
+	{
+		state_new += (uhi_hid_keyboard_dev.report[++index] & (0xFF>>(8-(offset+size)%8)))<<i;
+		i += (offset+size)%8;
+	}
+	
+	return state_new;
+}
+
+int find_keyboard_highest_bit(int val)
+{
+	unsigned int count = 1;
+	while (val >>= 1)
+	count++;
+	return count;
+}

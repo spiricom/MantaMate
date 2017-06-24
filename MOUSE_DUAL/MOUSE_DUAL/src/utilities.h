@@ -66,7 +66,8 @@ typedef enum ConnectedDeviceType
 	MantaConnected,
 	MIDIKeyboardConnected,
 	MIDIComputerConnected,
-	JoystickConnected
+	JoystickConnected,
+	HIDKeyboardConnected
 } ConnectedDeviceType;
 // Typedef versions of Manta modes.
 

@@ -56,7 +56,6 @@
 
 //! Array of UHI APIs Define the list of UHI supported by USB host.
 #define USB_HOST_UHI        UHI_HID_MANTA, UHI_MIDI, UHI_HID_JOYSTICK
-
 //! Maximum current allowed on Vbus (mA)
 #define USB_HOST_POWER_MAX  500
 
@@ -125,7 +124,10 @@
 
 #endif // _CONF_USB_HOST_H_
 
+
 #include "uhi_hid_manta.h"
 #include "uhi_hid_joystick.h"
+//#include "uhi_hid_keyboard.h"
 #include "uhi_midi.h"
+
 #include "ui.h"
