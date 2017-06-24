@@ -2230,14 +2230,23 @@ uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	// take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
-	uint32_t DACtemp = ((uint32_t)sequencer->step[step].pitch);
+	int32_t DACtemp = ((int32_t)sequencer->step[step].pitch);
 	DACtemp += (sequencer->step[step].octave * 12);
-	DACtemp *= 546125;
-	DACtemp /= 1000;
-
+	if (DACtemp > 127)
+	{
+		DACtemp = 127;
+	}
+	if (DACtemp < 0)
+	{
+		DACtemp = 0;
+	}
+	DACtemp = lookupDACvalue((uint8_t)DACtemp, 0);
 	DACtemp += (sequencer->step[step].fine >> 2) - 512;
-	
-	return DACtemp;
+	if (DACtemp < 0)
+	{
+		DACtemp = 0;
+	}
+	return ((uint32_t)DACtemp);
 }
 
 uint16_t glideTimeTEMP = 0;
