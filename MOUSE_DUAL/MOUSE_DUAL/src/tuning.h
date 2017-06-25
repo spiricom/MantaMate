@@ -15,7 +15,7 @@ extern uint8_t tuning;
 
 extern uint64_t scaledoctaveDACvalue;
 
-const uint32_t factoryTunings[99][129];	
+const uint32_t factoryTunings[99][50];	
 
 extern uint32_t externalTuning[129];
 extern uint32_t localTuningTemp[129];

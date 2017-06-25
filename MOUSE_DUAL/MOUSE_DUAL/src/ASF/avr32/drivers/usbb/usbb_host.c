@@ -394,13 +394,13 @@ ISR(otg_interrupt, AVR32_USBB_IRQ_GROUP, UHD_USB_INT_LEVEL)
 			uhc_stop(false);
 			UHC_MODE_CHANGE(false);
 			udc_start();
-			//if (DEBUG) Write7Seg(1);
+
 			
 		} else {
 			udc_stop();
 			UHC_MODE_CHANGE(true);
 			uhc_start();
-			//if (DEBUG) Write7Seg(0);
+
 			
 		}
 		return;

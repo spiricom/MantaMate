@@ -160,7 +160,6 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 	
 	//lcd_clear_line(2);
 	//MEMORY_printf_string("%x",dev->dev_desc.idProduct);
-	if (DEBUG) Write7Seg(55);
 	if (uhi_hid_manta_dev.dev != NULL)
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
 	conf_desc_lgt = le16_to_cpu(dev->conf_desc->wTotalLength);

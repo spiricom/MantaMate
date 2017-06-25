@@ -274,6 +274,11 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
+	if (joystick_mode)
+	{
+		return;
+	}
+	
 	for (int inst = 0; inst < 2; inst++)
 	{
 		tMantaInstrument* instrument = &manta[inst];
@@ -313,6 +318,10 @@ static void tc3_irq(void)
 
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
+	if (joystick_mode)
+	{
+		return;
+	}
 	
 	if (!takeover) // Dual instrument, not takeover
 	{
@@ -1331,7 +1340,6 @@ void testLoop(void)
 		{
 			testvoltage16 = 0;
 		}
-		if (DEBUG) Write7Seg(testvoltage16 / 656);
 		
 	}
 }
