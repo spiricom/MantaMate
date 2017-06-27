@@ -2267,14 +2267,14 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		tRamp* glide = &out[inst][CVPITCH];
 		
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
-		if (glideTime < 5) glideTime = 5;
+		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now
 		
 		tRampSetDest(glide, (float)get16BitPitch(inst,step) / UINT16_MAX); 
 		tRampSetTime(glide, glideTime);
 
 		// Configure CVGlide
 		glideTime =  sequencer->step[step].cvglide >> 3;
-		if (glideTime < 5) glideTime = 5;
+		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5  - could be zero now
 		
 
 		tRampSetTime(&out[inst][CV1P], glideTime);

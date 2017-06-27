@@ -249,4 +249,19 @@ int tRampSetDest(tRamp *r, float dest);
 int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
 
 
+
+/* Integer version of Ramp */
+typedef struct _tIRamp {
+	int32_t inc;
+	int32_t inv_sr_us;
+	int32_t curr,dest;
+	int32_t time;
+} tIRamp;
+
+uint16_t tIRampTick(tIRamp *r);
+int tIRampSetTime(tIRamp *r, int32_t time);
+int tIRampSetDest(tIRamp *r, int32_t dest);
+int tIRampInit(tIRamp *r, int32_t sr, int32_t time);
+
+
 #endif /* UTILITIES_H_ */
