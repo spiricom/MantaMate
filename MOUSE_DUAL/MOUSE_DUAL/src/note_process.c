@@ -117,8 +117,6 @@ void resetMantaUI(void)
 	
 }
 
-
-
 void initKeys(int numVoices)
 {
 	if (numVoices < 2)
@@ -135,6 +133,7 @@ void initKeys(int numVoices)
 	else // Takeover mode
 	{
 		takeover = TRUE;
+		takeoverType = KeyboardInstrument;
 		tKeyboard_init(&fullKeyboard, numVoices);
 	}
 
@@ -162,7 +161,7 @@ void touchKeyboardHex(int hex, uint8_t weight)
 			manta_set_LED_hex(hex, Off);
 		}
 	}
-	else 
+	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOn(&fullKeyboard, hex, weight);
 		dacSendKeyboard(InstrumentNil);
@@ -181,7 +180,7 @@ void releaseKeyboardHex(int hex)
 			manta_set_LED_hex(hex, manta[currentInstrument].keyboard.hexes[hex].color);
 		}
 	}
-	else
+	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOff(&fullKeyboard, hex);
 		dacSendKeyboard(InstrumentNil);
@@ -203,7 +202,7 @@ void releaseLingeringKeyboardHex(int hex)
 			}
 		}	
 	}
-	else
+	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOff(&fullKeyboard, hex);
 		dacSendKeyboard(InstrumentNil);

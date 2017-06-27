@@ -82,6 +82,9 @@ typedef enum MantaInstrumentType
 }MantaInstrumentType;
 	
 MantaInstrument currentInstrument; 
+
+int tunings[16];
+int currentTuning;
 	
 typedef struct _tMantaInstrument
 {
@@ -89,8 +92,12 @@ typedef struct _tMantaInstrument
 	tSequencer	sequencer;
 	tDirect		direct;
 	
+	
+	
 	MantaInstrumentType type;
 } tMantaInstrument;
+
+MantaInstrumentType takeoverType;
 
 tKeyboard fullKeyboard;
 tDirect fullDirect;
@@ -176,6 +183,8 @@ extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
+
+int defaultTuningMap[8];
 
 unsigned char tuningLoading;
 

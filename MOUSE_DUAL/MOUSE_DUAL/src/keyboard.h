@@ -42,7 +42,13 @@ typedef struct _tKeyboard
 	
 	MantaTuning tuning;
 	
+	int currentHexmap;
+
+	int hexmaps[8];
+	
 	signed int transpose;
+	
+	SequencerPatternType pattern;
 	
 } tKeyboard;
 

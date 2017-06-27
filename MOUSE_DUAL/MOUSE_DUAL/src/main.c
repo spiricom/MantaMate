@@ -66,6 +66,7 @@ static void initSPIbus(void);
 static void setDACSPI(spi_options_t spiOptions);
 static void setMemorySPI(spi_options_t spiOptions);
 
+int defaultTuningMap[8] = {0,1,2,3,4,5,6,7};
 
 //SPI options for the 16 and 12 bit DACs
 spi_options_t spiOptions16DAC =
@@ -357,6 +358,24 @@ static void tc2_irq(void)
 			
 		}
 	}
+	else if (takeoverType == DirectInstrument)
+	{
+		for (int i = 0; i < fullDirect.numOuts; i++)
+		{
+			DirectType type = fullDirect.outs[i].type;
+			if (type == DirectTrigger)
+			{
+				if (--(fullDirect.outs[i].trigCount) == 0)
+				{
+					sendDataToOutput(i, 0x000);
+				}
+			}
+			else if (type == DirectCV)
+			{
+				sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] * 16);
+			}
+		}	
+	}
 		
 }
 
@@ -416,7 +435,7 @@ static void tc3_irq(void)
 			
 		}
 	}
-	else // Takeover mode
+	else if (takeoverType == KeyboardInstrument) // Takeover mode
 	{
 		for (int i = 0; i < fullKeyboard.numVoices; i++)
 		{

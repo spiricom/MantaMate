@@ -44,7 +44,7 @@ void setSliderLEDsFor		(MantaInstrument, int note);
 void setKeyboardLEDsFor		(MantaInstrument, int note);
 void setOptionLEDs			(void);
 void setCompositionLEDs     (void);
-void setKeyboardConfigLEDs	(void);
+void setHexmapLEDs	(void);
 void setDirectOptionLEDs	(void);
 void setSequencerLEDsFor	(MantaInstrument);
 
@@ -182,6 +182,8 @@ typedef enum OptionType
 	OptionDuo,
 	OptionTrio,
 	OptionQuad,
+	OptionSixOut,
+	OptionTwelveOut,
 	OptionLeft,
 	OptionRight,
 	OptionNil
@@ -261,9 +263,11 @@ OptionType rightOptionMode[16] = {
 	
 };
 
+
+
 OptionType directOptionMode[16] = {
-	OptionNil,
-	OptionNil,
+	OptionSixOut,
+	OptionTwelveOut,
 	OptionNil,
 	OptionNil,
 	OptionNil,
@@ -691,7 +695,7 @@ void processHexTouch(void)
 void releaseLowerHexOptionMode(uint8_t hexagon)
 {
 	if (manta[currentInstrument].type == SequencerInstrument)	setCompositionLEDs();
-	else														setKeyboardConfigLEDs();
+	else														setHexmapLEDs();
 }
 
 void releaseLowerHex(uint8_t hexagon)
@@ -731,21 +735,37 @@ void clearSequencer(MantaInstrument inst)
 
 int first, last;
 
-void setKeyboardConfigLEDs	(void)
+void setHexmapLEDs	(void)
 {
-	for (int inst = 0; inst < 2; inst++)
+	if (!takeover)
 	{
-		if (manta[inst].type == KeyboardInstrument)
+		for (int inst = 0; inst < 2; inst++)
 		{
-			tKeyboard* keyboard = &manta[inst].keyboard;
-			
-			for (int i = 0; i < 4; i++)
+			if (manta[inst].type == KeyboardInstrument)
 			{
-				;
+				tKeyboard* keyboard = &manta[inst].keyboard;
+				
+				for (int i = 0; i < 8; i++)
+				{
+					manta_set_LED_hex(16*inst + i, (i == keyboard->currentHexmap) ? Red : Amber);
+				}
+				
+				manta_set_LED_hex(16*inst + 15, Red); // Edit hexmap mode
 			}
 		}
-		
 	}
+	else if (takeoverType == KeyboardInstrument)
+	{
+		tKeyboard* keyboard = &fullKeyboard;
+		
+		for (int i = 0; i < 8; i++)
+		{
+			manta_set_LED_hex(i, (i == keyboard->currentHexmap) ? Red : Amber);
+		}
+		
+		manta_set_LED_hex(15, Red); // Edit hexmap mode
+	}
+	
 	
 }
 
@@ -1387,6 +1407,17 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		initKeys(4);		
 	}
+	else if (whichOptionType == OptionSixOut)
+	{
+		tDirect_init(&manta[currentInstrument].direct, 12);
+	}
+	else if (whichOptionType == OptionTwelveOut)
+	{
+		takeover = TRUE;
+		takeoverType = DirectInstrument;
+		
+		tDirect_init(&fullDirect, 12);
+	}
 	else if (whichOptionType == OptionToggle)
 	{
 		playMode = ToggleMode;
@@ -1405,7 +1436,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	
 	setOptionLEDs();
 	setCompositionLEDs();
-	setKeyboardConfigLEDs();
+	setHexmapLEDs();
 	setDirectOptionLEDs();
 	
 	//set memory variables
@@ -1720,15 +1751,26 @@ void setKeyboardLEDs(void)
 
 void setDirectLEDs			(void)
 {
-	if (manta[currentInstrument].type == DirectInstrument)
+	if (!takeover)
 	{
-		tDirect* direct = &manta[currentInstrument].direct;
-		
-		for (int i = 0; i < direct->numOuts; i++)
+		if (manta[currentInstrument].type == DirectInstrument)
 		{
-			manta_set_LED_hex(direct->outs[i].hex, direct->outs[i].color);
+			tDirect* direct = &manta[currentInstrument].direct;
+			
+			for (int i = 0; i < direct->numOuts; i++)
+			{
+				manta_set_LED_hex(direct->outs[i].hex, direct->outs[i].color);
+			}
 		}
 	}
+	else if (takeoverType == DirectInstrument)
+	{
+		for (int i = 0; i < fullDirect.numOuts; i++)
+		{
+			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
+		}
+	}
+	
 }
 
 void setDirectOptionLEDs			(void)
@@ -1906,13 +1948,13 @@ void touchBottomLeftButton(void)
 	if (!takeover)
 	{
 		setCompositionLEDs();
-		setKeyboardConfigLEDs();
+		setHexmapLEDs();
 		setDirectOptionLEDs();
 
 	}
-	else
+	else if (takeoverType == KeyboardInstrument)
 	{
-		setKeyboardConfigLEDs();
+		setHexmapLEDs();
 	}
 
 	manta_set_LED_button(ButtonBottomLeft, Red);
@@ -1937,6 +1979,23 @@ void releaseBottomLeftButton(void)
 	manta_set_LED_button(ButtonBottomLeft, Off);
 }
 
+void setTuningLEDs(void)
+{
+
+	MantaInstrumentType type1 = manta[InstrumentOne].type;
+	MantaInstrumentType type2 = manta[InstrumentTwo].type;
+	
+	if (takeover || (type1 == SequencerInstrument) || (type1 == KeyboardInstrument) || (type2 == SequencerInstrument) || (type2 == KeyboardInstrument))
+	{
+		for (int i = 0; i < 32; i++)
+		{
+			manta_set_LED_hex(i, (i < 16) ? ((i == currentTuning) ? Red : Amber) : Off);
+		}
+	}
+
+	
+}
+
 // ~ ~ ~ ~ BOTTOM RIGHT BUTTON ~ ~ ~ ~ //
 void touchBottomRightButton(void)
 {
@@ -1952,6 +2011,8 @@ void touchBottomRightButton(void)
 		currentOptionMode = RightOptionMode;
 		
 		setOptionLEDs();
+		
+		setTuningLEDs();
 		
 		manta_set_LED_button(ButtonBottomRight, Amber);
 	}
@@ -2500,6 +2561,7 @@ void setOptionLEDs(void)
 {
 	
 	MantaInstrumentType type = manta[currentInstrument].type;
+	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
 	currentOptionMode =	(currentOptionMode == RightOptionMode) ? RightOptionMode :
 	(type == SequencerInstrument) ? SequencerOptionMode :
@@ -2558,8 +2620,6 @@ void setOptionLEDs(void)
 		}
 		else if (option == OptionFullSplit)
 		{
-			MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
-			
 			if ((type1 == SequencerInstrument || type1 == DirectInstrument) && (type2 == SequencerInstrument || type2 == DirectInstrument))
 				manta_set_LED_hex(hex, (full_vs_split == FullMode) ? Amber : Red);
 			else
@@ -2567,7 +2627,8 @@ void setOptionLEDs(void)
 		}
 		else if (option <= OptionPatternEight)
 		{
-			manta_set_LED_hex(hex, (option == sequencer->pattern) ? Red : Amber);	
+			manta_set_LED_hex(hex,	(type == SequencerInstrument) ? ((option == sequencer->pattern) ? Red : Amber) :
+									(type == KeyboardInstrument) ? ((option == keyboard->pattern) ? Red : Amber) : Off);	
 		}
 		else if (!takeover && option == OptionLeft)
 		{
@@ -2604,6 +2665,14 @@ void setOptionLEDs(void)
 		else if (option == OptionQuad)
 		{
 			manta_set_LED_hex(hex, (numVoices == 4) ? Red : Amber);
+		}
+		else if (option == OptionSixOut)
+		{
+			manta_set_LED_hex(hex, !takeover ? Red : Amber);
+		}
+		else if (option == OptionTwelveOut)
+		{
+			manta_set_LED_hex(hex, takeover ? Red : Amber);
 		}
 		else 
 		{
