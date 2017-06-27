@@ -2,7 +2,7 @@
  * keyboard.h
  *
  * Created: 6/19/2017 3:48:19 PM
- *  Author: Jeff Snyder
+ *  Author: Mike Mulshine
  */ 
 
 
@@ -11,6 +11,8 @@
 
 #include "utilities.h"
 
+#include "hex.h"
+
 #include "notestack.h"
 
 signed int whmap[48] ;
@@ -18,18 +20,6 @@ signed int whmap[48] ;
 signed int harmonicmap[48];
 
 signed int pianomap[48];
-
-
-typedef struct _tHex
-{
-	int hexmap;
-	int pitch;
-	BOOL active;
-	uint16_t weight;
-	
-} tHex;
-
-void tHex_init(tHex* const hex, int which);
 
 
 #define NUM_HEXES 48
@@ -63,7 +53,7 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
 
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
 
-void tKeyboard_setKeymap(tKeyboard* const keyboard, MantaMap map);
+void tKeyboard_setHexmap(tKeyboard* const keyboard, MantaMap map, signed int custom[48]);
 
 void tKeyboard_setTuning(tKeyboard* const keyboard, MantaTuning tuning);
 

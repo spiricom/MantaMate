@@ -168,6 +168,25 @@ const U8 test_pattern[] =  {
 	0x77,
 0x99};
 
+// Outputs 0 through 11 (counting left to right top down), expects 12 bit.
+void sendDataToOutput(int which, uint16_t data)
+{
+	
+	if (which == 0)			DAC16Send	(0, data * 16);
+	else if (which == 1)	dacsend		(0, 0, data);
+	else if (which == 2)	dacsend		(0, 1, data);
+	else if (which == 3)	DAC16Send	(1, data * 16);
+	else if (which == 4)	dacsend		(1, 0, data);
+	else if (which == 5)	dacsend		(1, 1, data);
+	else if (which == 6)	DAC16Send	(2, data * 16);
+	else if (which == 7)	dacsend		(2, 0, data);
+	else if (which == 8)	dacsend		(2, 1, data);
+	else if (which == 9)	DAC16Send	(3, data * 16);
+	else if (which == 10)	dacsend		(3, 0, data);
+	else if (which == 11)	dacsend		(3, 1, data);
+}
+
+
 /*! \brief Main function. Execution starts here.
  */
 int main(void){
@@ -209,10 +228,11 @@ int main(void){
 	
 	takeover = FALSE;
 	
-	currentInstrument = InstrumentOne;
 	//start off on preset 0;
 	preset_num = 0;
 	//delay_ms(600);
+	initTimers();
+	tc_start(tc2, TC2_CHANNEL);
 	updatePreset();
 	Write7Seg(0);
 	// The USB management is entirely managed by interrupts.
@@ -301,12 +321,42 @@ static void tc1_irq(void)
 	}
 }
 
+
+
 // SequencerTwo timer interrupt.
 __attribute__((__interrupt__))
 static void tc2_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	tc_read_sr(TC2, TC2_CHANNEL);
+	int sr = tc_read_sr(TC2, TC2_CHANNEL);
+	
+	if (!takeover) // Dual instrument, not takeover
+	{
+		for (int inst = 0; inst < 2; inst++)
+		{
+			tMantaInstrument* instrument = &manta[inst];
+			
+			if (instrument->type == DirectInstrument) // DirectInstrument
+			{
+				for (int i = 0; i < instrument->direct.numOuts; i++)
+				{
+					DirectType type = instrument->direct.outs[i].type;
+					if (type == DirectTrigger)
+					{
+						if (--(instrument->direct.outs[i].trigCount) == 0)
+						{
+							sendDataToOutput(6*inst+i, 0x000);
+						}
+					}
+					else if (type == DirectCV)
+					{
+						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] * 16);
+					}
+				}
+			}
+			
+		}
+	}
 		
 }
 
@@ -350,7 +400,7 @@ static void tc3_irq(void)
 					DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
 				}
 			}
-			else // KeyboardInstrument
+			else if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 			{
 				for (int i = 0; i < instrument->keyboard.numVoices; i++)
 				{
@@ -496,7 +546,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		// Counter disable when RC compare.
 		.cpcdis   = false,
 		// Counter clock stopped with RC compare.
-		.cpcstop  = true,
+		.cpcstop  = false,
 		// Burst signal selection.
 		.burst    = false,
 		// Clock inversion.
@@ -525,7 +575,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc(tc, TC2_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
+	tc_write_rc( tc, TC2_CHANNEL, 1000); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
 	
@@ -1020,6 +1070,8 @@ void updatePreset(void)
 		}
 
 	}
+	
+	setCurrentInstrument(InstrumentOne);
 }
 
 void updatePreferences(void)

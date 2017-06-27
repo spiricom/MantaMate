@@ -56,6 +56,7 @@
 
 #include "note_process.h"
 #include "sequencer_process.h"
+#include "direct.h"
 
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
@@ -86,11 +87,14 @@ typedef struct _tMantaInstrument
 {
 	tKeyboard	keyboard;
 	tSequencer	sequencer;
+	tDirect		direct;
 	
 	MantaInstrumentType type;
 } tMantaInstrument;
 
 tKeyboard fullKeyboard;
+tDirect fullDirect;
+
 
 BOOL takeover;
 	
@@ -126,20 +130,6 @@ volatile avr32_tc_t *tc3;
 #define CVTRIG2 2
 #define CVTRIG3 4
 #define CVTRIG4 5
-
-
-tRamp out00;
-tRamp out02;
-
-tRamp out10;
-tRamp out11;
-tRamp out12;
-tRamp out13;
-tRamp out20;
-
-tRamp out21;
-tRamp out22;
-tRamp out23;
 
 #define TIMERS 1
 
@@ -190,8 +180,9 @@ extern unsigned char blank7Seg;
 unsigned char tuningLoading;
 
 // UI
-void touchLowerHexKey(int hex, uint8_t weight);
-void releaseLowerHexKey(int hex);
+void touchKeyboardHex(int hex, uint8_t weight);
+void releaseKeyboardHex(int hex);
+void releaseLingeringKeyboardHex(int hex);
 void touchFunctionButtonKeys(MantaButton button);
 void releaseFunctionButtonKeys(MantaButton button);
 
@@ -215,6 +206,13 @@ void touchBottomLeftButton		(void);
 void releaseBottomLeftButton	(void);
 void touchBottomRightButton		(void);
 void releaseBottomRightButton	(void);
+
+void allUIStepsOff(MantaInstrument inst);
+void uiOff(void);
+
+void setCurrentInstrument(MantaInstrument inst);
+
+void sendDataToOutput(int which, uint16_t data);
 
 //set up the external interrupt for the gate input
 void setupEIC(void);

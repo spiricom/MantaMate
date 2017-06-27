@@ -79,6 +79,10 @@ typedef struct _tSequencer
 	int maxLength;
 	GlobalOptionType pitchOrTrigger;
 	
+	signed int transpose;
+	
+	int lastTouch;
+	
 } tSequencer;
 
 

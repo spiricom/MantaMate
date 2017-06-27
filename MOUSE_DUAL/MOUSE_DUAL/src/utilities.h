@@ -15,11 +15,29 @@
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
 
+typedef enum MantaLEDColor
+{
+	Off = 0,
+	Amber,
+	Red,
+	RedOff,
+	AmberOff,
+	AmberOn,
+	RedOn,
+	BothOn,
+	MantaLEDColorNil,
+	
+	
+}	MantaLEDColor;
+
+
+
 typedef enum MantaMap
 {
 	WickiHaydenMap,
 	HarmonicMap,
 	PianoMap,
+	MantaMapCustom,
 	MantaMapNil
 } MantaMap;
 
@@ -100,11 +118,12 @@ typedef enum MantaEditPlayMode {
 	MantaEditPlayModeNil
 }MantaEditPlayMode;
 
-typedef enum MantaPlaySubMode {
-	SeqMode = 0,
+typedef enum MantaPlayMode {
+	ToggleMode = 0,
 	ArpMode,
+	TouchMode,
 	MantaPlayModeNil,
-}MantaPlaySubMode;
+}MantaPlayMode;
 
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
@@ -223,7 +242,7 @@ MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
-MantaPlaySubMode playSubMode;
+MantaPlayMode playMode;
 
 BOOL shiftOption1;
 BOOL shiftOption2;

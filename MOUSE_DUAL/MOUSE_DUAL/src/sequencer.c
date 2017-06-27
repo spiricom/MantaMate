@@ -297,21 +297,21 @@ int tSequencer_getStepFromHex(tSequencer* const seq, uint8_t hex)
 void tSequencer_next(tSequencer* const seq)
 {
 	seq->stepGo = 1;
-	int step = -1;
+	int hex = -1;
 	
 	while (seq->notestack.size > 0)
 	{
 		if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
 		
-		step = tSequencer_getHexFromStep(seq, seq->phasor);
+		hex = tSequencer_getHexFromStep(seq, seq->phasor);
 		
-		if (seq->step[step].toggled == 1)
+		if (seq->step[hex].toggled == 1)
 		{
 			break;
 		}
 	}
 	
-	if (step < 0) 
+	if (hex < 0) 
 	{
 		seq->stepGo = 0;
 		seq->currentStep = 0;
@@ -319,7 +319,7 @@ void tSequencer_next(tSequencer* const seq)
 	else
 	{
 		seq->prevStep = seq->currentStep;
-		seq->currentStep = step;
+		seq->currentStep = hex;
 	}
 }
 
@@ -464,6 +464,8 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		seq->maxLength = 32;
 	}
 	
+	seq->lastTouch = 0;
+	seq->transpose = 0;
 	seq->currentStep = 0;
 	seq->prevStep = 0;
 	seq->lengthCounter = 0;

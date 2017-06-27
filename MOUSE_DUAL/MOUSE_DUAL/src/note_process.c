@@ -151,33 +151,26 @@ void initKeys(int numVoices)
 	resetMantaUI();
 }
 
-void touchLowerHexKey(int hex, uint8_t weight)
+void touchKeyboardHex(int hex, uint8_t weight)
 {
-	tKeyboard* keyboard;
-	
-	
 	if (!takeover)
 	{ 
 		if (manta[currentInstrument].type == KeyboardInstrument)
 		{
 			tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
 			dacSendKeyboard(currentInstrument);
-			manta_set_LED_hex(hex, Amber);
+			manta_set_LED_hex(hex, Off);
 		}
 	}
 	else 
 	{
 		tKeyboard_noteOn(&fullKeyboard, hex, weight);
 		dacSendKeyboard(InstrumentNil);
-		manta_set_LED_hex(hex, Amber);
+		manta_set_LED_hex(hex, Off);
 	}
-
-	
-
-	
 }
 
-void releaseLowerHexKey(int hex)
+void releaseKeyboardHex(int hex)
 {
 	if (!takeover)
 	{
@@ -185,14 +178,36 @@ void releaseLowerHexKey(int hex)
 		{
 			tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
 			dacSendKeyboard(currentInstrument);
-			manta_set_LED_hex(hex, Off);
+			manta_set_LED_hex(hex, manta[currentInstrument].keyboard.hexes[hex].color);
 		}
 	}
 	else
 	{
 		tKeyboard_noteOff(&fullKeyboard, hex);
 		dacSendKeyboard(InstrumentNil);
-		manta_set_LED_hex(hex, Off);
+		manta_set_LED_hex(hex, fullKeyboard.hexes[hex].color);
+	}
+}
+
+void releaseLingeringKeyboardHex(int hex)
+{
+	if (!takeover)
+	{
+		for (int i = 0; i < NUM_INST; i++)
+		{
+			if (manta[i].type == KeyboardInstrument)
+			{
+				tKeyboard_noteOff(&manta[i].keyboard, hex);
+				dacSendKeyboard(i);
+				//manta_set_LED_hex(hex, manta[i].keyboard.hexes[hex].color);
+			}
+		}	
+	}
+	else
+	{
+		tKeyboard_noteOff(&fullKeyboard, hex);
+		dacSendKeyboard(InstrumentNil);
+		//manta_set_LED_hex(hex, fullKeyboard.hexes[hex].color);
 	}
 }
 
@@ -264,8 +279,8 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			uint8_t mappedNote = applyNoteMap(keyboard->map, note);
-			tRampSetDest(&out[takeover ? (int)(i/2) : which][3*i+CVPITCH], lookupDACvalue(mappedNote, keyboard->transpose));
+			//uint8_t mappedNote = applyNoteMap(keyboard->map, note);
+			tRampSetDest(&out[takeover ? (int)(i/2) : which][3*i+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
 				
 			dacsend		(takeover ? i : (which*2), 0, 0xfff);
 		}

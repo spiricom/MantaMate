@@ -465,7 +465,13 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
 	}
-
+	else if (color == BothOn)
+	{
+		// turn on the amber light
+		uhi_manta_report[whichbyte] |= 1 << whichbit;
+		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
+		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
+	}
 	else if (color == Off)
 	{
 		//turn off the amber light

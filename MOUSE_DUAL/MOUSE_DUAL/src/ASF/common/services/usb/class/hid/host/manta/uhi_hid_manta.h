@@ -52,6 +52,8 @@
 #include "usb_protocol_hid.h"
 #include "uhi.h"
 
+#include "utilities.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,23 +84,6 @@ extern "C" {
 #define HOST_CONTROL_BUTTON 2
 #define HOST_CONTROL_SLIDER 3
 #define HOST_CONTROL_HEX_AND_BUTTON 4
-
-typedef enum MantaLEDColor 
-{
-	Off = 0,
-	Amber,
-	Red,
-	RedOff,
-	AmberOff,
-	AmberOn,
-	RedOn,
-	MantaLEDColorNil,
-	
-}	MantaLEDColor;
-
-
-
-
 
 
 //! Global define which contains standard UHI API for UHC

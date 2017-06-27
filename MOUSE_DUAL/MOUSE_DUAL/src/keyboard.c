@@ -17,35 +17,28 @@ signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,
 signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,\
 14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 
-void tHex_init(tHex* const hex, int which)
-{
-	hex->active = FALSE;
-	hex->weight = 0;
-	hex->pitch = which;
-}
-
-
-void tKeyboard_setKeymap(tKeyboard* const keyboard, MantaMap map)
+void tKeyboard_setHexmap(tKeyboard* const keyboard, MantaMap map, signed int custom[48])
 {
 	keyboard->map = map;
 	
-	signed int* keymap;
+	signed int* hexmap;
 	
-	if (map == HarmonicMap)			keymap = harmonicmap;
-	else if (map == PianoMap)		keymap = pianomap;
-	else if (map == WickiHaydenMap)	keymap = whmap;
+	if (map == HarmonicMap)			hexmap = harmonicmap;
+	else if (map == PianoMap)		hexmap = pianomap;
+	else if (map == WickiHaydenMap)	hexmap = whmap;
+	else if (map == MantaMapCustom)	hexmap = custom;
 	else if (map == MantaMapNil)
 	{
 		for (int i = 0; i < 48; i++)
 		{
-			keyboard->hexes[i].hexmap = i;
+			keyboard->hexes[i].mapped = i;
 		}
 		return;
 	}
 	
 	for (int i = 0; i < 48; i++)
 	{
-		keyboard->hexes[i].hexmap = keymap[i];
+		keyboard->hexes[i].mapped = hexmap[i];
 	}
 	
 }
@@ -84,6 +77,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	keyboard->numVoicesActive = numVoices;
 	keyboard->map = MantaMapNil;
 	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
 	
 	for (int i = 0; i < 4; i ++)
 	{
@@ -102,7 +96,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 {
 	// if not in keymap or already on stack, dont do anything. else, add that note.
-	if ((keyboard->hexes[note].hexmap < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
+	if ((keyboard->hexes[note].mapped < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
 	else
 	{
 		tNoteStack_add(&keyboard->stack, note);
@@ -140,7 +134,7 @@ int otherNote = 0;
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 {
 	// if not in keymap, return. else remove that note.
-	if (keyboard->hexes[note].hexmap < 0) return;
+	if (keyboard->hexes[note].mapped < 0) return;
 	else
 	{
 		tNoteStack_remove(&keyboard->stack, note);
