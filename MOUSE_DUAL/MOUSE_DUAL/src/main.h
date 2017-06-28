@@ -108,8 +108,7 @@ BOOL takeover;
 
 tMantaInstrument manta[NUM_INST];
 
-tRamp out[2][6];
-
+tIRamp out[2][6];
 
 uint8_t readData;
 

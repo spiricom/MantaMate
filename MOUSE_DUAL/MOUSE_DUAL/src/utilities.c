@@ -48,7 +48,7 @@ int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick) {
 
 #define ICOMPUTE_INC_LARGE() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) / 1000) * r->inv_sr_us)) : (r->inc = distance_to_travel)
 #define ICOMPUTE_INC_SMALL() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) * r->inv_sr_us) / 1000)) : (r->inc = distance_to_travel)
-#define ICOMPUTE_INC_VERY_SMALL() (r->time>0) ? (r->inc = ((((distance_to_travel * 1000) / r->time) * r->inv_sr_us) / 100000)) : (r->inc = distance_to_travel)
+#define ICOMPUTE_INC_VERY_SMALL() (r->time>0) ? (r->inc = ((((distance_to_travel * 1000) / r->time) * r->inv_sr_us) / 1000000)) : (r->inc = distance_to_travel)
 
 //I now assume that there are always 1 sample per tick
 int tIRampInit(tIRamp *r, int32_t sr, int32_t time) {

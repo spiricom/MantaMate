@@ -96,7 +96,7 @@ spi_options_t spiOptions12DAC =
 spi_options_t spiOptionsMemory =
 {
 	.reg          = 0,
-	.baudrate     = 2500000, // change back later 50000000
+	.baudrate     = 5000000, 
 	.bits         = 8,
 	.spck_delay   = 1,
 	.trans_delay  = 1,
@@ -187,6 +187,8 @@ void sendDataToOutput(int which, uint16_t data)
 	else if (which == 11)	dacsend		(3, 1, data);
 }
 
+int testVal = 0;
+int loopCounter = 0;
 
 /*! \brief Main function. Execution starts here.
  */
@@ -222,10 +224,9 @@ int main(void){
 	{
 		for (int j = 0; j < 6; j++)
 		{
-			tRampInit(&out[i][j], 2000, 0, 1);
+			tIRampInit(&out[i][j], 2000, 0);
 		}
 	}
-	
 	
 	takeover = FALSE;
 	
@@ -394,6 +395,7 @@ static void tc3_irq(void)
 	
 	if (!takeover) // Dual instrument, not takeover
 	{
+
 		for (int inst = 0; inst < 2; inst++)
 		{
 			tMantaInstrument* instrument = &manta[inst];
@@ -403,20 +405,20 @@ static void tc3_irq(void)
 				if (instrument->sequencer.pitchOrTrigger == PitchMode)
 				{
 					// Sequencer Pitch
-					DAC16Send(2*inst+0, tRampTick(&out[inst][CVPITCH]) * UINT16_MAX);
+					DAC16Send(2*inst+0, tIRampTick(&out[inst][CVPITCH]));
 
 					// Sequencer CV1-CV2
-					dacsend(2*inst+0, 1, tRampTick(&out[inst][CV1P]));
-					DAC16Send(2*inst+1,  tRampTick(&out[inst][CV2P]));
+					dacsend(2*inst+0, 1, tIRampTick(&out[inst][CV1P]));
+					DAC16Send(2*inst+1,  tIRampTick(&out[inst][CV2P]));
 					
 					// Sequencer CV3-CV4
-					dacsend(2*inst+1, 0, tRampTick(&out[inst][CV3P]));
-					dacsend(2*inst+1, 1, tRampTick(&out[inst][CV4P]));
+					dacsend(2*inst+1, 0, tIRampTick(&out[inst][CV3P]));
+					dacsend(2*inst+1, 1, tIRampTick(&out[inst][CV4P]));
 				}
 				else //TriggerMode
 				{
-					DAC16Send(2*inst+0, ((uint16_t)tRampTick(&out[inst][CV1T])) << 4);
-					DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
+					DAC16Send(2*inst+0, ((uint16_t)tIRampTick(&out[inst][CV1T])) << 4);
+					DAC16Send(2*inst+1, ((uint16_t)tIRampTick(&out[inst][CV2T])) << 4);
 				}
 			}
 			else if (instrument->type == KeyboardInstrument) // KeyboardInstrument
@@ -424,7 +426,7 @@ static void tc3_irq(void)
 				for (int i = 0; i < instrument->keyboard.numVoices; i++)
 				{
 					
-					DAC16Send	(i + 2*inst,    tRampTick(&out[inst][3*i+CVPITCH]));
+					DAC16Send	(i + 2*inst,    tIRampTick(&out[inst][3*i+CVPITCH]));
 					
 					// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 					
@@ -434,13 +436,14 @@ static void tc3_irq(void)
 			}
 			
 		}
+		
 	}
 	else if (takeoverType == KeyboardInstrument) // Takeover mode
 	{
 		for (int i = 0; i < fullKeyboard.numVoices; i++)
 		{
 			int inst = (int) i / 2;
-			DAC16Send	(i, tRampTick(&out[inst][3*i+CVPITCH]));
+			DAC16Send	(i, tIRampTick(&out[inst][3*i+CVPITCH]));
 			
 			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
 			

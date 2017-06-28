@@ -2716,30 +2716,30 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 	if (sequencer->step[step].note)
 	{
 		// Configure PitchGlide
-		tRamp* glide = &out[inst][CVPITCH];
+		tIRamp* glide = &out[inst][CVPITCH];
 		
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now
 		
-		tRampSetDest(glide, (float)get16BitPitch(inst,step) / UINT16_MAX); 
-		tRampSetTime(glide, glideTime);
+		tIRampSetDest(glide, get16BitPitch(inst,step)); 
+		tIRampSetTime(glide, glideTime);
 
 		// Configure CVGlide
 		glideTime =  sequencer->step[step].cvglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5  - could be zero now
 		
 
-		tRampSetTime(&out[inst][CV1P], glideTime);
-		tRampSetDest(&out[inst][CV1P], (float) sequencer->step[step].cv1);
+		tIRampSetTime(&out[inst][CV1P], glideTime);
+		tIRampSetDest(&out[inst][CV1P], (float) sequencer->step[step].cv1);
 		
-		tRampSetTime(&out[inst][CV2P], glideTime);
-		tRampSetDest(&out[inst][CV2P], (float) sequencer->step[step].cv2);
+		tIRampSetTime(&out[inst][CV2P], glideTime);
+		tIRampSetDest(&out[inst][CV2P], (float) sequencer->step[step].cv2);
 		
-		tRampSetTime(&out[inst][CV3P], glideTime);
-		tRampSetDest(&out[inst][CV3P], (float) sequencer->step[step].cv3);
+		tIRampSetTime(&out[inst][CV3P], glideTime);
+		tIRampSetDest(&out[inst][CV3P], (float) sequencer->step[step].cv3);
 		
-		tRampSetTime(&out[inst][CV4P], glideTime);
-		tRampSetDest(&out[inst][CV4P], (float) sequencer->step[step].cv4);
+		tIRampSetTime(&out[inst][CV4P], glideTime);
+		tIRampSetDest(&out[inst][CV4P], (float) sequencer->step[step].cv4);
 		
 		// Send Trigger
 		dacsend(2*inst,0,4095);
@@ -2756,11 +2756,11 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	if (glideTime < 5) glideTime = 5;
 	
 
-	tRampSetTime(&out[inst][CV1T], glideTime);
-	tRampSetDest(&out[inst][CV1T], (float) sequencer[inst].step[step].cv1);
+	tIRampSetTime(&out[inst][CV1T], glideTime);
+	tIRampSetDest(&out[inst][CV1T], (float) sequencer[inst].step[step].cv1);
 		
-	tRampSetTime(&out[inst][CV2T], glideTime);
-	tRampSetDest(&out[inst][CV2T], (float) sequencer[inst].step[step].cv2);
+	tIRampSetTime(&out[inst][CV2T], glideTime);
+	tIRampSetDest(&out[inst][CV2T], (float) sequencer[inst].step[step].cv2);
 
 	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
