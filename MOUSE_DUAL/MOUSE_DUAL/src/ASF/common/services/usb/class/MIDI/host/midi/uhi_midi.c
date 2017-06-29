@@ -616,19 +616,8 @@ iram_size_t uhi_midi_get_nb_received(void)
 	// Check available data
 	line = &(uhi_midi_dev.line_rx);
 	buf = &line->buffer[line->buf_sel];
-	/*
-	if (buf->pos == 0)
-	{
-		LED_On(LED1);
-	}
-	else
-	{
-		LED_Off(LED1);
-	}
-	*/
 
 	howMany = buf->nb - buf->pos;
-	//Write7Seg(howMany);
 	return (howMany);
 }
 
@@ -688,7 +677,6 @@ iram_size_t uhi_midi_read_buf(void* buf, iram_size_t size)
 		goto uhi_midi_read_buf_loop_wait;
 	}
 	*/
-	//Write7Seg(midi_buf->nb);
 	// Read data
 	//make a frozen copy of the number of bytes minus the position (this represents the number of bytes left to read)
 	copy_nb = midi_buf->nb - midi_buf->pos;

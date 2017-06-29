@@ -243,7 +243,6 @@ void continueStoringPresetToExternalMemory(void)
 		savePending = 0;	
 		LED_Off(PRESET_SAVE_LED);
 	}
-	//Write7Seg(pages_left_to_store);
 }
 
 
@@ -279,7 +278,6 @@ void continueStoringTuningToExternalMemory(void)
 		sendSysexSaveConfim(); //let the computer know that the save completed correctly
 		LED_Off(PRESET_SAVE_LED);
 	}
-	//Write7Seg(pages_left_to_store);
 }
 
 void initiateLoadingPresetFromExternalMemory(void)

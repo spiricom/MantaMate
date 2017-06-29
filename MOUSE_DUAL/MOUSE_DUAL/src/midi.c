@@ -42,10 +42,8 @@ uint16_t parseMIDI(uint16_t howManyNew)
 		{
 			endOfData = 1;
 		}
-		//Write7Seg(i);
 	}
 
-	//Write7Seg(i);
 	return i;
 }
 

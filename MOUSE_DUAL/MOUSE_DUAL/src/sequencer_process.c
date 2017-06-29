@@ -403,7 +403,7 @@ void blink(void)
 
 void initSequencer(void)
 {
-	Write7Seg(preset_num); // shouldn't have to do this here, but there's a bug that writes garbage to the 7Seg when plugging in a Manta, and this seems to fix it
+	//Write7Seg(preset_num); // shouldn't have to do this here, but there's a bug that writes garbage to the 7Seg when plugging in a Manta, and this seems to fix it
 	
 	
 	takeover = FALSE;
@@ -1235,8 +1235,7 @@ void allUIStepsOff(MantaInstrument inst)
 void uiOff(void)
 {
 	for (int i = 0; i < 48; i++)
-	{
-		
+	{	
 		manta_set_LED_hex(i ,Off);
 	}
 }
@@ -1806,6 +1805,7 @@ void touchTopLeftButton(void)
 		else if (shiftOption2)
 		{
 			sequencer->transpose -= 1;
+			indicateTransposition(sequencer->transpose);
 		}
 		else
 		{
@@ -1846,10 +1846,12 @@ void touchTopLeftButton(void)
 		if (shiftOption2)
 		{
 			keyboard->transpose -= 1;
+			indicateTransposition(keyboard->transpose);
 		}
 		else
 		{
 			keyboard->transpose -= 12;
+			indicateTransposition(keyboard->transpose);
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -1880,6 +1882,7 @@ void touchTopRightButton(void)
 		else if (shiftOption2)
 		{
 			sequencer->transpose += 1;
+			indicateTransposition(sequencer->transpose);
 		}
 		else
 		{
@@ -1913,10 +1916,12 @@ void touchTopRightButton(void)
 		if (shiftOption2)
 		{
 			keyboard->transpose += 1;
+			indicateTransposition(keyboard->transpose);
 		}
 		else
 		{
 			keyboard->transpose += 12;
+			indicateTransposition(keyboard->transpose);
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -1950,7 +1955,6 @@ void touchBottomLeftButton(void)
 		setCompositionLEDs();
 		setHexmapLEDs();
 		setDirectOptionLEDs();
-
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
@@ -2029,7 +2033,12 @@ void releaseBottomRightButton(void)
 	else				
 	{
 		shiftOption2 = FALSE;
-		
+		Write7Seg(normal_7seg_number);
+		transpose_indication_active = 0;
+		if (!savingActive)
+		{
+			LED_Off(PRESET_SAVE_LED);
+		}
 		setCurrentInstrument(currentInstrument);
 		
 		if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
@@ -3006,4 +3015,19 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 		memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
 	}
 	
+}
+
+
+void indicateTransposition(int number)
+{
+	Write7Seg(abs(number));
+	if (number < 0)
+	{
+		LED_On(PRESET_SAVE_LED); // this will double as the negative indicator for transpose
+	}
+	else
+	{
+		LED_Off(PRESET_SAVE_LED); // this will double as the negative indicator for transpose
+	}
+	transpose_indication_active = 1;
 }

@@ -36,5 +36,7 @@ void initializeStoringPresetToExternalMemory(void);
 void continueStoringPresetToExternalMemory(void);
 void retrievePresetFromExternalMemory(void);
 
+void indicateTransposition(int number);
+
 
 #endif /* SEQUENCER_PROCESS_H_ */

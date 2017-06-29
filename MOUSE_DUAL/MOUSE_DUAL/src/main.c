@@ -120,6 +120,8 @@ unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
+unsigned char transpose_indication_active = 0;
+unsigned char normal_7seg_number = 0;
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
@@ -213,8 +215,6 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
-	//tuningTest(1);
-	
 	loadTuning();
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
@@ -234,13 +234,14 @@ int main(void){
 	preset_num = 0;
 	//delay_ms(600);
 	initTimers();
-	tc_start(tc2, TC2_CHANNEL);
 	updatePreset();
 	Write7Seg(0);
+	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
 	while (true) {	
+
 		
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
 		if (savePending)
@@ -283,6 +284,7 @@ int main(void){
 		}
 		
 		sleepmgr_enter_sleep();
+		
 	}
 }
 
@@ -395,7 +397,6 @@ static void tc3_irq(void)
 	
 	if (!takeover) // Dual instrument, not takeover
 	{
-
 		for (int inst = 0; inst < 2; inst++)
 		{
 			tMantaInstrument* instrument = &manta[inst];
@@ -425,17 +426,14 @@ static void tc3_irq(void)
 			{
 				for (int i = 0; i < instrument->keyboard.numVoices; i++)
 				{
-					
-					DAC16Send	(i + 2*inst,    tIRampTick(&out[inst][3*i+CVPITCH]));
-					
-					// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-					
+					DAC16Send	(i + 2*inst,    tIRampTick(&out[inst][3*i+CVPITCH]));					
 					// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-					dacsend     (i + 2*inst, 1,  butt_states[instrument->keyboard.voices[i]] * 16);
+					dacsend     (i + 2*inst, 1,  butt_states[instrument->keyboard.voices[i]] * 16); // need to add ramp!!
 				}
 			}
 			
 		}
+		
 		
 	}
 	else if (takeoverType == KeyboardInstrument) // Takeover mode
@@ -445,10 +443,8 @@ static void tc3_irq(void)
 			int inst = (int) i / 2;
 			DAC16Send	(i, tIRampTick(&out[inst][3*i+CVPITCH]));
 			
-			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-			
 			// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-			dacsend     (i, 1,  butt_states[fullKeyboard.voices[i]] * 16);
+			dacsend     (i, 1,  butt_states[fullKeyboard.voices[i]] * 16);  //need to add ramp!!
 		}
 	}
 	
@@ -694,6 +690,10 @@ void initTimers (void)
 	tc1_init(tc1);
 	tc2_init(tc2);
 	tc3_init(tc3);
+	
+	tc_start(tc1, TC2_CHANNEL);
+	tc_start(tc2, TC2_CHANNEL);
+	tc_start(tc3, TC3_CHANNEL);
 
 }
 
@@ -760,9 +760,7 @@ static void int_handler_switches (void)
 }
 
 void USB_Mode_Switch_Check(void)
-{
-		int myTemp = gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
-		
+{	
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
 		{
 
@@ -826,6 +824,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			updatePreset();
 			Write7Seg(preset_num);
+			normal_7seg_number = preset_num;
 		}
 		//otherwise we are currently navigating to save a preset into a slot
 		else
@@ -857,6 +856,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			//should make it blink for extra clarity
 			Write7Seg(preset_to_save_num);
+			normal_7seg_number = preset_to_save_num;
 		}
 	}
 	
@@ -894,6 +894,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					loadTuning();
 			}
 			Write7Seg(tuning);
+			normal_7seg_number = tuning;
 		}
 	}
 	
@@ -926,6 +927,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 		Write7Seg(globalGlide);
+		normal_7seg_number = globalGlide;
 	}
 	
 	else if (preference_num == INTERNAL_CLOCK)
@@ -959,6 +961,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 			Write7Seg(clock_speed_displayed);
+			normal_7seg_number = clock_speed_displayed;
 		}
 		else if (clock_pref == CLOCK_DIVIDER)
 		{
@@ -988,6 +991,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+			normal_7seg_number = 200 + tempoDivider;
 		}
 		if (clock_speed_displayed > 0)
 		{
@@ -1043,12 +1047,14 @@ void Save_Switch_Check(void)
 				//switch to BPM pref
 				clock_pref = BPM;
 				Write7Seg(clock_speed_displayed);
+				normal_7seg_number = clock_speed_displayed;
 			}
 			else if (clock_pref == BPM)
 			{
 				//switch to Clock Divider pref
 				clock_pref = CLOCK_DIVIDER;
 				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = 200 + tempoDivider;
 			}
 		}
 	}
@@ -1105,6 +1111,7 @@ void updatePreferences(void)
 		LED_Off(RIGHT_POINT_LED);
 		LED_Off(PREFERENCES_LED);
 		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
 		break;
 		
 		case TUNING_SELECT:
@@ -1112,6 +1119,7 @@ void updatePreferences(void)
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(tuning);
+		normal_7seg_number = tuning;
 		break;
 		
 		case PORTAMENTO_TIME:
@@ -1119,6 +1127,7 @@ void updatePreferences(void)
 		LED_Off(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(globalGlide);
+		normal_7seg_number = globalGlide;
 		break;
 		
 		case INTERNAL_CLOCK:
@@ -1126,6 +1135,7 @@ void updatePreferences(void)
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(clock_speed_displayed);
+		normal_7seg_number = clock_speed_displayed;
 		break;
 	}
 }
@@ -1140,6 +1150,7 @@ void updateSave(void)
 		{
 			preset_to_save_num = 10;
 			Write7Seg(preset_to_save_num);
+			normal_7seg_number = preset_to_save_num;
 		}
 	}
 	else
@@ -1147,6 +1158,7 @@ void updateSave(void)
 		initiateStoringPresetToExternalMemory();
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
 	}
 }
 

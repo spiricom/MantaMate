@@ -110,6 +110,9 @@ tMantaInstrument manta[NUM_INST];
 
 tIRamp out[2][6];
 
+tIRamp testRampI;
+tRamp testRampF;
+
 uint8_t readData;
 
 uint8_t* readDataArray[256];
@@ -182,6 +185,8 @@ extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
+extern unsigned char transpose_indication_active;
+extern unsigned char normal_7seg_number;
 
 int defaultTuningMap[8];
 
