@@ -85,6 +85,7 @@ MantaInstrument currentInstrument;
 
 int tunings[16];
 int currentTuning;
+extern unsigned char globalGlide;
 	
 typedef struct _tMantaInstrument
 {
@@ -109,9 +110,6 @@ BOOL takeover;
 tMantaInstrument manta[NUM_INST];
 
 tIRamp out[2][6];
-
-tIRamp testRampI;
-tRamp testRampF;
 
 uint8_t readData;
 

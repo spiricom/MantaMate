@@ -6,6 +6,7 @@
  */ 
 
 #include "direct.h"
+#include "main.h"
 
 void tDirect_init(tDirect* const direct, int numOuts)
 {
@@ -72,7 +73,11 @@ void tDirect_setOutputType(tDirect* const direct, int output, DirectType type)
 	}
 	else if (type == DirectCV)
 	{
-		
+		tIRampSetTime(&out[currentInstrument][output], 10);
+	}
+	else 
+	{
+		tIRampSetTime(&out[currentInstrument][output], 0);
 	}
 									
 }

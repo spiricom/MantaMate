@@ -279,13 +279,14 @@ void dacSendKeyboard(MantaInstrument which)
 		if (note >= 0)
 		{
 			//uint8_t mappedNote = applyNoteMap(keyboard->map, note);
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][3*i+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
-				
-			dacsend		(takeover ? i : (which*2), 0, 0xfff);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
+			//tIRampSetDest(&out[0][1], 4096);
+			
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVTRIGGER], 4095);
 		}
 		else
 		{
-			dacsend		(takeover ? i : (which*2), 0, 0x000);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVTRIGGER], 0);
 		}
 
 	}

@@ -172,21 +172,21 @@ const U8 test_pattern[] =  {
 0x99};
 
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
+// I abstracted this one step away from the DAC to put ramps in there -JS
 void sendDataToOutput(int which, uint16_t data)
 {
-	
-	if (which == 0)			DAC16Send	(0, data * 16);
-	else if (which == 1)	dacsend		(0, 0, data);
-	else if (which == 2)	dacsend		(0, 1, data);
-	else if (which == 3)	DAC16Send	(1, data * 16);
-	else if (which == 4)	dacsend		(1, 0, data);
-	else if (which == 5)	dacsend		(1, 1, data);
-	else if (which == 6)	DAC16Send	(2, data * 16);
-	else if (which == 7)	dacsend		(2, 0, data);
-	else if (which == 8)	dacsend		(2, 1, data);
-	else if (which == 9)	DAC16Send	(3, data * 16);
-	else if (which == 10)	dacsend		(3, 0, data);
-	else if (which == 11)	dacsend		(3, 1, data);
+	if (which == 0)			tIRampSetDest(&out[0][0], data << 4);
+	else if (which == 1)	tIRampSetDest(&out[0][1], data);
+	else if (which == 2)	tIRampSetDest(&out[0][2], data);
+	else if (which == 3)	tIRampSetDest(&out[0][3], data << 4);
+	else if (which == 4)	tIRampSetDest(&out[0][4], data);
+	else if (which == 5)	tIRampSetDest(&out[0][5], data);
+	else if (which == 6)	tIRampSetDest(&out[1][0], data << 4);
+	else if (which == 7)	tIRampSetDest(&out[1][1], data);
+	else if (which == 8)	tIRampSetDest(&out[1][2], data);
+	else if (which == 9)	tIRampSetDest(&out[1][3], data << 4);
+	else if (which == 10)	tIRampSetDest(&out[1][4], data);
+	else if (which == 11)	tIRampSetDest(&out[1][5], data);
 }
 
 int testVal = 0;
@@ -220,11 +220,13 @@ int main(void){
 	USB_Mode_Switch_Check();
 	
 	int count = 0;
+	
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 6; j++)
 		{
 			tIRampInit(&out[i][j], 2000, 0);
+			tIRampSetDest(&out[i][j], 0);
 		}
 	}
 	
@@ -232,17 +234,17 @@ int main(void){
 	
 	//start off on preset 0;
 	preset_num = 0;
-	//delay_ms(600);
+	delay_ms(600);
 	initTimers();
 	updatePreset();
 	Write7Seg(0);
+	//I added this global variable - it's to allow minor functions to take over the 7-seg, then go back to whatever it is normally showing.
 	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
 	while (true) {	
 
-		
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
 		if (savePending)
 		{
@@ -274,12 +276,11 @@ int main(void){
 				continueLoadingTuningFromExternalMemory();
 			}
 		}
-		
 
 		if (new_manta_attached)
 		{
 			manta_LED_set_mode(HOST_CONTROL_FULL);
-			updatePreset();
+			//updatePreset();
 			new_manta_attached = false;
 		}
 		
@@ -298,30 +299,26 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
-	if (joystick_mode)
+	if (type_of_device_connected = MantaConnected)
 	{
-		return;
-	}
-	
-	for (int inst = 0; inst < 2; inst++)
-	{
-		tMantaInstrument* instrument = &manta[inst];
-		if (instrument->type == SequencerInstrument)
+		for (int inst = 0; inst < 2; inst++)
 		{
-			if (instrument->sequencer.pitchOrTrigger == PitchMode)
+			tMantaInstrument* instrument = &manta[inst];
+			if (instrument->type == SequencerInstrument)
 			{
-				dacsend(2*inst, 0, 0);
-			}
-			else // TriggerMode
-			{
-				// Set 4 trigger outputs low
-				dacsend(2*inst+0, 0, 0);
-				dacsend(2*inst+1, 0, 0);
-				dacsend(2*inst+0, 1, 0);
-				dacsend(2*inst+1, 1, 0);
+				if (instrument->sequencer.pitchOrTrigger == PitchMode)
+				{
+					tIRampSetDest(&out[inst][CVTRIGGER], 0);
+				}
+				else // TriggerMode
+				{
+					tIRampSetDest(&out[inst][CVTRIG1], 0);
+					tIRampSetDest(&out[inst][CVTRIG2], 0);
+					tIRampSetDest(&out[inst][CVTRIG3], 0);
+					tIRampSetDest(&out[inst][CVTRIG4], 0);
+				}
 			}
 		}
-		
 	}
 }
 
@@ -354,7 +351,7 @@ static void tc2_irq(void)
 					}
 					else if (type == DirectCV)
 					{
-						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] * 16);
+						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] << 4);
 					}
 				}
 			}
@@ -375,7 +372,7 @@ static void tc2_irq(void)
 			}
 			else if (type == DirectCV)
 			{
-				sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] * 16);
+				sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] << 4);
 			}
 		}	
 	}
@@ -390,63 +387,49 @@ static void tc3_irq(void)
 
 	int sr = tc_read_sr(TC3, TC3_CHANNEL);
 
-	if (joystick_mode)
-	{
-		return;
-	}
-	
+
 	if (!takeover) // Dual instrument, not takeover
 	{
 		for (int inst = 0; inst < 2; inst++)
 		{
 			tMantaInstrument* instrument = &manta[inst];
-			
-			if (instrument->type == SequencerInstrument)
-			{
-				if (instrument->sequencer.pitchOrTrigger == PitchMode)
-				{
-					// Sequencer Pitch
-					DAC16Send(2*inst+0, tIRampTick(&out[inst][CVPITCH]));
-
-					// Sequencer CV1-CV2
-					dacsend(2*inst+0, 1, tIRampTick(&out[inst][CV1P]));
-					DAC16Send(2*inst+1,  tIRampTick(&out[inst][CV2P]));
-					
-					// Sequencer CV3-CV4
-					dacsend(2*inst+1, 0, tIRampTick(&out[inst][CV3P]));
-					dacsend(2*inst+1, 1, tIRampTick(&out[inst][CV4P]));
-				}
-				else //TriggerMode
-				{
-					DAC16Send(2*inst+0, ((uint16_t)tIRampTick(&out[inst][CV1T])) << 4);
-					DAC16Send(2*inst+1, ((uint16_t)tIRampTick(&out[inst][CV2T])) << 4);
-				}
-			}
-			else if (instrument->type == KeyboardInstrument) // KeyboardInstrument
+	
+			if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 			{
 				for (int i = 0; i < instrument->keyboard.numVoices; i++)
 				{
-					DAC16Send	(i + 2*inst,    tIRampTick(&out[inst][3*i+CVPITCH]));					
-					// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-					dacsend     (i + 2*inst, 1,  butt_states[instrument->keyboard.voices[i]] * 16); // need to add ramp!!
+					tIRampSetTime (&out[inst][i*3 + CV1], 10);
+					tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
 				}
 			}
-			
+		
 		}
-		
-		
+	
+	
 	}
 	else if (takeoverType == KeyboardInstrument) // Takeover mode
 	{
 		for (int i = 0; i < fullKeyboard.numVoices; i++)
 		{
-			int inst = (int) i / 2;
-			DAC16Send	(i, tIRampTick(&out[inst][3*i+CVPITCH]));
-			
-			// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-			dacsend     (i, 1,  butt_states[fullKeyboard.voices[i]] * 16);  //need to add ramp!!
+			int inst = (i / 2);
+			tIRampSetTime (&out[inst][i*3 + CV1], 10);
+			tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
 		}
 	}
+		
+	
+	DAC16Send	(0, tIRampTick(&out[0][0]));
+	dacsend     (0, 0,  tIRampTick(&out[0][1])); 
+	dacsend     (0, 1,  tIRampTick(&out[0][2]));  
+	DAC16Send	(1, tIRampTick(&out[0][3]));
+	dacsend     (1, 0,  tIRampTick(&out[0][4]));
+	dacsend     (1, 1,  tIRampTick(&out[0][5]));
+	DAC16Send	(2, tIRampTick(&out[1][0]));
+	dacsend     (2, 0,  tIRampTick(&out[1][1]));
+	dacsend     (2, 1,  tIRampTick(&out[1][2]));
+	DAC16Send	(3, tIRampTick(&out[1][3]));
+	dacsend     (3, 0,  tIRampTick(&out[1][4]));
+	dacsend     (3, 1,  tIRampTick(&out[1][5]));
 	
 }
 
@@ -691,7 +674,7 @@ void initTimers (void)
 	tc2_init(tc2);
 	tc3_init(tc3);
 	
-	tc_start(tc1, TC2_CHANNEL);
+	//tc_start(tc1, TC2_CHANNEL);
 	tc_start(tc2, TC2_CHANNEL);
 	tc_start(tc3, TC3_CHANNEL);
 
@@ -1393,43 +1376,6 @@ static void initSPIbus(void)
 	gpio_enable_module(DAC_SPI_GPIO_MAP,
 	sizeof(DAC_SPI_GPIO_MAP) / sizeof(DAC_SPI_GPIO_MAP[0]));
 }
-
-int i = 0;
-uint16_t testvoltage = 0;
-uint16_t testvoltage16 = 0;
-
-void testLoop(void)
- {
-	while(1)
-	{
-		testvoltage16 = 65530;
-		//cpu_delay_ms(1,64000000);//5
-		for(i=0; i<4; i++)
-		{
-			dacsend(i,1,testvoltage);
-			dacsend(i,0,(4096 - testvoltage));
-			DAC16Send(i,testvoltage16);
-		}
-		testvoltage++;
-		//testvoltage16++;
-		
-		if (testvoltage > 2095)
-		{
-			LED_Off(LED5);
-		}
-		if (testvoltage > 4095)
-		{
-			testvoltage = 0;
-			LED_On(LED5);
-		}
-		if (testvoltage16 > 65534)
-		{
-			testvoltage16 = 0;
-		}
-		
-	}
-}
-
 
 void setupEIC(void)
 {

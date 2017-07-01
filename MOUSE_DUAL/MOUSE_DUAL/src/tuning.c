@@ -14,7 +14,7 @@ uint32_t scaledOctaveDACvalue = 655350;
 
 
 //declaring this as const means it will go in the internal flash memory instead of the internal SRAM (where normal arrays go). Means it will fit, but also that we can't alter it, and it's slightly slower to access.
-const uint32_t factoryTunings[99][50] = 
+const uint32_t factoryTunings[100][50] = 
 								{
 								{12, 0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000}, //12tet
 								{12, 0, 11100, 20300, 31600, 38600, 49800, 55100, 70200, 81300, 88400, 96800, 108800}, //overtone just
