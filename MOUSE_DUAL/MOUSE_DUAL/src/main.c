@@ -299,27 +299,8 @@ static void tc1_irq(void)
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
 	
-	if (type_of_device_connected = MantaConnected)
-	{
-		for (int inst = 0; inst < 2; inst++)
-		{
-			tMantaInstrument* instrument = &manta[inst];
-			if (instrument->type == SequencerInstrument)
-			{
-				if (instrument->sequencer.pitchOrTrigger == PitchMode)
-				{
-					tIRampSetDest(&out[inst][CVTRIGGER], 0);
-				}
-				else // TriggerMode
-				{
-					tIRampSetDest(&out[inst][CVTRIG1], 0);
-					tIRampSetDest(&out[inst][CVTRIG2], 0);
-					tIRampSetDest(&out[inst][CVTRIG3], 0);
-					tIRampSetDest(&out[inst][CVTRIG4], 0);
-				}
-			}
-		}
-	}
+	//this is now free to be the internal metronome clock
+	
 }
 
 
@@ -358,7 +339,7 @@ static void tc2_irq(void)
 					}
 				}
 			}
-			if (instrument->type == KeyboardInstrument) // DirectInstrument
+			else if (instrument->type == KeyboardInstrument) // DirectInstrument
 			{
 				if (instrument->keyboard.numVoices == 1)
 				{
@@ -369,8 +350,50 @@ static void tc2_irq(void)
 							tIRampSetDest(&out[inst][CVKTRIGGER], 0);
 						}
 					}
-					
-					
+				}
+			}
+			else if (instrument->type == SequencerInstrument)
+			{
+				if (instrument->sequencer.pitchOrTrigger == PitchMode)
+				{
+					if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->sequencer.trigCount[0]) == 0)
+						{
+							tIRampSetDest(&out[inst][CVTRIGGER], 0);
+						}
+					}
+				}
+				else //otherwise we're in trigger mode
+				{
+					if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->sequencer.trigCount[1]) == 0)
+						{
+							tIRampSetDest(&out[inst][CVTRIG1], 0);
+						}
+					}
+					if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->sequencer.trigCount[2]) == 0)
+						{
+							tIRampSetDest(&out[inst][CVTRIG2], 0);
+						}
+					}
+					if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->sequencer.trigCount[3]) == 0)
+						{
+							tIRampSetDest(&out[inst][CVTRIG3], 0);
+						}
+					}
+					if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->sequencer.trigCount[4]) == 0)
+						{
+							tIRampSetDest(&out[inst][CVTRIG4], 0);
+						}
+					}
 				}
 			}
 			
@@ -693,7 +716,7 @@ void initTimers (void)
 	tc2_init(tc2);
 	tc3_init(tc3);
 	
-	//tc_start(tc1, TC2_CHANNEL);
+	tc_start(tc1, TC1_CHANNEL);
 	tc_start(tc2, TC2_CHANNEL);
 	tc_start(tc3, TC3_CHANNEL);
 

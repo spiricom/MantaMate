@@ -7,50 +7,11 @@
 
 #include "utilities.h"
 
-#define COMPUTE_INC() (r->time>0) ? (r->inc = ((r->dest-r->curr)/r->time * r->inv_sr_ms)*((float)r->samples_per_tick)) : (r->inc = (r->dest-r->curr))
-
-int tRampSetTime(tRamp *r, float time) {
-	r->time = time;
-	COMPUTE_INC();
-	return 0;
-}
-
-int tRampSetDest(tRamp *r, float dest) {
-	r->dest = dest;
-	COMPUTE_INC();
-	return 0;
-}
-
-float tRampTick(tRamp *r) {
-	
-	r->curr += r->inc;
-	
-	if (((r->curr >= r->dest) && (r->inc > 0.0f)) || ((r->curr <= r->dest) && (r->inc < 0.0f))) 
-	{
-		r->inc = 0.0f;
-		r->curr = r->dest;
-	}	
-		
-
-	return r->curr;
-}
-
-int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick) {
-	r->inv_sr_ms = 1.0f/(sr*0.001f);
-	r->curr = 0.0f;
-	r->dest = 0.0f;
-	r->time = time;
-	r->samples_per_tick = samples_per_tick;
-	COMPUTE_INC();
-	return 0;
-}
-
-
 #define ICOMPUTE_INC_LARGE() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) / 1000) * r->inv_sr_us)) : (r->inc = distance_to_travel)
 #define ICOMPUTE_INC_SMALL() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) * r->inv_sr_us) / 1000)) : (r->inc = distance_to_travel)
 #define ICOMPUTE_INC_VERY_SMALL() (r->time>0) ? (r->inc = ((((distance_to_travel * 1000) / r->time) * r->inv_sr_us) / 1000000)) : (r->inc = distance_to_travel)
 
-//I now assume that there are always 1 sample per tick
+//I now assume that there is always 1 sample per tick
 int tIRampInit(tIRamp *r, int32_t sr, int32_t time) {
 	r->inv_sr_us = 1000000/sr; //should give how many microseconds per tick
 	r->curr = 0;

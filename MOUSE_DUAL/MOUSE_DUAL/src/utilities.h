@@ -251,24 +251,6 @@ GlobalOptionType full_vs_split;
 
 GlobalOptionType seq1PvT, seq2PvT;
 
-
-/* Ramp */
-typedef struct _tRamp {
-	float inc;
-	float inv_sr_ms;
-	float curr,dest;
-	uint16_t time;
-	int samples_per_tick;
-
-} tRamp;
-
-float tRampTick(tRamp *r);
-int tRampSetTime(tRamp *r, float time);
-int tRampSetDest(tRamp *r, float dest);
-int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
-
-
-
 /* Integer version of Ramp */
 typedef struct _tIRamp {
 	int32_t inc;

@@ -2079,7 +2079,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 		else // SliderTwo
 		{
-			setParameterForEditStackSteps(currentInstrument, CV2, val << 4);
+			setParameterForEditStackSteps(currentInstrument, CV2, val);
 		}
 		
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
@@ -2144,7 +2144,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); 
+				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(currentInstrument, currStep));
 			}
 		}
 		else //SliderTwo
@@ -2742,20 +2742,21 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5  - could be zero now but that would likely cause clicks
 
 		tIRampSetTime(&out[inst][CV1P], glideTime);
-		tIRampSetDest(&out[inst][CV1P], (float) sequencer->step[step].cv1);
+		tIRampSetDest(&out[inst][CV1P], sequencer->step[step].cv1);
 		
 		tIRampSetTime(&out[inst][CV2P], glideTime);
-		tIRampSetDest(&out[inst][CV2P], (float) sequencer->step[step].cv2);
+		tIRampSetDest(&out[inst][CV2P], sequencer->step[step].cv2 << 4);
 		
 		tIRampSetTime(&out[inst][CV3P], glideTime);
-		tIRampSetDest(&out[inst][CV3P], (float) sequencer->step[step].cv3);
+		tIRampSetDest(&out[inst][CV3P], sequencer->step[step].cv3);
 		
 		tIRampSetTime(&out[inst][CV4P], glideTime);
-		tIRampSetDest(&out[inst][CV4P], (float) sequencer->step[step].cv4);
+		tIRampSetDest(&out[inst][CV4P], sequencer->step[step].cv4);
 		
 		// Send Trigger
 		tIRampSetTime(&out[inst][CV4P],0);
 		tIRampSetDest(&out[inst][CVTRIGGER], 4095);
+		sequencer->trigCount[0] = 3; //start counting down for the trigger to turn off
 	}
 }
 
@@ -2767,20 +2768,22 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	// Configure CVGlide
 	uint16_t glideTime =  sequencer->step[step].cvglide >> 3;
 	if (glideTime < 5) glideTime = 5;
-	
 
 	tIRampSetTime(&out[inst][CV1T], glideTime);
-	tIRampSetDest(&out[inst][CV1T], (float) sequencer[inst].step[step].cv1);
+	tIRampSetDest(&out[inst][CV1T], sequencer[inst].step[step].cv1 << 4);
 		
 	tIRampSetTime(&out[inst][CV2T], glideTime);
-	tIRampSetDest(&out[inst][CV2T], (float) sequencer[inst].step[step].cv2);
+	tIRampSetDest(&out[inst][CV2T], sequencer[inst].step[step].cv2 << 4);
 
-	#define CVTRIG1 1
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	tIRampSetDest(&out[inst][CVTRIG1],4095);
-	tIRampSetDest(&out[inst][CVTRIG2],4095);
-	tIRampSetDest(&out[inst][CVTRIG3],4095);
-	tIRampSetDest(&out[inst][CVTRIG4],4095);
+	tIRampSetDest(&out[inst][CVTRIG1],sequencer[inst].step[step].on[0] * 4095);
+	sequencer[inst].trigCount[1] = sequencer[inst].step[step].on[0] * 3;
+	tIRampSetDest(&out[inst][CVTRIG2],sequencer[inst].step[step].on[1] * 4095);
+	sequencer[inst].trigCount[2] = sequencer[inst].step[step].on[1] * 3;
+	tIRampSetDest(&out[inst][CVTRIG3],sequencer[inst].step[step].on[2] * 4095);
+	sequencer[inst].trigCount[3] = sequencer[inst].step[step].on[2] * 3;
+	tIRampSetDest(&out[inst][CVTRIG4],sequencer[inst].step[step].on[3] * 4095);
+	sequencer[inst].trigCount[4] = sequencer[inst].step[step].on[3] * 3;
 }
 
 // UTILITIES
