@@ -267,6 +267,8 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 	}
 }
 
+int prevSentPitch = -1;
+
 void dacSendKeyboard(MantaInstrument which)
 {
 	tKeyboard* keyboard;
@@ -286,11 +288,20 @@ void dacSendKeyboard(MantaInstrument which)
 		{
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKTRIGGER], 65535);
+			//if we are in mono mode, then we have room for a trigger output, too
+			if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].mapped + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+			{
+				tIRampSetDest(&out[which][CVKTRIGGER], 65535);
+				keyboard->trigCount = 3;
+			}
+			//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+			prevSentPitch = keyboard->hexes[note].mapped + keyboard->transpose;
 		}
 		else
 		{
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
+			//let the monophonic trigger handling know there has been a note-off event
+			prevSentPitch = -1;
 		}
 	}
 }

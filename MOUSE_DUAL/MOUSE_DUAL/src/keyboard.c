@@ -78,6 +78,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	keyboard->map = MantaMapNil;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
+	keyboard->trigCount = 0;
 	
 	for (int i = 0; i < 4; i ++)
 	{
@@ -88,6 +89,8 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	{
 		tHex_init(&keyboard->hexes[i], i);
 	}
+	
+
 	
 	tNoteStack_init(&keyboard->stack, 48);
 }

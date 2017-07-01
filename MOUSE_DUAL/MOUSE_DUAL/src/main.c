@@ -344,15 +344,33 @@ static void tc2_irq(void)
 					DirectType type = instrument->direct.outs[i].type;
 					if (type == DirectTrigger)
 					{
-						if (--(instrument->direct.outs[i].trigCount) == 0)
+						if (instrument->direct.outs[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 						{
-							sendDataToOutput(6*inst+i, 0x000);
+							if (--(instrument->direct.outs[i].trigCount) == 0)
+							{
+								sendDataToOutput(6*inst+i, 0x000);
+							}
 						}
 					}
 					else if (type == DirectCV)
 					{
 						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] << 4);
 					}
+				}
+			}
+			if (instrument->type == KeyboardInstrument) // DirectInstrument
+			{
+				if (instrument->keyboard.numVoices == 1)
+				{
+					if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					{
+						if (--(instrument->keyboard.trigCount) == 0)
+						{
+							tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+						}
+					}
+					
+					
 				}
 			}
 			

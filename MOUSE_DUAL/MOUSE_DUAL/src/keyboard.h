@@ -50,6 +50,8 @@ typedef struct _tKeyboard
 	
 	SequencerPatternType pattern;
 	
+	int trigCount;
+	
 } tKeyboard;
 
 void tKeyboard_init(tKeyboard* const keyboard, int numVoices);
