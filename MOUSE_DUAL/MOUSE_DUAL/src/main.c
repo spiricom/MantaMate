@@ -543,11 +543,10 @@ static void tc1_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc(tc, TC1_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
+	//now set to tick every .5ms, like timer 3
+	tc_write_rc(tc, TC1_CHANNEL, 2000); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
-
-	
 }
 
 static void tc2_init(volatile avr32_tc_t *tc)
