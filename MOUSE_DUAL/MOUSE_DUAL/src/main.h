@@ -129,6 +129,12 @@ volatile avr32_tc_t *tc3;
 #define CV3P 4
 #define CV4P 5
 
+#define CVKPITCH 0
+#define CVKGATE 1
+#define CVKTRIGGER 3
+#define CVKSLIDEROFFSET 1
+
+
 #define CVMAX 2
 
 #define CV1T  0

@@ -247,10 +247,26 @@ void releaseFunctionButtonKeys(MantaButton button)
 
 void processSliderKeys(uint8_t sliderNum, uint16_t val)
 {
-	// DO THIS
+	if (manta[currentInstrument].type != KeyboardInstrument) return;
+	tKeyboard* keyboard;
+	if (takeover || (currentInstrument == InstrumentNil))
+	{
+		keyboard = &fullKeyboard;
+	}
+	else
+	{
+		keyboard = &manta[currentInstrument].keyboard;
+	}
+	if (keyboard->numVoices < 4)
+	{
+		int whichGroup = (keyboard->numVoices * 3) / 6;
+		int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+			
+		tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+		tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+	}
 }
 
-// reads the current state and sets output voltages, leds and 7 seg display
 void dacSendKeyboard(MantaInstrument which)
 {
 	tKeyboard* keyboard;
@@ -263,47 +279,18 @@ void dacSendKeyboard(MantaInstrument which)
 	{
 		keyboard = &manta[which].keyboard;
 	}
-	
-
 	for (int i = 0; i < keyboard->numVoices; i++)
 	{
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVTRIGGER], 4095);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKTRIGGER], 65535);
 		}
 		else
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVTRIGGER], 0);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
 		}
-
 	}
-
-}
-
-
-void tuningTest(uint8_t oct)
-{
-	while(1)
-	{
-		
-		DAC16Send(0, lookupDACvalue(oct, 0));
-		DAC16Send(1, lookupDACvalue(oct, 0));
-		DAC16Send(2, lookupDACvalue(oct, 0));
-		DAC16Send(3, lookupDACvalue(oct, 0));
-		dacsend(0,1,0xfff);
-		dacsend(1,1,0xfff);
-		dacsend(2,1,0xfff);
-		dacsend(3,1,0xfff);
-		oct++;
-		if (oct >= 127)
-		{
-			oct = 0;
-		}
-		delay_ms(100);
-		
-	}
-
-	
 }

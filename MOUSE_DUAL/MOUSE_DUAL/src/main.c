@@ -365,9 +365,12 @@ static void tc2_irq(void)
 			DirectType type = fullDirect.outs[i].type;
 			if (type == DirectTrigger)
 			{
-				if (--(fullDirect.outs[i].trigCount) == 0)
+				if (fullDirect.outs[i].trigCount > 0)
 				{
-					sendDataToOutput(i, 0x000);
+					if (--(fullDirect.outs[i].trigCount) == 0)
+					{
+						sendDataToOutput(i, 0x000);
+					}
 				}
 			}
 			else if (type == DirectCV)
@@ -404,8 +407,6 @@ static void tc3_irq(void)
 			}
 		
 		}
-	
-	
 	}
 	else if (takeoverType == KeyboardInstrument) // Takeover mode
 	{

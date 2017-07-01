@@ -31,7 +31,5 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 
 void noteOut(void);
 
-void tuningTest(uint8_t whichOct);
-
 
 #endif /* NOTE_PROCESS_H_ */
