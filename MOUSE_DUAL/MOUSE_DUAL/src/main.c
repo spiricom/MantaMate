@@ -412,8 +412,8 @@ static void tc3_irq(void)
 		for (int i = 0; i < fullKeyboard.numVoices; i++)
 		{
 			int inst = (i / 2);
-			tIRampSetTime (&out[inst][i*3 + CV1], 10);
-			tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+			tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
+			tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
 		}
 	}
 		

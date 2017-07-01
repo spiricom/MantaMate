@@ -28,7 +28,6 @@ void dacSendKeyboard(MantaInstrument);
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
 
 void controlChange(uint8_t ctrlNum, uint8_t val);
-void programChange(uint8_t programNum);
 
 void noteOut(void);
 

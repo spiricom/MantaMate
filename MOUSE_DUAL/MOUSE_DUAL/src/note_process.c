@@ -101,14 +101,6 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 	}
 }
 
-
-uint8_t programNum;
-
-void programChange(uint8_t num)
-{
-	programNum = num;
-}
-
 void resetMantaUI(void)
 {
 	for (int i = 0; i < 48; i++) manta_set_LED_hex(i, Off);
@@ -278,15 +270,12 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			//uint8_t mappedNote = applyNoteMap(keyboard->map, note);
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
-			//tIRampSetDest(&out[0][1], 4096);
-			
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVTRIGGER], 4095);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVTRIGGER], 4095);
 		}
 		else
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][(3*i)+CVTRIGGER], 0);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVTRIGGER], 0);
 		}
 
 	}
