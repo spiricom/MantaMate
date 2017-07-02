@@ -582,6 +582,12 @@
     <Compile Include="src\ASF\common\services\usb\class\hid\host\keyboard\uhi_hid_keyboard.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\no_device.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\no_device.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\direct.c">
       <SubType>compile</SubType>
     </Compile>

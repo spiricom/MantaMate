@@ -61,6 +61,7 @@
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
 #include "ui.h"
+#include "no_device.h"
 
 
 typedef enum MantaMateDeviceType

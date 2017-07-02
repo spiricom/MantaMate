@@ -781,7 +781,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	hence RC = (fPBA / 8) / 1000
 	* to get an interrupt every 10 ms.
 	*/
-	tc_write_rc( tc, TC3_CHANNEL, 2000); // approximately .5 ms
+	tc_write_rc( tc, TC3_CHANNEL, 2000); // 2000 = approximately .5 ms
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
@@ -1277,8 +1277,16 @@ void updateSave(void)
 
 void clockHappened(void)
 {
-	if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
-	if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
+	if (type_of_device_connected == MantaConnected)
+	{
+		if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
+		if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
+	}
+	
+	if (type_of_device_connected == NoDeviceConnected)
+	{
+		no_device_gate_in();
+	}
 	
 	if (type_of_device_connected == MIDIComputerConnected)
 	{
