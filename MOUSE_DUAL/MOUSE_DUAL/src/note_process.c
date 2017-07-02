@@ -130,7 +130,6 @@ void initKeys(int numVoices)
 	}
 
 	initTimers(); // Still configuring all three from sequencer, but only using t3.
-	tc_start(tc3, TC3_CHANNEL);
 	
 	for(int i=0; i<4; i++)
 	{

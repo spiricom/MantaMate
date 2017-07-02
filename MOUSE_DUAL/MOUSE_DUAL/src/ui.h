@@ -147,10 +147,6 @@ extern bool ui_midi_plug;
 extern uint8_t my_buf[128];
 extern uint8_t mySendBuf[64];
 
-extern uint32_t upHeld;
-extern uint32_t downHeld;
-extern uint32_t holdTimeThresh;
-
 /*! \brief Called when communication port is opened
  */
 void ui_midi_open(uint8_t port);
@@ -194,7 +190,7 @@ void ui_my_midi_send(void);
  */
 void USB_frame_action(uint16_t framenumber);
 
-void ui_ext_gate_in(void);
+void midi_ext_gate_in(void);
 
 
 

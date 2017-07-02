@@ -406,9 +406,7 @@ void initSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	shiftOption1 =				FALSE;
 	shiftOption2 =				FALSE;
-	playMode =				ToggleMode; manta_set_LED_button(ButtonBottomRight, Off);
-	
-	tNoteStack_init(&editStack,		32);
+	playMode =					ToggleMode; 
 	
 	resetEditStack();
 	
@@ -454,7 +452,6 @@ void initSequencer(void)
 	
 	setKeyboardLEDsFor(currentInstrument, -1);
 
-	tc_start(tc3, TC3_CHANNEL);
 	manta_send_LED();
 
 }
@@ -489,10 +486,6 @@ void sequencerStep(MantaInstrument inst)
 			{
 				dacSendTriggerMode(inst, curr);
 			}
-
-			// Start sequencer 1 and 2 timers: tc1, tc2.
-			// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
-			tc_start(tc1, TC1_CHANNEL);
 		}
 		sequencer->lengthCounter = 0;
 	}
@@ -515,8 +508,6 @@ void jumpToStep(MantaInstrument inst, int step)
 	{
 		dacSendTriggerMode(inst, step);
 	}
-	
-	tc_start(tc1, TC1_CHANNEL);
 
 }
 

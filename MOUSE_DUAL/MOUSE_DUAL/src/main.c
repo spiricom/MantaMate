@@ -280,7 +280,7 @@ int main(void){
 		if (new_manta_attached)
 		{
 			manta_LED_set_mode(HOST_CONTROL_FULL);
-			//updatePreset();
+			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
 		}
 		
@@ -289,8 +289,14 @@ int main(void){
 	}
 }
 
-
-U8 data_received[PATTERN_TEST_LENGTH];
+uint32_t upHeld = 0;
+uint32_t downHeld = 0;
+uint32_t holdTimeThresh = 8;
+static uint32_t clockFrameCounter = 0;
+static uint32_t buttonFrameCounter = 0;
+static uint32_t buttonHoldSpeed = 120;
+static uint32_t blink7SegCounter = 0;
+static uint32_t blinkSpeed7Seg = 500;
 
 // SequencerOne timer interrupt.
 __attribute__((__interrupt__))
@@ -298,9 +304,6 @@ static void tc1_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	tc_read_sr(TC1, TC1_CHANNEL);
-	
-	//this is now free to be the internal metronome clock
-	
 }
 
 
@@ -311,6 +314,92 @@ static void tc2_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 	int sr = tc_read_sr(TC2, TC2_CHANNEL);
+	
+	//TC2 is now also the internal metronome clock, the up/down button held sensing, and the 7seg blinker
+	
+	//step the internal clock
+	if (clock_speed != 0)
+	{
+		if (clockFrameCounter >= clock_speed)
+		{
+			clockHappened();
+			clockFrameCounter = 0;
+		}
+		clockFrameCounter++;
+	}
+
+
+	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
+	if (upSwitch())
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			upHeld++;
+			if (upHeld > holdTimeThresh)
+			{
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(1);
+			}
+			buttonFrameCounter = 0;
+		}
+	}
+	else
+	{
+		if (upHeld > 0)
+		{
+			suspendRetrieve = 0;
+			Preset_Switch_Check(1);
+		}
+		upHeld = 0;
+	}
+	
+	if (downSwitch())
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			downHeld++;
+			if (downHeld > holdTimeThresh)
+			{
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(0);
+			}
+			buttonFrameCounter = 0;
+		}
+
+	}
+	else
+	{
+		if (downHeld > 0)
+		{
+			suspendRetrieve = 0;
+			Preset_Switch_Check(0);
+		}
+		downHeld = 0;
+	}
+	
+	blink7SegCounter++;
+	
+	if (blink7SegCounter >= blinkSpeed7Seg)
+	{
+		blink7SegCounter = 0;
+		
+		if (savingActive)
+		{
+			blank7Seg = !blank7Seg;
+			Write7Seg(number_for_7Seg);
+		}
+		else
+		{
+			blank7Seg = 0;
+			Write7Seg(number_for_7Seg);
+		}
+	}
+	
+	
+	
+	
 	
 	if (!takeover) // Dual instrument, not takeover
 	{
@@ -520,7 +609,7 @@ static void tc1_init(volatile avr32_tc_t *tc)
 		// Clock inversion.
 		.clki     = false,
 		// Internal source clock 3, connected to fPBA / 8.
-		.tcclks   = TC_CLOCK_SOURCE_TC3
+		.tcclks   = TC_CLOCK_SOURCE_TC1
 	};
 
 	// Options for enabling TC interrupts
@@ -544,7 +633,7 @@ static void tc1_init(volatile avr32_tc_t *tc)
 		* to get an interrupt every 10 ms.
 		*/
 	//now set to tick every .5ms, like timer 3
-	tc_write_rc(tc, TC1_CHANNEL, 2000); // was 1000
+	tc_write_rc(tc, TC1_CHANNEL, 1000); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
 }
@@ -617,7 +706,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc( tc, TC2_CHANNEL, 1000); // was 1000
+	tc_write_rc( tc, TC2_CHANNEL, 2000); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
 	
@@ -702,20 +791,20 @@ static void tc3_init(volatile avr32_tc_t *tc)
 void initTimers (void)
 {
 	
-	tc1 = TC1;
+	//tc1 = TC1;
 	tc2 = TC2;
 	tc3 = TC3;
 	
 	// Enable the clock to the selected example Timer/counter peripheral module.
-	sysclk_enable_peripheral_clock(TC1);
+	//sysclk_enable_peripheral_clock(TC1);
 	sysclk_enable_peripheral_clock(TC2);
 	sysclk_enable_peripheral_clock(TC3);
 	
-	tc1_init(tc1);
+	//tc1_init(tc1);
 	tc2_init(tc2);
 	tc3_init(tc3);
 	
-	tc_start(tc1, TC1_CHANNEL);
+	//tc_start(tc1, TC1_CHANNEL);
 	tc_start(tc2, TC2_CHANNEL);
 	tc_start(tc3, TC3_CHANNEL);
 
@@ -1019,7 +1108,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		if (clock_speed_displayed > 0)
 		{
-			clock_speed = (480000 / (clock_speed_displayed + 60)) / (1 << tempoDivider);
+			clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so.
 		}
 		else
 		{
@@ -1193,7 +1282,7 @@ void clockHappened(void)
 	
 	if (type_of_device_connected == MIDIComputerConnected)
 	{
-		ui_ext_gate_in();
+		midi_ext_gate_in();
 	}
 }
 

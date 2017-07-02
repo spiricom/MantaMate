@@ -379,17 +379,6 @@ void uhi_hid_manta_sof(bool b_micro)
 		blinkCount = 0;
 		blink();
 	}
-
-	if (clock_speed != 0)
-	{
-		if (USB_frame_counter >= clock_speed) {
-			clockHappened();
-			USB_frame_counter = 0;
-		}
-		USB_frame_counter++;
-	}
-	
-		
 }
 
 //for when you want to update the LED modes or LED states

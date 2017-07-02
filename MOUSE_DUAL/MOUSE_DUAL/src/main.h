@@ -192,6 +192,11 @@ extern unsigned char blank7Seg;
 extern unsigned char transpose_indication_active;
 extern unsigned char normal_7seg_number;
 
+extern uint32_t upHeld;
+extern uint32_t downHeld;
+extern uint32_t holdTimeThresh;
+
+
 int defaultTuningMap[8];
 
 unsigned char tuningLoading;
