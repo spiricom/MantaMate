@@ -1177,31 +1177,33 @@ void Save_Switch_Check(void)
 
 void updatePreset(void)
 {
-	
-	switch (preset_num)
+	if (type_of_device_connected == MantaConnected)
 	{
-		case 0:
-		initSequencer();
-		break;
-		
-		case 1:
-		initKeys(1);
-		break;
-		
-		case 2:
-		initKeys(2);
-		break;
-		
-		case 3:
-		initKeys(3);
-		break;
-		
-		case 4:
-		initKeys(4);
-		break;
-		
-		default: 
-		break;	 
+		switch (preset_num)
+		{
+			case 0:
+			initSequencer();
+			break;
+			
+			case 1:
+			initKeys(1);
+			break;
+			
+			case 2:
+			initKeys(2);
+			break;
+			
+			case 3:
+			initKeys(3);
+			break;
+			
+			case 4:
+			initKeys(4);
+			break;
+			
+			default:
+			break;
+		}
 	}
 	if (preset_num >= 10)
 	{

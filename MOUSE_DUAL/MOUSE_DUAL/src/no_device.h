@@ -11,7 +11,10 @@
 
 #include "main.h"
 
-void no_device_gate_in(void);
+#define TWELVE_BIT_DIV (RAND_MAX / 4096)
+#define SIXTEEN_BIT_DIV (RAND_MAX / 65535)
 
+void no_device_gate_in(void);
+uint8_t coinToss(void);
 
 #endif /*  NO_DEVICE_H_ */
