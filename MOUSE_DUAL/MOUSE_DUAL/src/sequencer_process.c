@@ -509,6 +509,7 @@ void jumpToStep(MantaInstrument inst, int step)
 		dacSendTriggerMode(inst, step);
 	}
 
+
 }
 
 MantaButton lastFunctionButton;

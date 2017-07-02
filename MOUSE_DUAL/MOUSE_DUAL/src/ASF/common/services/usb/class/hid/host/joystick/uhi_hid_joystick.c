@@ -72,41 +72,7 @@
  * \name Index in HID report for usual HID mouse events
  * @{
  */
-#define MAX_BUTTS		8
 
-#define UHI_HID_MOUSE_MOV_SCROLL 3
-
-#define GENERIC_DESKTOP		1
-#define SIMULATION			2
-#define KEYBOARD			6
-#define BUTTON				9
-
-#define USAGEX 0x30
-#define USAGEY 0x31
-#define HAT_SWITCH 0x39
-#define THROTTLE 0xBB
-#define Rz 0x35
-#define SLIDER 0x36
-
-uint8_t UHI_HID_JOY_MOV_X;
-uint8_t UHI_HID_JOY_MOV_Y;
-uint8_t X_SIZE;
-uint8_t Y_SIZE;
-uint8_t UHI_HID_JOY_BUTT[MAX_BUTTS];
-uint8_t NUM_BUTTS[MAX_BUTTS];
-uint8_t BUTT_SIZE[MAX_BUTTS];
-uint8_t UHI_HID_JOY_HAT;
-uint8_t HAT_SIZE;
-uint8_t UHI_HID_JOY_SLIDER;
-uint8_t SLIDER_SIZE;
-uint8_t UHI_HID_JOY_THROTTLE;
-uint8_t THROTTLE_SIZE;
-uint8_t UHI_HID_JOY_Rz; //joystick twistiness-ness
-uint8_t Rz_SIZE;
-uint8_t X_LOGICAL_MAX_BITS;
-uint8_t Y_LOGICAL_MAX_BITS;
-uint8_t Rz_LOGICAL_MAX_BITS;
-uint8_t SLIDER_LOGICAL_MAX_BITS;
 
 uint8_t UHI_HID_KEYBOARD_DATA;
 uint8_t UHI_HID_KEYBOARD_DATA_SIZE;
@@ -209,6 +175,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				// USB HID Joystick interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
+				clearJoystick(myJoystick);
 			}
 			else {
 				// Stop allocation endpoint(s)
@@ -286,10 +253,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 }
 
 // called after uhi_hid_joy_install has run checks and after space has been allocated
-// but wtf is it actually doing?
 // this appears to step through the report, allocating space in hid_report_parser.reportDesc
-// but it also seems to be overwritten with each iteration, so it seems like nothing is kept? 
-// confused.
 static void get_report_descriptor()
 {
 	usb_setup_req_t req;
@@ -363,35 +327,34 @@ static void ResetParser(void)
 	memset(hid_report_parser.offset_tab,0,sizeof(hid_report_parser.offset_tab));
 	memset(&hid_report_parser.data,0,sizeof(hid_report_parser.data));
 	
-	memset(&NUM_BUTTS,0,sizeof(NUM_BUTTS));
+	//memset(&NUM_BUTTS,0,sizeof(NUM_BUTTS));
 }
-
-//hid_data pData[16]; //random large number - idk it seems very hex :D
-uint8_t ibutt = 0;
 
 static void findDataOffset(void)
 {
 	uint8_t offset = hid_report_parser.data.offset;
-	switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].u_page) //changed from size-1 because we only look at the first usage now
+	switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].u_page)
 	{
 		case GENERIC_DESKTOP:
 			switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].usage)
 			{
-				case USAGEX:
-					UHI_HID_JOY_MOV_X = offset;
-					X_SIZE = hid_report_parser.data.size;
-					X_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
+				case USAGE_X: case USAGE_Y: case USAGE_Z: case USAGE_RX: case USAGE_RY: case USAGE_RZ: case USAGE_HAT_SWITCH: case USAGE_SLIDER: case USAGE_DIAL: case USAGE_WHEEL:
+					myJoystick.joyAxes[myJoystick.numJoyAxis].offset = offset;
+					if (hid_report_parser.data.size == 1)
+					{
+						myJoystick.joyAxes[myJoystick.numJoyAxis].size = 8;
+						myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = 8;
+					}
+					else
+					{
+						myJoystick.joyAxes[myJoystick.numJoyAxis].size = hid_report_parser.data.size;
+						myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = find_highest_bit(hid_report_parser.data.log_max);
+					}
+					
+					myJoystick.numJoyAxis++;
 					break;
-				case USAGEY:
-					UHI_HID_JOY_MOV_Y = offset;
-					Y_SIZE = hid_report_parser.data.size;
-					Y_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
-					break;
-				case HAT_SWITCH:
-					UHI_HID_JOY_HAT = offset;
-					HAT_SIZE = hid_report_parser.data.size;
-					break;
-				case SLIDER:
+				
+					/*   this is the code to default to 8 bits if it doesn't actually report the size
 					UHI_HID_JOY_SLIDER = offset;
 					SLIDER_SIZE = hid_report_parser.data.size;
 					//fixes problem where data size defaults to 1 if not defined, we think that 8 bits must be defaults
@@ -403,13 +366,7 @@ static void findDataOffset(void)
 					{
 						SLIDER_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
 					}
-					
-					break;
-				case Rz:
-					UHI_HID_JOY_Rz = offset;
-					Rz_SIZE = hid_report_parser.data.size;
-					Rz_LOGICAL_MAX_BITS = find_highest_bit(hid_report_parser.data.log_max);
-					break;
+					*/
 					
 				case KEYBOARD:
 					//would be nice to figure out how to parse this
@@ -423,20 +380,28 @@ static void findDataOffset(void)
 		case SIMULATION:
 			switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].usage)
 			{
-				case THROTTLE:
-					UHI_HID_JOY_THROTTLE = offset;
-					THROTTLE_SIZE = hid_report_parser.data.size;
+				case USAGE_THROTTLE:
+					myJoystick.joyAxes[myJoystick.numJoyAxis].offset = offset;
+					myJoystick.joyAxes[myJoystick.numJoyAxis].size = hid_report_parser.data.size;
+					myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = find_highest_bit(hid_report_parser.data.log_max);
+					myJoystick.numJoyAxis++;
 					break;
 				default:
 					break;
 			}
 		case BUTTON:
+			myJoystick.joyButtons[myJoystick.numJoyButton].offset = offset;
+			myJoystick.joyButtons[myJoystick.numJoyButton].count = hid_report_parser.report_count;
+			myJoystick.joyButtons[myJoystick.numJoyButton].size =  hid_report_parser.data.size;
+			myJoystick.numJoyButton++;
+			/*
 			if(NUM_BUTTS[ibutt] == 0 && hid_report_parser.report_count == hid_report_parser.count)
 			{
 				UHI_HID_JOY_BUTT[ibutt] = offset;
 				NUM_BUTTS[ibutt] = hid_report_parser.report_count;
 				BUTT_SIZE[ibutt++] = hid_report_parser.data.size;
 			}
+			*/
 			break;
 			
 
@@ -446,8 +411,6 @@ static void findDataOffset(void)
 }
 
 
-// i think this is where the descriptor is parsed. 
-// perhaps this will illuminate the earlier functions
 
 static void parse_report_descriptor(usb_add_t add,  uhd_trans_status_t status,
 	uint16_t nb_transfered)
@@ -667,7 +630,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	free(uhi_hid_joy_dev.DescType);
 	free(uhi_hid_joy_dev.DescSize);
 	free(hid_report_parser.reportDesc);
-	ibutt = 0;
+	clearJoystick(myJoystick);
 	UHI_HID_JOY_CHANGE(dev, false);
 	type_of_device_connected = NoDeviceConnected;
 	joystick_mode = false;
@@ -701,7 +664,6 @@ void keyboard_hack_grab(void) {
 	uint8_t possible_keys[2][12] = {{0x58,0x63,0x62, 0x59, 0x5c,0x5f, 0x60, 0x61, 0x5d, 0x5e, 0x5a, 0x5b},{0,0,0,0,0,0,0,0,0,0,0}};
 	
 	
-	//this totally sucks - I need to instead keep a stack of currently held notes, since right now it writes over bytes that are held as it iterates through.  dumbiedumbs
 	for (int i = 0; i < 5; i++)
 	{
 		for (int j = 0; j < 12; j++)
@@ -860,19 +822,7 @@ static void uhi_hid_joy_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered)
 {
-	uint16_t butt_prev;
-	uint16_t butt_new;
-	uint16_t slider_prev;
-	uint16_t slider_new;
-	uint16_t hat_prev;
-	uint16_t hat_new;
-	uint16_t Rz_prev;
-	uint16_t Rz_new;
-	uint16_t x_prev;
-	uint16_t x_new;
-	uint16_t y_prev;
-	uint16_t y_new;
-	uint8_t i = 0, b;
+
 	
 	UNUSED(ep);
 
@@ -891,18 +841,12 @@ static void uhi_hid_joy_report_reception(
 	}
 	else
 	{
-		// Decode buttons
-		butt_prev = uhi_hid_joy_dev.report_butt_prev;
-		slider_prev = uhi_hid_joy_dev.report_slider_prev;
-		hat_prev = uhi_hid_joy_dev.report_hat_prev;
-		Rz_prev = uhi_hid_joy_dev.report_Rz_prev;
-		x_prev = uhi_hid_joy_dev.report_x_prev;
-		y_prev = uhi_hid_joy_dev.report_y_prev;
-	
-		butt_new = 0;
-		i = 0;
-		int n_total_buttons = 0;
-	
+		for (int i = 0; i < myJoystick.numJoyAxis; i++)
+		{
+			uint16_t tempValue = ((shift(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (12-myJoystick.joyAxes[i].logical_max_bits));
+			sendDataToOutput(i,tempValue);
+		}
+		/*
 		// This combines all the "banks" of buttons into a single series of bits
 		// button 1 is the lowest bit 
 		for(b=0; b < ibutt; b++)
@@ -963,42 +907,36 @@ static void uhi_hid_joy_report_reception(
 				n_butts_mapped_so_far++;
 			}
 		}
-	
+		
 		// unused for now
 		if(hat_prev != hat_new) {
 			uhi_hid_joy_dev.report_hat_prev = hat_new;
 		}
-	
+	*/
 	}
 	// start the next transfer. this looks like it starts some crazy loop,
 	// but it follows the example code given by atmel
 	uhi_hid_joy_start_trans_report(add);
 }
 
-static int loop_counter = 0;
-static void display_joystick_sizes(void)
+
+
+void clearJoystick(tJoystick theJoystick)
 {
-	switch((loop_counter / 100) % 5)
+	for (int i = 0; i < MAX_BUTTONS; i++)
 	{
-		case 0:
-			Write7Seg(UHI_HID_JOY_MOV_X);
-			break;
-		case 1:
-			Write7Seg(UHI_HID_JOY_MOV_Y);
-			break;
-		case 2:
-			Write7Seg(UHI_HID_JOY_HAT);
-			break;
-		case 3:
-			Write7Seg(UHI_HID_JOY_Rz);
-			break;
-		case 4: 
-			Write7Seg(UHI_HID_JOY_SLIDER);
-			break;
-		default:
-			Write7Seg(99);
+		 theJoystick.joyButtons[i].count = 0;
+		 theJoystick.joyButtons[i].offset = 0;
+		 theJoystick.joyButtons[i].size = 0;
 	}
-	loop_counter++;
+	for (int i = 0; i < MAX_AXES; i++)
+	{
+		theJoystick.joyAxes[i].offset = 0;
+		theJoystick.joyAxes[i].size = 0;
+		theJoystick.joyAxes[i].logical_max_bits = 0;
+	}
+	theJoystick.numJoyButton = 0;
+	theJoystick.numJoyAxis = 0;
 }
 
 //@}

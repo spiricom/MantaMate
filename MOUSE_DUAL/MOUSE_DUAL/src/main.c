@@ -397,117 +397,135 @@ static void tc2_irq(void)
 		}
 	}
 	
-	
-	
-	
-	
-	if (!takeover) // Dual instrument, not takeover
+	if (type_of_device_connected == JoystickConnected)
 	{
-		for (int inst = 0; inst < 2; inst++)
+		return;
+	}
+	
+	else if (type_of_device_connected == NoDeviceConnected)
+	{
+		for (int i = 0; i < 12; i++)
 		{
-			tMantaInstrument* instrument = &manta[inst];
-			
-			if (instrument->type == DirectInstrument) // DirectInstrument
+			if (noDeviceTrigCount[i] > 0)
 			{
-				for (int i = 0; i < instrument->direct.numOuts; i++)
+				if (--(noDeviceTrigCount[i]) == 0)
 				{
-					DirectType type = instrument->direct.outs[i].type;
-					if (type == DirectTrigger)
+					sendDataToOutput(i, 0x000);
+				}
+			}
+		}
+	}
+	else
+	{
+		if (!takeover) // Dual instrument, not takeover
+		{
+			for (int inst = 0; inst < 2; inst++)
+			{
+				tMantaInstrument* instrument = &manta[inst];
+			
+				if (instrument->type == DirectInstrument) // DirectInstrument
+				{
+					for (int i = 0; i < instrument->direct.numOuts; i++)
 					{
-						if (instrument->direct.outs[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						DirectType type = instrument->direct.outs[i].type;
+						if (type == DirectTrigger)
 						{
-							if (--(instrument->direct.outs[i].trigCount) == 0)
+							if (instrument->direct.outs[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 							{
-								sendDataToOutput(6*inst+i, 0x000);
+								if (--(instrument->direct.outs[i].trigCount) == 0)
+								{
+									sendDataToOutput(6*inst+i, 0x000);
+								}
+							}
+						}
+						else if (type == DirectCV)
+						{
+							sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] << 4);
+						}
+					}
+				}
+				else if (instrument->type == KeyboardInstrument) // DirectInstrument
+				{
+					if (instrument->keyboard.numVoices == 1)
+					{
+						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->keyboard.trigCount) == 0)
+							{
+								tIRampSetDest(&out[inst][CVKTRIGGER], 0);
 							}
 						}
 					}
-					else if (type == DirectCV)
-					{
-						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] << 4);
-					}
 				}
-			}
-			else if (instrument->type == KeyboardInstrument) // DirectInstrument
-			{
-				if (instrument->keyboard.numVoices == 1)
+				else if (instrument->type == SequencerInstrument)
 				{
-					if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+					if (instrument->sequencer.pitchOrTrigger == PitchMode)
 					{
-						if (--(instrument->keyboard.trigCount) == 0)
+						if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 						{
-							tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+							if (--(instrument->sequencer.trigCount[0]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIGGER], 0);
+							}
+						}
+					}
+					else //otherwise we're in trigger mode
+					{
+						if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[1]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG1], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[2]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG2], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[3]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG3], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[4]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG4], 0);
+							}
 						}
 					}
 				}
-			}
-			else if (instrument->type == SequencerInstrument)
-			{
-				if (instrument->sequencer.pitchOrTrigger == PitchMode)
-				{
-					if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-					{
-						if (--(instrument->sequencer.trigCount[0]) == 0)
-						{
-							tIRampSetDest(&out[inst][CVTRIGGER], 0);
-						}
-					}
-				}
-				else //otherwise we're in trigger mode
-				{
-					if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-					{
-						if (--(instrument->sequencer.trigCount[1]) == 0)
-						{
-							tIRampSetDest(&out[inst][CVTRIG1], 0);
-						}
-					}
-					if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-					{
-						if (--(instrument->sequencer.trigCount[2]) == 0)
-						{
-							tIRampSetDest(&out[inst][CVTRIG2], 0);
-						}
-					}
-					if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-					{
-						if (--(instrument->sequencer.trigCount[3]) == 0)
-						{
-							tIRampSetDest(&out[inst][CVTRIG3], 0);
-						}
-					}
-					if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-					{
-						if (--(instrument->sequencer.trigCount[4]) == 0)
-						{
-							tIRampSetDest(&out[inst][CVTRIG4], 0);
-						}
-					}
-				}
-			}
 			
+			}
 		}
-	}
-	else if (takeoverType == DirectInstrument)
-	{
-		for (int i = 0; i < fullDirect.numOuts; i++)
+		else if (takeoverType == DirectInstrument)
 		{
-			DirectType type = fullDirect.outs[i].type;
-			if (type == DirectTrigger)
+			for (int i = 0; i < fullDirect.numOuts; i++)
 			{
-				if (fullDirect.outs[i].trigCount > 0)
+				DirectType type = fullDirect.outs[i].type;
+				if (type == DirectTrigger)
 				{
-					if (--(fullDirect.outs[i].trigCount) == 0)
+					if (fullDirect.outs[i].trigCount > 0)
 					{
-						sendDataToOutput(i, 0x000);
+						if (--(fullDirect.outs[i].trigCount) == 0)
+						{
+							sendDataToOutput(i, 0x000);
+						}
 					}
 				}
-			}
-			else if (type == DirectCV)
-			{
-				sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] << 4);
-			}
-		}	
+				else if (type == DirectCV)
+				{
+					sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] << 4);
+				}
+			}	
+		}
+	
 	}
 		
 }
