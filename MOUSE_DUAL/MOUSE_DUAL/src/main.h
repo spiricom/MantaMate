@@ -235,7 +235,7 @@ void uiOff(void);
 
 void setCurrentInstrument(MantaInstrument inst);
 
-void sendDataToOutput(int which, uint16_t data);
+void sendDataToOutput(int which, int ramp, uint16_t data);
 
 //set up the external interrupt for the gate input
 void setupEIC(void);

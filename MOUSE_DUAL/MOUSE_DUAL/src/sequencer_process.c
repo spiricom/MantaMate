@@ -523,7 +523,7 @@ void releaseDirectHex(int hex)
 	
 	if (direct->outs[output].type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0x000);
+		sendDataToOutput(6*currentInstrument + output, 0, 0x000);
 	}
 	
 }
@@ -538,13 +538,13 @@ void touchDirectHex(int hex)
 	
 	if (type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
 	}
 	else if (type == DirectTrigger)
 	{
 		// set output high then start timer
 		direct->outs[output].trigCount = 2;
-		sendDataToOutput(6*currentInstrument + output, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
 	}
 }
 

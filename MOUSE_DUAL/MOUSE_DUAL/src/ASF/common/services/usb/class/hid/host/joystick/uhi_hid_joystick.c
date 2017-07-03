@@ -79,6 +79,7 @@ uint8_t UHI_HID_KEYBOARD_DATA_SIZE;
 uint8_t keyboard_bytes[5];
 uint8_t prev_keyboard_bytes[5];
 uint8_t isKeyboard = 0;
+uint8_t possible_keys[3][12] = {{95, 96, 97, 92, 93, 94, 89, 90, 91, 98, 99, 88},{30,31,32,33,34,35,36,37,38,39,40, 45, 46},{0,0,0,0,0,0,0,0,0,0,0}};
 
 uint8_t alreadyFoundEndpoint = 0;
 uint8_t alreadyFoundInterface = 0;
@@ -660,123 +661,43 @@ static void uhi_hid_joy_start_trans_report(usb_add_t add)
 }
 
 void keyboard_hack_grab(void) {
-
-	uint8_t possible_keys[2][12] = {{0x58,0x63,0x62, 0x59, 0x5c,0x5f, 0x60, 0x61, 0x5d, 0x5e, 0x5a, 0x5b},{0,0,0,0,0,0,0,0,0,0,0}};
 	
-	
+	//clear our the array
+	for (int i = 0; i < 12; i++)
+	{
+		possible_keys[2][i] = 0;
+	}
+	//fill the array with the found keys
 	for (int i = 0; i < 5; i++)
 	{
 		for (int j = 0; j < 12; j++)
 		{
-			if (uhi_hid_joy_dev.report[i] == possible_keys[0][j])
+			if ((uhi_hid_joy_dev.report[i] == possible_keys[0][j]) || (uhi_hid_joy_dev.report[i] == possible_keys[1][j]))
 			{
-				possible_keys[1][j] = 1;
+				possible_keys[2][j] = 1;
 			}
 		}
 	}
+	//send out the proper outputs for the keys that were found
+	for (int i = 0; i < 12; i++)
+	{
+		if (possible_keys[2][i] == 1)
+		{
+			sendDataToOutput(i, 0, 4095);
+		}
+		else
+		{
+			sendDataToOutput(i, 0, 0);
+		}
 
-	if (possible_keys[1][0] == 1)
-	{
-		dacsend(3, 1, 4095);
 	}
-	else
-	{
-		dacsend(3, 1, 0);
-	}
-	if (possible_keys[1][1] == 1)
-	{
-		dacsend(3, 0, 4095);
-	}
-	else
-	{
-		dacsend(3, 0, 0);
-	}
-	if (possible_keys[1][2] == 1)
-	{
-		DAC16Send(3, 65535);
-	}
-	else
-	{
-		DAC16Send(3,0);
-	}
-	if (possible_keys[1][3] == 1)
-	{
-		DAC16Send(2, 65535);
-	}
-	else
-	{
-		DAC16Send(2, 0);
-	}
-	if (possible_keys[1][4] == 1)
-	{
-		DAC16Send(1, 65535);
-	}
-	else
-	{
-		DAC16Send(1, 0);
-	}
-	if (possible_keys[1][5] == 1)
-	{
-		DAC16Send(0, 65535);
-	}
-	else
-	{
-		DAC16Send(0, 0);
-	}
-	if (possible_keys[1][6] == 1)
-	{
-		dacsend(0, 0, 4095);
-	}
-	else
-	{
-		dacsend(0, 0, 0);
-	}
-	if (possible_keys[1][7] == 1)
-	{
-		dacsend(0, 1, 4095);
-	}
-	else
-	{
-		dacsend(0, 1, 0);
-	}
-	if (possible_keys[1][8] == 1)
-	{
-		dacsend(1, 0, 4095);
-	}
-	else
-	{
-		dacsend(1, 0, 0);
-	}
-	if (possible_keys[1][9] == 1)
-	{
-		dacsend(1, 1, 4095);
-	}
-	else
-	{
-		dacsend(1, 1, 0);
-	}
-	if (possible_keys[1][10] == 1)
-	{
-		dacsend(2, 0, 4095);
-	}
-	else
-	{
-		dacsend(2, 0, 0);
-	}
-	if (possible_keys[1][11] == 1)
-	{
-		dacsend(2, 1, 4095);
-	}
-	else
-	{
-		dacsend(2, 1, 0);
-	}
+	
 	
 }
 
 
 
-static uint32_t shift(uint8_t size, uint8_t offset) {
+static uint32_t findDataInReport(uint8_t size, uint8_t offset) {
 	uint8_t total;
 	uint8_t index;
 	uint32_t state_new;
@@ -843,79 +764,16 @@ static void uhi_hid_joy_report_reception(
 	{
 		for (int i = 0; i < myJoystick.numJoyAxis; i++)
 		{
-			uint16_t tempValue = ((shift(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (12-myJoystick.joyAxes[i].logical_max_bits));
-			sendDataToOutput(i,tempValue);
+			uint16_t tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (12-myJoystick.joyAxes[i].logical_max_bits));
+			sendDataToOutput(i, globalGlide, tempValue);
 		}
-		/*
-		// This combines all the "banks" of buttons into a single series of bits
-		// button 1 is the lowest bit 
-		for(b=0; b < ibutt; b++)
+		for (int i = 0; i < myJoystick.numJoyButton; i++)
 		{
-			butt_new += shift(NUM_BUTTS[b]*BUTT_SIZE[b], UHI_HID_JOY_BUTT[b]) << i;
-			i += NUM_BUTTS[b]*BUTT_SIZE[b];
-			n_total_buttons += NUM_BUTTS[b];
+			uint16_t tempValue = ((findDataInReport(myJoystick.joyButtons[i].size, myJoystick.joyButtons[i].offset)) << (12-myJoystick.joyButtons[i].size));
+			sendDataToOutput(i + myJoystick.numJoyAxis, 0, tempValue);
 		}
-	
-		x_new = shift(X_SIZE, UHI_HID_JOY_MOV_X);
-		y_new = shift(Y_SIZE, UHI_HID_JOY_MOV_Y);
-		hat_new = shift(HAT_SIZE, UHI_HID_JOY_HAT);
-		Rz_new = shift(Rz_SIZE, UHI_HID_JOY_Rz);
-		slider_new = shift(SLIDER_SIZE, UHI_HID_JOY_SLIDER);
-	
-		// We assume that there are 4 continuous controls X,Y,Rz,slider
-		// this might not be true for all controllers
-		if (x_prev != x_new) {
-			uhi_hid_joy_dev.report_x_prev = x_new;
-			DAC16Send(0, x_new << (16-X_LOGICAL_MAX_BITS));
-		}
-	
-		if (y_prev != y_new) {
-			uhi_hid_joy_dev.report_y_prev = y_new;
-			int y_value = ((2 << Y_SIZE) - 1) - y_new; // this inverts the y direction
-			DAC16Send(1, y_value << (16-Y_LOGICAL_MAX_BITS));
-		}
-	
-		if(Rz_prev != Rz_new) {
-			uhi_hid_joy_dev.report_Rz_prev = Rz_new;
-			DAC16Send(2, Rz_new << (16-Rz_LOGICAL_MAX_BITS));
-		}
-	
-		if(slider_prev != slider_new )
-		{
-			uhi_hid_joy_dev.report_slider_prev = slider_new;
-			DAC16Send(3, slider_new << (16-SLIDER_LOGICAL_MAX_BITS));
-		}	
-	
-		if(butt_prev != butt_new)
-		{
-			uhi_hid_joy_dev.report_butt_prev = butt_new;
-			int my_mask = 1;
-			int n_butts_mapped_so_far = 0;
-			int n_dacs_available = 8; //TODO: magic. because we assumed 4 continuous controllers, that leaves 8 dacs available
-		
-			while ((n_butts_mapped_so_far < n_dacs_available) && (n_butts_mapped_so_far < n_total_buttons))
-			{
-				int butt_state = (butt_new >> n_butts_mapped_so_far) & my_mask;
-				dacsend(n_butts_mapped_so_far % 4, 
-						n_butts_mapped_so_far / 4,
-						butt_state * 0xFFF); 
-			
-				if (n_butts_mapped_so_far == 0)
-				{
-					;
-				}
-				n_butts_mapped_so_far++;
-			}
-		}
-		
-		// unused for now
-		if(hat_prev != hat_new) {
-			uhi_hid_joy_dev.report_hat_prev = hat_new;
-		}
-	*/
+
 	}
-	// start the next transfer. this looks like it starts some crazy loop,
-	// but it follows the example code given by atmel
 	uhi_hid_joy_start_trans_report(add);
 }
 

@@ -115,7 +115,7 @@ unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
 unsigned char globalGlide = 0;
-unsigned char globalGlideMax = 99;
+unsigned char globalGlideMax = 198;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
@@ -173,20 +173,68 @@ const U8 test_pattern[] =  {
 
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
 // I abstracted this one step away from the DAC to put ramps in there -JS
-void sendDataToOutput(int which, uint16_t data)
+void sendDataToOutput(int which, int ramp, uint16_t data)
 {
-	if (which == 0)			tIRampSetDest(&out[0][0], data << 4);
-	else if (which == 1)	tIRampSetDest(&out[0][1], data);
-	else if (which == 2)	tIRampSetDest(&out[0][2], data);
-	else if (which == 3)	tIRampSetDest(&out[0][3], data << 4);
-	else if (which == 4)	tIRampSetDest(&out[0][4], data);
-	else if (which == 5)	tIRampSetDest(&out[0][5], data);
-	else if (which == 6)	tIRampSetDest(&out[1][0], data << 4);
-	else if (which == 7)	tIRampSetDest(&out[1][1], data);
-	else if (which == 8)	tIRampSetDest(&out[1][2], data);
-	else if (which == 9)	tIRampSetDest(&out[1][3], data << 4);
-	else if (which == 10)	tIRampSetDest(&out[1][4], data);
-	else if (which == 11)	tIRampSetDest(&out[1][5], data);
+	if (which == 0)			
+	{
+		tIRampSetTime(&out[0][0], ramp);
+		tIRampSetDest(&out[0][0], data << 4);
+	}
+	else if (which == 1)	
+	{
+		tIRampSetTime(&out[0][1], ramp);
+		tIRampSetDest(&out[0][1], data);
+	}
+	else if (which == 2)	
+	{
+		tIRampSetTime(&out[0][2], ramp);
+		tIRampSetDest(&out[0][2], data);
+	}
+	else if (which == 3)
+	{
+		tIRampSetTime(&out[0][3], ramp);
+		tIRampSetDest(&out[0][3], data << 4);
+	}
+	else if (which == 4)
+	{
+		tIRampSetTime(&out[0][4], ramp);
+		tIRampSetDest(&out[0][4], data);
+	}
+	else if (which == 5)
+	{
+		tIRampSetTime(&out[0][5], ramp);
+		tIRampSetDest(&out[0][5], data);
+	}
+	else if (which == 6)
+	{
+		tIRampSetTime(&out[1][0], ramp);
+		tIRampSetDest(&out[1][0], data << 4);
+	}
+	else if (which == 7)
+	{
+		tIRampSetTime(&out[1][1], ramp);
+		tIRampSetDest(&out[1][1], data);
+	}
+	else if (which == 8)
+	{
+		tIRampSetTime(&out[1][2], ramp);
+		tIRampSetDest(&out[1][2], data);
+	}
+	else if (which == 9)
+	{
+		tIRampSetTime(&out[1][3], ramp);
+		tIRampSetDest(&out[1][3], data << 4);
+	}
+	else if (which == 10)
+	{
+		tIRampSetTime(&out[1][4], ramp);
+		tIRampSetDest(&out[1][4], data);
+	}
+	else if (which == 11)
+	{
+		tIRampSetTime(&out[1][5], ramp);
+		tIRampSetDest(&out[1][5], data);
+	}
 }
 
 int testVal = 0;
@@ -410,7 +458,7 @@ static void tc2_irq(void)
 			{
 				if (--(noDeviceTrigCount[i]) == 0)
 				{
-					sendDataToOutput(i, 0x000);
+					sendDataToOutput(i, 0, 0x000);
 				}
 			}
 		}
@@ -434,13 +482,13 @@ static void tc2_irq(void)
 							{
 								if (--(instrument->direct.outs[i].trigCount) == 0)
 								{
-									sendDataToOutput(6*inst+i, 0x000);
+									sendDataToOutput(6*inst+i, 0, 0x000);
 								}
 							}
 						}
 						else if (type == DirectCV)
 						{
-							sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] << 4);
+							sendDataToOutput(6*inst+i, 10, butt_states[instrument->direct.outs[i].hex] << 4);
 						}
 					}
 				}
@@ -515,13 +563,13 @@ static void tc2_irq(void)
 					{
 						if (--(fullDirect.outs[i].trigCount) == 0)
 						{
-							sendDataToOutput(i, 0x000);
+							sendDataToOutput(i, 0, 0x000);
 						}
 					}
 				}
 				else if (type == DirectCV)
 				{
-					sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] << 4);
+					sendDataToOutput(i, 0, butt_states[fullDirect.outs[i].hex] << 4);
 				}
 			}	
 		}
@@ -1036,7 +1084,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (upSwitch())
 			{
-				globalGlide++;
+				globalGlide = globalGlide + 2;
 				if (globalGlide >= globalGlideMax)
 				{
 					globalGlide = globalGlideMax;
@@ -1053,12 +1101,12 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 				else
 				{
-					globalGlide--;
+					globalGlide = globalGlide - 2;
 				}
 			}
 		}
-		Write7Seg(globalGlide);
-		normal_7seg_number = globalGlide;
+		Write7Seg(globalGlide / 2);
+		normal_7seg_number = globalGlide / 2;
 	}
 	
 	else if (preference_num == INTERNAL_CLOCK)

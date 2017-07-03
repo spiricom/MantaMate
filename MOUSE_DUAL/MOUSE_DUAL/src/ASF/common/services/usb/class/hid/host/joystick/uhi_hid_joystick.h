@@ -218,7 +218,7 @@ typedef struct _tJoystick
 
 tJoystick myJoystick;
 
-
+uint8_t possible_keys[3][12];
 
 
 //! Global define which contains standard UHI API for UHC
@@ -239,6 +239,7 @@ extern void uhi_hid_joy_enable(uhc_device_t* dev);
 extern void uhi_hid_joy_uninstall(uhc_device_t* dev);
 uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType);
 void clearJoystick(tJoystick theJoystick);
+static uint32_t findDataInReport(uint8_t size, uint8_t offset);
 
 #ifdef __cplusplus
 }
