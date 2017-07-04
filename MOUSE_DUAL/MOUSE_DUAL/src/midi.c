@@ -280,14 +280,16 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
 		BOOL found = FALSE;
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{
-			if (keyboard->voices[i][0] < 0)	// if inactive voice, give this hex to voice
+			if (keyboard->voices[i][0] < 0)	// if inactive voice, give this note to voice
 			{
 				found = TRUE;
 					
 				keyboard->voices[i][0] = note;
 				keyboard->voices[i][1] = vel;
 				keyboard->lastVoiceToChange = i;
-					
+				
+				keyboard->notes[note][0] = TRUE;
+				keyboard->notes[note][1] = vel;
 				break;
 			}
 		}
@@ -296,7 +298,11 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
 		{
 			int whichVoice = keyboard->lastVoiceToChange;
 			int oldNote = keyboard->voices[whichVoice][0];	
+			keyboard->notes[oldNote][0] = FALSE;
 			keyboard->voices[whichVoice][0] = note;
+			keyboard->voices[whichVoice][1] = vel;
+			keyboard->notes[note][0] = TRUE;
+			keyboard->notes[note][1] = vel;
 
 		}
 	}
@@ -306,13 +312,15 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 {
 
 	tNoteStack_remove(&keyboard->stack, note);
-		
+	keyboard->notes[note][0] = FALSE;
+	
 	int deactivatedVoice = -1;
 	for (int i = 0; i < keyboard->numVoices; i++)
 	{
 		if (keyboard->voices[i][0] == note)
 		{
 			keyboard->voices[i][0] = -1;
+			keyboard->voices[i][1] = 0;
 			keyboard->lastVoiceToChange = i;
 				
 			deactivatedVoice = i;
@@ -324,9 +332,12 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 	{
 		int oldNote = tNoteStack_first(&keyboard->stack);
 		keyboard->voices[0][0] = oldNote;
+		keyboard->voices[0][1] = keyboard->notes[oldNote][1];
 		keyboard->lastVoiceToChange = 0;
-			
+		keyboard->notes[oldNote][0] = TRUE;
 	}
+	
+	//grab old notes off the stack if there are notes waiting to replace the free voice
 	else if (deactivatedVoice != -1)
 	{
 		int i = 0;
@@ -336,15 +347,15 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 			int otherNote = tNoteStack_get(&keyboard->stack, i++);
 			if (otherNote < 0 ) break;
 				
-			/*
-			if (keyboard->hexes[otherNote].active == FALSE)
+			
+			if (keyboard->notes[otherNote][0] == FALSE)
 			{
-				keyboard->voices[deactivatedVoice] = otherNote;
-					
+				keyboard->voices[deactivatedVoice][0] = otherNote;
+				keyboard->voices[deactivatedVoice][1] = keyboard->notes[otherNote][1];
 				keyboard->lastVoiceToChange = deactivatedVoice;
-				keyboard->hexes[otherNote].active = TRUE;
+				keyboard->notes[otherNote][0] = TRUE;
 			}
-			*/
+			
 		}
 	}
 }

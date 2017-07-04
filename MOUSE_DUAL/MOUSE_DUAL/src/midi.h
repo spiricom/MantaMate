@@ -37,6 +37,14 @@ typedef struct _tMIDIKeyboard
 	
 	int voices[MAX_VOICES][2];
 	
+	int notes[128][2];
+	
+	int CCs[128];
+	
+	int learnedCCs[128];
+	
+	int learnedNotes[128];
+	
 	int lastVoiceToChange;
 	
 	tNoteStack stack;

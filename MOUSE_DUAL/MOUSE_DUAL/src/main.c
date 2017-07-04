@@ -465,7 +465,7 @@ static void tc2_irq(void)
 			}
 		}
 	}
-	else
+	else //otherwise it's a Manta
 	{
 		if (!takeover) // Dual instrument, not takeover
 		{
