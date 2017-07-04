@@ -7,23 +7,6 @@
 
 #include "note_process.h"
 
-	
-
-uint8_t amplitude = 0;
-unsigned char lastButtVCA = 0; //0 if you want to turn this off
-
-
-unsigned long maxkey = 0;
-
-
-
-
-unsigned char voicefound = 0; // have we found a polyphony voice slot for the incoming note?
-unsigned char voicecounter = 0;
-unsigned char alreadythere = 0;
-signed char checkstolen = -1;
-
-
 
 
 uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal)
@@ -48,59 +31,6 @@ unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose)
 }
 
 
- 
-//For the MIDI keyboards knobs
-void controlChange(uint8_t ctrlNum, uint8_t val)
-{
-	switch (ctrlNum)
-	{
-		
-		case 0:
-		dacsend(0, 0, val * 32);
-		break;
-		
-		case 1:
-		dacsend(1, 0, val * 32);
-		break;
-		
-		case 2:
-		dacsend(2, 0, val * 32);
-		break;
-		
-		case 3:
-		dacsend(3, 0, val * 32);
-		break;
-				
-		case 4:
-		dacsend(0, 1, val * 32);
-		break;	
-		
-		case 5:
-		dacsend(1, 1, val * 32);
-		break;
-		
-		case 6:
-		dacsend(2, 1, val * 32);
-		break;
-		
-		case 7:
-		dacsend(3, 1, val * 32);
-		break;
-				
-		
-		case 31:
-		
-		break;
-		case 32:
-		
-		break;
-
-		
-		default:
-		break;
-	}
-}
-
 void resetMantaUI(void)
 {
 	for (int i = 0; i < 48; i++) manta_set_LED_hex(i, Off);
@@ -109,8 +39,9 @@ void resetMantaUI(void)
 	
 }
 
-void initKeys(int numVoices)
+void initMantaKeys(int numVoices)
 {
+	
 	if (numVoices < 2)
 	{
 		for (int i = 0; i < NUM_INST; i++)
@@ -128,14 +59,10 @@ void initKeys(int numVoices)
 		takeoverType = KeyboardInstrument;
 		tKeyboard_init(&fullKeyboard, numVoices);
 	}
-
-	initTimers(); // Still configuring all three from sequencer, but only using t3.
 	
-	for(int i=0; i<4; i++)
+	for(int i=0; i<12; i++)
 	{
-		dacsend(i,0,0);
-		dacsend(i,0,0);
-		DAC16Send(i,0);
+		sendDataToOutput(i, 5, 0);
 	}
 	
 	resetMantaUI();
@@ -304,3 +231,37 @@ void dacSendKeyboard(MantaInstrument which)
 		}
 	}
 }
+
+
+void dacSendMIDIKeyboard(void)
+{
+	tMIDIKeyboard* keyboard;
+	keyboard = &MIDIKeyboard;
+
+	for (int i = 0; i < keyboard->numVoices; i++)
+	{
+		int note = keyboard->voices[i][0];
+		int velocity = keyboard->voices[i][1];
+		if (note >= 0)
+		{
+			tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], lookupDACvalue(note, keyboard->transpose));
+			tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
+			tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL],velocity << 5);
+			//if we are in mono mode, then we have room for a trigger output, too
+			if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+			{
+				tIRampSetDest(&out[0][CVKTRIGGER], 65535);
+				keyboard->trigCount = 3;
+			}
+			//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+			prevSentPitch = note + keyboard->transpose;
+		}
+		else
+		{
+			tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
+			//let the monophonic trigger handling know there has been a note-off event
+			prevSentPitch = -1;
+		}
+	}
+}
+

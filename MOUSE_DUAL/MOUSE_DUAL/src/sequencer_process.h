@@ -26,11 +26,15 @@ void uiStep					(MantaInstrument);
 void processHexTouch(void);
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);
-
-void initSequencer(void);
+void setTuningLEDs(void);
+void initMantaSequencer(void);
 void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer);
 void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer);
 void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int destComp);
+void clearSequencer(MantaInstrument inst);
+void touchDirectHex(int hex);
+void releaseDirectHex(int hex);
+void jumpToStep(MantaInstrument inst, int step);
 
 void initializeStoringPresetToExternalMemory(void);
 void continueStoringPresetToExternalMemory(void);

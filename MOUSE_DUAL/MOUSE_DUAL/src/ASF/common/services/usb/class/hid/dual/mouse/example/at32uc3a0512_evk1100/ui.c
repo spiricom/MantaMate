@@ -176,11 +176,6 @@ void ui_host_wakeup_event(void)
 	ui_disable_asynchronous_interrupt();
 }
 
-
-
-
-static bool ui_d_midi_enable = false;
-
 void ui_test_flag_reset(void)
 {
 	//LED_Off(LED_BI1_GREEN);
@@ -230,7 +225,6 @@ void ui_midi_overflow(void)
 void ui_my_midi_receive(void)
 {
 	//receive midi from a computer
-	uint16_t bytesToRead = 0;
 	
 	if (udi_midi_is_rx_ready()) {
 		int numReceivedBytes = udi_midi_get_nb_received_data();

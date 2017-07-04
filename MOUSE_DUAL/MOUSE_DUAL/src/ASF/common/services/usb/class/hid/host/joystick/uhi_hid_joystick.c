@@ -79,7 +79,7 @@ uint8_t UHI_HID_KEYBOARD_DATA_SIZE;
 uint8_t keyboard_bytes[5];
 uint8_t prev_keyboard_bytes[5];
 uint8_t isKeyboard = 0;
-uint8_t possible_keys[3][12] = {{95, 96, 97, 92, 93, 94, 89, 90, 91, 98, 99, 88},{30,31,32,33,34,35,36,37,38,39,40, 45, 46},{0,0,0,0,0,0,0,0,0,0,0}};
+uint8_t possible_keys[3][12] = {{95, 96, 97, 92, 93, 94, 89, 90, 91, 98, 99, 88},{30,31,32,33,34,35,36,37,38,39,40,45},{0,0,0,0,0,0,0,0,0,0,0}};
 
 uint8_t alreadyFoundEndpoint = 0;
 uint8_t alreadyFoundInterface = 0;
@@ -112,11 +112,9 @@ static void uhi_hid_joy_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered);
 		
-static uint32_t shift(uint8_t size, uint8_t offset);
 static void findDataOffset(void);
 static void ResetParser(void);
 int find_highest_bit(int);
-static void display_joystick_sizes(void);
 //@}
 
 // initialize global report parser
@@ -161,18 +159,14 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	while(conf_desc_lgt) {
 		switch (ptr_iface->bDescriptorType) {
 
-		case USB_DT_INTERFACE: // if it's some kind of interface (my interpretation)
-			if (alreadyFoundInterface)
-			{
-				break;
-			}
+		case USB_DT_INTERFACE: 
 			if (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_KEYBOARD)
 			{
 				isKeyboard = 1;
 			}
 			if ((ptr_iface->bInterfaceClass   == HID_CLASS)
 			&& ((ptr_iface->bInterfaceProtocol == HID_PROTOCOL_GENERIC) || (ptr_iface->bInterfaceProtocol == HID_PROTOCOL_KEYBOARD))
-			&& dev->dev_desc.idProduct != 0x2424) { // and it's not a manta
+			&& (dev->dev_desc.idProduct != 0x2424)) { // and it's not a manta
 				// USB HID Joystick interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
@@ -187,10 +181,6 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 			
 		
 		case USB_DT_HID:
-			if (alreadyFoundInterface)
-			{
-				break;
-			}
 			if (!b_iface_supported) {
 				break;
 			}
@@ -697,7 +687,7 @@ void keyboard_hack_grab(void) {
 
 
 
-static uint32_t findDataInReport(uint8_t size, uint8_t offset) {
+uint32_t findDataInReport(uint8_t size, uint8_t offset) {
 	uint8_t total;
 	uint8_t index;
 	uint32_t state_new;

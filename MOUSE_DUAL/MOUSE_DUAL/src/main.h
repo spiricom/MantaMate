@@ -62,7 +62,7 @@
 #include "conf_usb_host.h"
 #include "ui.h"
 #include "no_device.h"
-
+#include "midi.h"
 
 typedef enum MantaMateDeviceType
 {
@@ -93,9 +93,6 @@ typedef struct _tMantaInstrument
 	tKeyboard	keyboard;
 	tSequencer	sequencer;
 	tDirect		direct;
-	
-	
-	
 	MantaInstrumentType type;
 } tMantaInstrument;
 
@@ -103,6 +100,7 @@ MantaInstrumentType takeoverType;
 
 tKeyboard fullKeyboard;
 tDirect fullDirect;
+//tMIDIKeyboard MIDIKeyboard;
 
 
 BOOL takeover;
@@ -132,6 +130,7 @@ volatile avr32_tc_t *tc3;
 
 #define CVKPITCH 0
 #define CVKGATE 1
+#define CVKVEL 2
 #define CVKTRIGGER 3
 #define CVKSLIDEROFFSET 1
 
@@ -146,12 +145,6 @@ volatile avr32_tc_t *tc3;
 #define CVTRIG4 5
 
 #define TIMERS 1
-
-#define TC1                 (&AVR32_TC)
-#define TC1_CHANNEL         0
-#define TC1_IRQ             AVR32_TC_IRQ0
-#define TC1_IRQ_GROUP       AVR32_TC_IRQ_GROUP
-#define TC1_IRQ_PRIORITY    AVR32_INTC_INT0
 
 #define TC2                 (&AVR32_TC)
 #define TC2_CHANNEL         1
@@ -250,6 +243,12 @@ void clockHappened(void);
 void enterBootloader(void);
 void sendDataToExternalMemory(void);
 void savePreset(void);
+void loadNoDevicePreset(void);
+void loadMIDIKeyboardPreset(void);
+void loadMIDIComputerPreset(void);
+void loadJoystickPreset(void);
+void loadMantaPreset(void);
+
 
 uint8_t upSwitch(void);
 uint8_t downSwitch(void);

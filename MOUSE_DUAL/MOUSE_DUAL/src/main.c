@@ -135,12 +135,11 @@ uint8_t manta_data_lock = 0; // probably not necessary, added this when I was wo
 uint8_t spi_mode = 0;
 uint8_t new_manta_attached = false;
 
-uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
+uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 3;
 uint32_t tempoDividerMax = 9;
-
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
 
@@ -267,8 +266,6 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
-	int count = 0;
-	
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 6; j++)
@@ -346,14 +343,6 @@ static uint32_t buttonHoldSpeed = 120;
 static uint32_t blink7SegCounter = 0;
 static uint32_t blinkSpeed7Seg = 500;
 
-// SequencerOne timer interrupt.
-__attribute__((__interrupt__))
-static void tc1_irq(void)
-{
-	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	tc_read_sr(TC1, TC1_CHANNEL);
-}
-
 
 
 // SequencerTwo timer interrupt.
@@ -361,9 +350,10 @@ __attribute__((__interrupt__))
 static void tc2_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	int sr = tc_read_sr(TC2, TC2_CHANNEL);
+	tc_read_sr(TC2, TC2_CHANNEL);
 	
 	//TC2 is now also the internal metronome clock, the up/down button held sensing, and the 7seg blinker
+	// as well as the timer for turning off triggers on the outputs
 	
 	//step the internal clock
 	if (clock_speed != 0)
@@ -460,6 +450,18 @@ static void tc2_irq(void)
 				{
 					sendDataToOutput(i, 0, 0x000);
 				}
+			}
+		}
+	}
+	else if ((type_of_device_connected == MIDIKeyboardConnected) || (type_of_device_connected == MIDIComputerConnected))
+	{
+		tMIDIKeyboard* keyboard =  &MIDIKeyboard;
+
+		if (keyboard->trigCount > 0)
+		{
+			if (--(keyboard->trigCount) == 0)
+			{
+				sendDataToOutput(3, 0, 0x000);
 			}
 		}
 	}
@@ -575,7 +577,6 @@ static void tc2_irq(void)
 		}
 	
 	}
-		
 }
 
 // Glide timer.
@@ -584,36 +585,37 @@ static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 
-	int sr = tc_read_sr(TC3, TC3_CHANNEL);
+	tc_read_sr(TC3, TC3_CHANNEL);
 
-
-	if (!takeover) // Dual instrument, not takeover
+	if (type_of_device_connected == MantaConnected)
 	{
-		for (int inst = 0; inst < 2; inst++)
+		if (!takeover) // Dual instrument, not takeover
 		{
-			tMantaInstrument* instrument = &manta[inst];
-	
-			if (instrument->type == KeyboardInstrument) // KeyboardInstrument
+			for (int inst = 0; inst < 2; inst++)
 			{
-				for (int i = 0; i < instrument->keyboard.numVoices; i++)
+				tMantaInstrument* instrument = &manta[inst];
+	
+				if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 				{
-					tIRampSetTime (&out[inst][i*3 + CV1], 10);
-					tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
+					for (int i = 0; i < instrument->keyboard.numVoices; i++)
+					{
+						tIRampSetTime (&out[inst][i*3 + CV1], 10);
+						tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
+					}
 				}
+		
 			}
-		
 		}
-	}
-	else if (takeoverType == KeyboardInstrument) // Takeover mode
-	{
-		for (int i = 0; i < fullKeyboard.numVoices; i++)
+		else if (takeoverType == KeyboardInstrument) // Takeover mode
 		{
-			int inst = (i / 2);
-			tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
-			tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+			for (int i = 0; i < fullKeyboard.numVoices; i++)
+			{
+				int inst = (i / 2);
+				tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
+				tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+			}
 		}
 	}
-		
 	
 	DAC16Send	(0, tIRampTick(&out[0][0]));
 	dacsend     (0, 0,  tIRampTick(&out[0][1])); 
@@ -628,80 +630,6 @@ static void tc3_irq(void)
 	dacsend     (3, 0,  tIRampTick(&out[1][4]));
 	dacsend     (3, 1,  tIRampTick(&out[1][5]));
 	
-}
-
-static void tc1_init(volatile avr32_tc_t *tc)
-{
-
-	static const tc_waveform_opt_t waveform_opt = {
-		// Channel selection.
-		.channel  = TC1_CHANNEL,
-		// Software trigger effect on TIOB.
-		.bswtrg   = TC_EVT_EFFECT_NOOP,
-		// External event effect on TIOB.
-		.beevt    = TC_EVT_EFFECT_NOOP,
-		// RC compare effect on TIOB.
-		.bcpc     = TC_EVT_EFFECT_NOOP,
-		// RB compare effect on TIOB.
-		.bcpb     = TC_EVT_EFFECT_NOOP,
-		// Software trigger effect on TIOA.
-		.aswtrg   = TC_EVT_EFFECT_NOOP,
-		// External event effect on TIOA.
-		.aeevt    = TC_EVT_EFFECT_NOOP,
-		// RC compare effect on TIOA.
-		.acpc     = TC_EVT_EFFECT_NOOP,
-		/*
-		 * RA compare effect on TIOA.
-		 * (other possibilities are none, set and clear).
-		 */
-		.acpa     = TC_EVT_EFFECT_NOOP,
-		/*
-		 * Waveform selection: Up mode with automatic trigger(reset)
-		 * on RC compare.
-		 */
-		.wavsel   = TC_WAVEFORM_SEL_UP_MODE_RC_TRIGGER,
-		// External event trigger enable.
-		.enetrg   = false,
-		// External event selection.
-		.eevt     = 0,
-		// External event edge selection.
-		.eevtedg  = TC_SEL_NO_EDGE,
-		// Counter disable when RC compare.
-		.cpcdis   = false,
-		// Counter clock stopped with RC compare.
-		.cpcstop  = true,
-		// Burst signal selection.
-		.burst    = false,
-		// Clock inversion.
-		.clki     = false,
-		// Internal source clock 3, connected to fPBA / 8.
-		.tcclks   = TC_CLOCK_SOURCE_TC1
-	};
-
-	// Options for enabling TC interrupts
-	static const tc_interrupt_t tc_interrupt = {
-		.etrgs = 0,
-		.ldrbs = 0,
-		.ldras = 0,
-		.cpcs  = 1, // Enable interrupt on RC compare alone
-		.cpbs  = 0,
-		.cpas  = 0,
-		.lovrs = 0,
-		.covfs = 0
-	};
-	
-	// Initialize the timer/counter.
-	tc_init_waveform(tc, &waveform_opt);
-	/*
-		* Set the compare triggers.
-		* We configure it to count every 1 milliseconds.
-		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
-		* to get an interrupt every 10 ms.
-		*/
-	//now set to tick every .5ms, like timer 3
-	tc_write_rc(tc, TC1_CHANNEL, 1000); // was 1000
-	// configure the timer interrupt
-	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
 }
 
 static void tc2_init(volatile avr32_tc_t *tc)
@@ -851,7 +779,6 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
-
 }
 
 void initTimers (void)
@@ -1243,34 +1170,28 @@ void Save_Switch_Check(void)
 
 void updatePreset(void)
 {
+	
 	if (type_of_device_connected == MantaConnected)
 	{
-		switch (preset_num)
-		{
-			case 0:
-			initSequencer();
-			break;
-			
-			case 1:
-			initKeys(1);
-			break;
-			
-			case 2:
-			initKeys(2);
-			break;
-			
-			case 3:
-			initKeys(3);
-			break;
-			
-			case 4:
-			initKeys(4);
-			break;
-			
-			default:
-			break;
-		}
+		loadMantaPreset();
 	}
+	if (type_of_device_connected == JoystickConnected)
+	{
+		loadJoystickPreset();
+	}
+	if (type_of_device_connected == MIDIComputerConnected)
+	{
+		loadMIDIComputerPreset();
+	}
+	if (type_of_device_connected == MIDIKeyboardConnected)
+	{
+		loadMIDIKeyboardPreset();
+	}
+	if (type_of_device_connected == NoDeviceConnected)
+	{
+		loadNoDevicePreset();
+	}
+	
 	if (preset_num >= 10)
 	{
 		if (!suspendRetrieve)
@@ -1279,9 +1200,9 @@ void updatePreset(void)
 		}
 
 	}
-	
-	setCurrentInstrument(InstrumentOne);
 }
+
+
 
 void updatePreferences(void)
 {
@@ -1317,6 +1238,9 @@ void updatePreferences(void)
 		LED_On(PREFERENCES_LED);
 		Write7Seg(clock_speed_displayed);
 		normal_7seg_number = clock_speed_displayed;
+		break;
+		
+		default:
 		break;
 	}
 }
@@ -1620,7 +1544,6 @@ void setupEIC(void)
 	
 	
 	// Register the RTC interrupt handler to the interrupt controller.
-	INTC_register_interrupt(&tc1_irq, TC1_IRQ, TC1_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc2_irq, TC2_IRQ, TC2_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc3_irq, TC3_IRQ, TC3_IRQ_PRIORITY);
 	
@@ -1660,5 +1583,58 @@ uint8_t preferencesSwitch(void)
 	return !(gpio_get_pin_value(GPIO_PREFERENCES_SWITCH));
 }
 
+
+void loadMantaPreset(void)
+{
+	if (preset_num == 0)
+	{
+		initMantaSequencer();
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMantaKeys(preset_num);
+	}
+	setCurrentInstrument(InstrumentOne);
+}
+
+void loadJoystickPreset(void)
+{
+	takeover = TRUE;
+	//joystick only has preset 0
+	if (preset_num != 0)
+	{
+		preset_num = 0;
+		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
+	}
+}
+
+void loadMIDIComputerPreset(void)
+{
+	if (preset_num == 0)
+	{
+		initMIDIArpeggiator();
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMIDIKeys(preset_num);
+	}
+}
+void loadMIDIKeyboardPreset(void)
+{
+	if (preset_num == 0)
+	{
+		initMIDIArpeggiator();
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMIDIKeys(preset_num);
+	}
+}
+
+void loadNoDevicePreset(void)
+{
+	;
+}
 
 

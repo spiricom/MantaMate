@@ -107,7 +107,7 @@ void tNoteStack_setCapacity(tNoteStack* const ns, uint8_t cap)
 		
 	for (int i = cap; i < MAX_NUM_NOTES; i++)
 	{
-		if (ns->notestack != -1)
+		if ((int)ns->notestack != -1)
 		{
 			ns->notestack[i] = -1;
 			ns->size -= 1;

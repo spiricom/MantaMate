@@ -337,8 +337,6 @@ static uint8_t newUpperHexSeq = 0;
 static uint8_t newLowerHexSeq = 0;
 static uint8_t newReleaseLowerHexSeq = 0;
 static uint8_t newReleaseUpperHexSeq = 0;
-static uint8_t newFunctionButtonSeq = 0;
-static uint8_t newReleaseFunctionButtonSeq = 0;
 
 uint8_t prev_pattern_hex = 0;
 uint8_t current_pattern_hex = 0;
@@ -395,7 +393,7 @@ void blink(void)
 	}
 }
 
-void initSequencer(void)
+void initMantaSequencer(void)
 {
 	takeover = FALSE;
 	
@@ -818,7 +816,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				{
 					if (compositionMap[whichInst][whichComp])
 					{
-						memoryInternalReadSequencer(whichInst, whichComp, decodeBuffer);
+						memoryInternalReadSequencer(whichInst, whichComp,decodeBuffer);
 						tSequencer_decode(&manta[whichInst].sequencer, decodeBuffer);
 						
 						currentComp[whichInst] = whichComp;
@@ -1393,15 +1391,15 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionDuo)
 	{
-		initKeys(2);
+		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
-		initKeys(3);
+		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
-		initKeys(4);		
+		initMantaKeys(4);		
 	}
 	else if (whichOptionType == OptionSixOut)
 	{
@@ -1947,7 +1945,6 @@ void releaseTopRightButton(void)
 void touchBottomLeftButton(void)
 {
 	shiftOption1 = TRUE;
-	MantaInstrumentType type = manta[currentInstrument].type;
 	
 	setOptionLEDs();
 	
@@ -1969,8 +1966,6 @@ void touchBottomLeftButton(void)
 void releaseBottomLeftButton(void)
 {	
 	shiftOption1 = FALSE;
-	
-	MantaInstrumentType type = manta[currentInstrument].type;
 	
 	uiOff();
 	
@@ -2054,8 +2049,6 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 	if (manta[currentInstrument].type != SequencerInstrument) return;
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
-	
-	int note = hexUIToStep(currentHexUI);
 	
 	int currStep = sequencer->currentStep;
 	
@@ -2807,9 +2800,6 @@ void setParameterForStep(MantaInstrument inst, uint8_t step, StepParameterType p
 {
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
-	
-	int size = editStack.size;
-	int i = 0;
 
 	if (param == Toggled)			sequencer->step[step].toggled = value;
 	else if (param == Length)		sequencer->step[step].length = value;

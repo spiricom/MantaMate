@@ -7,9 +7,10 @@
  */ 
 
 #include "midi.h"
-
-
+#include "main.h"
 uint8_t firstMIDIMessage = 0;
+
+
 
 uint16_t parseMIDI(uint16_t howManyNew)
 {
@@ -55,14 +56,7 @@ uint8_t sysexBuffer[1024];
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	uint8_t control = ctrlByte & 0xf0;
-
-	//uint8_t channel = ctrlByte & 0x0f;
 	
-	
-	//lcd_clear_line(1);
-	//MEMORY_printf_string("control: %u",ctrlByte);
-	//lcd_clear_line(2);
-	//MEMORY_printf_string("note: %u", msgByte1);
 	if (!inSysex)
 	{
 		switch(control)
@@ -71,28 +65,27 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 144:
 				if (msgByte2)
 				{
-					tKeyboard_noteOn(&fullKeyboard, msgByte1, msgByte2);
-					dacSendKeyboard(InstrumentNil);
+					tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
+					dacSendMIDIKeyboard();
 				}
 				else //to deal with note-offs represented as a note-on with zero velocity
 				{
-					tKeyboard_noteOff(&fullKeyboard, msgByte1);
-					dacSendKeyboard(InstrumentNil);
+					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
+					dacSendMIDIKeyboard();
 				}
 				break;
 			case 128:
-				tKeyboard_noteOff(&fullKeyboard, msgByte1);
-				dacSendKeyboard(InstrumentNil);
+				tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
+				dacSendMIDIKeyboard();
 			break;
+			
 			// control change
 			case 176:
 			//controlChange(msgByte1,msgByte2);
-			//LED_On(LED2);
-			//midiVol();
+			
 			break;
 			// program change
 			case 192:
-			//programChange(msgByte1);
 			break;
 			case 240:
 			startSysexMessage(msgByte1, msgByte2);
@@ -132,6 +125,59 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 		}
 	}
 }
+
+//For the MIDI keyboards knobs
+void controlChange(uint8_t ctrlNum, uint8_t val)
+{
+	switch (ctrlNum)
+	{
+		
+		case 0:
+		dacsend(0, 0, val * 32);
+		break;
+		
+		case 1:
+		dacsend(1, 0, val * 32);
+		break;
+		
+		case 2:
+		dacsend(2, 0, val * 32);
+		break;
+		
+		case 3:
+		dacsend(3, 0, val * 32);
+		break;
+		
+		case 4:
+		dacsend(0, 1, val * 32);
+		break;
+		
+		case 5:
+		dacsend(1, 1, val * 32);
+		break;
+		
+		case 6:
+		dacsend(2, 1, val * 32);
+		break;
+		
+		case 7:
+		dacsend(3, 1, val * 32);
+		break;
+		
+		
+		case 31:
+		
+		break;
+		case 32:
+		
+		break;
+
+		
+		default:
+		break;
+	}
+}
+
 
 void parseSysex(void)
 {
@@ -186,4 +232,119 @@ void sendSysexSaveConfim(void)
 	mySendBuf[2] = 0x49;
 	mySendBuf[3] = 0xF7;
 	ui_my_midi_send();
+}
+
+void initMIDIArpeggiator(void)
+{
+	
+}
+
+void initMIDIKeys(int numVoices)
+{
+		takeover = TRUE;
+		takeoverType = KeyboardInstrument;
+		tMIDIKeyboard_init(&MIDIKeyboard, numVoices);
+		
+		for(int i=0; i<12; i++)
+		{
+			sendDataToOutput(i, 5, 0);
+		}
+}
+
+void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices)
+{
+
+		keyboard->numVoices = numVoices;
+		keyboard->numVoicesActive = numVoices;
+		keyboard->lastVoiceToChange = 0;
+		keyboard->transpose = 0;
+		keyboard->trigCount = 0;
+		
+		for (int i = 0; i < 4; i ++)
+		{
+			keyboard->voices[i][0] = -1;
+		}
+		
+		tNoteStack_init(&keyboard->stack, 128);
+}
+
+
+void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
+{
+	// if not in keymap or already on stack, dont do anything. else, add that note.
+	if (tNoteStack_contains(&keyboard->stack, note) >= 0) return;
+	else
+	{
+		tNoteStack_add(&keyboard->stack, note);
+
+		BOOL found = FALSE;
+		for (int i = 0; i < keyboard->numVoices; i++)
+		{
+			if (keyboard->voices[i][0] < 0)	// if inactive voice, give this hex to voice
+			{
+				found = TRUE;
+					
+				keyboard->voices[i][0] = note;
+				keyboard->voices[i][1] = vel;
+				keyboard->lastVoiceToChange = i;
+					
+				break;
+			}
+		}
+			
+		if (!found) //steal
+		{
+			int whichVoice = keyboard->lastVoiceToChange;
+			int oldNote = keyboard->voices[whichVoice][0];	
+			keyboard->voices[whichVoice][0] = note;
+
+		}
+	}
+}
+
+void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
+{
+
+	tNoteStack_remove(&keyboard->stack, note);
+		
+	int deactivatedVoice = -1;
+	for (int i = 0; i < keyboard->numVoices; i++)
+	{
+		if (keyboard->voices[i][0] == note)
+		{
+			keyboard->voices[i][0] = -1;
+			keyboard->lastVoiceToChange = i;
+				
+			deactivatedVoice = i;
+			break;
+		}
+	}
+		
+	if (keyboard->numVoices == 1 && tNoteStack_getSize(&keyboard->stack) > 0)
+	{
+		int oldNote = tNoteStack_first(&keyboard->stack);
+		keyboard->voices[0][0] = oldNote;
+		keyboard->lastVoiceToChange = 0;
+			
+	}
+	else if (deactivatedVoice != -1)
+	{
+		int i = 0;
+
+		while (1)
+		{
+			int otherNote = tNoteStack_get(&keyboard->stack, i++);
+			if (otherNote < 0 ) break;
+				
+			/*
+			if (keyboard->hexes[otherNote].active == FALSE)
+			{
+				keyboard->voices[deactivatedVoice] = otherNote;
+					
+				keyboard->lastVoiceToChange = deactivatedVoice;
+				keyboard->hexes[otherNote].active = TRUE;
+			}
+			*/
+		}
+	}
 }

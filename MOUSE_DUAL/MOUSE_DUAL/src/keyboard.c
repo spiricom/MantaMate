@@ -90,8 +90,6 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 		tHex_init(&keyboard->hexes[i], i);
 	}
 	
-
-	
 	tNoteStack_init(&keyboard->stack, 48);
 }
 

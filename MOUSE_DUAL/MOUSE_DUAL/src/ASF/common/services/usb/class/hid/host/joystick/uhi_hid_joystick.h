@@ -239,7 +239,8 @@ extern void uhi_hid_joy_enable(uhc_device_t* dev);
 extern void uhi_hid_joy_uninstall(uhc_device_t* dev);
 uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType);
 void clearJoystick(tJoystick theJoystick);
-static uint32_t findDataInReport(uint8_t size, uint8_t offset);
+uint32_t findDataInReport(uint8_t size, uint8_t offset);
+void keyboard_hack_grab(void);
 
 #ifdef __cplusplus
 }
