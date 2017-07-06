@@ -28,7 +28,7 @@ void sendSysexSaveConfim(void);
 void controlChange(uint8_t ctrlNum, uint8_t val);
 
 void initMIDIArpeggiator(void);
-void initMIDIKeys(int numVoices);
+void initMIDIKeys(int numVoices, BOOL pitchout);
 
 typedef struct _tMIDIKeyboard
 {
@@ -55,15 +55,17 @@ typedef struct _tMIDIKeyboard
 	
 	int trigCount;
 	
+	BOOL noPitchOutput;
+	
 } tMIDIKeyboard;
 
 tMIDIKeyboard MIDIKeyboard;
 
-void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel);
+void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel);
 
-void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note);
+void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note);
 
-void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices);
+void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, BOOL pitchout);
 
 void learnMIDINote(uint8_t msgByte1, uint8_t msgByte2);
 

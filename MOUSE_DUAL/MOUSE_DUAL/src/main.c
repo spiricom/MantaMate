@@ -1681,18 +1681,19 @@ void loadMIDIComputerPreset(void)
 	}
 	if ((preset_num >= 1) && (preset_num <= 4))
 	{
-		initMIDIKeys(preset_num);
+		initMIDIKeys(preset_num, TRUE);
 	}
 }
 void loadMIDIKeyboardPreset(void)
 {
 	if (preset_num == 0)
 	{
-		initMIDIArpeggiator();
+		//initMIDIArpeggiator();
+		initMIDIKeys(1, FALSE);
 	}
 	if ((preset_num >= 1) && (preset_num <= 4))
 	{
-		initMIDIKeys(preset_num);
+		initMIDIKeys(preset_num, TRUE);
 	}
 }
 

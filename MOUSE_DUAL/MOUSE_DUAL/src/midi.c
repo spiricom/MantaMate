@@ -20,11 +20,6 @@ uint16_t parseMIDI(uint16_t howManyNew)
 	uint16_t i = 0;
 	uint8_t endOfData = 0;
 	
-	if (firstMIDIMessage == 1)
-	{
-		firstMIDIMessage = 0;
-		return 0;
-	}
 	while(endOfData == 0)
 	{
 		if (my_buf[i] > 0)
@@ -213,11 +208,9 @@ void initMIDIArpeggiator(void)
 	
 }
 
-void initMIDIKeys(int numVoices)
+void initMIDIKeys(int numVoices, BOOL pitchout)
 {
-		takeover = TRUE;
-		takeoverType = KeyboardInstrument;
-		tMIDIKeyboard_init(&MIDIKeyboard, numVoices);
+		tMIDIKeyboard_init(&MIDIKeyboard, numVoices, pitchout);
 		
 		for(int i=0; i<12; i++)
 		{
@@ -225,14 +218,19 @@ void initMIDIKeys(int numVoices)
 		}
 }
 
-void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices)
+void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, BOOL pitchOutput)
 {
 		keyboard->numVoices = numVoices;
 		keyboard->numVoicesActive = numVoices;
 		keyboard->lastVoiceToChange = 0;
 		keyboard->transpose = 0;
 		keyboard->trigCount = 0;
-		if (numVoices == 1)
+		keyboard->noPitchOutput = !pitchOutput;
+		if (pitchOutput == FALSE)
+		{
+			keyboard->firstFreeOutput = 0;
+		}
+		else if (numVoices == 1)
 		{
 			keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
 		}
@@ -240,6 +238,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices)
 		{
 			keyboard->firstFreeOutput = (3 * numVoices);
 		}
+
 		//default learned CCs and notes are just the CCs 1-128 - notes are skipped
 		for (int i = 0; i < 128; i++)
 		{
@@ -256,7 +255,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices)
 }
 
 
-void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
+void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 {
 	// if not in keymap or already on stack, dont do anything. else, add that note.
 	if (tNoteStack_contains(&keyboard->stack, note) >= 0) return;
@@ -264,6 +263,7 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
 	{
 		tNoteStack_add(&keyboard->stack, note);
 
+		
 		BOOL found = FALSE;
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{
@@ -274,9 +274,8 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
 				keyboard->voices[i][0] = note;
 				keyboard->voices[i][1] = vel;
 				keyboard->lastVoiceToChange = i;
-				
-				keyboard->notes[note][0] = TRUE;
-				keyboard->notes[note][1] = vel;
+				keyboard->notes[note][0] = vel;
+				keyboard->notes[note][1] = TRUE;
 				break;
 			}
 		}
@@ -285,22 +284,23 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel)
 		{
 			int whichVoice = keyboard->lastVoiceToChange;
 			int oldNote = keyboard->voices[whichVoice][0];	
-			keyboard->notes[oldNote][0] = FALSE;
 			keyboard->voices[whichVoice][0] = note;
 			keyboard->voices[whichVoice][1] = vel;
-			keyboard->notes[note][0] = TRUE;
-			keyboard->notes[note][1] = vel;
+			keyboard->notes[oldNote][1] = FALSE; //mark the stolen voice as inactive (in the second dimension of the notes array)
+			
+			keyboard->notes[note][0] = vel;
+			keyboard->notes[note][1] = TRUE;
 
+			
 		}
 	}
 }
 
-void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
+void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 {
 
-	tNoteStack_remove(&keyboard->stack, note);
-	keyboard->notes[note][0] = FALSE;
-	
+	int remove_test = tNoteStack_remove(&keyboard->stack, note);
+
 	int deactivatedVoice = -1;
 	for (int i = 0; i < keyboard->numVoices; i++)
 	{
@@ -309,19 +309,17 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 			keyboard->voices[i][0] = -1;
 			keyboard->voices[i][1] = 0;
 			keyboard->lastVoiceToChange = i;
-				
 			deactivatedVoice = i;
 			break;
 		}
 	}
 		
-	if (keyboard->numVoices == 1 && tNoteStack_getSize(&keyboard->stack) > 0)
+	if ((keyboard->numVoices == 1) && (tNoteStack_getSize(&keyboard->stack) > 0))
 	{
 		int oldNote = tNoteStack_first(&keyboard->stack);
 		keyboard->voices[0][0] = oldNote;
-		keyboard->voices[0][1] = keyboard->notes[oldNote][1];
+		keyboard->voices[0][1] = keyboard->notes[oldNote][0];
 		keyboard->lastVoiceToChange = 0;
-		keyboard->notes[oldNote][0] = TRUE;
 	}
 	
 	//grab old notes off the stack if there are notes waiting to replace the free voice
@@ -334,17 +332,17 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 			int otherNote = tNoteStack_get(&keyboard->stack, i++);
 			if (otherNote < 0 ) break;
 				
-			
-			if (keyboard->notes[otherNote][0] == FALSE)
+			if (keyboard->notes[otherNote][1] == FALSE) //if there is a stolen note waiting (marked inactive but on the stack)
 			{
 				keyboard->voices[deactivatedVoice][0] = otherNote;
-				keyboard->voices[deactivatedVoice][1] = keyboard->notes[otherNote][1];
+				keyboard->voices[deactivatedVoice][1] = keyboard->notes[otherNote][0];
 				keyboard->lastVoiceToChange = deactivatedVoice;
-				keyboard->notes[otherNote][0] = TRUE;
 			}
-			
 		}
 	}
+
+	keyboard->notes[note][0] = 0;
+	keyboard->notes[note][1] = FALSE;
 }
 
 void learnMIDINote(uint8_t note, uint8_t vel)
@@ -365,8 +363,8 @@ void learnMIDINote(uint8_t note, uint8_t vel)
 		currentNumberToMIDILearn++;
 		if (currentNumberToMIDILearn <= 9)
 		{
-			Write7Seg(currentNumberToMIDILearn + 210);
-			normal_7seg_number = currentNumberToMIDILearn + 210;
+			Write7Seg(currentNumberToMIDILearn + 200);
+			normal_7seg_number = currentNumberToMIDILearn + 200;
 		}
 		else
 		{
@@ -395,8 +393,8 @@ void learnMIDICC(uint8_t ctrlnum, uint8_t val)
 		currentNumberToMIDILearn++;
 		if (currentNumberToMIDILearn <= 9)
 		{
-			Write7Seg(currentNumberToMIDILearn + 210);
-			normal_7seg_number = currentNumberToMIDILearn + 210;
+			Write7Seg(currentNumberToMIDILearn + 200);
+			normal_7seg_number = currentNumberToMIDILearn + 200;
 		}
 		else
 		{
