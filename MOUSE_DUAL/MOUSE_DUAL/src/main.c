@@ -228,6 +228,7 @@ int main(void){
 	
 	
 	takeover = FALSE;
+    currentTuningHex = -1;
 	
 	//start off on preset 0;
 	preset_num = 0;

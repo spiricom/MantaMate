@@ -80,36 +80,35 @@ typedef enum MantaInstrumentType
 	DirectInstrument,
 	MantaInstrumentTypeNil
 }MantaInstrumentType;
-	
-MantaInstrument currentInstrument; 
 
-int tunings[16];
-int currentTuning;
-	
+
 typedef struct _tMantaInstrument
 {
 	tKeyboard	keyboard;
 	tSequencer	sequencer;
 	tDirect		direct;
-	
-	
-	
 	MantaInstrumentType type;
 } tMantaInstrument;
 
+
+// - - - - SAVE ALL THIS WITH PRESET - - - -
+MantaInstrument currentInstrument;
+
 MantaInstrumentType takeoverType;
+BOOL takeover;
+
+int tunings[16];
+int currentTuning;
 
 tKeyboard fullKeyboard;
 tDirect fullDirect;
 
-
-BOOL takeover;
-	
+int currentTuningHex;
 
 tMantaInstrument manta[NUM_INST];
+// - - - - - - - - - - - - - - - - - - - - -
 
 tRamp out[2][6];
-
 
 uint8_t readData;
 

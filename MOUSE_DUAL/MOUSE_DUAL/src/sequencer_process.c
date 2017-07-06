@@ -692,12 +692,6 @@ void processHexTouch(void)
 	
 }
 
-void releaseLowerHexOptionMode(uint8_t hexagon)
-{
-	if (manta[currentInstrument].type == SequencerInstrument)	setCompositionLEDs();
-	else														setHexmapLEDs();
-}
-
 void releaseLowerHex(uint8_t hexagon)
 {
 	if (edit_vs_play == EditMode)
@@ -885,6 +879,44 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		
 
 	}
+    else if (shiftOption2)
+    {
+        if (hexagon < 16)
+        {
+            // Tuning hex
+            
+            if (currentTuningHex >= 0) manta_set_led_hex(currentTuningHex, Amber);
+            
+            currentTuningHex = hexagon;
+            
+            manta_set_led_hex(currentTuningHex, BothOn);
+            
+            int selectedTuning = tunings[currentTuningHex];
+            
+            Write7Seg(selectedTuning); // Set display
+        }
+    }
+}
+
+void releaseLowerHexOptionMode(uint8_t hexagon)
+{
+    if (shiftOption1)
+    {
+        if (manta[currentInstrument].type == SequencerInstrument)	setCompositionLEDs();
+        else														setHexmapLEDs();
+    }
+    else if (shiftOption2)
+    {
+        if (hexagon < 16)
+        {
+            // Release tuning hex
+            tunings[currentTuningHex] = number_for_7Seg; // SHOULD BE current MM display number
+            
+            manta_set_led_hex(currentTuningHex, Red);
+            
+            currentTuningHex = -1;
+        }
+    }
 }
 
 int lastTouch = 0;

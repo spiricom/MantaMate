@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <Group
+      location = "container:"
+      name = "MM">
+      <FileRef
+         location = "group:7Segment.c">
+      </FileRef>
+      <FileRef
+         location = "group:7Segment.h">
+      </FileRef>
+      <FileRef
+         location = "group:ASF">
+      </FileRef>
+      <FileRef
+         location = "group:asf.h">
+      </FileRef>
+      <FileRef
+         location = "group:config">
+      </FileRef>
+      <FileRef
+         location = "group:direct.c">
+      </FileRef>
+      <FileRef
+         location = "group:direct.h">
+      </FileRef>
+      <FileRef
+         location = "group:hex.c">
+      </FileRef>
+      <FileRef
+         location = "group:hex.h">
+      </FileRef>
+      <FileRef
+         location = "group:keyboard.c">
+      </FileRef>
+      <FileRef
+         location = "group:keyboard.h">
+      </FileRef>
+      <FileRef
+         location = "group:main.c">
+      </FileRef>
+      <FileRef
+         location = "group:main.h">
+      </FileRef>
+      <FileRef
+         location = "group:memory_spi.c">
+      </FileRef>
+      <FileRef
+         location = "group:memory_spi.h">
+      </FileRef>
+      <FileRef
+         location = "group:midi.c">
+      </FileRef>
+      <FileRef
+         location = "group:midi.h">
+      </FileRef>
+      <FileRef
+         location = "group:note_process_utilities.c">
+      </FileRef>
+      <FileRef
+         location = "group:note_process.c">
+      </FileRef>
+      <FileRef
+         location = "group:note_process.h">
+      </FileRef>
+      <FileRef
+         location = "group:notestack.c">
+      </FileRef>
+      <FileRef
+         location = "group:notestack.h">
+      </FileRef>
+      <FileRef
+         location = "group:preset.c">
+      </FileRef>
+      <FileRef
+         location = "group:preset.h">
+      </FileRef>
+      <FileRef
+         location = "group:sequencer_process.c">
+      </FileRef>
+      <FileRef
+         location = "group:sequencer_process.h">
+      </FileRef>
+      <FileRef
+         location = "group:sequencer.c">
+      </FileRef>
+      <FileRef
+         location = "group:sequencer.h">
+      </FileRef>
+      <FileRef
+         location = "group:tuning.c">
+      </FileRef>
+      <FileRef
+         location = "group:tuning.h">
+      </FileRef>
+      <FileRef
+         location = "group:ui.h">
+      </FileRef>
+      <FileRef
+         location = "group:utilities.c">
+      </FileRef>
+      <FileRef
+         location = "group:utilities.h">
+      </FileRef>
+   </Group>
+</Workspace>
