@@ -7,23 +7,6 @@
 
 #include "note_process.h"
 
-	
-
-uint8_t amplitude = 0;
-unsigned char lastButtVCA = 0; //0 if you want to turn this off
-
-
-unsigned long maxkey = 0;
-
-
-
-
-unsigned char voicefound = 0; // have we found a polyphony voice slot for the incoming note?
-unsigned char voicecounter = 0;
-unsigned char alreadythere = 0;
-signed char checkstolen = -1;
-
-
 
 
 uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal)
@@ -48,67 +31,6 @@ unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose)
 }
 
 
- 
-//For the MIDI keyboards knobs
-void controlChange(uint8_t ctrlNum, uint8_t val)
-{
-	switch (ctrlNum)
-	{
-		
-		case 0:
-		dacsend(0, 0, val * 32);
-		break;
-		
-		case 1:
-		dacsend(1, 0, val * 32);
-		break;
-		
-		case 2:
-		dacsend(2, 0, val * 32);
-		break;
-		
-		case 3:
-		dacsend(3, 0, val * 32);
-		break;
-				
-		case 4:
-		dacsend(0, 1, val * 32);
-		break;	
-		
-		case 5:
-		dacsend(1, 1, val * 32);
-		break;
-		
-		case 6:
-		dacsend(2, 1, val * 32);
-		break;
-		
-		case 7:
-		dacsend(3, 1, val * 32);
-		break;
-				
-		
-		case 31:
-		
-		break;
-		case 32:
-		
-		break;
-
-		
-		default:
-		break;
-	}
-}
-
-
-uint8_t programNum;
-
-void programChange(uint8_t num)
-{
-	programNum = num;
-}
-
 void resetMantaUI(void)
 {
 	for (int i = 0; i < 48; i++) manta_set_LED_hex(i, Off);
@@ -117,8 +39,9 @@ void resetMantaUI(void)
 	
 }
 
-void initKeys(int numVoices)
+void initMantaKeys(int numVoices)
 {
+	
 	if (numVoices < 2)
 	{
 		for (int i = 0; i < NUM_INST; i++)
@@ -136,15 +59,10 @@ void initKeys(int numVoices)
 		takeoverType = KeyboardInstrument;
 		tKeyboard_init(&fullKeyboard, numVoices);
 	}
-
-	initTimers(); // Still configuring all three from sequencer, but only using t3.
-	tc_start(tc3, TC3_CHANNEL);
 	
-	for(int i=0; i<4; i++)
+	for(int i=0; i<12; i++)
 	{
-		dacsend(i,0,0);
-		dacsend(i,0,0);
-		DAC16Send(i,0);
+		sendDataToOutput(i, 5, 0);
 	}
 	
 	resetMantaUI();
@@ -255,10 +173,28 @@ void releaseFunctionButtonKeys(MantaButton button)
 
 void processSliderKeys(uint8_t sliderNum, uint16_t val)
 {
-	// DO THIS
+	if (manta[currentInstrument].type != KeyboardInstrument) return;
+	tKeyboard* keyboard;
+	if (takeover || (currentInstrument == InstrumentNil))
+	{
+		keyboard = &fullKeyboard;
+	}
+	else
+	{
+		keyboard = &manta[currentInstrument].keyboard;
+	}
+	if (keyboard->numVoices < 4)
+	{
+		int whichGroup = (keyboard->numVoices * 3) / 6;
+		int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+			
+		tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+		tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+	}
 }
 
-// reads the current state and sets output voltages, leds and 7 seg display
+int prevSentPitch = -1;
+
 void dacSendKeyboard(MantaInstrument which)
 {
 	tKeyboard* keyboard;
@@ -271,49 +207,68 @@ void dacSendKeyboard(MantaInstrument which)
 	{
 		keyboard = &manta[which].keyboard;
 	}
-	
-
 	for (int i = 0; i < keyboard->numVoices; i++)
 	{
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			//uint8_t mappedNote = applyNoteMap(keyboard->map, note);
-			tRampSetDest(&out[takeover ? (int)(i/2) : which][3*i+CVPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
-				
-			dacsend		(takeover ? i : (which*2), 0, 0xfff);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
+			//if we are in mono mode, then we have room for a trigger output, too
+			if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].mapped + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+			{
+				tIRampSetDest(&out[which][CVKTRIGGER], 65535);
+				keyboard->trigCount = 3;
+			}
+			//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+			prevSentPitch = keyboard->hexes[note].mapped + keyboard->transpose;
 		}
 		else
 		{
-			dacsend		(takeover ? i : (which*2), 0, 0x000);
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
+			//let the monophonic trigger handling know there has been a note-off event
+			prevSentPitch = -1;
 		}
-
 	}
-
 }
 
 
-void tuningTest(uint8_t oct)
+void dacSendMIDIKeyboard(void)
 {
-	while(1)
-	{
-		
-		DAC16Send(0, lookupDACvalue(oct, 0));
-		DAC16Send(1, lookupDACvalue(oct, 0));
-		DAC16Send(2, lookupDACvalue(oct, 0));
-		DAC16Send(3, lookupDACvalue(oct, 0));
-		dacsend(0,1,0xfff);
-		dacsend(1,1,0xfff);
-		dacsend(2,1,0xfff);
-		dacsend(3,1,0xfff);
-		oct++;
-		if (oct >= 127)
-		{
-			oct = 0;
-		}
-		delay_ms(100);
-		
-	}
-
+	tMIDIKeyboard* keyboard;
+	keyboard = &MIDIKeyboard;
 	
+	if (!(keyboard->noPitchOutput))
+	{
+		for (int i = 0; i < keyboard->numVoices; i++)
+		{
+			int note = keyboard->voices[i][0];
+			int velocity = keyboard->voices[i][1];
+			if (note >= 0)
+			{
+				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalGlide);
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], lookupDACvalue(note, keyboard->transpose));
+				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
+				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 3);
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL],velocity << 5);
+				//if we are in mono mode, then we have room for a trigger output, too
+				if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+				{
+					tIRampSetDest(&out[0][CVKTRIGGER], 65535);
+					keyboard->trigCount = 3;
+				}
+				//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+				prevSentPitch = note + keyboard->transpose;
+			}
+			else
+			{
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 0);
+				//let the monophonic trigger handling know there has been a note-off event
+				prevSentPitch = -1;
+			}
+		}
+	}
 }
+

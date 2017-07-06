@@ -74,6 +74,8 @@ typedef struct _tSequencer
 	tNoteStack notestack;
 	uint8_t lengthCounter;
 	
+	uint8_t trigCount[5]; //doesn't need to be saved in a preset or composition, just for temporary handling of trigger off times
+	
 	int8_t octave;
 	SequencerPatternType pattern;
 	int maxLength;

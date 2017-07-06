@@ -11,6 +11,7 @@
 
 #include "utilities.h"
 
+
 #include "hex.h"
 
 typedef enum DirectType

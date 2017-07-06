@@ -36,8 +36,6 @@ int memorySPICheckIfBusy(void)
 	spi_write(MEMORY_SPI, 0x05); //0x05 (read status register 1)
 	memoryWait();
 	
-	int count = 0;
-	int total = 0;
 	busy = 1;
 	spi_write(MEMORY_SPI, 0x00);
 	spi_read(MEMORY_SPI, &busy);
@@ -243,7 +241,6 @@ void continueStoringPresetToExternalMemory(void)
 		savePending = 0;	
 		LED_Off(PRESET_SAVE_LED);
 	}
-	//Write7Seg(pages_left_to_store);
 }
 
 
@@ -279,7 +276,6 @@ void continueStoringTuningToExternalMemory(void)
 		sendSysexSaveConfim(); //let the computer know that the save completed correctly
 		LED_Off(PRESET_SAVE_LED);
 	}
-	//Write7Seg(pages_left_to_store);
 }
 
 void initiateLoadingPresetFromExternalMemory(void)
@@ -342,7 +338,7 @@ void continueLoadingPresetFromExternalMemory(void)
 	{
 		//mark the load procedure as finished
 		loadPending = 0;
-		initSequencer(); //TODO: shouldn't actually do this here - need to be more smart about loading the necessary memory and initializing correctly
+		initMantaSequencer(); //TODO: shouldn't actually do this here - need to be more smart about loading the necessary memory and initializing correctly
 		//tSequencer_decode(&sequencer[0], decodeBuffer[0]); //fill a buffer with the local sequencers
 		//tSequencer_decode(&sequencer[1], decodeBuffer[1]); //one for each
 	}

@@ -23,16 +23,14 @@ uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal);
 
 unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose);
 
-void initKeys(int numVoices);
+void initMantaKeys(int numVoices);
 void dacSendKeyboard(MantaInstrument);
+void dacSendMIDIKeyboard(void);
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
+void resetMantaUI(void);
 
-void controlChange(uint8_t ctrlNum, uint8_t val);
-void programChange(uint8_t programNum);
 
 void noteOut(void);
-
-void tuningTest(uint8_t whichOct);
 
 
 #endif /* NOTE_PROCESS_H_ */

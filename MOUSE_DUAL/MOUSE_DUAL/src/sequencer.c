@@ -35,7 +35,6 @@ void tSequencer_setPattern(tSequencer* const seq, SequencerPatternType pat)
 
 void tSequencer_setParameterValue(tSequencer* const seq, uint8_t step, StepParameterType paramType, uint16_t value)
 {
-	uint16_t val = 0;
 	StepParameterType param = paramType;
 	
 	if (param == Toggled)				seq->step[step].toggled = value;

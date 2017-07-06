@@ -182,7 +182,7 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 	}
 	
 	// we added this because sometime USB MIDI devices give garbage in the first transfer
-	firstMIDIMessage = 1;
+	//firstMIDIMessage = 1;
 	
 	// All endpoints of all interfaces supported allocated
 	if(uhi_midi_dev.line_rx.ep_data)
@@ -252,14 +252,6 @@ void uhi_midi_sof(bool b_micro)
 
 
 	
-	if (clock_speed != 0)
-	{
-		if (USB_frame_counter == clock_speed) {
-			clockHappened();
-			USB_frame_counter = 0;
-		}
-		USB_frame_counter++;
-	}
 	// Update transfers
 	//JS - seems like this function checks whether the currently selected buffer is done reading, and it resets it if so
 	// then, it starts the EP transfer if there is an available buffer
@@ -616,19 +608,8 @@ iram_size_t uhi_midi_get_nb_received(void)
 	// Check available data
 	line = &(uhi_midi_dev.line_rx);
 	buf = &line->buffer[line->buf_sel];
-	/*
-	if (buf->pos == 0)
-	{
-		LED_On(LED1);
-	}
-	else
-	{
-		LED_Off(LED1);
-	}
-	*/
 
 	howMany = buf->nb - buf->pos;
-	//Write7Seg(howMany);
 	return (howMany);
 }
 
@@ -688,7 +669,6 @@ iram_size_t uhi_midi_read_buf(void* buf, iram_size_t size)
 		goto uhi_midi_read_buf_loop_wait;
 	}
 	*/
-	//Write7Seg(midi_buf->nb);
 	// Read data
 	//make a frozen copy of the number of bytes minus the position (this represents the number of bytes left to read)
 	copy_nb = midi_buf->nb - midi_buf->pos;

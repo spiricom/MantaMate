@@ -44,7 +44,7 @@ void setSliderLEDsFor		(MantaInstrument, int note);
 void setKeyboardLEDsFor		(MantaInstrument, int note);
 void setOptionLEDs			(void);
 void setCompositionLEDs     (void);
-void setHexmapLEDs	(void);
+void setHexmapLEDs			(void);
 void setDirectOptionLEDs	(void);
 void setSequencerLEDsFor	(MantaInstrument);
 
@@ -319,18 +319,12 @@ int trigSelectOn;
 
 
 tNoteStack editStack;
-//tNoteStack noteOnFrame;
-//tNoteStack noteOffFrame; // frames refreshed every 2 ms
 tNoteStack noteOnStack; // all notes on at any point during runtime
-
-uint8_t range_top = 15;
-uint8_t range_bottom = 0;
-
 
 
 uint16_t encodeBuffer[NUM_INST][sizeOfSerializedSequence]; 
 uint16_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
-uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //9920 is 620 (number of bytes per sequence) * 16 (number of sequences that can be stored for each sequencer channel)
+uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8680 is 620 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {
@@ -343,8 +337,6 @@ static uint8_t newUpperHexSeq = 0;
 static uint8_t newLowerHexSeq = 0;
 static uint8_t newReleaseLowerHexSeq = 0;
 static uint8_t newReleaseUpperHexSeq = 0;
-static uint8_t newFunctionButtonSeq = 0;
-static uint8_t newReleaseFunctionButtonSeq = 0;
 
 uint8_t prev_pattern_hex = 0;
 uint8_t current_pattern_hex = 0;
@@ -401,11 +393,8 @@ void blink(void)
 	}
 }
 
-void initSequencer(void)
+void initMantaSequencer(void)
 {
-	Write7Seg(preset_num); // shouldn't have to do this here, but there's a bug that writes garbage to the 7Seg when plugging in a Manta, and this seems to fix it
-	
-	
 	takeover = FALSE;
 	
 	// Sequencer Modes
@@ -415,9 +404,7 @@ void initSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	shiftOption1 =				FALSE;
 	shiftOption2 =				FALSE;
-	playMode =				ToggleMode; manta_set_LED_button(ButtonBottomRight, Off);
-	
-	tNoteStack_init(&editStack,		32);
+	playMode =					ToggleMode; 
 	
 	resetEditStack();
 	
@@ -440,7 +427,7 @@ void initSequencer(void)
 				//if preset_num == 0, then we are trying to initialize the blank default sequencer
 				manta[i].type = SequencerInstrument;
 				tSequencer_init(&manta[i].sequencer, PitchMode, 32);
-				
+				tIRampSetTime(&out[i][CVTRIGGER], 0);
 				tSequencer_encode(&manta[i].sequencer, encodeBuffer);
 				memoryInternalWriteSequencer(i, 0, encodeBuffer);
 				
@@ -463,7 +450,6 @@ void initSequencer(void)
 	
 	setKeyboardLEDsFor(currentInstrument, -1);
 
-	tc_start(tc3, TC3_CHANNEL);
 	manta_send_LED();
 
 }
@@ -498,10 +484,6 @@ void sequencerStep(MantaInstrument inst)
 			{
 				dacSendTriggerMode(inst, curr);
 			}
-
-			// Start sequencer 1 and 2 timers: tc1, tc2.
-			// Timer callbacks tc1_irq and tc2_irq (in main.c) set dac trigger outputs low on every step.
-			tc_start(tc1, TC1_CHANNEL);
 		}
 		sequencer->lengthCounter = 0;
 	}
@@ -524,8 +506,7 @@ void jumpToStep(MantaInstrument inst, int step)
 	{
 		dacSendTriggerMode(inst, step);
 	}
-	
-	tc_start(tc1, TC1_CHANNEL);
+
 
 }
 
@@ -540,7 +521,7 @@ void releaseDirectHex(int hex)
 	
 	if (direct->outs[output].type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0x000);
+		sendDataToOutput(6*currentInstrument + output, 0, 0x000);
 	}
 	
 }
@@ -555,13 +536,13 @@ void touchDirectHex(int hex)
 	
 	if (type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
 	}
 	else if (type == DirectTrigger)
 	{
 		// set output high then start timer
 		direct->outs[output].trigCount = 2;
-		sendDataToOutput(6*currentInstrument + output, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
 	}
 }
 
@@ -829,7 +810,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				{
 					if (compositionMap[whichInst][whichComp])
 					{
-						memoryInternalReadSequencer(whichInst, whichComp, decodeBuffer);
+						memoryInternalReadSequencer(whichInst, whichComp,decodeBuffer);
 						tSequencer_decode(&manta[whichInst].sequencer, decodeBuffer);
 						
 						currentComp[whichInst] = whichComp;
@@ -941,7 +922,6 @@ void touchLowerHex(uint8_t hexagon)
 		
 		if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
 		{
-			//tNoteStack_clear(&noteOnFrame);
 			newLowerHexSeq = 0;
 			return;
 		}
@@ -1091,9 +1071,6 @@ void touchLowerHex(uint8_t hexagon)
 		}
 	}
 
-	
-	
-	
 	newLowerHexSeq = 0;
 }
 
@@ -1267,8 +1244,7 @@ void allUIStepsOff(MantaInstrument inst)
 void uiOff(void)
 {
 	for (int i = 0; i < 48; i++)
-	{
-		
+	{	
 		manta_set_LED_hex(i ,Off);
 	}
 }
@@ -1325,6 +1301,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		{
 			manta[currentInstrument].type = SequencerInstrument;
 			tSequencer_init(sequencer, PitchMode, MAX_STEPS);
+			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 	}
 	else if (whichOptionType == OptionKeyboard)
@@ -1343,6 +1320,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 			manta[currentInstrument].type = KeyboardInstrument;
 			
 			tKeyboard_init(keyboard, 1);
+			tIRampSetTime(&out[currentInstrument][CVPITCH], globalGlide);
+			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 	}
 	else if (whichOptionType == OptionDirect)
@@ -1359,7 +1338,12 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		if (manta[currentInstrument].type != DirectInstrument)
 		{
 			manta[currentInstrument].type = DirectInstrument;
-			
+			tIRampSetTime(&out[currentInstrument][0], 0);
+			tIRampSetTime(&out[currentInstrument][1], 0);
+			tIRampSetTime(&out[currentInstrument][2], 0);
+			tIRampSetTime(&out[currentInstrument][3], 0);
+			tIRampSetTime(&out[currentInstrument][4], 0);
+			tIRampSetTime(&out[currentInstrument][5], 0);
 			tDirect_init(direct, 6);
 		}
 	}
@@ -1379,6 +1363,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		if (sequencer->pitchOrTrigger != PitchMode)
 		{
 			tSequencer_init(sequencer, PitchMode, MAX_STEPS);
+			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 		
 	}
@@ -1398,6 +1383,13 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		if (sequencer->pitchOrTrigger != TriggerMode)
 		{
 			tSequencer_init(sequencer, TriggerMode, MAX_STEPS);
+			//now set the ramps for the trigger outputs to be time zero so they are fast
+			tIRampSetTime(&out[currentInstrument][CV1T], 0);
+			tIRampSetTime(&out[currentInstrument][CV2T], 0);
+			tIRampSetTime(&out[currentInstrument][CVTRIG1], 0);
+			tIRampSetTime(&out[currentInstrument][CVTRIG2], 0);
+			tIRampSetTime(&out[currentInstrument][CVTRIG3], 0);
+			tIRampSetTime(&out[currentInstrument][CVTRIG4], 0);
 		}
 		
 	}
@@ -1426,22 +1418,28 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 		
 		tKeyboard_init(keyboard, 1);
+		tIRampSetTime(&out[currentInstrument][CVPITCH], globalGlide);
+		tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 	}
 	else if (whichOptionType == OptionDuo)
 	{
-		initKeys(2);
+		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
-		initKeys(3);
+		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
-		initKeys(4);		
+		initMantaKeys(4);		
 	}
 	else if (whichOptionType == OptionSixOut)
 	{
 		tDirect_init(&manta[currentInstrument].direct, 12);
+		for (int i = 0; i < 12; i++)
+		{
+			tIRampSetTime(&out[currentInstrument][i], 0);
+		}
 	}
 	else if (whichOptionType == OptionTwelveOut)
 	{
@@ -1838,6 +1836,7 @@ void touchTopLeftButton(void)
 		else if (shiftOption2)
 		{
 			sequencer->transpose -= 1;
+			indicateTransposition(sequencer->transpose);
 		}
 		else
 		{
@@ -1878,10 +1877,12 @@ void touchTopLeftButton(void)
 		if (shiftOption2)
 		{
 			keyboard->transpose -= 1;
+			indicateTransposition(keyboard->transpose);
 		}
 		else
 		{
 			keyboard->transpose -= 12;
+			indicateTransposition(keyboard->transpose);
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -1912,6 +1913,7 @@ void touchTopRightButton(void)
 		else if (shiftOption2)
 		{
 			sequencer->transpose += 1;
+			indicateTransposition(sequencer->transpose);
 		}
 		else
 		{
@@ -1945,10 +1947,12 @@ void touchTopRightButton(void)
 		if (shiftOption2)
 		{
 			keyboard->transpose += 1;
+			indicateTransposition(keyboard->transpose);
 		}
 		else
 		{
 			keyboard->transpose += 12;
+			indicateTransposition(keyboard->transpose);
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -1973,7 +1977,6 @@ void releaseTopRightButton(void)
 void touchBottomLeftButton(void)
 {
 	shiftOption1 = TRUE;
-	MantaInstrumentType type = manta[currentInstrument].type;
 	
 	setOptionLEDs();
 	
@@ -1982,7 +1985,6 @@ void touchBottomLeftButton(void)
 		setCompositionLEDs();
 		setHexmapLEDs();
 		setDirectOptionLEDs();
-
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
@@ -1996,8 +1998,6 @@ void touchBottomLeftButton(void)
 void releaseBottomLeftButton(void)
 {	
 	shiftOption1 = FALSE;
-	
-	MantaInstrumentType type = manta[currentInstrument].type;
 	
 	uiOff();
 	
@@ -2061,7 +2061,12 @@ void releaseBottomRightButton(void)
 	else				
 	{
 		shiftOption2 = FALSE;
-		
+		Write7Seg(normal_7seg_number);
+		transpose_indication_active = 0;
+		if (!savingActive)
+		{
+			LED_Off(PRESET_SAVE_LED);
+		}
 		setCurrentInstrument(currentInstrument);
 		
 		if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
@@ -2077,8 +2082,6 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	
-	int note = hexUIToStep(currentHexUI);
-	
 	int currStep = sequencer->currentStep;
 	
 	int uiHexCurrentStep = stepToHexUI(currentInstrument, currStep);
@@ -2093,7 +2096,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		}
 		else // SliderTwo
 		{
-			setParameterForEditStackSteps(currentInstrument, CV2, val << 4);
+			setParameterForEditStackSteps(currentInstrument, CV2, val);
 		}
 		
 		manta_set_LED_slider(sliderNum, (val >> 9) + 1); // add one to the slider values because a zero turns them off
@@ -2102,12 +2105,11 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		{
 			if (sliderNum == SliderOne)
 			{
-				dacsend(currentInstrument * 2, 1, val);
+				//dacsend(currentInstrument * 2, 1, val); need to replace this with RAMP update TODO:
 			}
 			else
 			{
-				testval = val << 5;
-				DAC16Send(2*currentInstrument+1, val << 4);
+				//DAC16Send(2*currentInstrument+1, val << 4);need to replace this with RAMP update TODO:
 			}
 			
 		}
@@ -2133,11 +2135,11 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 		{
 			if (sliderNum == SliderOne)
 			{
-				dacsend(currentInstrument * 2 + 1, 0, val);
+				//dacsend(currentInstrument * 2 + 1, 0, val); need to replace this with RAMP update TODO:
 			}
 			else
 			{
-				dacsend(currentInstrument * 2 + 1, 1, val);
+				// dacsend(currentInstrument * 2 + 1, 1, val); need to replace this with RAMP update TODO:
 			}
 		}
 	}
@@ -2159,7 +2161,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); 
+				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(currentInstrument, currStep));
 			}
 		}
 		else //SliderTwo
@@ -2717,8 +2719,7 @@ void setOptionLEDs(void)
 uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
 {
 	tSequencer* sequencer = &manta[inst].sequencer;
-	
-	// take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+
 	int32_t DACtemp = ((int32_t)sequencer->step[step].pitch) + sequencer->transpose;
 	DACtemp += (sequencer->step[step].octave * 12);
 	if (DACtemp > 127)
@@ -2747,34 +2748,32 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 	
 	if (sequencer->step[step].note)
 	{
-		// Configure PitchGlide
-		tRamp* glide = &out[inst][CVPITCH];
-		
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
-		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now
+		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now but that would likely cause clicks
 		
-		tRampSetDest(glide, (float)get16BitPitch(inst,step) / UINT16_MAX); 
-		tRampSetTime(glide, glideTime);
+		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(inst,step)); 
+		tIRampSetTime(&out[inst][CVPITCH], glideTime);
 
 		// Configure CVGlide
 		glideTime =  sequencer->step[step].cvglide >> 3;
-		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5  - could be zero now
-		
+		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5  - could be zero now but that would likely cause clicks
 
-		tRampSetTime(&out[inst][CV1P], glideTime);
-		tRampSetDest(&out[inst][CV1P], (float) sequencer->step[step].cv1);
+		tIRampSetTime(&out[inst][CV1P], glideTime);
+		tIRampSetDest(&out[inst][CV1P], sequencer->step[step].cv1);
 		
-		tRampSetTime(&out[inst][CV2P], glideTime);
-		tRampSetDest(&out[inst][CV2P], (float) sequencer->step[step].cv2);
+		tIRampSetTime(&out[inst][CV2P], glideTime);
+		tIRampSetDest(&out[inst][CV2P], sequencer->step[step].cv2 << 4);
 		
-		tRampSetTime(&out[inst][CV3P], glideTime);
-		tRampSetDest(&out[inst][CV3P], (float) sequencer->step[step].cv3);
+		tIRampSetTime(&out[inst][CV3P], glideTime);
+		tIRampSetDest(&out[inst][CV3P], sequencer->step[step].cv3);
 		
-		tRampSetTime(&out[inst][CV4P], glideTime);
-		tRampSetDest(&out[inst][CV4P], (float) sequencer->step[step].cv4);
+		tIRampSetTime(&out[inst][CV4P], glideTime);
+		tIRampSetDest(&out[inst][CV4P], sequencer->step[step].cv4);
 		
 		// Send Trigger
-		dacsend(2*inst,0,4095);
+		tIRampSetTime(&out[inst][CV4P],0);
+		tIRampSetDest(&out[inst][CVTRIGGER], 4095);
+		sequencer->trigCount[0] = 3; //start counting down for the trigger to turn off
 	}
 }
 
@@ -2786,20 +2785,22 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	// Configure CVGlide
 	uint16_t glideTime =  sequencer->step[step].cvglide >> 3;
 	if (glideTime < 5) glideTime = 5;
-	
 
-	tRampSetTime(&out[inst][CV1T], glideTime);
-	tRampSetDest(&out[inst][CV1T], (float) sequencer[inst].step[step].cv1);
+	tIRampSetTime(&out[inst][CV1T], glideTime);
+	tIRampSetDest(&out[inst][CV1T], sequencer[inst].step[step].cv1 << 4);
 		
-	tRampSetTime(&out[inst][CV2T], glideTime);
-	tRampSetDest(&out[inst][CV2T], (float) sequencer[inst].step[step].cv2);
+	tIRampSetTime(&out[inst][CV2T], glideTime);
+	tIRampSetDest(&out[inst][CV2T], sequencer[inst].step[step].cv2 << 4);
 
-	
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	dacsend(2*inst+0, 0, sequencer[inst].step[step].on[0] * 4095);
-	dacsend(2*inst+1, 0, sequencer[inst].step[step].on[1] * 4095);
-	dacsend(2*inst+0, 1, sequencer[inst].step[step].on[2] * 4095);
-	dacsend(2*inst+1, 1, sequencer[inst].step[step].on[3] * 4095);
+	tIRampSetDest(&out[inst][CVTRIG1],sequencer[inst].step[step].on[0] * 4095);
+	sequencer[inst].trigCount[1] = sequencer[inst].step[step].on[0] * 3;
+	tIRampSetDest(&out[inst][CVTRIG2],sequencer[inst].step[step].on[1] * 4095);
+	sequencer[inst].trigCount[2] = sequencer[inst].step[step].on[1] * 3;
+	tIRampSetDest(&out[inst][CVTRIG3],sequencer[inst].step[step].on[2] * 4095);
+	sequencer[inst].trigCount[3] = sequencer[inst].step[step].on[2] * 3;
+	tIRampSetDest(&out[inst][CVTRIG4],sequencer[inst].step[step].on[3] * 4095);
+	sequencer[inst].trigCount[4] = sequencer[inst].step[step].on[3] * 3;
 }
 
 // UTILITIES
@@ -2831,9 +2832,6 @@ void setParameterForStep(MantaInstrument inst, uint8_t step, StepParameterType p
 {
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
-	
-	int size = editStack.size;
-	int i = 0;
 
 	if (param == Toggled)			sequencer->step[step].toggled = value;
 	else if (param == Length)		sequencer->step[step].length = value;
@@ -3038,4 +3036,18 @@ void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int
 		memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
 	}
 	
+}
+
+void indicateTransposition(int number)
+{
+	Write7Seg(abs(number));
+	if (number < 0)
+	{
+		LED_On(PRESET_SAVE_LED); // this will double as the negative indicator for transpose
+	}
+	else
+	{
+		LED_Off(PRESET_SAVE_LED); // this will double as the negative indicator for transpose
+	}
+	transpose_indication_active = 1;
 }

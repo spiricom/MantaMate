@@ -61,7 +61,8 @@
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
 #include "ui.h"
-
+#include "no_device.h"
+#include "midi.h"
 
 typedef enum MantaMateDeviceType
 {
@@ -81,6 +82,10 @@ typedef enum MantaInstrumentType
 	MantaInstrumentTypeNil
 }MantaInstrumentType;
 
+
+int tunings[16];
+int currentTuning;
+extern unsigned char globalGlide;
 
 typedef struct _tMantaInstrument
 {
@@ -102,13 +107,14 @@ int currentTuning;
 
 tKeyboard fullKeyboard;
 tDirect fullDirect;
+//tMIDIKeyboard MIDIKeyboard;
 
 int currentTuningHex;
 
 tMantaInstrument manta[NUM_INST];
 // - - - - - - - - - - - - - - - - - - - - -
 
-tRamp out[2][6];
+tIRamp out[2][6];
 
 uint8_t readData;
 
@@ -128,6 +134,13 @@ volatile avr32_tc_t *tc3;
 #define CV3P 4
 #define CV4P 5
 
+#define CVKPITCH 0
+#define CVKGATE 1
+#define CVKVEL 2
+#define CVKTRIGGER 3
+#define CVKSLIDEROFFSET 1
+
+
 #define CVMAX 2
 
 #define CV1T  0
@@ -138,12 +151,6 @@ volatile avr32_tc_t *tc3;
 #define CVTRIG4 5
 
 #define TIMERS 1
-
-#define TC1                 (&AVR32_TC)
-#define TC1_CHANNEL         0
-#define TC1_IRQ             AVR32_TC_IRQ0
-#define TC1_IRQ_GROUP       AVR32_TC_IRQ_GROUP
-#define TC1_IRQ_PRIORITY    AVR32_INTC_INT0
 
 #define TC2                 (&AVR32_TC)
 #define TC2_CHANNEL         1
@@ -182,10 +189,19 @@ extern ConnectedDeviceType type_of_device_connected;
 extern unsigned char suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
+extern unsigned char transpose_indication_active;
+extern unsigned char normal_7seg_number;
+
+extern uint32_t upHeld;
+extern uint32_t downHeld;
+extern uint32_t holdTimeThresh;
 
 int defaultTuningMap[8];
 
 unsigned char tuningLoading;
+
+TuningOrLearnType tuningOrLearn;
+uint8_t currentNumberToMIDILearn;
 
 // UI
 void touchKeyboardHex(int hex, uint8_t weight);
@@ -220,7 +236,7 @@ void uiOff(void);
 
 void setCurrentInstrument(MantaInstrument inst);
 
-void sendDataToOutput(int which, uint16_t data);
+void sendDataToOutput(int which, int ramp, uint16_t data);
 
 //set up the external interrupt for the gate input
 void setupEIC(void);
@@ -235,6 +251,12 @@ void clockHappened(void);
 void enterBootloader(void);
 void sendDataToExternalMemory(void);
 void savePreset(void);
+void loadNoDevicePreset(void);
+void loadMIDIKeyboardPreset(void);
+void loadMIDIComputerPreset(void);
+void loadJoystickPreset(void);
+void loadMantaPreset(void);
+
 
 uint8_t upSwitch(void);
 uint8_t downSwitch(void);

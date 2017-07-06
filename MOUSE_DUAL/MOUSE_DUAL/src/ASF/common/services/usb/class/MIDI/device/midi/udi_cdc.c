@@ -263,58 +263,6 @@ bool udi_audiocontrol_setup(void)
 //how often does setup get called? Only when a new interface is enabled?
 bool udi_midi_setup(void)
 {
-	uint8_t port = 0;
-/*
-	if (Udd_setup_is_in()) {
-		// GET Interface Requests
-		if (Udd_setup_type() == USB_REQ_TYPE_CLASS) {
-			// Requests Class Interface Get
-			switch (udd_g_ctrlreq.req.bRequest) {
-			case USB_REQ_CDC_GET_LINE_CODING:
-				// Get configuration of CDC line
-				if (sizeof(usb_cdc_line_coding_t) !=
-						udd_g_ctrlreq.req.wLength)
-					return false; // Error for USB host
-				udd_g_ctrlreq.payload =
-						(uint8_t *) &
-						udi_cdc_line_coding[port];
-				udd_g_ctrlreq.payload_size =
-						sizeof(usb_cdc_line_coding_t);
-				return true;
-			}
-		}
-	}
-	if (Udd_setup_is_out()) {
-		// SET Interface Requests
-		if (Udd_setup_type() == USB_REQ_TYPE_CLASS) {
-			// Requests Class Interface Set
-			switch (udd_g_ctrlreq.req.bRequest) {
-			case USB_REQ_CDC_SET_LINE_CODING:
-				// Change configuration of CDC line
-				if (sizeof(usb_cdc_line_coding_t) !=
-						udd_g_ctrlreq.req.wLength)
-					return false; // Error for USB host
-				udd_g_ctrlreq.callback =
-						udi_cdc_line_coding_received;
-				udd_g_ctrlreq.payload =
-						(uint8_t *) &
-						udi_cdc_line_coding[port];
-				udd_g_ctrlreq.payload_size =
-						sizeof(usb_cdc_line_coding_t);
-				return true;
-			case USB_REQ_CDC_SET_CONTROL_LINE_STATE:
-				// According cdc spec 1.1 chapter 6.2.14
-				UDI_CDC_SET_DTR_EXT(port, (0 !=
-						(udd_g_ctrlreq.req.wValue
-						 & CDC_CTRL_SIGNAL_DTE_PRESENT)));
-				UDI_CDC_SET_RTS_EXT(port, (0 !=
-						(udd_g_ctrlreq.req.wValue
-						 & CDC_CTRL_SIGNAL_ACTIVATE_CARRIER)));
-				return true;
-			}
-		}
-	}
-	*/
 	return false;  // request Not supported
 }
 
@@ -550,7 +498,6 @@ int udi_midi_multi_getc(uint8_t port)
 {
 	irqflags_t flags;
 	int rx_data = 0;
-	bool b_databit_9;
 	uint16_t pos;
 	uint8_t buf_sel;
 	bool again;

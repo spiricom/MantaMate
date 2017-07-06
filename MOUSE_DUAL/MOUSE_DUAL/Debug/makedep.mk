@@ -4,7 +4,7 @@
 
 src\ASF\avr32\drivers\tc\tc.c
 
-src\ASF\common\services\usb\class\hid\host\keyboard\uhi_hid_keyboard.c
+src\no_device.c
 
 src\direct.c
 

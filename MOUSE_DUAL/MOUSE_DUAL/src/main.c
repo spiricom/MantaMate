@@ -96,7 +96,7 @@ spi_options_t spiOptions12DAC =
 spi_options_t spiOptionsMemory =
 {
 	.reg          = 0,
-	.baudrate     = 2500000, // change back later 50000000
+	.baudrate     = 5000000, 
 	.bits         = 8,
 	.spck_delay   = 1,
 	.trans_delay  = 1,
@@ -115,17 +115,24 @@ unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
 unsigned char globalGlide = 0;
-unsigned char globalGlideMax = 99;
+unsigned char globalGlideMax = 198;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
+unsigned char transpose_indication_active = 0;
+unsigned char normal_7seg_number = 0;
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
+TuningOrLearnType tuningOrLearn = TUNING_SELECT;
 ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
+
+
+
+uint8_t currentNumberToMIDILearn = 0;
 uint32_t dummycounter = 0;
 uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
@@ -133,11 +140,13 @@ uint8_t manta_data_lock = 0; // probably not necessary, added this when I was wo
 uint8_t spi_mode = 0;
 uint8_t new_manta_attached = false;
 
-uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock - not totally sure of the units, it's not actually ms, but its some measure of the period between clicks. IF you want to use external gates only, set this number to zero.
+uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 3;
 uint32_t tempoDividerMax = 9;
+
+
 
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
@@ -170,23 +179,73 @@ const U8 test_pattern[] =  {
 0x99};
 
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
-void sendDataToOutput(int which, uint16_t data)
+// I abstracted this one step away from the DAC to put ramps in there -JS
+void sendDataToOutput(int which, int ramp, uint16_t data)
 {
-	
-	if (which == 0)			DAC16Send	(0, data * 16);
-	else if (which == 1)	dacsend		(0, 0, data);
-	else if (which == 2)	dacsend		(0, 1, data);
-	else if (which == 3)	DAC16Send	(1, data * 16);
-	else if (which == 4)	dacsend		(1, 0, data);
-	else if (which == 5)	dacsend		(1, 1, data);
-	else if (which == 6)	DAC16Send	(2, data * 16);
-	else if (which == 7)	dacsend		(2, 0, data);
-	else if (which == 8)	dacsend		(2, 1, data);
-	else if (which == 9)	DAC16Send	(3, data * 16);
-	else if (which == 10)	dacsend		(3, 0, data);
-	else if (which == 11)	dacsend		(3, 1, data);
+	if (which == 0)			
+	{
+		tIRampSetTime(&out[0][0], ramp);
+		tIRampSetDest(&out[0][0], data << 4);
+	}
+	else if (which == 1)	
+	{
+		tIRampSetTime(&out[0][1], ramp);
+		tIRampSetDest(&out[0][1], data);
+	}
+	else if (which == 2)	
+	{
+		tIRampSetTime(&out[0][2], ramp);
+		tIRampSetDest(&out[0][2], data);
+	}
+	else if (which == 3)
+	{
+		tIRampSetTime(&out[0][3], ramp);
+		tIRampSetDest(&out[0][3], data << 4);
+	}
+	else if (which == 4)
+	{
+		tIRampSetTime(&out[0][4], ramp);
+		tIRampSetDest(&out[0][4], data);
+	}
+	else if (which == 5)
+	{
+		tIRampSetTime(&out[0][5], ramp);
+		tIRampSetDest(&out[0][5], data);
+	}
+	else if (which == 6)
+	{
+		tIRampSetTime(&out[1][0], ramp);
+		tIRampSetDest(&out[1][0], data << 4);
+	}
+	else if (which == 7)
+	{
+		tIRampSetTime(&out[1][1], ramp);
+		tIRampSetDest(&out[1][1], data);
+	}
+	else if (which == 8)
+	{
+		tIRampSetTime(&out[1][2], ramp);
+		tIRampSetDest(&out[1][2], data);
+	}
+	else if (which == 9)
+	{
+		tIRampSetTime(&out[1][3], ramp);
+		tIRampSetDest(&out[1][3], data << 4);
+	}
+	else if (which == 10)
+	{
+		tIRampSetTime(&out[1][4], ramp);
+		tIRampSetDest(&out[1][4], data);
+	}
+	else if (which == 11)
+	{
+		tIRampSetTime(&out[1][5], ramp);
+		tIRampSetDest(&out[1][5], data);
+	}
 }
 
+int testVal = 0;
+int loopCounter = 0;
 
 /*! \brief Main function. Execution starts here.
  */
@@ -211,37 +270,35 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
-	//tuningTest(1);
-	
 	loadTuning();
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
-	int count = 0;
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 6; j++)
 		{
-			tRampInit(&out[i][j], 2000, 0, 1);
+			tIRampInit(&out[i][j], 2000, 0);
+			tIRampSetDest(&out[i][j], 0);
 		}
 	}
-	
 	
 	takeover = FALSE;
     currentTuningHex = -1;
 	
 	//start off on preset 0;
 	preset_num = 0;
-	//delay_ms(600);
+	delay_ms(600);
 	initTimers();
-	tc_start(tc2, TC2_CHANNEL);
 	updatePreset();
 	Write7Seg(0);
+	//I added this global variable - it's to allow minor functions to take over the 7-seg, then go back to whatever it is normally showing.
+	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
 	
 	while (true) {	
-		
+
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
 		if (savePending)
 		{
@@ -273,55 +330,27 @@ int main(void){
 				continueLoadingTuningFromExternalMemory();
 			}
 		}
-		
 
 		if (new_manta_attached)
 		{
 			manta_LED_set_mode(HOST_CONTROL_FULL);
-			updatePreset();
+			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
 		}
 		
 		sleepmgr_enter_sleep();
-	}
-}
-
-
-U8 data_received[PATTERN_TEST_LENGTH];
-
-// SequencerOne timer interrupt.
-__attribute__((__interrupt__))
-static void tc1_irq(void)
-{
-	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	tc_read_sr(TC1, TC1_CHANNEL);
-	
-	if (joystick_mode)
-	{
-		return;
-	}
-	
-	for (int inst = 0; inst < 2; inst++)
-	{
-		tMantaInstrument* instrument = &manta[inst];
-		if (instrument->type == SequencerInstrument)
-		{
-			if (instrument->sequencer.pitchOrTrigger == PitchMode)
-			{
-				dacsend(2*inst, 0, 0);
-			}
-			else // TriggerMode
-			{
-				// Set 4 trigger outputs low
-				dacsend(2*inst+0, 0, 0);
-				dacsend(2*inst+1, 0, 0);
-				dacsend(2*inst+0, 1, 0);
-				dacsend(2*inst+1, 1, 0);
-			}
-		}
 		
 	}
 }
+
+uint32_t upHeld = 0;
+uint32_t downHeld = 0;
+uint32_t holdTimeThresh = 8;
+static uint32_t clockFrameCounter = 0;
+static uint32_t buttonFrameCounter = 0;
+static uint32_t buttonHoldSpeed = 120;
+static uint32_t blink7SegCounter = 0;
+static uint32_t blinkSpeed7Seg = 500;
 
 
 
@@ -330,54 +359,233 @@ __attribute__((__interrupt__))
 static void tc2_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
-	int sr = tc_read_sr(TC2, TC2_CHANNEL);
+	tc_read_sr(TC2, TC2_CHANNEL);
 	
-	if (!takeover) // Dual instrument, not takeover
+	//TC2 is now also the internal metronome clock, the up/down button held sensing, and the 7seg blinker
+	// as well as the timer for turning off triggers on the outputs
+	
+	//step the internal clock
+	if (clock_speed != 0)
 	{
-		for (int inst = 0; inst < 2; inst++)
+		if (clockFrameCounter >= clock_speed)
 		{
-			tMantaInstrument* instrument = &manta[inst];
-			
-			if (instrument->type == DirectInstrument) // DirectInstrument
+			clockHappened();
+			clockFrameCounter = 0;
+		}
+		clockFrameCounter++;
+	}
+
+
+	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
+	if (upSwitch())
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			upHeld++;
+			if (upHeld > holdTimeThresh)
 			{
-				for (int i = 0; i < instrument->direct.numOuts; i++)
-				{
-					DirectType type = instrument->direct.outs[i].type;
-					if (type == DirectTrigger)
-					{
-						if (--(instrument->direct.outs[i].trigCount) == 0)
-						{
-							sendDataToOutput(6*inst+i, 0x000);
-						}
-					}
-					else if (type == DirectCV)
-					{
-						sendDataToOutput(6*inst+i, butt_states[instrument->direct.outs[i].hex] * 16);
-					}
-				}
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(1);
 			}
-			
+			buttonFrameCounter = 0;
 		}
 	}
-	else if (takeoverType == DirectInstrument)
+	else
 	{
-		for (int i = 0; i < fullDirect.numOuts; i++)
+		if (upHeld > 0)
 		{
-			DirectType type = fullDirect.outs[i].type;
-			if (type == DirectTrigger)
+			suspendRetrieve = 0;
+			Preset_Switch_Check(1);
+		}
+		upHeld = 0;
+	}
+	
+	if (downSwitch())
+	{
+		buttonFrameCounter++;
+		if (buttonFrameCounter > buttonHoldSpeed)
+		{
+			downHeld++;
+			if (downHeld > holdTimeThresh)
 			{
-				if (--(fullDirect.outs[i].trigCount) == 0)
+				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				Preset_Switch_Check(0);
+			}
+			buttonFrameCounter = 0;
+		}
+
+	}
+	else
+	{
+		if (downHeld > 0)
+		{
+			suspendRetrieve = 0;
+			Preset_Switch_Check(0);
+		}
+		downHeld = 0;
+	}
+	
+	blink7SegCounter++;
+	
+	if (blink7SegCounter >= blinkSpeed7Seg)
+	{
+		blink7SegCounter = 0;
+		
+		if (savingActive)
+		{
+			blank7Seg = !blank7Seg;
+			Write7Seg(number_for_7Seg);
+		}
+		else
+		{
+			blank7Seg = 0;
+			Write7Seg(number_for_7Seg);
+		}
+	}
+	
+	if (type_of_device_connected == JoystickConnected)
+	{
+		return;
+	}
+	
+	else if (type_of_device_connected == NoDeviceConnected)
+	{
+		for (int i = 0; i < 12; i++)
+		{
+			if (noDeviceTrigCount[i] > 0)
+			{
+				if (--(noDeviceTrigCount[i]) == 0)
 				{
-					sendDataToOutput(i, 0x000);
+					sendDataToOutput(i, 0, 0x000);
 				}
 			}
-			else if (type == DirectCV)
-			{
-				sendDataToOutput(i, butt_states[fullDirect.outs[i].hex] * 16);
-			}
-		}	
+		}
 	}
-		
+	else if ((type_of_device_connected == MIDIKeyboardConnected) || (type_of_device_connected == MIDIComputerConnected))
+	{
+		tMIDIKeyboard* keyboard =  &MIDIKeyboard;
+
+		if (keyboard->trigCount > 0)
+		{
+			if (--(keyboard->trigCount) == 0)
+			{
+				sendDataToOutput(3, 0, 0x000);
+			}
+		}
+	}
+	else //otherwise it's a Manta
+	{
+		if (!takeover) // Dual instrument, not takeover
+		{
+			for (int inst = 0; inst < 2; inst++)
+			{
+				tMantaInstrument* instrument = &manta[inst];
+			
+				if (instrument->type == DirectInstrument) // DirectInstrument
+				{
+					for (int i = 0; i < instrument->direct.numOuts; i++)
+					{
+						DirectType type = instrument->direct.outs[i].type;
+						if (type == DirectTrigger)
+						{
+							if (instrument->direct.outs[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->direct.outs[i].trigCount) == 0)
+								{
+									sendDataToOutput(6*inst+i, 0, 0x000);
+								}
+							}
+						}
+						else if (type == DirectCV)
+						{
+							sendDataToOutput(6*inst+i, 10, butt_states[instrument->direct.outs[i].hex] << 4);
+						}
+					}
+				}
+				else if (instrument->type == KeyboardInstrument) // DirectInstrument
+				{
+					if (instrument->keyboard.numVoices == 1)
+					{
+						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->keyboard.trigCount) == 0)
+							{
+								tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+							}
+						}
+					}
+				}
+				else if (instrument->type == SequencerInstrument)
+				{
+					if (instrument->sequencer.pitchOrTrigger == PitchMode)
+					{
+						if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[0]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIGGER], 0);
+							}
+						}
+					}
+					else //otherwise we're in trigger mode
+					{
+						if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[1]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG1], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[2]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG2], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[3]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG3], 0);
+							}
+						}
+						if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->sequencer.trigCount[4]) == 0)
+							{
+								tIRampSetDest(&out[inst][CVTRIG4], 0);
+							}
+						}
+					}
+				}
+			
+			}
+		}
+		else if (takeoverType == DirectInstrument)
+		{
+			for (int i = 0; i < fullDirect.numOuts; i++)
+			{
+				DirectType type = fullDirect.outs[i].type;
+				if (type == DirectTrigger)
+				{
+					if (fullDirect.outs[i].trigCount > 0)
+					{
+						if (--(fullDirect.outs[i].trigCount) == 0)
+						{
+							sendDataToOutput(i, 0, 0x000);
+						}
+					}
+				}
+				else if (type == DirectCV)
+				{
+					sendDataToOutput(i, 0, butt_states[fullDirect.outs[i].hex] << 4);
+				}
+			}	
+		}
+	
+	}
 }
 
 // Glide timer.
@@ -386,144 +594,75 @@ static void tc3_irq(void)
 {
 	// Clear the interrupt flag. This is a side effect of reading the TC SR.
 
-	int sr = tc_read_sr(TC3, TC3_CHANNEL);
+	tc_read_sr(TC3, TC3_CHANNEL);
 
-	if (joystick_mode)
+	if (type_of_device_connected == MantaConnected)
 	{
-		return;
-	}
+		if (!takeover) // Dual instrument, not takeover
+		{
+			for (int inst = 0; inst < 2; inst++)
+			{
+				tMantaInstrument* instrument = &manta[inst];
 	
-	if (!takeover) // Dual instrument, not takeover
-	{
-		for (int inst = 0; inst < 2; inst++)
-		{
-			tMantaInstrument* instrument = &manta[inst];
-			
-			if (instrument->type == SequencerInstrument)
-			{
-				if (instrument->sequencer.pitchOrTrigger == PitchMode)
+				if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 				{
-					// Sequencer Pitch
-					DAC16Send(2*inst+0, tRampTick(&out[inst][CVPITCH]) * UINT16_MAX);
-
-					// Sequencer CV1-CV2
-					dacsend(2*inst+0, 1, tRampTick(&out[inst][CV1P]));
-					DAC16Send(2*inst+1,  tRampTick(&out[inst][CV2P]));
-					
-					// Sequencer CV3-CV4
-					dacsend(2*inst+1, 0, tRampTick(&out[inst][CV3P]));
-					dacsend(2*inst+1, 1, tRampTick(&out[inst][CV4P]));
+					for (int i = 0; i < instrument->keyboard.numVoices; i++)
+					{
+						tIRampSetTime (&out[inst][i*3 + CV1], 10);
+						tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
+					}
 				}
-				else //TriggerMode
-				{
-					DAC16Send(2*inst+0, ((uint16_t)tRampTick(&out[inst][CV1T])) << 4);
-					DAC16Send(2*inst+1, ((uint16_t)tRampTick(&out[inst][CV2T])) << 4);
-				}
+		
 			}
-			else if (instrument->type == KeyboardInstrument) // KeyboardInstrument
-			{
-				for (int i = 0; i < instrument->keyboard.numVoices; i++)
-				{
-					
-					DAC16Send	(i + 2*inst,    tRampTick(&out[inst][3*i+CVPITCH]));
-					
-					// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-					
-					// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-					dacsend     (i + 2*inst, 1,  butt_states[instrument->keyboard.voices[i]] * 16);
-				}
-			}
-			
 		}
-	}
-	else if (takeoverType == KeyboardInstrument) // Takeover mode
-	{
-		for (int i = 0; i < fullKeyboard.numVoices; i++)
+		else if (takeoverType == KeyboardInstrument) // Takeover mode
 		{
-			int inst = (int) i / 2;
-			DAC16Send	(i, tRampTick(&out[inst][3*i+CVPITCH]));
-			
-			// Maybe need a proper Note object that remembers info about note,vel,cv,glide,etc
-			
-			// TODO: we need to add a ramp object for this, too, to smooth the values out (currently there is some zipper noise) -JS
-			dacsend     (i, 1,  butt_states[fullKeyboard.voices[i]] * 16);
+			for (int i = 0; i < fullKeyboard.numVoices; i++)
+			{
+				int inst = (i / 2);
+				tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
+				tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+			}
 		}
 	}
 	
-}
+	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+	{
+		for (int i = MIDIKeyboard.firstFreeOutput; i < 12; i++)
+		{
+			//check if there are any learned CCs to send out
+			if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0] >= 0)
+			{
+				sendDataToOutput(i, 10, MIDIKeyboard.CCs[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0]] << 5);
+			}
+			// if it's not a CC, check if it's a note instead
+			else if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1] >= 0)
+			{
+				if (MIDIKeyboard.notes[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1]][0])
+				{
+					sendDataToOutput(i, 0, 4095);
+				}
+				else
+				{
+					sendDataToOutput(i, 0, 0);
+				}
+			}
+		}
 
-static void tc1_init(volatile avr32_tc_t *tc)
-{
-
-	static const tc_waveform_opt_t waveform_opt = {
-		// Channel selection.
-		.channel  = TC1_CHANNEL,
-		// Software trigger effect on TIOB.
-		.bswtrg   = TC_EVT_EFFECT_NOOP,
-		// External event effect on TIOB.
-		.beevt    = TC_EVT_EFFECT_NOOP,
-		// RC compare effect on TIOB.
-		.bcpc     = TC_EVT_EFFECT_NOOP,
-		// RB compare effect on TIOB.
-		.bcpb     = TC_EVT_EFFECT_NOOP,
-		// Software trigger effect on TIOA.
-		.aswtrg   = TC_EVT_EFFECT_NOOP,
-		// External event effect on TIOA.
-		.aeevt    = TC_EVT_EFFECT_NOOP,
-		// RC compare effect on TIOA.
-		.acpc     = TC_EVT_EFFECT_NOOP,
-		/*
-		 * RA compare effect on TIOA.
-		 * (other possibilities are none, set and clear).
-		 */
-		.acpa     = TC_EVT_EFFECT_NOOP,
-		/*
-		 * Waveform selection: Up mode with automatic trigger(reset)
-		 * on RC compare.
-		 */
-		.wavsel   = TC_WAVEFORM_SEL_UP_MODE_RC_TRIGGER,
-		// External event trigger enable.
-		.enetrg   = false,
-		// External event selection.
-		.eevt     = 0,
-		// External event edge selection.
-		.eevtedg  = TC_SEL_NO_EDGE,
-		// Counter disable when RC compare.
-		.cpcdis   = false,
-		// Counter clock stopped with RC compare.
-		.cpcstop  = true,
-		// Burst signal selection.
-		.burst    = false,
-		// Clock inversion.
-		.clki     = false,
-		// Internal source clock 3, connected to fPBA / 8.
-		.tcclks   = TC_CLOCK_SOURCE_TC3
-	};
-
-	// Options for enabling TC interrupts
-	static const tc_interrupt_t tc_interrupt = {
-		.etrgs = 0,
-		.ldrbs = 0,
-		.ldras = 0,
-		.cpcs  = 1, // Enable interrupt on RC compare alone
-		.cpbs  = 0,
-		.cpas  = 0,
-		.lovrs = 0,
-		.covfs = 0
-	};
+	}
 	
-	// Initialize the timer/counter.
-	tc_init_waveform(tc, &waveform_opt);
-	/*
-		* Set the compare triggers.
-		* We configure it to count every 1 milliseconds.
-		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
-		* to get an interrupt every 10 ms.
-		*/
-	tc_write_rc(tc, TC1_CHANNEL, (sysclk_get_pba_hz() / 8 / 10000)); // was 1000
-	// configure the timer interrupt
-	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
-
+	DAC16Send	(0, tIRampTick(&out[0][0]));
+	dacsend     (0, 0,  tIRampTick(&out[0][1])); 
+	dacsend     (0, 1,  tIRampTick(&out[0][2]));  
+	DAC16Send	(1, tIRampTick(&out[0][3]));
+	dacsend     (1, 0,  tIRampTick(&out[0][4]));
+	dacsend     (1, 1,  tIRampTick(&out[0][5]));
+	DAC16Send	(2, tIRampTick(&out[1][0]));
+	dacsend     (2, 0,  tIRampTick(&out[1][1]));
+	dacsend     (2, 1,  tIRampTick(&out[1][2]));
+	DAC16Send	(3, tIRampTick(&out[1][3]));
+	dacsend     (3, 0,  tIRampTick(&out[1][4]));
+	dacsend     (3, 1,  tIRampTick(&out[1][5]));
 	
 }
 
@@ -595,7 +734,7 @@ static void tc2_init(volatile avr32_tc_t *tc)
 		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
 		* to get an interrupt every 10 ms.
 		*/
-	tc_write_rc( tc, TC2_CHANNEL, 1000); // was 1000
+	tc_write_rc( tc, TC2_CHANNEL, 2000); // was 1000
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
 	
@@ -670,28 +809,31 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	hence RC = (fPBA / 8) / 1000
 	* to get an interrupt every 10 ms.
 	*/
-	tc_write_rc( tc, TC3_CHANNEL, 2000); // approximately .5 ms
+	tc_write_rc( tc, TC3_CHANNEL, 2000); // 2000 = approximately .5 ms
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
-
 }
 
 void initTimers (void)
 {
 	
-	tc1 = TC1;
+	//tc1 = TC1;
 	tc2 = TC2;
 	tc3 = TC3;
 	
 	// Enable the clock to the selected example Timer/counter peripheral module.
-	sysclk_enable_peripheral_clock(TC1);
+	//sysclk_enable_peripheral_clock(TC1);
 	sysclk_enable_peripheral_clock(TC2);
 	sysclk_enable_peripheral_clock(TC3);
 	
-	tc1_init(tc1);
+	//tc1_init(tc1);
 	tc2_init(tc2);
 	tc3_init(tc3);
+	
+	//tc_start(tc1, TC1_CHANNEL);
+	tc_start(tc2, TC2_CHANNEL);
+	tc_start(tc3, TC3_CHANNEL);
 
 }
 
@@ -758,9 +900,7 @@ static void int_handler_switches (void)
 }
 
 void USB_Mode_Switch_Check(void)
-{
-		int myTemp = gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
-		
+{	
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
 		{
 
@@ -824,6 +964,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			updatePreset();
 			Write7Seg(preset_num);
+			normal_7seg_number = preset_num;
 		}
 		//otherwise we are currently navigating to save a preset into a slot
 		else
@@ -855,44 +996,54 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			//should make it blink for extra clarity
 			Write7Seg(preset_to_save_num);
+			normal_7seg_number = preset_to_save_num;
 		}
 	}
 	
-	else if (preference_num == TUNING_SELECT)
+	else if (preference_num == TUNING_AND_LEARN)
 	{
-		if (!tuningLoading)
+		if (tuningOrLearn == TUNING_SELECT)
 		{
-			if (whichSwitch)
+			if (!tuningLoading)
 			{
-				if (upSwitch())
+				if (whichSwitch)
 				{
-					tuning++;
-					if (tuning >= 99)
+					if (upSwitch())
 					{
-						tuning = 99;
+						tuning++;
+						if (tuning >= 99)
+						{
+							tuning = 99;
+						}
 					}
 				}
-			}
-			else
-			{
-				if (downSwitch())
+				else
 				{
-					if (tuning <= 0)
+					if (downSwitch())
 					{
-						tuning = 0;
-					}
-					else
-					{
-						tuning--;
+						if (tuning <= 0)
+						{
+							tuning = 0;
+						}
+						else
+						{
+							tuning--;
+						}
 					}
 				}
-			}
-			if (!suspendRetrieve)
-			{
+				if (!suspendRetrieve)
+				{
 					loadTuning();
+				}
+				Write7Seg(tuning);
+				normal_7seg_number = tuning;
 			}
-			Write7Seg(tuning);
 		}
+		else //otherwise it's MIDI LEARN mode
+		{
+			
+		}
+		
 	}
 	
 	else if (preference_num == PORTAMENTO_TIME)
@@ -902,7 +1053,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (upSwitch())
 			{
-				globalGlide++;
+				globalGlide = globalGlide + 2;
 				if (globalGlide >= globalGlideMax)
 				{
 					globalGlide = globalGlideMax;
@@ -919,11 +1070,12 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 				else
 				{
-					globalGlide--;
+					globalGlide = globalGlide - 2;
 				}
 			}
 		}
-		Write7Seg(globalGlide);
+		Write7Seg(globalGlide / 2);
+		normal_7seg_number = globalGlide / 2;
 	}
 	
 	else if (preference_num == INTERNAL_CLOCK)
@@ -957,6 +1109,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 			Write7Seg(clock_speed_displayed);
+			normal_7seg_number = clock_speed_displayed;
 		}
 		else if (clock_pref == CLOCK_DIVIDER)
 		{
@@ -986,10 +1139,11 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+			normal_7seg_number = 200 + tempoDivider;
 		}
 		if (clock_speed_displayed > 0)
 		{
-			clock_speed = (480000 / (clock_speed_displayed + 60)) / (1 << tempoDivider);
+			clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so.
 		}
 		else
 		{
@@ -1003,6 +1157,9 @@ void Preferences_Switch_Check(void)
 {
 	if (preferencesSwitch())
 	{
+		
+		tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
+		
 		//if we aren't in a current save state, act normal and change preferences
 		if (!savingActive)
 		{
@@ -1034,6 +1191,7 @@ void Save_Switch_Check(void)
 				savingActive = !savingActive;
 				updateSave();
 		}
+		
 		else if (preference_num == INTERNAL_CLOCK)
 		{
 			if (clock_pref == CLOCK_DIVIDER)
@@ -1041,12 +1199,33 @@ void Save_Switch_Check(void)
 				//switch to BPM pref
 				clock_pref = BPM;
 				Write7Seg(clock_speed_displayed);
+				normal_7seg_number = clock_speed_displayed;
 			}
 			else if (clock_pref == BPM)
 			{
 				//switch to Clock Divider pref
 				clock_pref = CLOCK_DIVIDER;
 				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = 200 + tempoDivider;
+			}
+		}
+		
+		else if (preference_num == TUNING_AND_LEARN)
+		{
+			if (tuningOrLearn == TUNING_SELECT)
+			{
+				//switch to midilearn 
+				tuningOrLearn = MIDILEARN;
+				currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
+				Write7Seg(currentNumberToMIDILearn);
+				normal_7seg_number = currentNumberToMIDILearn;
+			}
+			else if (tuningOrLearn == MIDILEARN)
+			{
+				//switch to Clock Divider pref
+				tuningOrLearn = TUNING_SELECT;
+				Write7Seg(tuning); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = tuning;
 			}
 		}
 	}
@@ -1057,31 +1236,27 @@ void Save_Switch_Check(void)
 void updatePreset(void)
 {
 	
-	switch (preset_num)
+	if (type_of_device_connected == MantaConnected)
 	{
-		case 0:
-		initSequencer();
-		break;
-		
-		case 1:
-		initKeys(1);
-		break;
-		
-		case 2:
-		initKeys(2);
-		break;
-		
-		case 3:
-		initKeys(3);
-		break;
-		
-		case 4:
-		initKeys(4);
-		break;
-		
-		default: 
-		break;	 
+		loadMantaPreset();
 	}
+	if (type_of_device_connected == JoystickConnected)
+	{
+		loadJoystickPreset();
+	}
+	if (type_of_device_connected == MIDIComputerConnected)
+	{
+		loadMIDIComputerPreset();
+	}
+	if (type_of_device_connected == MIDIKeyboardConnected)
+	{
+		loadMIDIKeyboardPreset();
+	}
+	if (type_of_device_connected == NoDeviceConnected)
+	{
+		loadNoDevicePreset();
+	}
+	
 	if (preset_num >= 10)
 	{
 		if (!suspendRetrieve)
@@ -1090,9 +1265,9 @@ void updatePreset(void)
 		}
 
 	}
-	
-	setCurrentInstrument(InstrumentOne);
 }
+
+
 
 void updatePreferences(void)
 {
@@ -1103,13 +1278,15 @@ void updatePreferences(void)
 		LED_Off(RIGHT_POINT_LED);
 		LED_Off(PREFERENCES_LED);
 		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
 		break;
 		
-		case TUNING_SELECT:
+		case TUNING_AND_LEARN:
 		LED_Off(LEFT_POINT_LED);
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(tuning);
+		normal_7seg_number = tuning;
 		break;
 		
 		case PORTAMENTO_TIME:
@@ -1117,6 +1294,7 @@ void updatePreferences(void)
 		LED_Off(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(globalGlide);
+		normal_7seg_number = globalGlide;
 		break;
 		
 		case INTERNAL_CLOCK:
@@ -1124,6 +1302,10 @@ void updatePreferences(void)
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
 		Write7Seg(clock_speed_displayed);
+		normal_7seg_number = clock_speed_displayed;
+		break;
+		
+		default:
 		break;
 	}
 }
@@ -1138,6 +1320,7 @@ void updateSave(void)
 		{
 			preset_to_save_num = 10;
 			Write7Seg(preset_to_save_num);
+			normal_7seg_number = preset_to_save_num;
 		}
 	}
 	else
@@ -1145,17 +1328,26 @@ void updateSave(void)
 		initiateStoringPresetToExternalMemory();
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
 	}
 }
 
 void clockHappened(void)
 {
-	if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
-	if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
+	if (type_of_device_connected == MantaConnected)
+	{
+		if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
+		if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
+	}
+	
+	if (type_of_device_connected == NoDeviceConnected)
+	{
+		no_device_gate_in();
+	}
 	
 	if (type_of_device_connected == MIDIComputerConnected)
 	{
-		ui_ext_gate_in();
+		midi_ext_gate_in();
 	}
 }
 
@@ -1380,43 +1572,6 @@ static void initSPIbus(void)
 	sizeof(DAC_SPI_GPIO_MAP) / sizeof(DAC_SPI_GPIO_MAP[0]));
 }
 
-int i = 0;
-uint16_t testvoltage = 0;
-uint16_t testvoltage16 = 0;
-
-void testLoop(void)
- {
-	while(1)
-	{
-		testvoltage16 = 65530;
-		//cpu_delay_ms(1,64000000);//5
-		for(i=0; i<4; i++)
-		{
-			dacsend(i,1,testvoltage);
-			dacsend(i,0,(4096 - testvoltage));
-			DAC16Send(i,testvoltage16);
-		}
-		testvoltage++;
-		//testvoltage16++;
-		
-		if (testvoltage > 2095)
-		{
-			LED_Off(LED5);
-		}
-		if (testvoltage > 4095)
-		{
-			testvoltage = 0;
-			LED_On(LED5);
-		}
-		if (testvoltage16 > 65534)
-		{
-			testvoltage16 = 0;
-		}
-		
-	}
-}
-
-
 void setupEIC(void)
 {
 	// Enable edge-triggered interrupt.
@@ -1454,7 +1609,6 @@ void setupEIC(void)
 	
 	
 	// Register the RTC interrupt handler to the interrupt controller.
-	INTC_register_interrupt(&tc1_irq, TC1_IRQ, TC1_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc2_irq, TC2_IRQ, TC2_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc3_irq, TC3_IRQ, TC3_IRQ_PRIORITY);
 	
@@ -1494,5 +1648,59 @@ uint8_t preferencesSwitch(void)
 	return !(gpio_get_pin_value(GPIO_PREFERENCES_SWITCH));
 }
 
+
+void loadMantaPreset(void)
+{
+	if (preset_num == 0)
+	{
+		initMantaSequencer();
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMantaKeys(preset_num);
+	}
+	setCurrentInstrument(InstrumentOne);
+}
+
+void loadJoystickPreset(void)
+{
+	takeover = TRUE;
+	//joystick only has preset 0
+	if (preset_num != 0)
+	{
+		preset_num = 0;
+		Write7Seg(preset_num);
+		normal_7seg_number = preset_num;
+	}
+}
+
+void loadMIDIComputerPreset(void)
+{
+	if (preset_num == 0)
+	{
+		initMIDIArpeggiator();
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMIDIKeys(preset_num, TRUE);
+	}
+}
+void loadMIDIKeyboardPreset(void)
+{
+	if (preset_num == 0)
+	{
+		//initMIDIArpeggiator();
+		initMIDIKeys(1, FALSE);
+	}
+	if ((preset_num >= 1) && (preset_num <= 4))
+	{
+		initMIDIKeys(preset_num, TRUE);
+	}
+}
+
+void loadNoDevicePreset(void)
+{
+	;
+}
 
 

@@ -98,7 +98,7 @@ typedef enum MantaInstrument {
 typedef enum GlobalPreferences
 {
 	PRESET_SELECT,
-	TUNING_SELECT,
+	TUNING_AND_LEARN,
 	PORTAMENTO_TIME,
 	INTERNAL_CLOCK,
 	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
@@ -109,6 +109,12 @@ typedef enum ClockPreferences
 	BPM,
 	CLOCK_DIVIDER
 }ClockPreferences;
+
+typedef enum TuningOrLearnType
+{
+	TUNING_SELECT,
+	MIDILEARN
+}TuningOrLearnType;
 
 
 typedef enum MantaEditPlayMode {
@@ -250,24 +256,6 @@ BOOL shiftOption2;
 GlobalOptionType full_vs_split;
 
 GlobalOptionType seq1PvT, seq2PvT;
-
-
-/* Ramp */
-typedef struct _tRamp {
-	float inc;
-	float inv_sr_ms;
-	float curr,dest;
-	uint16_t time;
-	int samples_per_tick;
-
-} tRamp;
-
-float tRampTick(tRamp *r);
-int tRampSetTime(tRamp *r, float time);
-int tRampSetDest(tRamp *r, float dest);
-int tRampInit(tRamp *r, float sr, uint16_t time, int samples_per_tick);
-
-
 
 /* Integer version of Ramp */
 typedef struct _tIRamp {

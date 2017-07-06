@@ -379,17 +379,6 @@ void uhi_hid_manta_sof(bool b_micro)
 		blinkCount = 0;
 		blink();
 	}
-
-	if (clock_speed != 0)
-	{
-		if (USB_frame_counter >= clock_speed) {
-			clockHappened();
-			USB_frame_counter = 0;
-		}
-		USB_frame_counter++;
-	}
-	
-		
 }
 
 //for when you want to update the LED modes or LED states
@@ -430,7 +419,7 @@ void manta_LED_set_mode(uint8_t mode)
 		case HOST_CONTROL_BUTTON: uhi_manta_report[9] = 0x20; break;		
 		case HOST_CONTROL_SLIDER: uhi_manta_report[9] = 0x02; break;	
 		case HOST_CONTROL_HEX_AND_BUTTON: uhi_manta_report[9] = 0x01; break;		
-		default: break;         // TODO fix these modes to be the correct bits
+		default: break;
 	}
 }
 

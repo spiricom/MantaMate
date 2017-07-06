@@ -79,6 +79,8 @@
 #define  HID_PROTOCOL_KEYBOARD                0x01
 //! Protocol mouse standard
 #define  HID_PROTOCOL_MOUSE                   0x02
+
+#define  HID_PROTOCOL_XBOX                   0xD0
 //@}
 
 
