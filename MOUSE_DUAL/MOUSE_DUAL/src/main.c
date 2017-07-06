@@ -125,9 +125,14 @@ unsigned char normal_7seg_number = 0;
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
+TuningOrLearnType tuningOrLearn = TUNING_SELECT;
 ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
+
+
+
+uint8_t currentNumberToMIDILearn = 0;
 uint32_t dummycounter = 0;
 uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
@@ -140,6 +145,9 @@ uint32_t clock_speed_max = 99;
 uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 3;
 uint32_t tempoDividerMax = 9;
+
+
+
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
 
@@ -617,6 +625,31 @@ static void tc3_irq(void)
 		}
 	}
 	
+	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+	{
+		for (int i = MIDIKeyboard.firstFreeOutput; i < 12; i++)
+		{
+			//check if there are any learned CCs to send out
+			if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0] >= 0)
+			{
+				sendDataToOutput(i, 10, MIDIKeyboard.CCs[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0]] << 5);
+			}
+			// if it's not a CC, check if it's a note instead
+			else if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1] >= 0)
+			{
+				if (MIDIKeyboard.notes[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1]][0])
+				{
+					sendDataToOutput(i, 0, 4095);
+				}
+				else
+				{
+					sendDataToOutput(i, 0, 0);
+				}
+			}
+		}
+
+	}
+	
 	DAC16Send	(0, tIRampTick(&out[0][0]));
 	dacsend     (0, 0,  tIRampTick(&out[0][1])); 
 	dacsend     (0, 1,  tIRampTick(&out[0][2]));  
@@ -966,42 +999,50 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 	}
 	
-	else if (preference_num == TUNING_SELECT)
+	else if (preference_num == TUNING_AND_LEARN)
 	{
-		if (!tuningLoading)
+		if (tuningOrLearn == TUNING_SELECT)
 		{
-			if (whichSwitch)
+			if (!tuningLoading)
 			{
-				if (upSwitch())
+				if (whichSwitch)
 				{
-					tuning++;
-					if (tuning >= 99)
+					if (upSwitch())
 					{
-						tuning = 99;
+						tuning++;
+						if (tuning >= 99)
+						{
+							tuning = 99;
+						}
 					}
 				}
-			}
-			else
-			{
-				if (downSwitch())
+				else
 				{
-					if (tuning <= 0)
+					if (downSwitch())
 					{
-						tuning = 0;
-					}
-					else
-					{
-						tuning--;
+						if (tuning <= 0)
+						{
+							tuning = 0;
+						}
+						else
+						{
+							tuning--;
+						}
 					}
 				}
-			}
-			if (!suspendRetrieve)
-			{
+				if (!suspendRetrieve)
+				{
 					loadTuning();
+				}
+				Write7Seg(tuning);
+				normal_7seg_number = tuning;
 			}
-			Write7Seg(tuning);
-			normal_7seg_number = tuning;
 		}
+		else //otherwise it's MIDI LEARN mode
+		{
+			
+		}
+		
 	}
 	
 	else if (preference_num == PORTAMENTO_TIME)
@@ -1115,6 +1156,9 @@ void Preferences_Switch_Check(void)
 {
 	if (preferencesSwitch())
 	{
+		
+		tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
+		
 		//if we aren't in a current save state, act normal and change preferences
 		if (!savingActive)
 		{
@@ -1146,6 +1190,7 @@ void Save_Switch_Check(void)
 				savingActive = !savingActive;
 				updateSave();
 		}
+		
 		else if (preference_num == INTERNAL_CLOCK)
 		{
 			if (clock_pref == CLOCK_DIVIDER)
@@ -1161,6 +1206,25 @@ void Save_Switch_Check(void)
 				clock_pref = CLOCK_DIVIDER;
 				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
 				normal_7seg_number = 200 + tempoDivider;
+			}
+		}
+		
+		else if (preference_num == TUNING_AND_LEARN)
+		{
+			if (tuningOrLearn == TUNING_SELECT)
+			{
+				//switch to midilearn 
+				tuningOrLearn = MIDILEARN;
+				currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
+				Write7Seg(currentNumberToMIDILearn);
+				normal_7seg_number = currentNumberToMIDILearn;
+			}
+			else if (tuningOrLearn == MIDILEARN)
+			{
+				//switch to Clock Divider pref
+				tuningOrLearn = TUNING_SELECT;
+				Write7Seg(tuning); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = tuning;
 			}
 		}
 	}
@@ -1216,7 +1280,7 @@ void updatePreferences(void)
 		normal_7seg_number = preset_num;
 		break;
 		
-		case TUNING_SELECT:
+		case TUNING_AND_LEARN:
 		LED_Off(LEFT_POINT_LED);
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);

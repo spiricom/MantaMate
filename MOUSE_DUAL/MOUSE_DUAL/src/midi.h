@@ -37,13 +37,13 @@ typedef struct _tMIDIKeyboard
 	
 	int voices[MAX_VOICES][2];
 	
+	int firstFreeOutput;
+	
 	int notes[128][2];
 	
 	int CCs[128];
 	
-	int learnedCCs[128];
-	
-	int learnedNotes[128];
+	int learnedCCsAndNotes[128][2];
 	
 	int lastVoiceToChange;
 	
@@ -64,5 +64,9 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* const keyboard, int note, uint8_t vel);
 void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note);
 
 void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices);
+
+void learnMIDINote(uint8_t msgByte1, uint8_t msgByte2);
+
+void learnMIDICC(uint8_t msgByte1, uint8_t msgByte2);
 
 #endif /* MIDI_H_ */

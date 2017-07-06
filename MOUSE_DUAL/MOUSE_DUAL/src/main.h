@@ -190,10 +190,12 @@ extern uint32_t upHeld;
 extern uint32_t downHeld;
 extern uint32_t holdTimeThresh;
 
-
 int defaultTuningMap[8];
 
 unsigned char tuningLoading;
+
+TuningOrLearnType tuningOrLearn;
+uint8_t currentNumberToMIDILearn;
 
 // UI
 void touchKeyboardHex(int hex, uint8_t weight);

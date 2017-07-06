@@ -98,7 +98,7 @@ typedef enum MantaInstrument {
 typedef enum GlobalPreferences
 {
 	PRESET_SELECT,
-	TUNING_SELECT,
+	TUNING_AND_LEARN,
 	PORTAMENTO_TIME,
 	INTERNAL_CLOCK,
 	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
@@ -109,6 +109,12 @@ typedef enum ClockPreferences
 	BPM,
 	CLOCK_DIVIDER
 }ClockPreferences;
+
+typedef enum TuningOrLearnType
+{
+	TUNING_SELECT,
+	MIDILEARN
+}TuningOrLearnType;
 
 
 typedef enum MantaEditPlayMode {

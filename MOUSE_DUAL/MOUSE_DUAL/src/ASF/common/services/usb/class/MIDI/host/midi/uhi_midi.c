@@ -182,7 +182,7 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 	}
 	
 	// we added this because sometime USB MIDI devices give garbage in the first transfer
-	firstMIDIMessage = 1;
+	//firstMIDIMessage = 1;
 	
 	// All endpoints of all interfaces supported allocated
 	if(uhi_midi_dev.line_rx.ep_data)

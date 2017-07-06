@@ -65,24 +65,44 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 144:
 				if (msgByte2)
 				{
-					tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
-					dacSendMIDIKeyboard();
+					if (!(tuningOrLearn == MIDILEARN))
+					{
+						tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
+						dacSendMIDIKeyboard();
+					}
+					else
+					{
+						learnMIDINote(msgByte1, msgByte2);
+					}
+
 				}
 				else //to deal with note-offs represented as a note-on with zero velocity
+				{
+					if (!(tuningOrLearn == MIDILEARN))
+					{
+						tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
+						dacSendMIDIKeyboard();
+					}
+				}
+				break;
+			case 128:
+				if (!(tuningOrLearn == MIDILEARN))
 				{
 					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
 					dacSendMIDIKeyboard();
 				}
-				break;
-			case 128:
-				tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
-				dacSendMIDIKeyboard();
 			break;
 			
 			// control change
 			case 176:
-			//controlChange(msgByte1,msgByte2);
-			
+			if (!(tuningOrLearn == MIDILEARN))
+			{
+				controlChange(msgByte1,msgByte2);
+			}
+			else
+			{
+				learnMIDICC(msgByte1, msgByte2);
+			}
 			break;
 			// program change
 			case 192:
@@ -129,53 +149,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 //For the MIDI keyboards knobs
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
-	switch (ctrlNum)
-	{
-		
-		case 0:
-		dacsend(0, 0, val * 32);
-		break;
-		
-		case 1:
-		dacsend(1, 0, val * 32);
-		break;
-		
-		case 2:
-		dacsend(2, 0, val * 32);
-		break;
-		
-		case 3:
-		dacsend(3, 0, val * 32);
-		break;
-		
-		case 4:
-		dacsend(0, 1, val * 32);
-		break;
-		
-		case 5:
-		dacsend(1, 1, val * 32);
-		break;
-		
-		case 6:
-		dacsend(2, 1, val * 32);
-		break;
-		
-		case 7:
-		dacsend(3, 1, val * 32);
-		break;
-		
-		
-		case 31:
-		
-		break;
-		case 32:
-		
-		break;
-
-		
-		default:
-		break;
-	}
+	MIDIKeyboard.CCs[ctrlNum] = val;
 }
 
 
@@ -253,13 +227,26 @@ void initMIDIKeys(int numVoices)
 
 void tMIDIKeyboard_init(tMIDIKeyboard* const keyboard, int numVoices)
 {
-
 		keyboard->numVoices = numVoices;
 		keyboard->numVoicesActive = numVoices;
 		keyboard->lastVoiceToChange = 0;
 		keyboard->transpose = 0;
 		keyboard->trigCount = 0;
-		
+		if (numVoices == 1)
+		{
+			keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
+		}
+		else
+		{
+			keyboard->firstFreeOutput = (3 * numVoices);
+		}
+		//default learned CCs and notes are just the CCs 1-128 - notes are skipped
+		for (int i = 0; i < 128; i++)
+		{
+			keyboard->learnedCCsAndNotes[i][0] = i+1;
+			keyboard->learnedCCsAndNotes[i][1] = -1;
+		}
+
 		for (int i = 0; i < 4; i ++)
 		{
 			keyboard->voices[i][0] = -1;
@@ -359,3 +346,63 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* const keyboard, uint8_t note)
 		}
 	}
 }
+
+void learnMIDINote(uint8_t note, uint8_t vel)
+{
+	BOOL alreadyFoundNote = FALSE;
+	
+	for (int i = 0; i < currentNumberToMIDILearn; i++)
+	{
+		if (MIDIKeyboard.learnedCCsAndNotes[i][1] == note)
+		{
+			alreadyFoundNote = TRUE;
+		}
+	}
+	if (!alreadyFoundNote) //if it's new
+	{
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][1] = note; //store the note number in the learned array
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][0] = -1; //mark the CC part of the array as not applicable
+		currentNumberToMIDILearn++;
+		if (currentNumberToMIDILearn <= 9)
+		{
+			Write7Seg(currentNumberToMIDILearn + 210);
+			normal_7seg_number = currentNumberToMIDILearn + 210;
+		}
+		else
+		{
+			Write7Seg(currentNumberToMIDILearn);
+			normal_7seg_number = currentNumberToMIDILearn;
+		}
+	}
+	
+}
+
+void learnMIDICC(uint8_t ctrlnum, uint8_t val)
+{
+	BOOL alreadyFoundCC = FALSE;
+		
+	for (int i = 0; i < currentNumberToMIDILearn; i++)
+	{
+		if (MIDIKeyboard.learnedCCsAndNotes[i][0] == ctrlnum)
+		{
+			alreadyFoundCC = TRUE;
+		}
+	}
+	if (!alreadyFoundCC) //if it's new
+	{
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][0] = ctrlnum; //store the CC in the learned array
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][1] = -1; //mark the note part of the array as not applicable
+		currentNumberToMIDILearn++;
+		if (currentNumberToMIDILearn <= 9)
+		{
+			Write7Seg(currentNumberToMIDILearn + 210);
+			normal_7seg_number = currentNumberToMIDILearn + 210;
+		}
+		else
+		{
+			Write7Seg(currentNumberToMIDILearn);
+			normal_7seg_number = currentNumberToMIDILearn;
+		}
+	}
+}
+
