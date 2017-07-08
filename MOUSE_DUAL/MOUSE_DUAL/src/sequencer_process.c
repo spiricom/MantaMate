@@ -866,11 +866,11 @@ void touchLowerHexOptionMode(uint8_t hexagon)
         {
             // Tuning hex
             
-            if (currentTuningHex >= 0) manta_set_led_hex(currentTuningHex, Amber);
+            if (currentTuningHex >= 0) manta_set_LED_hex(currentTuningHex, Amber);
             
             currentTuningHex = hexagon;
             
-            manta_set_led_hex(currentTuningHex, BothOn);
+            manta_set_LED_hex(currentTuningHex, BothOn);
             
             int selectedTuning = tunings[currentTuningHex];
             
@@ -891,9 +891,13 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
         if (hexagon < 16)
         {
             // Release tuning hex
-            tunings[currentTuningHex] = number_for_7Seg; // SHOULD BE current MM display number
+            tunings[currentTuningHex] = number_for_7Seg;
             
-            manta_set_led_hex(currentTuningHex, Red);
+            manta_set_LED_hex(currentTuningHex, Red);
+			
+			// LOAD TUNING HERE
+			tuning = tunings[currentTuningHex];
+			loadTuning();
             
             currentTuningHex = -1;
         }
@@ -1827,7 +1831,9 @@ void touchTopLeftButton(void)
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 	
-	if (manta[currentInstrument].type == SequencerInstrument)
+	MantaInstrumentType type = manta[currentInstrument].type;
+	
+	if (type == SequencerInstrument)
 	{
 		if (shiftOption1)
 		{
@@ -1872,7 +1878,7 @@ void touchTopLeftButton(void)
 		}
 		
 	}
-	else
+	else if (type == KeyboardInstrument)
 	{
 		if (shiftOption2)
 		{
@@ -1886,6 +1892,10 @@ void touchTopLeftButton(void)
 		}
 		
 		dacSendKeyboard(currentInstrument);
+	}
+	else // DirectInstrument
+	{
+
 	}
 	
 	
@@ -2061,6 +2071,7 @@ void releaseBottomRightButton(void)
 	else				
 	{
 		shiftOption2 = FALSE;
+		
 		Write7Seg(normal_7seg_number);
 		transpose_indication_active = 0;
 		if (!savingActive)
