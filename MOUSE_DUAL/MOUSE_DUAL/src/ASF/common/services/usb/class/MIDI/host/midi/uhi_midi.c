@@ -15,7 +15,7 @@
 #include "main.h"
 #include "note_process.h"
 #include "7Segment.h"
-#include "midi.h"
+//#include "midi.h"
 #include <string.h>
 
 #ifdef USB_HOST_HUB_SUPPORT

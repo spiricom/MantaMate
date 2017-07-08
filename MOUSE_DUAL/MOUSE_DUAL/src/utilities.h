@@ -9,6 +9,7 @@
 #ifndef UTILITIES_H_
 #define UTILITIES_H_
 
+#include "stdint.h"
 // Sequencer patterns to be used in the program
 #define NUM_PATTERNS 8
 #define NUM_GLOBAL_OPTIONS 4
@@ -63,9 +64,14 @@ typedef enum BOOL
 	TRUE = 1,
 	LO = FALSE,
 	HI = TRUE
-	}BOOL;
+}BOOL;
+	
+	
 
-#include "stdint.h"
+#define NUM_HEXES 48
+#define MAX_VOICES 4
+
+
 
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType
@@ -103,6 +109,13 @@ typedef enum GlobalPreferences
 	INTERNAL_CLOCK,
 	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
 }GlobalPreferences;
+
+typedef enum GlobalDisplayState
+{
+	TuningHexSelect,
+	UpDownSwitchBlock,
+	GlobalDisplayStateNil
+} GlobalDisplayState;
 
 typedef enum ClockPreferences
 {

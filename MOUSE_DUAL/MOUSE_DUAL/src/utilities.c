@@ -34,7 +34,10 @@ uint16_t tIRampTick(tIRamp *r) {
 }
 
 //ramp time can't be larger than 512
-int tIRampSetTime(tIRamp *r, int32_t time) {
+int tIRampSetTime(tIRamp *r, int32_t time) 
+{
+	if (r->time == time) return 0;
+	
 	r->time = time;
 	int32_t distance_to_travel = r->dest-r->curr;
 	if ((distance_to_travel > 4096000) || (distance_to_travel < -4096000))
@@ -52,7 +55,10 @@ int tIRampSetTime(tIRamp *r, int32_t time) {
 	return 0;
 }
 
-int tIRampSetDest(tIRamp *r, int32_t dest) {
+int tIRampSetDest(tIRamp *r, int32_t dest) 
+{
+	if (r->dest == dest) return 0;
+	
 	r->dest = dest << 10; //shift over 10 bits (equivalent to multiplying by 1024 to make it a larger number and give more precision - similar to multiplying by 1000 to move over the decimal place)
 	int32_t distance_to_travel = r->dest-r->curr;
 	if ((distance_to_travel > 4096000) || (distance_to_travel < -4096000))

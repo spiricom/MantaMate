@@ -68,6 +68,8 @@ static void setMemorySPI(spi_options_t spiOptions);
 
 int defaultTuningMap[8] = {0,1,2,3,4,5,6,7};
 
+uint8_t tuningToLoad = 0; //0-99
+
 //SPI options for the 16 and 12 bit DACs
 spi_options_t spiOptions16DAC =
 {
@@ -122,6 +124,7 @@ unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
+
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
@@ -178,6 +181,8 @@ const U8 test_pattern[] =  {
 	0x77,
 0x99};
 
+int tunings[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
 // I abstracted this one step away from the DAC to put ramps in there -JS
 void sendDataToOutput(int which, int ramp, uint16_t data)
@@ -199,7 +204,7 @@ void sendDataToOutput(int which, int ramp, uint16_t data)
 	}
 	else if (which == 3)
 	{
-		tIRampSetTime(&out[0][3], ramp);
+		 tIRampSetTime(&out[0][3], ramp);
 		tIRampSetDest(&out[0][3], data << 4);
 	}
 	else if (which == 4)
@@ -271,6 +276,8 @@ int main(void){
 	DACsetup();
 	
 	loadTuning();
+	displayState = GlobalDisplayStateNil;
+	currentTuningHex = -1;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -284,7 +291,6 @@ int main(void){
 	}
 	
 	takeover = FALSE;
-    currentTuningHex = -1;
 	
 	//start off on preset 0;
 	preset_num = 0;
@@ -588,6 +594,7 @@ static void tc2_irq(void)
 	}
 }
 
+
 // Glide timer.
 __attribute__((__interrupt__))
 static void tc3_irq(void)
@@ -628,27 +635,28 @@ static void tc3_irq(void)
 	
 	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 	{
-		for (int i = MIDIKeyboard.firstFreeOutput; i < 12; i++)
+		for (int n = 0; n < 12; n++)
 		{
-			//check if there are any learned CCs to send out
-			if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0] >= 0)
+			int cc = MIDIKeyboard.learnedCCsAndNotes[n][0];
+			int note = MIDIKeyboard.learnedCCsAndNotes[n][1];
+			
+			if (cc >= 0)
 			{
-				sendDataToOutput(i, 10, MIDIKeyboard.CCs[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][0]] << 5);
+				sendDataToOutput(n + firstFreeOutputINT, 10, MIDIKeyboard.CCs[cc] << 5);
 			}
-			// if it's not a CC, check if it's a note instead
-			else if (MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1] >= 0)
+			else if (note >= 0)
 			{
-				if (MIDIKeyboard.notes[MIDIKeyboard.learnedCCsAndNotes[(i-MIDIKeyboard.firstFreeOutput)][1]][0])
+				if (MIDIKeyboard.notes[note][0] > 0)
 				{
-					sendDataToOutput(i, 0, 4095);
+					sendDataToOutput(n + firstFreeOutputINT, 0, 4095);
 				}
 				else
 				{
-					sendDataToOutput(i, 0, 0);
+					sendDataToOutput(n + firstFreeOutputINT, 0, 0);
 				}
 			}
+			
 		}
-
 	}
 	
 	DAC16Send	(0, tIRampTick(&out[0][0]));
@@ -931,7 +939,44 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (preference_num == PRESET_SELECT)
+	if (displayState == UpDownSwitchBlock) return;
+	
+	if (displayState == TuningHexSelect)
+	{
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				tuningToLoad++;
+				if (tuningToLoad >= 99)
+				{
+					tuningToLoad = 99;
+				}
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (tuningToLoad <= 0)
+				{
+					tuningToLoad = 0;
+				}
+				else
+				{
+					tuningToLoad--;
+				}
+			}
+		}
+		tuning = tuningToLoad;
+		if (!suspendRetrieve)
+		{
+			loadTuning();
+		}
+		Write7Seg(tuningToLoad);
+		normal_7seg_number = tuningToLoad;
+	}
+	else if (preference_num == PRESET_SELECT)
 	{	
 		//if we are not in Save mode, then we are trying to instantaneously load a preset
 		if (!savingActive)
@@ -1217,8 +1262,8 @@ void Save_Switch_Check(void)
 				//switch to midilearn 
 				tuningOrLearn = MIDILEARN;
 				currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
-				Write7Seg(currentNumberToMIDILearn);
-				normal_7seg_number = currentNumberToMIDILearn;
+				Write7Seg(currentNumberToMIDILearn+200);
+				normal_7seg_number = currentNumberToMIDILearn+200;
 			}
 			else if (tuningOrLearn == MIDILEARN)
 			{
@@ -1240,19 +1285,19 @@ void updatePreset(void)
 	{
 		loadMantaPreset();
 	}
-	if (type_of_device_connected == JoystickConnected)
+	else if (type_of_device_connected == JoystickConnected)
 	{
 		loadJoystickPreset();
 	}
-	if (type_of_device_connected == MIDIComputerConnected)
+	else if (type_of_device_connected == MIDIComputerConnected)
 	{
 		loadMIDIComputerPreset();
 	}
-	if (type_of_device_connected == MIDIKeyboardConnected)
+	else if (type_of_device_connected == MIDIKeyboardConnected)
 	{
 		loadMIDIKeyboardPreset();
 	}
-	if (type_of_device_connected == NoDeviceConnected)
+	else if (type_of_device_connected == NoDeviceConnected)
 	{
 		loadNoDevicePreset();
 	}

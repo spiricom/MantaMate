@@ -83,8 +83,9 @@ typedef enum MantaInstrumentType
 }MantaInstrumentType;
 
 
-int tunings[16];
+extern int tunings[16];
 int currentTuning;
+GlobalDisplayState displayState;
 extern unsigned char globalGlide;
 
 typedef struct _tMantaInstrument
@@ -102,12 +103,9 @@ MantaInstrument currentInstrument;
 MantaInstrumentType takeoverType;
 BOOL takeover;
 
-int tunings[16];
-int currentTuning;
-
 tKeyboard fullKeyboard;
 tDirect fullDirect;
-//tMIDIKeyboard MIDIKeyboard;
+tMIDIKeyboard MIDIKeyboard;
 
 int currentTuningHex;
 

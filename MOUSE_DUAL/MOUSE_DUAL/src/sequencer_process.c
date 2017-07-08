@@ -865,16 +865,17 @@ void touchLowerHexOptionMode(uint8_t hexagon)
         if (hexagon < 16)
         {
             // Tuning hex
-            
-            if (currentTuningHex >= 0) manta_set_LED_hex(currentTuningHex, Amber);
-            
+            manta_set_LED_hex(currentTuningHex, Amber);
+			
             currentTuningHex = hexagon;
             
             manta_set_LED_hex(currentTuningHex, BothOn);
             
-            int selectedTuning = tunings[currentTuningHex];
+            tuningToLoad = tunings[currentTuningHex];
+			
+			displayState = TuningHexSelect;
             
-            Write7Seg(selectedTuning); // Set display
+            Write7Seg(tuningToLoad); // Set display
         }
     }
 }
@@ -889,9 +890,9 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
     else if (shiftOption2)
     {
         if (hexagon < 16)
-        {
+        {                          
             // Release tuning hex
-            tunings[currentTuningHex] = number_for_7Seg;
+            tunings[currentTuningHex] = tuningToLoad;
             
             manta_set_LED_hex(currentTuningHex, Red);
 			
@@ -899,7 +900,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 			tuning = tunings[currentTuningHex];
 			loadTuning();
             
-            currentTuningHex = -1;
+			displayState = UpDownSwitchBlock;
         }
     }
 }
@@ -2031,7 +2032,7 @@ void setTuningLEDs(void)
 	{
 		for (int i = 0; i < 32; i++)
 		{
-			manta_set_LED_hex(i, (i < 16) ? ((i == currentTuning) ? Red : Amber) : Off);
+			manta_set_LED_hex(i, (i < 16) ? ((i == currentTuningHex) ? Red : Amber) : Off);
 		}
 	}
 
@@ -2046,17 +2047,40 @@ void touchBottomRightButton(void)
 		compositionAction = CompositionWrite;
 		setCompositionLEDs();
 	}
-	else 
+	else if (displayState != TuningHexSelect)
 	{
-		shiftOption2 = TRUE;
-		
-		currentOptionMode = RightOptionMode;
-		
-		setOptionLEDs();
-		
-		setTuningLEDs();
-		
-		manta_set_LED_button(ButtonBottomRight, Amber);
+		if (!shiftOption2)
+		{
+			shiftOption2 = TRUE;
+			
+			displayState = UpDownSwitchBlock;
+			
+			currentOptionMode = RightOptionMode;
+			
+			setOptionLEDs();
+			
+			setTuningLEDs();
+			
+			manta_set_LED_button(ButtonBottomRight, Amber);
+		}
+		else if (shiftOption2)
+		{
+			shiftOption2 = FALSE;
+			
+			displayState = GlobalDisplayStateNil;
+			
+			Write7Seg(normal_7seg_number);
+			transpose_indication_active = 0;
+			if (!savingActive)
+			{
+				LED_Off(PRESET_SAVE_LED);
+			}
+			setCurrentInstrument(currentInstrument);
+			
+			if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
+			else if (manta[currentInstrument].type == KeyboardInstrument)	setKeyboardLEDs();
+			else if (manta[currentInstrument].type == DirectInstrument)		;
+		}
 	}
 }
 
@@ -2068,22 +2092,7 @@ void releaseBottomRightButton(void)
 	{
 		if (manta[currentInstrument].type == SequencerInstrument) setCompositionLEDs();
 	}	
-	else				
-	{
-		shiftOption2 = FALSE;
-		
-		Write7Seg(normal_7seg_number);
-		transpose_indication_active = 0;
-		if (!savingActive)
-		{
-			LED_Off(PRESET_SAVE_LED);
-		}
-		setCurrentInstrument(currentInstrument);
-		
-		if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
-		else if (manta[currentInstrument].type == KeyboardInstrument)	setKeyboardLEDs();
-		else if (manta[currentInstrument].type == DirectInstrument)		;
-	}
+
 }
 
 uint16_t testval = 0;

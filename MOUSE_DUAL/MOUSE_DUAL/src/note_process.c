@@ -238,7 +238,7 @@ void dacSendMIDIKeyboard(void)
 	tMIDIKeyboard* keyboard;
 	keyboard = &MIDIKeyboard;
 	
-	if (!(keyboard->noPitchOutput))
+	if (pitchOutputINT > 0)
 	{
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{

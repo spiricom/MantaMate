@@ -22,9 +22,6 @@ signed int harmonicmap[48];
 signed int pianomap[48];
 
 
-#define NUM_HEXES 48
-#define MAX_VOICES 4
-
 typedef struct _tKeyboard
 {
 	int numVoices;

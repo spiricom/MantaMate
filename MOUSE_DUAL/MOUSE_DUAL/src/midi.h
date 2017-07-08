@@ -9,11 +9,8 @@
 #ifndef MIDI_H_
 #define MIDI_H_
 
-#include "main.h"
-#include "tuning.h"
-#include "ui.h"
-#include "keyboard.h"
-#include <asf.h>
+#include "utilities.h"
+#include "notestack.h"
 
 uint16_t sysexByteCounter;
 uint8_t inSysex;
@@ -30,6 +27,10 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 void initMIDIArpeggiator(void);
 void initMIDIKeys(int numVoices, BOOL pitchout);
 
+int pitchOutputINT;
+int configured;
+int firstFreeOutputINT;
+
 typedef struct _tMIDIKeyboard
 {
 	int numVoices;
@@ -37,7 +38,7 @@ typedef struct _tMIDIKeyboard
 	
 	int voices[MAX_VOICES][2];
 	
-	int firstFreeOutput;
+	//int firstFreeOutput;
 	
 	int notes[128][2];
 	
@@ -55,17 +56,15 @@ typedef struct _tMIDIKeyboard
 	
 	int trigCount;
 	
-	BOOL noPitchOutput;
+	//BOOL pitchOutput;
 	
 } tMIDIKeyboard;
-
-tMIDIKeyboard MIDIKeyboard;
 
 void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel);
 
 void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note);
 
-void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, BOOL pitchout);
+void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchout);
 
 void learnMIDINote(uint8_t msgByte1, uint8_t msgByte2);
 

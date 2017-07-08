@@ -12,6 +12,7 @@
 #include <asf.h>
 
 extern uint8_t tuning;
+extern uint8_t tuningToLoad;
 
 extern uint64_t scaledoctaveDACvalue;
 
