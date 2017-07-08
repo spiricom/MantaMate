@@ -265,6 +265,7 @@ MantaPlayMode playMode;
 
 BOOL shiftOption1;
 BOOL shiftOption2;
+BOOL shiftOption2Lock;
 
 GlobalOptionType full_vs_split;
 

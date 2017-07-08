@@ -968,6 +968,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 		}
+		tunings[currentTuningHex] = tuningToLoad;
 		tuning = tuningToLoad;
 		if (!suspendRetrieve)
 		{
