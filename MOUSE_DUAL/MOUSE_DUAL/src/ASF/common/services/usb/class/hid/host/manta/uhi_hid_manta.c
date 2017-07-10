@@ -59,7 +59,7 @@
 # error USB HUB support is not implemented on UHI mouse
 #endif
 
-
+#define MAXIMUM_LEDS_TO_CHANGE_PER_FRAME 64
 
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
@@ -132,12 +132,17 @@ uint8_t past_func_button_states[4] = {0,0,0,0};
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
 uint8_t firstEdition = false;
-	
+uint8_t which_led_buffer_currently_sending = 0;
+uint8_t which_led_buffer_needs_sending = 0;
 	
 //! To signal if a valid report is ready to send
 static bool uhi_manta_b_report_valid;
 //! Report ready to send
-static uint8_t uhi_manta_report[UHI_MANTA_EP_OUT_SIZE];
+
+static uint8_t uhi_manta_report[8][UHI_MANTA_EP_OUT_SIZE];
+
+uint8_t LEDsChangedSoFar = 0;
+
 //! Signal if a report transfer is on going
 static bool uhi_manta_report_trans_ongoing;
 //! Buffer used to send report
@@ -388,9 +393,9 @@ static bool uhi_manta_send_report(void)
 	return false;	// Transfer on going then send this one after transfer complete
 
 	// Copy report on other array used only for transfer
-	memcpy(uhi_manta_report_trans, uhi_manta_report, UHI_MANTA_EP_OUT_SIZE);
+	memcpy(uhi_manta_report_trans, uhi_manta_report[which_led_buffer_currently_sending], UHI_MANTA_EP_OUT_SIZE);
 	uhi_manta_b_report_valid = false;
-
+	
 	// Send report
 	return uhi_manta_report_trans_ongoing =
 	uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_manta_report_sent);
@@ -404,6 +409,14 @@ static void uhi_manta_report_sent(usb_add_t add, usb_ep_t ep,
 	UNUSED(nb_transfered);
 	// Valid report sending
 	uhi_manta_report_trans_ongoing = false;
+	if (which_led_buffer_needs_sending > 0)
+	{
+		which_led_buffer_needs_sending--;
+	}
+	else
+	{
+		LEDsChangedSoFar = 0;
+	}
 	if (uhi_manta_b_report_valid) {
 		// Send new valid report
 		uhi_manta_send_report();
@@ -414,11 +427,11 @@ void manta_LED_set_mode(uint8_t mode)
 {
 	switch(mode)
 	{
-		case LOCAL_CONTROL: uhi_manta_report[9] = 0x00; break;    
-		case HOST_CONTROL_FULL:uhi_manta_report[9] = 0x03; break; 
-		case HOST_CONTROL_BUTTON: uhi_manta_report[9] = 0x20; break;		
-		case HOST_CONTROL_SLIDER: uhi_manta_report[9] = 0x02; break;	
-		case HOST_CONTROL_HEX_AND_BUTTON: uhi_manta_report[9] = 0x01; break;		
+		case LOCAL_CONTROL: uhi_manta_report[0][9] = 0x00; break;    
+		case HOST_CONTROL_FULL:uhi_manta_report[0][9] = 0x03; break; 
+		case HOST_CONTROL_BUTTON: uhi_manta_report[0][9] = 0x20; break;		
+		case HOST_CONTROL_SLIDER: uhi_manta_report[0][9] = 0x02; break;	
+		case HOST_CONTROL_HEX_AND_BUTTON: uhi_manta_report[0][9] = 0x01; break;		
 		default: break;
 	}
 }
@@ -431,61 +444,80 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 	if (color == Amber)
 	{
 		//turn off the red light if it's on
-		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);	
+		uhi_manta_report[0][whichbyte+10] &= ~(1 << whichbit);	
 		// then turn on the amber light
-		uhi_manta_report[whichbyte] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte] |= 1 << whichbit;
 	}
 	else if (color == Red)
 	{
 		//turn off the amber light if it's on
-		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		uhi_manta_report[0][whichbyte] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte+10] |= 1 << whichbit;
 	}
 	
 	if (color == AmberOn)
 	{
 		// turn on the amber light
-		uhi_manta_report[whichbyte] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte] |= 1 << whichbit;
 	}
 	else if (color == RedOn)
 	{
 
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte+10] |= 1 << whichbit;
 	}
 	else if (color == BothOn)
 	{
 		// turn on the amber light
-		uhi_manta_report[whichbyte] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte] |= 1 << whichbit;
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[whichbyte+10] |= 1 << whichbit;
+		uhi_manta_report[0][whichbyte+10] |= 1 << whichbit;
 	}
 	else if (color == Off)
 	{
 		//turn off the amber light
-		uhi_manta_report[whichbyte]		&= ~(1 << whichbit);
+		uhi_manta_report[0][whichbyte]		&= ~(1 << whichbit);
 		// turn off the red light
-		uhi_manta_report[whichbyte+10]	&= ~(1 << whichbit);
+		uhi_manta_report[0][whichbyte+10]	&= ~(1 << whichbit);
 	}
 	
 	else if (color == RedOff)
 	{
 		// turn off the red light
-		uhi_manta_report[whichbyte+10] &= ~(1 << whichbit);
+		uhi_manta_report[0][whichbyte+10] &= ~(1 << whichbit);
 	}
 	
 	else if (color == AmberOff)
 	{
 		//turn off the amber light
-		uhi_manta_report[whichbyte] &= ~(1 << whichbit);
+		uhi_manta_report[0][whichbyte] &= ~(1 << whichbit);
 	}
 	
 	else
 	{
 		// Should not happen.
 	}
-
+	LEDsChangedSoFar++;
+	if (LEDsChangedSoFar > MAXIMUM_LEDS_TO_CHANGE_PER_FRAME)
+	{
+		// move everything in the stack to the right and copy the current report to buffer[1]
+		for (int i = 0; i < UHI_MANTA_EP_OUT_SIZE; i++)
+		{
+			uhi_manta_report[7][i] = uhi_manta_report[6][i];
+			uhi_manta_report[6][i] = uhi_manta_report[5][i];
+			uhi_manta_report[5][i] = uhi_manta_report[4][i];
+			uhi_manta_report[4][i] = uhi_manta_report[3][i];
+			uhi_manta_report[3][i] = uhi_manta_report[2][i];
+			uhi_manta_report[2][i] = uhi_manta_report[1][i];
+			uhi_manta_report[1][i] = uhi_manta_report[0][i];
+		}
+		which_led_buffer_needs_sending++;
+		LEDsChangedSoFar = 0;
+		
+		//queue up a send message to happen
+		manta_send_LED();
+	}
 	//
 	//call manta_send_LED(lights) after you have all your lights properly set.
 
@@ -497,11 +529,11 @@ void manta_set_LED_slider(uint8_t whichSlider, uint8_t value)
 	// value should be 0-8, with 0 meaning off and 1-8 meaning lit LED at that position
 	if (value == 0)
 	{
-		uhi_manta_report[whichSlider + 7] = 0;
+		uhi_manta_report[0][whichSlider + 7] = 0;
 	}
 	else
 	{
-		uhi_manta_report[whichSlider + 7] = 1 << (value - 1);
+		uhi_manta_report[0][whichSlider + 7] = 1 << (value - 1);
 	}
 }
 
@@ -509,7 +541,7 @@ void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t bitmask)
 {
 	//whichSlider should be 0 (top) or 1 (bottom)
 	// bitmask should be an 8-bit word, where the bits represent the led states for that slider
-	uhi_manta_report[whichSlider + 7] = bitmask;
+	uhi_manta_report[0][whichSlider + 7] = bitmask;
 }
 
 void manta_set_LED_button(uint8_t button, uint8_t color)
@@ -519,26 +551,27 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 	if (color == Amber)
 	{
 		//turn off the red light if it's on
-		uhi_manta_report[6] &= ~(1 << (whichbit+4));
+		uhi_manta_report[0][6] &= ~(1 << (whichbit+4));
 		// then turn on the amber light
-		uhi_manta_report[6] |= 1 << whichbit;
+		uhi_manta_report[0][6] |= 1 << whichbit;
 	}
 	else if (color == Red)
 	{
 		//turn off the amber light if it's on
-		uhi_manta_report[6] &= ~(1 << whichbit);
+		uhi_manta_report[0][6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] |= 1 << (whichbit+4);
+		uhi_manta_report[0][6] |= 1 << (whichbit+4);
 	}
 
 	else if (color == Off)
 	{
 		//turn off the amber light if it's on
-		uhi_manta_report[6] &= ~(1 << whichbit);
+		uhi_manta_report[0][6] &= ~(1 << whichbit);
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
-		uhi_manta_report[6] &= ~(1 << (whichbit+4));
+		uhi_manta_report[0][6] &= ~(1 << (whichbit+4));
 	}
-
+	
+	LEDsChangedSoFar++;
 	//
 	//call manta_send_LED(lights) after you have all your lights properly set.
 }
@@ -550,8 +583,12 @@ void manta_send_LED(void)
 	
 	// Valid and send report
 	uhi_manta_b_report_valid = true;
+	
+	which_led_buffer_currently_sending = which_led_buffer_needs_sending;
+	
+	//send the current send buffer
 	uhi_manta_send_report();
-
+	
 	cpu_irq_restore(flags);
 	return;
 }
