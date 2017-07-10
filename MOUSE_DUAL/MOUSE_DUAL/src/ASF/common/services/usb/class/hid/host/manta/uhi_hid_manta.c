@@ -260,10 +260,6 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	type_of_device_connected = MantaConnected;
-	//initNoteStack();
-	manta_mapper = 1; // lets the note_process functions know that it's a manta, and therefore the note numbers need to be mapped to actual MIDI pitches using one of the notemaps
-	//memset(lights,0,HEX_BYTES*2+SLIDER_BYTES); removed this because it seems more efficient to manipulate the manta hid send report directly. It's possible that there's a problem with that, which means will need to bring back this separate array.
-
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
 	new_manta_attached = true;
@@ -285,7 +281,6 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	Assert(uhi_hid_manta_dev.report!=NULL);
 	free(uhi_hid_manta_dev.report);
 	UHI_HID_MANTA_CHANGE(dev, false);
-	manta_mapper = 0;
 	type_of_device_connected = NoDeviceConnected;
 	//initNoteStack();
 }
