@@ -560,6 +560,12 @@ void manta_send_LED(void)
 				which_bit = 0;
 				which_byte++;
 			}
+			
+			if (uhi_manta_report[1][which_byte] == uhi_manta_report[0][which_byte])
+			{
+				which_byte++;
+			}
+			
 			if (which_byte > 15)
 			{
 				//we're done rolling - exit!
@@ -567,6 +573,7 @@ void manta_send_LED(void)
 				roll_LEDs = 0;
 				break;
 			}
+
 
 			uint8_t myMask = (1 << which_bit );
 			uint8_t masked_n = (uhi_manta_report[0][which_byte] & ( 1 << which_bit ));
@@ -594,40 +601,6 @@ void manta_send_LED(void)
 	//now should have just flipped a single bit
 	uhi_manta_send_report();
 	
-	/*
-	switch (which_led_buffer_needs_sending)
-	{
-		case 0:
-		{
-			uhi_manta_report[1][0] = uhi_manta_report[0][0];
-			uhi_manta_report[1][3] = uhi_manta_report[0][3];
-			uhi_manta_report[1][7] = uhi_manta_report[0][7];
-			uhi_manta_report[1][9] = uhi_manta_report[0][9];
-			uhi_manta_report[1][10] = uhi_manta_report[0][10];
-			uhi_manta_report[1][13] = uhi_manta_report[0][13];
-			which_led_buffer_needs_sending++;
-		}
-		case 1:
-		{
-			uhi_manta_report[1][1] = uhi_manta_report[0][1];
-			uhi_manta_report[1][4] = uhi_manta_report[0][4];
-			uhi_manta_report[1][6] = uhi_manta_report[0][6];
-			uhi_manta_report[1][11] = uhi_manta_report[0][11];
-			uhi_manta_report[1][14] = uhi_manta_report[0][14];
-			which_led_buffer_needs_sending++;
-		}
-		case 2:
-		{
-			uhi_manta_report[1][2] = uhi_manta_report[0][2];
-			uhi_manta_report[1][5] = uhi_manta_report[0][5];
-			uhi_manta_report[1][8] = uhi_manta_report[0][8];
-			uhi_manta_report[1][12] = uhi_manta_report[0][12];
-			uhi_manta_report[1][15] = uhi_manta_report[0][15];
-			which_led_buffer_needs_sending = 0;
-		}
-	}
-	uhi_manta_send_report();
-	*/
 	cpu_irq_restore(flags);
 	return;
 }
