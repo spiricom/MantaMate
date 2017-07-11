@@ -745,6 +745,8 @@ void setHexmapLEDs	(void)
 
 void setCompositionLEDs(void)
 {
+
+	freeze_LED_update = 1;
 	for (int inst = 0 ; inst < 2; inst++)
 	{
 		if (manta[inst].type == SequencerInstrument)
@@ -764,7 +766,8 @@ void setCompositionLEDs(void)
 		}
 	
 	}
-	
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void touchLowerHexOptionMode(uint8_t hexagon)
@@ -1750,6 +1753,7 @@ void resetSliderMode(void)
 
 void setSequencerLEDs(void)
 {
+	freeze_LED_update = 1;
 	if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
 	{
 		
@@ -1766,24 +1770,33 @@ void setSequencerLEDs(void)
 	{
 		setSequencerLEDsFor(InstrumentTwo);
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
+	
 }
 
 void setKeyboardLEDs(void)
 {
+	freeze_LED_update = 1;
 	if (manta[currentInstrument].type == KeyboardInstrument)
 	{
+		freeze_LED_update = 1;
 		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 
 		for (int i = 0; i < 48; i++)
 		{
 			manta_set_LED_hex(i, keyboard->hexes[i].color);
 		}
+		freeze_LED_update = 0;
+		roll_LEDs = 1;
 	}
-	
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void setDirectLEDs			(void)
 {
+	freeze_LED_update = 1;
 	if (!takeover)
 	{
 		if (manta[currentInstrument].type == DirectInstrument)
@@ -1803,11 +1816,14 @@ void setDirectLEDs			(void)
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 	
 }
 
 void setDirectOptionLEDs			(void)
 {
+	freeze_LED_update = 1;
 	for (int inst = 0; inst < 2; inst++)
 	{
 		if (manta[inst].type == DirectInstrument)
@@ -1821,7 +1837,8 @@ void setDirectOptionLEDs			(void)
 		}
 		
 	}
-	
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 // ~ ~ ~ ~ TOP LEFT BUTTON ~ ~ ~ ~ //
@@ -2456,6 +2473,7 @@ void setPanelSelectLEDs(void)
 
 void setKeyboardLEDsFor(MantaInstrument inst, int note)
 {	
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	int setRed = 1;
 	int nt = 0;
@@ -2551,6 +2569,7 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 	manta_set_LED_button(ButtonBottomLeft, Off);
 	manta_set_LED_button(ButtonBottomRight, (playMode == ToggleMode) ? Off : Amber);
 	manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+	freeze_LED_update = 0;
 }
 
 
@@ -2627,6 +2646,7 @@ void setSliderLEDsFor(MantaInstrument inst, int note)
 
 void setTriggerPanelLEDsFor(MantaInstrument inst, TriggerPanel panel)
 {
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	int hexUI = 0;
@@ -2645,10 +2665,13 @@ void setTriggerPanelLEDsFor(MantaInstrument inst, TriggerPanel panel)
 			manta_set_LED_hex(hexUI,Off);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void setSequencerLEDsFor(MantaInstrument inst)
 {
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	int hexUI = 0;
@@ -2669,11 +2692,13 @@ void setSequencerLEDsFor(MantaInstrument inst)
 			manta_set_LED_hex(editStack.notestack[i], Red);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void setOptionLEDs(void)
 {
-	
+	freeze_LED_update = 1;
 	MantaInstrumentType type = manta[currentInstrument].type;
 	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
@@ -2792,7 +2817,10 @@ void setOptionLEDs(void)
 		{
 			manta_set_LED_hex(hex, Off);
 		}
+
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 // Output

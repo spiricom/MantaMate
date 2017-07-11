@@ -133,6 +133,9 @@ uint8_t firstEdition = false;
 uint8_t which_led_buffer_currently_sending = 0;
 uint8_t which_led_buffer_needs_sending = 0;
 	
+	
+uint8_t sof_count = 0;
+	
 //! To signal if a valid report is ready to send
 static bool uhi_manta_b_report_valid;
 //! Report ready to send
@@ -352,7 +355,7 @@ static void uhi_hid_manta_report_reception(
 	}
 	
 	processHexTouch();
-	
+
 	uhi_hid_manta_start_trans_report(add);
 }
 
@@ -372,6 +375,7 @@ void uhi_hid_manta_sof(bool b_micro)
 	{
 		manta_send_LED();
 	}
+
 }
 
 //for when you want to update the LED modes or LED states
@@ -478,28 +482,6 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 	{
 		// Should not happen.
 	}
-	/*
-	LEDsChangedSoFar++;
-	if (LEDsChangedSoFar > MAXIMUM_LEDS_TO_CHANGE_PER_FRAME)
-	{
-		// move everything in the stack to the right and copy the current report to buffer[1]
-		for (int i = 0; i < UHI_MANTA_EP_OUT_SIZE; i++)
-		{
-			uhi_manta_report[7][i] = uhi_manta_report[6][i];
-			uhi_manta_report[6][i] = uhi_manta_report[5][i];
-			uhi_manta_report[5][i] = uhi_manta_report[4][i];
-			uhi_manta_report[4][i] = uhi_manta_report[3][i];
-			uhi_manta_report[3][i] = uhi_manta_report[2][i];
-			uhi_manta_report[2][i] = uhi_manta_report[1][i];
-			uhi_manta_report[1][i] = uhi_manta_report[0][i];
-		}
-		which_led_buffer_needs_sending++;
-		LEDsChangedSoFar = 0;
-		
-		//queue up a send message to happen
-		manta_send_LED();
-	}
-	*/
 	//
 	//call manta_send_LED() after you have all your lights properly set.
 
@@ -552,12 +534,13 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[0][6] &= ~(1 << (whichbit+4));
 	}
-	
-	LEDsChangedSoFar++;
+
 	//
 	//call manta_send_LED() after you have all your lights properly set.
 }
 
+int which_bit = 0;
+int which_byte = 0;
 
 void manta_send_LED(void)
 {
@@ -566,58 +549,85 @@ void manta_send_LED(void)
 	// Valid and send report
 	uhi_manta_b_report_valid = true;
 	
-	//which_led_buffer_currently_sending = which_led_buffer_needs_sending;
+	if (roll_LEDs)
+	{
+		uint8_t countdown = 1; //how many bits we copy each USB frame (how many LEDs can change)
+		while(countdown > 0)
+		{
+			which_bit++;
+			if (which_bit > 7)
+			{
+				which_bit = 0;
+				which_byte++;
+			}
+			if (which_byte > 15)
+			{
+				//we're done rolling - exit!
+				which_byte = 0;
+				roll_LEDs = 0;
+				break;
+			}
+
+			uint8_t myMask = (1 << which_bit );
+			uint8_t masked_n = (uhi_manta_report[0][which_byte] & ( 1 << which_bit ));
+		
+			if (masked_n > 0) //the bit was on - let's add it to the array
+			{
+				uhi_manta_report[1][which_byte] = (uhi_manta_report[1][which_byte] | myMask);
+			}
+			else //the bit was off. Lets clear it in the new array
+			{
+				uhi_manta_report[1][which_byte] = (uhi_manta_report[1][which_byte] & ~myMask);
+			}
+			countdown--;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < 16; i++)
+		{
+			uhi_manta_report[1][i] = uhi_manta_report[0][i];
+		}
+	}
 	
-	//send the current send buffer
 	
+	//now should have just flipped a single bit
+	uhi_manta_send_report();
+	
+	/*
 	switch (which_led_buffer_needs_sending)
 	{
 		case 0:
 		{
 			uhi_manta_report[1][0] = uhi_manta_report[0][0];
+			uhi_manta_report[1][3] = uhi_manta_report[0][3];
+			uhi_manta_report[1][7] = uhi_manta_report[0][7];
 			uhi_manta_report[1][9] = uhi_manta_report[0][9];
 			uhi_manta_report[1][10] = uhi_manta_report[0][10];
-
+			uhi_manta_report[1][13] = uhi_manta_report[0][13];
 			which_led_buffer_needs_sending++;
 		}
 		case 1:
 		{
 			uhi_manta_report[1][1] = uhi_manta_report[0][1];
+			uhi_manta_report[1][4] = uhi_manta_report[0][4];
 			uhi_manta_report[1][6] = uhi_manta_report[0][6];
 			uhi_manta_report[1][11] = uhi_manta_report[0][11];
+			uhi_manta_report[1][14] = uhi_manta_report[0][14];
 			which_led_buffer_needs_sending++;
 		}
 		case 2:
 		{
 			uhi_manta_report[1][2] = uhi_manta_report[0][2];
+			uhi_manta_report[1][5] = uhi_manta_report[0][5];
 			uhi_manta_report[1][8] = uhi_manta_report[0][8];
 			uhi_manta_report[1][12] = uhi_manta_report[0][12];
-			which_led_buffer_needs_sending++;
-		}
-		case 3:
-		{
-			uhi_manta_report[1][3] = uhi_manta_report[0][3];
-			uhi_manta_report[1][13] = uhi_manta_report[0][13];
-			which_led_buffer_needs_sending++;
-		}
-		case 4:
-		{			
-			uhi_manta_report[1][4] = uhi_manta_report[0][4];
-			uhi_manta_report[1][7] = uhi_manta_report[0][7];
-			uhi_manta_report[1][14] = uhi_manta_report[0][14];
-			which_led_buffer_needs_sending++;
-		}
-		case 5:
-		{
-			uhi_manta_report[1][5] = uhi_manta_report[0][5];
 			uhi_manta_report[1][15] = uhi_manta_report[0][15];
 			which_led_buffer_needs_sending = 0;
 		}
-		
 	}
 	uhi_manta_send_report();
-	
-	
+	*/
 	cpu_irq_restore(flags);
 	return;
 }
