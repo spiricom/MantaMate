@@ -68,8 +68,6 @@ static void setMemorySPI(spi_options_t spiOptions);
 
 int defaultTuningMap[8] = {0,1,2,3,4,5,6,7};
 
-uint8_t tuningToLoad = 0; //0-99
-
 //SPI options for the 16 and 12 bit DACs
 spi_options_t spiOptions16DAC =
 {
@@ -181,7 +179,6 @@ const U8 test_pattern[] =  {
 	0x77,
 0x99};
 
-int tunings[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
 // I abstracted this one step away from the DAC to put ramps in there -JS
@@ -275,7 +272,7 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
-	loadTuning();
+	loadTuning(globalTuning);
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
 	// figure out if we're supposed to be in host mode or device mode for the USB
@@ -947,10 +944,10 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (upSwitch())
 			{
-				tuningToLoad++;
-				if (tuningToLoad >= 99)
+				currentMantaUITuning++;
+				if (currentMantaUITuning >= 99)
 				{
-					tuningToLoad = 99;
+					currentMantaUITuning = 99;
 				}
 			}
 		}
@@ -958,24 +955,26 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (downSwitch())
 			{
-				if (tuningToLoad <= 0)
+				if (currentMantaUITuning <= 0)
 				{
-					tuningToLoad = 0;
+					currentMantaUITuning = 0;
 				}
 				else
 				{
-					tuningToLoad--;
+					currentMantaUITuning--;
 				}
 			}
 		}
-		tunings[currentTuningHex] = tuningToLoad;
-		tuning = tuningToLoad;
+		
+		mantaUITunings[currentTuningHex] = currentMantaUITuning;
+		
 		if (!suspendRetrieve)
 		{
-			loadTuning();
+			loadTuning(currentMantaUITuning);
 		}
-		Write7Seg(tuningToLoad);
-		normal_7seg_number = tuningToLoad;
+		
+		Write7Seg(currentMantaUITuning);
+		normal_7seg_number = currentMantaUITuning;
 	}
 	else if (preference_num == PRESET_SELECT)
 	{	
@@ -1056,10 +1055,10 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				{
 					if (upSwitch())
 					{
-						tuning++;
-						if (tuning >= 99)
+						globalTuning++;
+						if (globalTuning >= 99)
 						{
-							tuning = 99;
+							globalTuning = 99;
 						}
 					}
 				}
@@ -1067,22 +1066,22 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				{
 					if (downSwitch())
 					{
-						if (tuning <= 0)
+						if (globalTuning <= 0)
 						{
-							tuning = 0;
+							globalTuning = 0;
 						}
 						else
 						{
-							tuning--;
+							globalTuning--;
 						}
 					}
 				}
 				if (!suspendRetrieve)
 				{
-					loadTuning();
+					loadTuning(globalTuning);
 				}
-				Write7Seg(tuning);
-				normal_7seg_number = tuning;
+				Write7Seg(globalTuning);
+				normal_7seg_number = globalTuning;
 			}
 		}
 		else //otherwise it's MIDI LEARN mode
@@ -1270,8 +1269,8 @@ void Save_Switch_Check(void)
 			{
 				//switch to Clock Divider pref
 				tuningOrLearn = TUNING_SELECT;
-				Write7Seg(tuning); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-				normal_7seg_number = tuning;
+				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = globalTuning;
 			}
 		}
 	}
@@ -1331,8 +1330,8 @@ void updatePreferences(void)
 		LED_Off(LEFT_POINT_LED);
 		LED_On(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
-		Write7Seg(tuning);
-		normal_7seg_number = tuning;
+		Write7Seg(globalTuning);
+		normal_7seg_number = globalTuning;
 		break;
 		
 		case PORTAMENTO_TIME:

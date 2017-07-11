@@ -7,7 +7,11 @@
 
 #include "tuning.h"
 
-uint8_t tuning = 0; //0-99
+uint8_t globalTuning = 0; //0-99
+uint8_t tuningToUse = 0;
+
+uint8_t mantaUITunings[31] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
+uint8_t currentMantaUITuning = 0;
 
 uint32_t scaledSemitoneDACvalue = 54613;
 uint32_t scaledOctaveDACvalue = 655350;
@@ -130,13 +134,14 @@ uint16_t tuning8BitBuffer[768];
 
 uint16_t tuningDACTable[128];
 
-
-void loadTuning(void)
+void loadTuning(uint8_t whichTuning)
 {
+	tuningToUse = whichTuning;
+	
 	tuningLoading = 1;
-	if (tuning >= 1)
+	if (tuningToUse >= 1)
 	{
-		initiateLoadingTuningFromExternalMemory(tuning);
+		initiateLoadingTuningFromExternalMemory(tuningToUse);
 	}
 	else
 	{
@@ -164,7 +169,7 @@ unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_ex
 	uint32_t cardinality;
 	if (local_or_external == Local)
 	{
-		cardinality = factoryTunings[tuning][0];
+		cardinality = factoryTunings[tuningToUse][0];
 	}
 	else
 	{
@@ -175,7 +180,7 @@ unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_ex
 	
 	if (local_or_external == Local)
 	{
-		templongnote = ((factoryTunings[tuning][pitchclass + 1]  / 10) * scaledSemitoneDACvalue);
+		templongnote = ((factoryTunings[tuningToUse][pitchclass + 1]  / 10) * scaledSemitoneDACvalue);
 	}
 	else
 	{

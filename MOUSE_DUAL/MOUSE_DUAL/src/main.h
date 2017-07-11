@@ -82,9 +82,6 @@ typedef enum MantaInstrumentType
 	MantaInstrumentTypeNil
 }MantaInstrumentType;
 
-
-extern int tunings[16];
-int currentTuning;
 GlobalDisplayState displayState;
 extern unsigned char globalGlide;
 

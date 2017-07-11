@@ -11,8 +11,11 @@
 
 #include <asf.h>
 
-extern uint8_t tuning;
-extern uint8_t tuningToLoad;
+extern uint8_t globalTuning;
+extern uint8_t tuningToUse;
+
+extern uint8_t mantaUITunings[31];
+extern uint8_t currentMantaUITuning;
 
 extern uint64_t scaledoctaveDACvalue;
 
@@ -24,7 +27,7 @@ extern uint16_t tuning8BitBuffer[768];
 
 extern uint16_t tuningDACTable[128];
 
-void loadTuning(void);
+void loadTuning(uint8_t);
 void computeTuningDACTable(TuningLoadLocation local_or_external);
 unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external);
 

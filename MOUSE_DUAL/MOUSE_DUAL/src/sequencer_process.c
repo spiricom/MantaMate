@@ -16,8 +16,11 @@
 bool compositionMap[2][NUM_COMP];
 
 int currentComp[2] = {-1,-1};
+	
+int currentHexmapHex = -1;
 
-CompositionAction compositionAction = CompositionRead;
+SubShift shiftOption1SubShift = SubShiftNil;
+SubShift shiftOption2SubShift = SubShiftNil;
 
 int copyStage = 0;
 MantaInstrument copyWhichInst = InstrumentOne;
@@ -45,6 +48,7 @@ void setKeyboardLEDsFor		(MantaInstrument, int note);
 void setOptionLEDs			(void);
 void setCompositionLEDs     (void);
 void setHexmapLEDs			(void);
+void setHexmapConfigureLEDs	(void);
 void setDirectOptionLEDs	(void);
 void setSequencerLEDsFor	(MantaInstrument);
 
@@ -375,7 +379,7 @@ void blink(void)
 {
 	blinkToggle = (blinkToggle == true) ? false : true;		   
 	
-	if (shiftOption1 && compositionAction == CompositionCopy)
+	if (shiftOption1 && shiftOption1SubShift == SubShiftTopRight)
 	{
 		for (int inst = 0; inst < 2; inst++)
 		{
@@ -450,9 +454,6 @@ void initMantaSequencer(void)
 	setSequencerLEDsFor(currentInstrument);
 	
 	setKeyboardLEDsFor(currentInstrument, -1);
-
-	manta_send_LED();
-
 }
 
 void sequencerStep(MantaInstrument inst)
@@ -711,7 +712,12 @@ void clearSequencer(MantaInstrument inst)
 
 int first, last;
 
-void setHexmapLEDs	(void)
+void setHexmapLEDs(void)
+{
+	
+}
+
+void setHexmapConfigureLEDs	(void)
 {
 	if (!takeover)
 	{
@@ -719,27 +725,19 @@ void setHexmapLEDs	(void)
 		{
 			if (manta[inst].type == KeyboardInstrument)
 			{
-				tKeyboard* keyboard = &manta[inst].keyboard;
-				
-				for (int i = 0; i < 8; i++)
-				{
-					manta_set_LED_hex(16*inst + i, (i == keyboard->currentHexmap) ? Red : Amber);
-				}
-				
-				manta_set_LED_hex(16*inst + 15, Red); // Edit hexmap mode
+				manta_set_LED_hex(16*inst + 0, Amber); // SAVE
+				manta_set_LED_hex(16*inst + 1, Amber); // LOAD
+				manta_set_LED_hex(16*inst + 8, Red); // EDIT
+				manta_set_LED_hex(16*inst + 15, Red); // BLANK
 			}
 		}
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
-		tKeyboard* keyboard = &fullKeyboard;
-		
-		for (int i = 0; i < 8; i++)
-		{
-			manta_set_LED_hex(i, (i == keyboard->currentHexmap) ? Red : Amber);
-		}
-		
-		manta_set_LED_hex(15, Red); // Edit hexmap mode
+		manta_set_LED_hex(0, Amber); // SAVE
+		manta_set_LED_hex(1, Amber); // LOAD
+		manta_set_LED_hex(8, Red); // EDIT
+		manta_set_LED_hex(15, Red); // BLANK
 	}
 	
 	
@@ -755,10 +753,9 @@ void setCompositionLEDs(void)
 			{
 				if (compositionMap[inst][comp])
 				{
-					if (compositionAction == CompositionRead)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
-					else if (compositionAction == CompositionWrite)	manta_set_LED_hex(inst * 16 + comp, Red);
+					if (shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
+					else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
 				}
-				
 			}
 			
 			manta_set_LED_hex(14 + 16*inst, Amber);
@@ -774,14 +771,15 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 	if (shiftOption1)
 	{
 		MantaInstrument whichInst = (hexagon < 16) ? InstrumentOne : InstrumentTwo;
-		int whichComp = (hexagon < 16) ? hexagon : (hexagon - 16);
+		MantaInstrumentType type = manta[whichInst].type;
+		int whichHex = (hexagon < 16) ? hexagon : (hexagon - 16);
 		
-		if (manta[whichInst].type == DirectInstrument)
+		if (type == DirectInstrument)
 		{	
 			
 			tDirect* direct = &manta[whichInst].direct;
 			
-			int output = tDirect_getOutputForHex(direct, whichComp);
+			int output = tDirect_getOutputForHex(direct, whichHex);
 			DirectType type = direct->outs[output].type;
 			
 			type =  (type == DirectCV) ? DirectGate :
@@ -789,81 +787,93 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				   (type == DirectTrigger) ? DirectCV :
 				   DirectCV;
 			
-			tDirect_setOutputType(&manta[whichInst].direct, output, type);
+			tDirect_setOutputType(direct, output, type);
 			
 			setDirectLEDs();
 		}
-		else if (manta[whichInst].type == SequencerInstrument)
+		else if (type == KeyboardInstrument)
 		{
-			if (whichComp == 14)
+			tKeyboard* keyboard = (currentDevice == DeviceMidi || currentDevice == DeviceComputer || takeover) ? &fullKeyboard : &manta[whichInst].keyboard;
+			
+			if (whichHex < 8)
+			{
+				if (shiftOption1SubShift == SubShiftBottomRight)
+				{
+					// Going to load hexmap from MM
+				}
+				else
+				{
+					//tKeyboard_loadHexmap(keyboard, whichHex);
+				}
+			}
+			
+		}
+		else if (type == SequencerInstrument)
+		{
+			tSequencer* sequencer = &manta[whichInst].sequencer;
+			if (whichHex == 14)
 			{
 				manta_set_LED_hex(whichInst * 16 + 14, Red);
 			}
-			else if (whichComp == 15)
+			else if (whichHex == 15)
 			{
-				tSequencer_init(&manta[whichInst].sequencer, manta[whichInst].sequencer.pitchOrTrigger, 32);
+				tSequencer_init(sequencer, sequencer->pitchOrTrigger, 32);
 				
 				manta_set_LED_hex(whichInst * 16 + 15, Amber);
 			}
 			else
 			{
-				if (compositionAction == CompositionRead)
+				if (shiftOption1SubShift == SubShiftNil)
 				{
-					if (compositionMap[whichInst][whichComp])
+					if (compositionMap[whichInst][whichHex])
 					{
-						memoryInternalReadSequencer(whichInst, whichComp,decodeBuffer);
-						tSequencer_decode(&manta[whichInst].sequencer, decodeBuffer);
+						memoryInternalReadSequencer(whichInst, whichHex,decodeBuffer);
+						tSequencer_decode(sequencer, decodeBuffer);
 						
-						currentComp[whichInst] = whichComp;
+						currentComp[whichInst] = whichHex;
 						
 						setCurrentInstrument(whichInst);
-						
-						setOptionLEDs();
 					}
 
 				}
-				else if (compositionAction == CompositionWrite) // CompositionWrite
+				else if (shiftOption1SubShift == SubShiftBottomRight) // CompositionWrite
 				{
 					manta_set_LED_hex(hexagon, Amber);
 					
-					compositionMap[whichInst][whichComp] = true;
-					tSequencer_encode(&manta[whichInst].sequencer, encodeBuffer);
-					memoryInternalWriteSequencer(whichInst, whichComp, encodeBuffer);
+					compositionMap[whichInst][whichHex] = true;
+					tSequencer_encode(sequencer, encodeBuffer);
+					memoryInternalWriteSequencer(whichInst, whichHex, encodeBuffer);
 				}
-				else if (compositionAction == CompositionCopy)
+				else if (shiftOption1SubShift == SubShiftTopRight)
 				{
 					if (copyStage == 0)
 					{
 						// this determines sequence to be copied
-						if (compositionMap[whichInst][whichComp])
+						if (compositionMap[whichInst][whichHex])
 						{
 							copyWhichInst = whichInst;
-							copyWhichComp = whichComp;
+							copyWhichComp = whichHex;
 							
 							copyStage = 1;
 						}
 					}
 					else if (copyStage == 1)
 					{
-						// any hex pressed while still in copy mode is written with sequencer from copystage 1
-						if (!(whichInst == copyWhichInst && whichComp == copyWhichComp)) // if not the same step, copy
+						// any hex pressed while still in copy mode is written with sequencer from copy stage 1
+						if (!(whichInst == copyWhichInst && whichHex == copyWhichComp)) // if not the same step, copy
 						{
 							manta_set_LED_hex(hexagon, Red);
-							compositionMap[whichInst][whichComp] = true;
-							memoryInternalCopySequencer(copyWhichInst, copyWhichComp, whichInst, whichComp);
+							compositionMap[whichInst][whichHex] = true;
+							memoryInternalCopySequencer(copyWhichInst, copyWhichComp, whichInst, whichHex);
 						}
 					}
-					
 				}
-				
 			}
 		}
-		
-
 	}
     else if (shiftOption2)
     {
-        if (hexagon < 16)
+        if (hexagon < 31)
         {
 			 // Tuning hex
 		    manta_set_LED_hex(currentTuningHex, Amber);
@@ -874,21 +884,28 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			{
 				 manta_set_LED_hex(currentTuningHex, BothOn);
 				
-				 tuningToLoad = tunings[currentTuningHex];
+				 currentMantaUITuning = mantaUITunings[currentTuningHex];
 				 
 				 displayState = TuningHexSelect;
 				 
-				 Write7Seg(tuningToLoad); // Set display
+				 Write7Seg(currentMantaUITuning); // Set display
 			}
 			else
 			{
 				manta_set_LED_hex(currentTuningHex, Red);
 				
+				currentMantaUITuning = mantaUITunings[currentTuningHex];
+				
 				// LOAD TUNING HERE
-				tuning = tunings[currentTuningHex];
-				loadTuning();
+				loadTuning(currentMantaUITuning);
 			}
         }
+		else if (hexagon == 31) // load global tuning
+		{
+			manta_set_LED_hex(31, Amber);
+			loadTuning(globalTuning);
+		}
+
     }
 }
 
@@ -897,11 +914,14 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
     if (shiftOption1)
     {
         if (manta[currentInstrument].type == SequencerInstrument)	setCompositionLEDs();
-        else														setHexmapLEDs();
+        else														setHexmapConfigureLEDs();
     }
     else if (shiftOption2)
     {
-
+		if (hexagon == 31)
+		{
+			manta_set_LED_hex(31, Red);
+		}
     }
 }
 
@@ -1471,7 +1491,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	
 	setOptionLEDs();
 	setCompositionLEDs();
-	setHexmapLEDs();
+	setHexmapConfigureLEDs();
 	setDirectOptionLEDs();
 	
 	//set memory variables
@@ -1919,7 +1939,7 @@ void touchTopRightButton(void)
 	{
 		if (shiftOption1)
 		{
-			compositionAction = CompositionCopy;
+			shiftOption1SubShift = SubShiftTopRight;
 		}
 		else if (shiftOption2)
 		{
@@ -1974,7 +1994,7 @@ void releaseTopRightButton(void)
 {
 	if (manta[currentInstrument].type == SequencerInstrument)
 	{
-		compositionAction = CompositionRead;
+		shiftOption1SubShift = SubShiftNil;
 		copyStage = 0;
 		copyWhichInst = InstrumentNil;
 		copyWhichComp = -1;
@@ -2028,12 +2048,12 @@ void touchBottomLeftButton(void)
 		if (!takeover)
 		{
 			setCompositionLEDs();
-			setHexmapLEDs();
+			setHexmapConfigureLEDs();
 			setDirectOptionLEDs();
 		}
 		else if (takeoverType == KeyboardInstrument)
 		{
-			setHexmapLEDs();
+			setHexmapConfigureLEDs();
 		}
 
 		manta_set_LED_button(ButtonBottomLeft, Red);
@@ -2069,10 +2089,12 @@ void setTuningLEDs(void)
 	
 	if (takeover || (type1 == SequencerInstrument) || (type1 == KeyboardInstrument) || (type2 == SequencerInstrument) || (type2 == KeyboardInstrument))
 	{
-		for (int i = 0; i < 32; i++)
+		for (int i = 0; i < 31; i++)
 		{
-			manta_set_LED_hex(i, (i < 16) ? ((i == currentTuningHex) ? Red : Amber) : Off);
+			manta_set_LED_hex(i, (i == currentTuningHex) ? Red : Amber);
 		}
+		
+		manta_set_LED_hex(31, Red); // Return to Global tuning (globalTuning)
 	}
 
 	
@@ -2083,7 +2105,7 @@ void touchBottomRightButton(void)
 {
 	if (shiftOption1)
 	{
-		compositionAction = CompositionWrite;
+		shiftOption1SubShift = SubShiftBottomRight;
 		setCompositionLEDs();
 	}
 	else
@@ -2130,7 +2152,7 @@ void touchBottomRightButton(void)
 
 void releaseBottomRightButton(void)
 {
-	compositionAction = CompositionRead;
+	shiftOption1SubShift = SubShiftNil;
 	
 	if (shiftOption1)	
 	{

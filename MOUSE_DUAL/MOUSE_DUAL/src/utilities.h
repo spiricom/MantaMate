@@ -177,14 +177,14 @@ typedef enum MantaButton {
 	ButtonNil
 }MantaButton;
 
-typedef enum 
-Action
+typedef enum SubShift
 {
-	CompositionWrite,
-	CompositionRead,
-	CompositionCopy,
-	CompositionActionNil
-} CompositionAction;
+	SubShiftBottomLeft = 0,
+	SubShiftBottomRight,
+	SubShiftTopLeft,
+	SubShiftTopRight,
+	SubShiftNil
+} SubShift;
 
 typedef enum PanelSwitch
 {
@@ -264,6 +264,8 @@ MantaButton currentFunctionButton;
 MantaPlayMode playMode;
 
 BOOL shiftOption1;
+BOOL shiftOption1Lock;
+
 BOOL shiftOption2;
 BOOL shiftOption2Lock;
 

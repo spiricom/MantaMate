@@ -11,6 +11,6 @@
 void tHex_init(tHex* const hex, int which)
 {
 	hex->active = FALSE;
-	hex->mapped = which;
+	hex->pitch = which;
 	hex->color = Amber;
 }

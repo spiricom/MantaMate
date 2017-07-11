@@ -13,7 +13,7 @@
 
 typedef struct _tHex
 {
-	int mapped; // mapped to which pitchclass
+	signed int pitch; // mapped to which pitchclass
 	MantaLEDColor color; // hex color
 	BOOL active; // meaning, is assigned to active voice
 	

@@ -15,19 +15,20 @@
 
 #include "notestack.h"
 
+signed int defaultHexmap[48] ;
+
+signed int blankHexmap[48];
+
 signed int whmap[48] ;
 
 signed int harmonicmap[48];
 
 signed int pianomap[48];
-
-
+	
 typedef struct _tKeyboard
 {
 	int numVoices;
 	int numVoicesActive;
-	
-	tHex hexes[48];
 	
 	int voices[MAX_VOICES];
 	
@@ -36,12 +37,8 @@ typedef struct _tKeyboard
 	tNoteStack stack;
 	
 	MantaMap map;
-	
-	MantaTuning tuning;
-	
-	int currentHexmap;
 
-	int hexmaps[8];
+	tHex hexes[48];
 	
 	signed int transpose;
 	
@@ -58,9 +55,9 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
 
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
 
-void tKeyboard_setHexmap(tKeyboard* const keyboard, MantaMap map, signed int custom[48]);
 
-void tKeyboard_setTuning(tKeyboard* const keyboard, MantaTuning tuning);
-
+void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48], signed int color[48]);
+void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote);
+signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex);
 
 #endif /* KEYBOARD_H_ */
