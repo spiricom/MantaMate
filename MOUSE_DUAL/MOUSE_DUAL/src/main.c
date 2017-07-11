@@ -275,6 +275,7 @@ int main(void){
 	loadTuning(globalTuning);
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
+	currentHexmapEditHex = -1;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -288,6 +289,7 @@ int main(void){
 	}
 	
 	takeover = FALSE;
+	hexmapEditMode = FALSE;
 	
 	//start off on preset 0;
 	preset_num = 0;
@@ -938,7 +940,30 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if (displayState == UpDownSwitchBlock) return;
 	
-	if (displayState == TuningHexSelect)
+	if (displayState == HexmapPitchSelect)
+	{
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
+				
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (currentHexmapEditPitch >= 0) currentHexmapEditPitch--;
+			}
+		}
+		
+		tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
+		
+		Write7Seg(currentHexmapEditPitch%100);
+		normal_7seg_number = currentHexmapEditPitch;
+	}
+	else if (displayState == TuningHexSelect)
 	{
 		if (whichSwitch)
 		{

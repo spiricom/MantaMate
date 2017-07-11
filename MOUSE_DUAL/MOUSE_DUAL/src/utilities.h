@@ -113,6 +113,7 @@ typedef enum GlobalPreferences
 typedef enum GlobalDisplayState
 {
 	TuningHexSelect,
+	HexmapPitchSelect,
 	UpDownSwitchBlock,
 	GlobalDisplayStateNil
 } GlobalDisplayState;

@@ -68,6 +68,49 @@ void initMantaKeys(int numVoices)
 	resetMantaUI();
 }
 
+
+
+void touchHexmapEdit(int hex)
+{
+	if (currentHexmapEditHex < 0)
+	{
+		currentHexmapEditHex = hex;
+		
+		currentHexmapEditPitch = tKeyboard_getCurrentNoteForHex(hexmapEditKeyboard, currentHexmapEditHex);
+		
+		if (currentHexmapEditHex == lastHexmapEditHex)
+		{
+			MantaLEDColor color = hexmapEditKeyboard->hexes[currentHexmapEditHex].color;
+			
+			if (color == Off)        color = Amber;
+			else if (color == Amber) color = Red;
+			else if (color == Red)   color = Off;
+			else					 color = Amber;
+			
+			hexmapEditKeyboard->hexes[currentHexmapEditHex].color = color;
+			
+			manta_set_LED_hex(currentHexmapEditHex, color);
+		}
+		
+		Write7Seg(currentHexmapEditPitch%100);
+		
+		displayState = HexmapPitchSelect;
+	}
+}
+
+void releaseHexmapEdit(int hex)
+{
+	if (currentHexmapEditHex == hex) 
+	{
+		lastHexmapEditHex = hex;
+		currentHexmapEditHex = -1;
+		
+		Write7Seg(255);
+		
+		displayState = UpDownSwitchBlock;
+	}
+}
+
 void touchKeyboardHex(int hex, uint8_t weight)
 {
 	if (!takeover)
@@ -76,14 +119,14 @@ void touchKeyboardHex(int hex, uint8_t weight)
 		{
 			tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
 			dacSendKeyboard(currentInstrument);
-			manta_set_LED_hex(hex, Off);
+			manta_set_LED_hex(hex, (manta[currentInstrument].keyboard.hexes[hex].pitch >= 0) ? ((manta[currentInstrument].keyboard.hexes[hex].color == Off) ? Amber : Off) : Off);
 		}
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOn(&fullKeyboard, hex, weight);
 		dacSendKeyboard(InstrumentNil);
-		manta_set_LED_hex(hex, Off);
+		manta_set_LED_hex(hex, (fullKeyboard.hexes[hex].pitch >= 0) ? ((fullKeyboard.hexes[hex].color == Off) ? Amber : Off) : Off);
 	}
 }
 

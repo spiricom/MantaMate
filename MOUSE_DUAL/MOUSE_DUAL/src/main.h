@@ -85,6 +85,15 @@ typedef enum MantaInstrumentType
 GlobalDisplayState displayState;
 extern unsigned char globalGlide;
 
+tKeyboard* hexmapEditKeyboard;
+int currentHexmapEditPitch;
+int currentHexmapEditHex;
+int lastHexmapEditHex;
+
+
+BOOL hexmapEditMode;
+
+
 typedef struct _tMantaInstrument
 {
 	tKeyboard	keyboard;

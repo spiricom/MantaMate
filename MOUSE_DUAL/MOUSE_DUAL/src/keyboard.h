@@ -57,6 +57,7 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
 
 
 void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48], signed int color[48]);
+void tKeyboard_blankHexmap(tKeyboard* const keyboard);
 void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote);
 signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex);
 

@@ -28,12 +28,22 @@ void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48], signed 
 		keyboard->hexes[i].pitch = pitch[i];
 		keyboard->hexes[i].color = color[i];
 	}
-	
+}
+
+void tKeyboard_blankHexmap(tKeyboard* const keyboard)
+{
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].pitch = -1;
+		keyboard->hexes[i].color = Off;
+	}
 }
 
 void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote)
 {
 	keyboard->hexes[whichHex].pitch = whichNote;
+	
+	if (whichNote < 0) keyboard->hexes[whichHex].color = Off;
 }
 
 signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex)
