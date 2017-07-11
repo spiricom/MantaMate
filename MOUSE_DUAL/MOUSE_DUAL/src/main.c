@@ -116,7 +116,7 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
-unsigned char globalGlide = 0;
+unsigned char globalGlide = 1;
 unsigned char globalGlideMax = 198;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
@@ -642,7 +642,7 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 10, MIDIKeyboard.CCs[cc] << 5);
+				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 2, MIDIKeyboard.CCs[cc] << 5);
 			}
 			else if (note >= 0)
 			{
