@@ -642,17 +642,17 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + firstFreeOutputINT, 10, MIDIKeyboard.CCs[cc] << 5);
+				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 10, MIDIKeyboard.CCs[cc] << 5);
 			}
 			else if (note >= 0)
 			{
 				if (MIDIKeyboard.notes[note][0] > 0)
 				{
-					sendDataToOutput(n + firstFreeOutputINT, 0, 4095);
+					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 4095);
 				}
 				else
 				{
-					sendDataToOutput(n + firstFreeOutputINT, 0, 0);
+					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 0);
 				}
 			}
 			

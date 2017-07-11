@@ -27,9 +27,6 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 void initMIDIArpeggiator(void);
 void initMIDIKeys(int numVoices, BOOL pitchout);
 
-int pitchOutputINT;
-int configured;
-int firstFreeOutputINT;
 
 typedef struct _tMIDIKeyboard
 {
@@ -38,7 +35,7 @@ typedef struct _tMIDIKeyboard
 	
 	int voices[MAX_VOICES][2];
 	
-	//int firstFreeOutput;
+	int firstFreeOutput;
 	
 	int notes[128][2];
 	
@@ -56,9 +53,13 @@ typedef struct _tMIDIKeyboard
 	
 	int trigCount;
 	
-	//BOOL pitchOutput;
+	int32_t pitchBend;
+	
+	BOOL pitchOutput;
 	
 } tMIDIKeyboard;
+
+void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte);
 
 void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel);
 

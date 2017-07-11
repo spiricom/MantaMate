@@ -9,7 +9,7 @@
 #include "midi.h"
 #include "main.h"
 uint8_t firstMIDIMessage = 0;
-
+int32_t wholeStepDACDivider = 7500; // the size of a DAC whole step is 1092.26  --- the size of a full pitch bend in one direction is 8192. 8192/1092.26 is 7.5  -- Multiply pitch bend value by 1000, then divide by 7500 to get in whole tone range.
 
 
 uint16_t parseMIDI(uint16_t howManyNew)
@@ -86,6 +86,11 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
 					dacSendMIDIKeyboard();
 				}
+			break;
+			
+			case 224:
+			tMIDIKeyboard_pitchBend(&MIDIKeyboard, msgByte1, msgByte2);
+			dacSendMIDIKeyboard();
 			break;
 			
 			// control change
@@ -226,21 +231,21 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->transpose = 0;
 	keyboard->trigCount = 0;
 	
-	pitchOutputINT = pitchOutput;
+	keyboard->pitchOutput = pitchOutput;
 
-	if (pitchOutputINT == 0)
+	if (keyboard->pitchOutput == 0)
 	{
-		firstFreeOutputINT = 0;
+		keyboard->firstFreeOutput = 0;
 	}
 	else
 	{
 		if (numVoices == 1)
 		{
-			firstFreeOutputINT = 4; //in this case we add a trigger to the outputs
+			keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
 		}
 		else
 		{
-			firstFreeOutputINT = (3 * numVoices);
+			keyboard->firstFreeOutput = (3 * numVoices);
 		}
 	}
 
@@ -263,6 +268,12 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 
 }
 
+void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte)
+{
+	int32_t tempPitch = (highbyte << 7) +  lowbyte;
+	tempPitch = (tempPitch - 8192) * 1000;
+	keyboard->pitchBend = (tempPitch / wholeStepDACDivider);
+}
 
 void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 {

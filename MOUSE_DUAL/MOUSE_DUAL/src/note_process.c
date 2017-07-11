@@ -238,7 +238,7 @@ void dacSendMIDIKeyboard(void)
 	tMIDIKeyboard* keyboard;
 	keyboard = &MIDIKeyboard;
 	
-	if (pitchOutputINT > 0)
+	if (keyboard->pitchOutput > 0)
 	{
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{
@@ -246,8 +246,10 @@ void dacSendMIDIKeyboard(void)
 			int velocity = keyboard->voices[i][1];
 			if (note >= 0)
 			{
+				int32_t tempDACPitch = (int32_t)(lookupDACvalue(note, keyboard->transpose));
+				tempDACPitch += keyboard->pitchBend;
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalGlide);
-				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], lookupDACvalue(note, keyboard->transpose));
+				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 3);
