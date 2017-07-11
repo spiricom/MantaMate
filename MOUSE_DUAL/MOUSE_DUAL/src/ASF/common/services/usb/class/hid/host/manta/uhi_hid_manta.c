@@ -59,8 +59,6 @@
 # error USB HUB support is not implemented on UHI mouse
 #endif
 
-#define MAXIMUM_LEDS_TO_CHANGE_PER_FRAME 10
-
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
 /**
@@ -265,13 +263,6 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	new_manta_attached = true;
 }
 
-
-
-	
-
-
-
-
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
 {
 	if (uhi_hid_manta_dev.dev != dev) 
@@ -361,8 +352,6 @@ static void uhi_hid_manta_report_reception(
 	}
 	
 	processHexTouch();
-
-	manta_send_LED();
 	
 	uhi_hid_manta_start_trans_report(add);
 }
@@ -379,6 +368,10 @@ void uhi_hid_manta_sof(bool b_micro)
 		blinkCount = 0;
 		blink();
 	}
+	if (!freeze_LED_update)
+	{
+		manta_send_LED();
+	}
 }
 
 //for when you want to update the LED modes or LED states
@@ -388,7 +381,7 @@ static bool uhi_manta_send_report(void)
 	return false;	// Transfer on going then send this one after transfer complete
 
 	// Copy report on other array used only for transfer
-	memcpy(uhi_manta_report_trans, uhi_manta_report[0], UHI_MANTA_EP_OUT_SIZE);
+	memcpy(uhi_manta_report_trans, uhi_manta_report[1], UHI_MANTA_EP_OUT_SIZE);
 	uhi_manta_b_report_valid = false;
 	
 	// Send report
@@ -404,16 +397,6 @@ static void uhi_manta_report_sent(usb_add_t add, usb_ep_t ep,
 	UNUSED(nb_transfered);
 	// Valid report sending
 	uhi_manta_report_trans_ongoing = false;
-	/*
-	if (which_led_buffer_needs_sending > 0)
-	{
-		which_led_buffer_needs_sending--;
-	}
-	else
-	{
-		LEDsChangedSoFar = 0;
-	}
-	*/
 	if (uhi_manta_b_report_valid) {
 		// Send new valid report
 		uhi_manta_send_report();
@@ -518,7 +501,7 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 	}
 	*/
 	//
-	//call manta_send_LED(lights) after you have all your lights properly set.
+	//call manta_send_LED() after you have all your lights properly set.
 
 }
 
@@ -572,7 +555,7 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 	
 	LEDsChangedSoFar++;
 	//
-	//call manta_send_LED(lights) after you have all your lights properly set.
+	//call manta_send_LED() after you have all your lights properly set.
 }
 
 
@@ -586,7 +569,54 @@ void manta_send_LED(void)
 	//which_led_buffer_currently_sending = which_led_buffer_needs_sending;
 	
 	//send the current send buffer
+	
+	switch (which_led_buffer_needs_sending)
+	{
+		case 0:
+		{
+			uhi_manta_report[1][0] = uhi_manta_report[0][0];
+			uhi_manta_report[1][9] = uhi_manta_report[0][9];
+			uhi_manta_report[1][10] = uhi_manta_report[0][10];
+
+			which_led_buffer_needs_sending++;
+		}
+		case 1:
+		{
+			uhi_manta_report[1][1] = uhi_manta_report[0][1];
+			uhi_manta_report[1][6] = uhi_manta_report[0][6];
+			uhi_manta_report[1][11] = uhi_manta_report[0][11];
+			which_led_buffer_needs_sending++;
+		}
+		case 2:
+		{
+			uhi_manta_report[1][2] = uhi_manta_report[0][2];
+			uhi_manta_report[1][8] = uhi_manta_report[0][8];
+			uhi_manta_report[1][12] = uhi_manta_report[0][12];
+			which_led_buffer_needs_sending++;
+		}
+		case 3:
+		{
+			uhi_manta_report[1][3] = uhi_manta_report[0][3];
+			uhi_manta_report[1][13] = uhi_manta_report[0][13];
+			which_led_buffer_needs_sending++;
+		}
+		case 4:
+		{			
+			uhi_manta_report[1][4] = uhi_manta_report[0][4];
+			uhi_manta_report[1][7] = uhi_manta_report[0][7];
+			uhi_manta_report[1][14] = uhi_manta_report[0][14];
+			which_led_buffer_needs_sending++;
+		}
+		case 5:
+		{
+			uhi_manta_report[1][5] = uhi_manta_report[0][5];
+			uhi_manta_report[1][15] = uhi_manta_report[0][15];
+			which_led_buffer_needs_sending = 0;
+		}
+		
+	}
 	uhi_manta_send_report();
+	
 	
 	cpu_irq_restore(flags);
 	return;

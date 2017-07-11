@@ -190,6 +190,8 @@ extern unsigned char blank7Seg;
 extern unsigned char transpose_indication_active;
 extern unsigned char normal_7seg_number;
 
+uint8_t freeze_LED_update;
+
 extern uint32_t upHeld;
 extern uint32_t downHeld;
 extern uint32_t holdTimeThresh;

@@ -451,8 +451,6 @@ void initMantaSequencer(void)
 	
 	setKeyboardLEDsFor(currentInstrument, -1);
 
-	manta_send_LED();
-
 }
 
 void sequencerStep(MantaInstrument inst)

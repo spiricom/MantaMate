@@ -133,7 +133,7 @@ ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
 
-
+uint8_t freeze_LED_update = 0;
 
 uint8_t currentNumberToMIDILearn = 0;
 uint32_t dummycounter = 0;
