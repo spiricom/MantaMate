@@ -53,7 +53,7 @@ void resetSliderMode		(void);
 
 // UTILITIES
 void seqwait(void);
-uint32_t get16BitPitch(MantaInstrument, uint8_t step);
+uint32_t get16BitPitch(tTuningTable* myTable, MantaInstrument, uint8_t step);
 void setCurrentInstrument(MantaInstrument);
 void setParameterForEditStackSteps(MantaInstrument, StepParameterType param, uint16_t value);
 void setParameterForStep(MantaInstrument, uint8_t step, StepParameterType param, uint16_t value);
@@ -1599,7 +1599,7 @@ void touchUpperHex(uint8_t hexagon)
 			if (tNoteStack_contains(&editStack,stepToHexUI(currentInstrument,cStep)) != -1)
 			{
 				//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 				
 
@@ -1903,7 +1903,7 @@ void touchTopLeftButton(void)
 		}
 		else
 		{
-			keyboard->transpose -= 12;
+			keyboard->transpose -= myGlobalTuningTable.cardinality; //fix this so it's the current tuning table
 			indicateTransposition(keyboard->transpose);
 		}
 		
@@ -1977,7 +1977,7 @@ void touchTopRightButton(void)
 		}
 		else
 		{
-			keyboard->transpose += 12;
+			keyboard->transpose += myGlobalTuningTable.cardinality; //fix this so that it's the currently used tuning table instead
 			indicateTransposition(keyboard->transpose);
 		}
 		
@@ -2258,7 +2258,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(currentInstrument, currStep));
+				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep));
 			}
 		}
 		else //SliderTwo
@@ -2285,7 +2285,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 		}
 		else // SliderTwo
@@ -2304,7 +2304,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 			
 		}
@@ -2824,12 +2824,12 @@ void setOptionLEDs(void)
 }
 
 // Output
-uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
+uint32_t get16BitPitch(tTuningTable* myTable, MantaInstrument inst, uint8_t step)
 {
 	tSequencer* sequencer = &manta[inst].sequencer;
 
 	int32_t DACtemp = ((int32_t)sequencer->step[step].pitch) + sequencer->transpose;
-	DACtemp += (sequencer->step[step].octave * 12);
+	DACtemp += (sequencer->step[step].octave * myTable->cardinality);
 	if (DACtemp > 127)
 	{
 		DACtemp = 127;
@@ -2838,7 +2838,7 @@ uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
 	{
 		DACtemp = 0;
 	}
-	DACtemp = lookupDACvalue((uint8_t)DACtemp, 0);
+	DACtemp = lookupDACvalue(myTable, (uint8_t)DACtemp, 0);
 	DACtemp += (sequencer->step[step].fine >> 2) - 512;
 	if (DACtemp < 0)
 	{
@@ -2859,7 +2859,7 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now but that would likely cause clicks
 		
-		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(inst,step)); 
+		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(&myGlobalTuningTable,inst,step)); 
 		tIRampSetTime(&out[inst][CVPITCH], glideTime);
 
 		// Configure CVGlide

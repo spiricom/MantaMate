@@ -6,6 +6,7 @@
  */ 
 
 #include "tuning.h"
+#include "main.h"
 
 uint8_t tuning = 0; //0-99
 
@@ -128,8 +129,6 @@ uint32_t externalTuning[129];
 uint32_t localTuningTemp[129];
 uint16_t tuning8BitBuffer[768];
 
-uint16_t tuningDACTable[128];
-
 
 void loadTuning(void)
 {
@@ -140,20 +139,29 @@ void loadTuning(void)
 	}
 	else
 	{
-		computeTuningDACTable(Local);
+		computeTuningDACTable(&myGlobalTuningTable, Local);
 	}
 }
 
-void computeTuningDACTable(TuningLoadLocation local_or_external)
+void computeTuningDACTable(tTuningTable* myTable, TuningLoadLocation local_or_external)
 {
+	//compute cardinality
+	if (local_or_external == Local)
+	{
+		myTable->cardinality = factoryTunings[tuning][0];
+	}
+	else
+	{
+		myTable->cardinality = externalTuning[0];
+	}
 	for(int i = 0; i < 128; i++)
 	{
-		tuningDACTable[i] = calculateDACvalue(i, local_or_external);
+		myTable->tuningDACTable[i] = calculateDACvalue(i, local_or_external, myTable->cardinality);
 	}
 	tuningLoading = 0;
 }
 
-unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external)
+unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external, uint16_t cardinality)
 {
 	uint32_t pitchclass;
 	uint32_t templongnote = 0;
@@ -161,15 +169,7 @@ unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_ex
 	uint32_t templongoctave;
 	uint32_t DACval;
 	uint32_t note;
-	uint32_t cardinality;
-	if (local_or_external == Local)
-	{
-		cardinality = factoryTunings[tuning][0];
-	}
-	else
-	{
-		cardinality = externalTuning[0];
-	}
+
 	pitchclass = (noteVal % cardinality);  //get the pitch class
 	octavenum = noteVal / cardinality;  //get which octave it occurs in
 	

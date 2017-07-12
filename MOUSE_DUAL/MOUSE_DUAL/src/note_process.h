@@ -21,7 +21,7 @@
 
 uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal);
 
-unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose);
+unsigned short lookupDACvalue(tTuningTable* myTable, uint16_t noteVal, signed int transpose);
 
 void initMantaKeys(int numVoices);
 void dacSendKeyboard(MantaInstrument);

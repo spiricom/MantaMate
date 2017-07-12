@@ -24,10 +24,20 @@ uint8_t applyNoteMap(MantaMap whichmap, uint8_t noteVal)
 }	
 	
 
-	
-unsigned short lookupDACvalue(uint8_t noteVal, signed int transpose)
+unsigned short lookupDACvalue(tTuningTable* myTable, uint16_t noteVal, signed int transpose)
 {
-	return tuningDACTable[(noteVal + transpose)];
+	uint16_t myNote = (noteVal + transpose);
+		
+	if (myNote >= 128)
+	{
+		uint16_t myOctave = (myNote / myTable->cardinality);
+		uint16_t myPitchClass = (myNote % myTable->cardinality);
+		return (myTable->tuningDACTable[myPitchClass] + (6553 * myOctave));
+	}
+	else
+	{
+		return myTable->tuningDACTable[myNote];
+	}
 }
 
 
@@ -212,7 +222,7 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(keyboard->hexes[note].mapped, keyboard->transpose));
+			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].mapped, keyboard->transpose));
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
 			//if we are in mono mode, then we have room for a trigger output, too
 			if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].mapped + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
@@ -246,7 +256,7 @@ void dacSendMIDIKeyboard(void)
 			int velocity = keyboard->voices[i][1];
 			if (note >= 0)
 			{
-				int32_t tempDACPitch = (int32_t)(lookupDACvalue(note, keyboard->transpose));
+				int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
 				tempDACPitch += keyboard->pitchBend;
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalGlide);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
