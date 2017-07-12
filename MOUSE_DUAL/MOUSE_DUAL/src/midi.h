@@ -43,6 +43,8 @@ typedef struct _tMIDIKeyboard
 	
 	int learnedCCsAndNotes[128][2];
 	
+	BOOL learned;
+	
 	int lastVoiceToChange;
 	
 	tNoteStack stack;

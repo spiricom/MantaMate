@@ -30,7 +30,6 @@ uint8_t patterns[5][MAX_STEPS];
 
 typedef struct _tStep
 {
-	    
 	// Pitch and Trigger step parameters
 	uint8_t toggled; 
 	uint16_t length;  
@@ -86,8 +85,6 @@ typedef struct _tSequencer
 	int lastTouch;
 	
 } tSequencer;
-
-
 
 int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
 void		tSequencer_next				(tSequencer* const);

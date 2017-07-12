@@ -149,7 +149,30 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 //For the MIDI keyboards knobs
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
-	MIDIKeyboard.CCs[ctrlNum] = val;
+	MIDIKeyboard.CCs[ctrlNum] = val << 9;
+	/*
+	
+	if (!MIDIKeyboard.learned)
+	{
+		if (ctrlNum <= 31)
+		{
+			MIDIKeyboard.CCs[ctrlNum] = val << 9;
+		}
+		else if ((ctrlNum >=32) && (ctrlNum <=63))
+		{
+			MIDIKeyboard.CCs[ctrlNum-32] = (MIDIKeyboard.CCs[ctrlNum-32] + (val<<2));
+		}
+		else
+		{
+			MIDIKeyboard.CCs[ctrlNum] = val << 9;
+		}
+	}
+	else
+	{
+		MIDIKeyboard.CCs[ctrlNum] = val << 9;
+	}
+	*/
+
 }
 
 
@@ -230,7 +253,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
 	keyboard->trigCount = 0;
-	
+	keyboard->learned = FALSE;
 	keyboard->pitchOutput = pitchOutput;
 
 	if (keyboard->pitchOutput == 0)
@@ -370,7 +393,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 void learnMIDINote(uint8_t note, uint8_t vel)
 {
 	BOOL alreadyFoundNote = FALSE;
-	
+	MIDIKeyboard.learned = TRUE;
 	for (int i = 0; i < currentNumberToMIDILearn; i++)
 	{
 		if (MIDIKeyboard.learnedCCsAndNotes[i][1] == note)
@@ -400,7 +423,7 @@ void learnMIDINote(uint8_t note, uint8_t vel)
 void learnMIDICC(uint8_t ctrlnum, uint8_t val)
 {
 	BOOL alreadyFoundCC = FALSE;
-		
+	MIDIKeyboard.learned = TRUE;
 	for (int i = 0; i < currentNumberToMIDILearn; i++)
 	{
 		if (MIDIKeyboard.learnedCCsAndNotes[i][0] == ctrlnum)
