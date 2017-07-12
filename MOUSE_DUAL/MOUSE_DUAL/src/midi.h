@@ -41,6 +41,8 @@ typedef struct _tMIDIKeyboard
 	
 	int CCs[128];
 	
+	uint8_t CCsRaw[128];
+	
 	int learnedCCsAndNotes[128][2];
 	
 	BOOL learned;

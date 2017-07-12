@@ -150,28 +150,15 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
 	MIDIKeyboard.CCs[ctrlNum] = val << 9;
-	/*
-	
+	MIDIKeyboard.CCsRaw[ctrlNum] = val;
 	if (!MIDIKeyboard.learned)
 	{
-		if (ctrlNum <= 31)
+		if ((ctrlNum >=32) && (ctrlNum <=63))
 		{
-			MIDIKeyboard.CCs[ctrlNum] = val << 9;
-		}
-		else if ((ctrlNum >=32) && (ctrlNum <=63))
-		{
-			MIDIKeyboard.CCs[ctrlNum-32] = (MIDIKeyboard.CCs[ctrlNum-32] + (val<<2));
-		}
-		else
-		{
-			MIDIKeyboard.CCs[ctrlNum] = val << 9;
+			MIDIKeyboard.CCs[ctrlNum-32] = ((MIDIKeyboard.CCsRaw[ctrlNum - 32] << 9) + (val<<2));
 		}
 	}
-	else
-	{
-		MIDIKeyboard.CCs[ctrlNum] = val << 9;
-	}
-	*/
+	
 
 }
 
@@ -277,7 +264,8 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	{
 		keyboard->learnedCCsAndNotes[i][0] = i+1;
 		keyboard->learnedCCsAndNotes[i][1] = -1;
-		
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
 		keyboard->notes[i][0] = 0;
 		keyboard->notes[i][1] = 0;
 	}

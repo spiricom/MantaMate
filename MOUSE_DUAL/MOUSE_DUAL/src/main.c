@@ -645,7 +645,7 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 7,MIDIKeyboard.CCs[cc]);
+				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 7, MIDIKeyboard.CCs[cc]); //TODO: ramp messes up the ability to really slowly approach tiny increments - should improve that possibility in the ramp code -JS
 			}
 			else if (note >= 0)
 			{
@@ -820,7 +820,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	hence RC = (fPBA / 8) / 1000
 	* to get an interrupt every 10 ms.
 	*/
-	tc_write_rc( tc, TC3_CHANNEL, 2000); // 2000 = approximately .5 ms
+	tc_write_rc( tc, TC3_CHANNEL, 3000); // 2000 = approximately .5 ms   ///changed it to 3000 = .33ms to get MIDI to work better -- the fact that it was the same timing as the sof seemed to cause trouble.  4000 works with MIDI but breaks Manta
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
