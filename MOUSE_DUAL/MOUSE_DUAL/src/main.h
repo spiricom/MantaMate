@@ -50,19 +50,16 @@
 #include <stdint.h>
 #include "utilities.h"
 #include "memory_spi.h"
-
 #include "7Segment.h"
-#include "tuning.h"
-
 #include "note_process.h"
 #include "sequencer_process.h"
 #include "direct.h"
-
 #include "usb_protocol_cdc.h"
 #include "conf_usb_host.h"
 #include "ui.h"
 #include "no_device.h"
 #include "midi.h"
+#include "tuning.h"
 
 typedef enum MantaMateDeviceType
 {
@@ -112,6 +109,7 @@ BOOL takeover;
 tKeyboard fullKeyboard;
 tDirect fullDirect;
 tMIDIKeyboard MIDIKeyboard;
+tTuningTable myGlobalTuningTable;
 
 int currentTuningHex;
 
@@ -195,6 +193,9 @@ extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
 extern unsigned char transpose_indication_active;
 extern unsigned char normal_7seg_number;
+
+uint8_t freeze_LED_update;
+uint8_t roll_LEDs;
 
 extern uint32_t upHeld;
 extern uint32_t downHeld;

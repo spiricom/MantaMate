@@ -57,7 +57,7 @@ void resetSliderMode		(void);
 
 // UTILITIES
 void seqwait(void);
-uint32_t get16BitPitch(MantaInstrument, uint8_t step);
+uint32_t get16BitPitch(tTuningTable* myTable, MantaInstrument, uint8_t step);
 void setCurrentInstrument(MantaInstrument);
 void setParameterForEditStackSteps(MantaInstrument, StepParameterType param, uint16_t value);
 void setParameterForStep(MantaInstrument, uint8_t step, StepParameterType param, uint16_t value);
@@ -523,7 +523,7 @@ void releaseDirectHex(int hex)
 	
 	if (direct->outs[output].type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0x000);
+		sendDataToOutput(6*currentInstrument + output, 0, 0x0);
 	}
 	
 }
@@ -538,13 +538,13 @@ void touchDirectHex(int hex)
 	
 	if (type == DirectGate)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
 	}
 	else if (type == DirectTrigger)
 	{
 		// set output high then start timer
 		direct->outs[output].trigCount = 2;
-		sendDataToOutput(6*currentInstrument + output, 0, 0xfff);
+		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
 	}
 }
 
@@ -762,29 +762,35 @@ void setHexmapConfigureLEDs	(void)
 
 void setCompositionLEDs(void)
 {
+	freeze_LED_update = 1;
+
 	if (!takeover)
 	{
 		for (int inst = 0 ; inst < 2; inst++)
 		{
-			if (manta[inst].type == SequencerInstrument)
+			for (int inst = 0 ; inst < 2; inst++)
 			{
-				for (int comp = 0; comp < NUM_COMP; comp++)
+				if (manta[inst].type == SequencerInstrument)
 				{
-					if (compositionMap[inst][comp])
+					for (int comp = 0; comp < NUM_COMP; comp++)
 					{
-						if (shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
-						else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
+						if (compositionMap[inst][comp])
+						{
+							if (shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
+							else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
+						}
 					}
+					
+					manta_set_LED_hex(14 + 16*inst, Amber);
+					manta_set_LED_hex(15 + 16*inst, Red);
 				}
 				
-				manta_set_LED_hex(14 + 16*inst, Amber);
-				manta_set_LED_hex(15 + 16*inst, Red);
 			}
-			
 		}
 	}
 	
-	
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void touchLowerHexOptionMode(uint8_t hexagon)
@@ -1645,7 +1651,7 @@ void touchUpperHex(uint8_t hexagon)
 			if (tNoteStack_contains(&editStack,stepToHexUI(currentInstrument,cStep)) != -1)
 			{
 				//comment this out if we don't want immediate DAC update, but only update at the beginning of a clock
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 				
 
@@ -1799,6 +1805,7 @@ void resetSliderMode(void)
 
 void setSequencerLEDs(void)
 {
+	freeze_LED_update = 1;
 	if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
 	{
 		
@@ -1815,10 +1822,15 @@ void setSequencerLEDs(void)
 	{
 		setSequencerLEDsFor(InstrumentTwo);
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
+	
 }
 
 void setKeyboardLEDs(void)
 {
+	freeze_LED_update = 1;
+	
 	if (!takeover)
 	{
 		if (manta[currentInstrument].type == KeyboardInstrument)
@@ -1834,18 +1846,21 @@ void setKeyboardLEDs(void)
 	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard* keyboard = &fullKeyboard;
-
+		
 		for (int i = 0; i < 48; i++)
 		{
 			manta_set_LED_hex(i, keyboard->hexes[i].color);
 		}
+		
 	}
 	
-	
+	freeze_LED_update = 0;
+	roll_LEDs = 1;
 }
 
 void setDirectLEDs			(void)
 {
+	freeze_LED_update = 1;
 	if (!takeover)
 	{
 		if (manta[currentInstrument].type == DirectInstrument)
@@ -1865,11 +1880,14 @@ void setDirectLEDs			(void)
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 	
 }
 
 void setDirectOptionLEDs			(void)
 {
+	freeze_LED_update = 1;
 	for (int inst = 0; inst < 2; inst++)
 	{
 		if (manta[inst].type == DirectInstrument)
@@ -1883,7 +1901,8 @@ void setDirectOptionLEDs			(void)
 		}
 		
 	}
-	
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 // ~ ~ ~ ~ TOP LEFT BUTTON ~ ~ ~ ~ //
@@ -1948,7 +1967,7 @@ void touchTopLeftButton(void)
 		}
 		else
 		{
-			keyboard->transpose -= 12;
+			keyboard->transpose -= myGlobalTuningTable.cardinality; //fix this so it's the current tuning table
 			indicateTransposition(keyboard->transpose);
 		}
 		
@@ -2022,7 +2041,7 @@ void touchTopRightButton(void)
 		}
 		else
 		{
-			keyboard->transpose += 12;
+			keyboard->transpose += myGlobalTuningTable.cardinality; //fix this so that it's the currently used tuning table instead
 			indicateTransposition(keyboard->transpose);
 		}
 		
@@ -2321,7 +2340,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(currentInstrument, currStep));
+				tIRampSetDest(&out[currentInstrument][CVPITCH], get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep));
 			}
 		}
 		else //SliderTwo
@@ -2348,7 +2367,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevOct != newOct))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 		}
 		else // SliderTwo
@@ -2367,7 +2386,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 
 			if ((tNoteStack_contains(&editStack,uiHexCurrentStep) != -1) && (prevFine != newFine))
 			{
-				DAC16Send(2 * currentInstrument, get16BitPitch(currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
+				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, currStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
 			
 		}
@@ -2536,6 +2555,7 @@ void setPanelSelectLEDs(void)
 
 void setKeyboardLEDsFor(MantaInstrument inst, int note)
 {	
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	int setRed = 1;
 	int nt = 0;
@@ -2631,6 +2651,7 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 	manta_set_LED_button(ButtonBottomLeft, Off);
 	manta_set_LED_button(ButtonBottomRight, (playMode == ToggleMode) ? Off : Amber);
 	manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+	freeze_LED_update = 0;
 }
 
 
@@ -2707,6 +2728,7 @@ void setSliderLEDsFor(MantaInstrument inst, int note)
 
 void setTriggerPanelLEDsFor(MantaInstrument inst, TriggerPanel panel)
 {
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	int hexUI = 0;
@@ -2725,10 +2747,13 @@ void setTriggerPanelLEDsFor(MantaInstrument inst, TriggerPanel panel)
 			manta_set_LED_hex(hexUI,Off);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void setSequencerLEDsFor(MantaInstrument inst)
 {
+	freeze_LED_update = 1;
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	int hexUI = 0;
@@ -2749,11 +2774,13 @@ void setSequencerLEDsFor(MantaInstrument inst)
 			manta_set_LED_hex(editStack.notestack[i], Red);
 		}
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 void setOptionLEDs(void)
 {
-	
+	freeze_LED_update = 1;
 	MantaInstrumentType type = manta[currentInstrument].type;
 	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
@@ -2869,16 +2896,19 @@ void setOptionLEDs(void)
 		{
 			manta_set_LED_hex(hex, Off);
 		}
+
 	}
+	roll_LEDs = 1;
+	freeze_LED_update = 0;
 }
 
 // Output
-uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
+uint32_t get16BitPitch(tTuningTable* myTable, MantaInstrument inst, uint8_t step)
 {
 	tSequencer* sequencer = &manta[inst].sequencer;
 
 	int32_t DACtemp = ((int32_t)sequencer->step[step].pitch) + sequencer->transpose;
-	DACtemp += (sequencer->step[step].octave * 12);
+	DACtemp += (sequencer->step[step].octave * myTable->cardinality);
 	if (DACtemp > 127)
 	{
 		DACtemp = 127;
@@ -2887,7 +2917,7 @@ uint32_t get16BitPitch(MantaInstrument inst, uint8_t step)
 	{
 		DACtemp = 0;
 	}
-	DACtemp = lookupDACvalue((uint8_t)DACtemp, 0);
+	DACtemp = lookupDACvalue(myTable, (uint8_t)DACtemp, 0);
 	DACtemp += (sequencer->step[step].fine >> 2) - 512;
 	if (DACtemp < 0)
 	{
@@ -2908,7 +2938,7 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now but that would likely cause clicks
 		
-		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(inst,step)); 
+		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(&myGlobalTuningTable,inst,step)); 
 		tIRampSetTime(&out[inst][CVPITCH], glideTime);
 
 		// Configure CVGlide

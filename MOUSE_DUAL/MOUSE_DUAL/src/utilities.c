@@ -57,7 +57,7 @@ int tIRampSetTime(tIRamp *r, int32_t time)
 
 int tIRampSetDest(tIRamp *r, int32_t dest) 
 {
-	if (r->dest == dest) return 0;
+	if (r->dest == (dest << 10)) return 0;
 	
 	r->dest = dest << 10; //shift over 10 bits (equivalent to multiplying by 1024 to make it a larger number and give more precision - similar to multiplying by 1000 to move over the decimal place)
 	int32_t distance_to_travel = r->dest-r->curr;
@@ -73,5 +73,12 @@ int tIRampSetDest(tIRamp *r, int32_t dest)
 	{
 		ICOMPUTE_INC_SMALL();
 	}
+	//check if it was too small of a change over the time period requested for the integer resolution, and if so, just jump to the value immediately.
+	
+	if ((r->inc == 0) && (distance_to_travel != 0))
+	{
+		r->curr = r->dest;
+	}
+	
 	return 0;
 }

@@ -9,7 +9,7 @@
 #ifndef TUNING_H_
 #define TUNING_H_
 
-#include <asf.h>
+#include "utilities.h"
 
 extern uint8_t globalTuning;
 extern uint8_t tuningToUse;
@@ -25,11 +25,16 @@ extern uint32_t externalTuning[129];
 extern uint32_t localTuningTemp[129];
 extern uint16_t tuning8BitBuffer[768];
 
-extern uint16_t tuningDACTable[128];
+typedef struct _tTuningTable
+{
+	uint16_t tuningDACTable[128];
+	int16_t cardinality;
+}tTuningTable;
+
 
 void loadTuning(uint8_t);
-void computeTuningDACTable(TuningLoadLocation local_or_external);
-unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external);
+void computeTuningDACTable(tTuningTable* myTable, TuningLoadLocation local_or_external);
+unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_external, uint16_t cardinality);
 
 
 #endif /* TUNING_H_ */

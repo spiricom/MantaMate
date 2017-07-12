@@ -672,7 +672,7 @@ void keyboard_hack_grab(void) {
 	{
 		if (possible_keys[2][i] == 1)
 		{
-			sendDataToOutput(i, 0, 4095);
+			sendDataToOutput(i, 0, 0xffff);
 		}
 		else
 		{
@@ -755,21 +755,20 @@ static void uhi_hid_joy_report_reception(
 		for (int i = 0; i < myJoystick.numJoyAxis; i++)
 		{
 
-			if (myJoystick.joyAxes[i].logical_max_bits <= 12)
+			if (myJoystick.joyAxes[i].logical_max_bits <= 16)
 			{
-				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (12-myJoystick.joyAxes[i].logical_max_bits));
+				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (16-myJoystick.joyAxes[i].logical_max_bits));
 			}
-			//would be nicer if we lined up any higher resolution axes to come out the 16-bit outputs, should do that in the future. For now everything is squished to 12-bit so that which output it comes out doesn't matter -JS
 			else
 			{
-				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) >> (myJoystick.joyAxes[i].logical_max_bits - 12));
+				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) >> (myJoystick.joyAxes[i].logical_max_bits - 16));
 			}
 
 			sendDataToOutput(i, globalGlide, tempValue);
 		}
 		for (int i = 0; i < myJoystick.numJoyButton; i++)
 		{
-			tempValue = ((findDataInReport(myJoystick.joyButtons[i].size, myJoystick.joyButtons[i].offset)) << (12-myJoystick.joyButtons[i].size));
+			tempValue = ((findDataInReport(myJoystick.joyButtons[i].size, myJoystick.joyButtons[i].offset)) << (16-myJoystick.joyButtons[i].size));
 			sendDataToOutput(i + myJoystick.numJoyAxis, 0, tempValue);
 		}
 

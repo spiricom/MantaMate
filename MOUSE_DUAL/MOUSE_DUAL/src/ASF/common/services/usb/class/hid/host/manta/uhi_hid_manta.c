@@ -59,8 +59,6 @@
 # error USB HUB support is not implemented on UHI mouse
 #endif
 
-#define MAXIMUM_LEDS_TO_CHANGE_PER_FRAME 64
-
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
 /**
@@ -134,6 +132,9 @@ uint8_t pastsliders[4] = {0,0,0,0};
 uint8_t firstEdition = false;
 uint8_t which_led_buffer_currently_sending = 0;
 uint8_t which_led_buffer_needs_sending = 0;
+	
+	
+uint8_t sof_count = 0;
 	
 //! To signal if a valid report is ready to send
 static bool uhi_manta_b_report_valid;
@@ -265,13 +266,6 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	new_manta_attached = true;
 }
 
-
-
-	
-
-
-
-
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
 {
 	if (uhi_hid_manta_dev.dev != dev) 
@@ -362,8 +356,6 @@ static void uhi_hid_manta_report_reception(
 	
 	processHexTouch();
 
-	manta_send_LED();
-	
 	uhi_hid_manta_start_trans_report(add);
 }
 
@@ -379,6 +371,11 @@ void uhi_hid_manta_sof(bool b_micro)
 		blinkCount = 0;
 		blink();
 	}
+	if (!freeze_LED_update)
+	{
+		manta_send_LED();
+	}
+
 }
 
 //for when you want to update the LED modes or LED states
@@ -388,7 +385,7 @@ static bool uhi_manta_send_report(void)
 	return false;	// Transfer on going then send this one after transfer complete
 
 	// Copy report on other array used only for transfer
-	memcpy(uhi_manta_report_trans, uhi_manta_report[which_led_buffer_currently_sending], UHI_MANTA_EP_OUT_SIZE);
+	memcpy(uhi_manta_report_trans, uhi_manta_report[1], UHI_MANTA_EP_OUT_SIZE);
 	uhi_manta_b_report_valid = false;
 	
 	// Send report
@@ -404,14 +401,6 @@ static void uhi_manta_report_sent(usb_add_t add, usb_ep_t ep,
 	UNUSED(nb_transfered);
 	// Valid report sending
 	uhi_manta_report_trans_ongoing = false;
-	if (which_led_buffer_needs_sending > 0)
-	{
-		which_led_buffer_needs_sending--;
-	}
-	else
-	{
-		LEDsChangedSoFar = 0;
-	}
 	if (uhi_manta_b_report_valid) {
 		// Send new valid report
 		uhi_manta_send_report();
@@ -493,28 +482,8 @@ void manta_set_LED_hex(uint8_t hex, MantaLEDColor color)
 	{
 		// Should not happen.
 	}
-	LEDsChangedSoFar++;
-	if (LEDsChangedSoFar > MAXIMUM_LEDS_TO_CHANGE_PER_FRAME)
-	{
-		// move everything in the stack to the right and copy the current report to buffer[1]
-		for (int i = 0; i < UHI_MANTA_EP_OUT_SIZE; i++)
-		{
-			uhi_manta_report[7][i] = uhi_manta_report[6][i];
-			uhi_manta_report[6][i] = uhi_manta_report[5][i];
-			uhi_manta_report[5][i] = uhi_manta_report[4][i];
-			uhi_manta_report[4][i] = uhi_manta_report[3][i];
-			uhi_manta_report[3][i] = uhi_manta_report[2][i];
-			uhi_manta_report[2][i] = uhi_manta_report[1][i];
-			uhi_manta_report[1][i] = uhi_manta_report[0][i];
-		}
-		which_led_buffer_needs_sending++;
-		LEDsChangedSoFar = 0;
-		
-		//queue up a send message to happen
-		manta_send_LED();
-	}
 	//
-	//call manta_send_LED(lights) after you have all your lights properly set.
+	//call manta_send_LED() after you have all your lights properly set.
 
 }
 
@@ -565,12 +534,13 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[0][6] &= ~(1 << (whichbit+4));
 	}
-	
-	LEDsChangedSoFar++;
+
 	//
-	//call manta_send_LED(lights) after you have all your lights properly set.
+	//call manta_send_LED() after you have all your lights properly set.
 }
 
+int which_bit = 0;
+int which_byte = 0;
 
 void manta_send_LED(void)
 {
@@ -579,9 +549,56 @@ void manta_send_LED(void)
 	// Valid and send report
 	uhi_manta_b_report_valid = true;
 	
-	which_led_buffer_currently_sending = which_led_buffer_needs_sending;
+	if (roll_LEDs)
+	{
+		uint8_t countdown = 1; //how many bits we copy each USB frame (how many LEDs can change)
+		while(countdown > 0)
+		{
+			which_bit++;
+			if (which_bit > 7)
+			{
+				which_bit = 0;
+				which_byte++;
+			}
+			
+			if (uhi_manta_report[1][which_byte] == uhi_manta_report[0][which_byte])
+			{
+				which_byte++;
+			}
+			
+			if (which_byte > 15)
+			{
+				//we're done rolling - exit!
+				which_byte = 0;
+				roll_LEDs = 0;
+				break;
+			}
+
+
+			uint8_t myMask = (1 << which_bit );
+			uint8_t masked_n = (uhi_manta_report[0][which_byte] & ( 1 << which_bit ));
+		
+			if (masked_n > 0) //the bit was on - let's add it to the array
+			{
+				uhi_manta_report[1][which_byte] = (uhi_manta_report[1][which_byte] | myMask);
+			}
+			else //the bit was off. Lets clear it in the new array
+			{
+				uhi_manta_report[1][which_byte] = (uhi_manta_report[1][which_byte] & ~myMask);
+			}
+			countdown--;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < 16; i++)
+		{
+			uhi_manta_report[1][i] = uhi_manta_report[0][i];
+		}
+	}
 	
-	//send the current send buffer
+	
+	//now should have just flipped a single bit
 	uhi_manta_send_report();
 	
 	cpu_irq_restore(flags);

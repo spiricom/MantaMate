@@ -114,7 +114,7 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
-unsigned char globalGlide = 0;
+unsigned char globalGlide = 1;
 unsigned char globalGlideMax = 198;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
@@ -131,7 +131,7 @@ ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
 
-
+uint8_t freeze_LED_update = 0;
 
 uint8_t currentNumberToMIDILearn = 0;
 uint32_t dummycounter = 0;
@@ -182,67 +182,70 @@ const U8 test_pattern[] =  {
 
 // Outputs 0 through 11 (counting left to right top down), expects 12 bit.
 // I abstracted this one step away from the DAC to put ramps in there -JS
+//now you add a final argument to tell it how many bits -- assuming 16 or 12.
 void sendDataToOutput(int which, int ramp, uint16_t data)
 {
+	
+	//now send it out!
 	if (which == 0)			
 	{
 		tIRampSetTime(&out[0][0], ramp);
-		tIRampSetDest(&out[0][0], data << 4);
+		tIRampSetDest(&out[0][0], data);
 	}
 	else if (which == 1)	
 	{
 		tIRampSetTime(&out[0][1], ramp);
-		tIRampSetDest(&out[0][1], data);
+		tIRampSetDest(&out[0][1], (data >> 4));
 	}
 	else if (which == 2)	
 	{
 		tIRampSetTime(&out[0][2], ramp);
-		tIRampSetDest(&out[0][2], data);
+		tIRampSetDest(&out[0][2], (data >> 4));
 	}
 	else if (which == 3)
 	{
 		 tIRampSetTime(&out[0][3], ramp);
-		tIRampSetDest(&out[0][3], data << 4);
+		tIRampSetDest(&out[0][3], data);
 	}
 	else if (which == 4)
 	{
 		tIRampSetTime(&out[0][4], ramp);
-		tIRampSetDest(&out[0][4], data);
+		tIRampSetDest(&out[0][4], (data >> 4));
 	}
 	else if (which == 5)
 	{
 		tIRampSetTime(&out[0][5], ramp);
-		tIRampSetDest(&out[0][5], data);
+		tIRampSetDest(&out[0][5], (data >> 4));
 	}
 	else if (which == 6)
 	{
 		tIRampSetTime(&out[1][0], ramp);
-		tIRampSetDest(&out[1][0], data << 4);
+		tIRampSetDest(&out[1][0], data);
 	}
 	else if (which == 7)
 	{
 		tIRampSetTime(&out[1][1], ramp);
-		tIRampSetDest(&out[1][1], data);
+		tIRampSetDest(&out[1][1], (data >> 4));
 	}
 	else if (which == 8)
 	{
 		tIRampSetTime(&out[1][2], ramp);
-		tIRampSetDest(&out[1][2], data);
+		tIRampSetDest(&out[1][2], (data >> 4));
 	}
 	else if (which == 9)
 	{
 		tIRampSetTime(&out[1][3], ramp);
-		tIRampSetDest(&out[1][3], data << 4);
+		tIRampSetDest(&out[1][3], data);
 	}
 	else if (which == 10)
 	{
 		tIRampSetTime(&out[1][4], ramp);
-		tIRampSetDest(&out[1][4], data);
+		tIRampSetDest(&out[1][4], (data >> 4));
 	}
 	else if (which == 11)
 	{
 		tIRampSetTime(&out[1][5], ramp);
-		tIRampSetDest(&out[1][5], data);
+		tIRampSetDest(&out[1][5], (data >> 4));
 	}
 }
 
@@ -462,7 +465,7 @@ static void tc2_irq(void)
 			{
 				if (--(noDeviceTrigCount[i]) == 0)
 				{
-					sendDataToOutput(i, 0, 0x000);
+					sendDataToOutput(i, 0, 0x0);
 				}
 			}
 		}
@@ -475,7 +478,7 @@ static void tc2_irq(void)
 		{
 			if (--(keyboard->trigCount) == 0)
 			{
-				sendDataToOutput(3, 0, 0x000);
+				sendDataToOutput(3, 0, 0x0);
 			}
 		}
 	}
@@ -498,13 +501,13 @@ static void tc2_irq(void)
 							{
 								if (--(instrument->direct.outs[i].trigCount) == 0)
 								{
-									sendDataToOutput(6*inst+i, 0, 0x000);
+									sendDataToOutput(6*inst+i, 0, 0x0);
 								}
 							}
 						}
 						else if (type == DirectCV)
 						{
-							sendDataToOutput(6*inst+i, 10, butt_states[instrument->direct.outs[i].hex] << 4);
+							sendDataToOutput(6*inst+i, 10, butt_states[instrument->direct.outs[i].hex] << 8);
 						}
 					}
 				}
@@ -579,13 +582,13 @@ static void tc2_irq(void)
 					{
 						if (--(fullDirect.outs[i].trigCount) == 0)
 						{
-							sendDataToOutput(i, 0, 0x000);
+							sendDataToOutput(i, 0, 0x0);
 						}
 					}
 				}
 				else if (type == DirectCV)
 				{
-					sendDataToOutput(i, 0, butt_states[fullDirect.outs[i].hex] << 4);
+					sendDataToOutput(i, 0, butt_states[fullDirect.outs[i].hex] << 8);
 				}
 			}	
 		}
@@ -641,13 +644,13 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 10, MIDIKeyboard.CCs[cc] << 5);
+				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 14, MIDIKeyboard.CCs[cc]); //TODO: ramp messes up the ability to really slowly approach tiny increments - should improve that possibility in the ramp code -JS
 			}
 			else if (note >= 0)
 			{
 				if (MIDIKeyboard.notes[note][0] > 0)
 				{
-					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 4095);
+					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 65535);
 				}
 				else
 				{
@@ -816,7 +819,7 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	hence RC = (fPBA / 8) / 1000
 	* to get an interrupt every 10 ms.
 	*/
-	tc_write_rc( tc, TC3_CHANNEL, 2000); // 2000 = approximately .5 ms
+	tc_write_rc( tc, TC3_CHANNEL, 3000); // 2000 = approximately .5 ms   ///changed it to 3000 = .33ms to get MIDI to work better -- the fact that it was the same timing as the sof seemed to cause trouble.  4000 works with MIDI but breaks Manta
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);

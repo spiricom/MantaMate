@@ -149,7 +149,27 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 //For the MIDI keyboards knobs
 void controlChange(uint8_t ctrlNum, uint8_t val)
 {
-	MIDIKeyboard.CCs[ctrlNum] = val;
+	MIDIKeyboard.CCs[ctrlNum] = val << 9;
+	MIDIKeyboard.CCsRaw[ctrlNum] = val;
+	if (!MIDIKeyboard.learned)
+	{
+		if ((ctrlNum >=0) && (ctrlNum <=31))
+		{
+			MIDIKeyboard.CCs[ctrlNum] = ((val << 9) + (MIDIKeyboard.CCsRaw[ctrlNum + 32]<<2) +  (MIDIKeyboard.CCsRaw[ctrlNum + 64] >> 5));
+		}
+		
+		if ((ctrlNum >=32) && (ctrlNum <=63))
+		{
+			MIDIKeyboard.CCs[ctrlNum-32] = ((MIDIKeyboard.CCsRaw[ctrlNum - 32] << 9) + (val << 2) + (MIDIKeyboard.CCsRaw[ctrlNum + 32] >> 5));
+		}
+		
+		if ((ctrlNum >=64) && (ctrlNum <=96))
+		{
+			MIDIKeyboard.CCs[ctrlNum-64] = ((MIDIKeyboard.CCsRaw[ctrlNum - 64] << 9) + (MIDIKeyboard.CCsRaw[ctrlNum - 32] << 2 ) + (val >> 5));
+		}
+	}
+	
+
 }
 
 
@@ -230,7 +250,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
 	keyboard->trigCount = 0;
-	
+	keyboard->learned = FALSE;
 	keyboard->pitchOutput = pitchOutput;
 
 	if (keyboard->pitchOutput == 0)
@@ -254,7 +274,8 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	{
 		keyboard->learnedCCsAndNotes[i][0] = i+1;
 		keyboard->learnedCCsAndNotes[i][1] = -1;
-		
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
 		keyboard->notes[i][0] = 0;
 		keyboard->notes[i][1] = 0;
 	}
@@ -370,7 +391,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 void learnMIDINote(uint8_t note, uint8_t vel)
 {
 	BOOL alreadyFoundNote = FALSE;
-	
+	MIDIKeyboard.learned = TRUE;
 	for (int i = 0; i < currentNumberToMIDILearn; i++)
 	{
 		if (MIDIKeyboard.learnedCCsAndNotes[i][1] == note)
@@ -400,7 +421,7 @@ void learnMIDINote(uint8_t note, uint8_t vel)
 void learnMIDICC(uint8_t ctrlnum, uint8_t val)
 {
 	BOOL alreadyFoundCC = FALSE;
-		
+	MIDIKeyboard.learned = TRUE;
 	for (int i = 0; i < currentNumberToMIDILearn; i++)
 	{
 		if (MIDIKeyboard.learnedCCsAndNotes[i][0] == ctrlnum)

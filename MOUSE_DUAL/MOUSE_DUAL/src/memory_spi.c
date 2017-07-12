@@ -387,11 +387,11 @@ void continueLoadingTuningFromExternalMemory(void)
 		
 		if ((externalTuning[0] > 0) && (externalTuning[0] < 128)) //if there is a user stored tuning at that location (we can tell because the first element of the array is the cardinality, which is between 1-127 inclusive for valid tunings
 		{
-			computeTuningDACTable(External);
+			computeTuningDACTable(&myGlobalTuningTable, External);
 		}
 		else
 		{
-			computeTuningDACTable(Local);
+			computeTuningDACTable(&myGlobalTuningTable, Local);
 		}
 	}
 }
