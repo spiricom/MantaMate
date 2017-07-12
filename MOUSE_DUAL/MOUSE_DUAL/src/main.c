@@ -950,7 +950,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			if (upSwitch())
 			{
 				if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
-				
 			}
 		}
 		else
@@ -962,6 +961,8 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		
 		tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
+		
+		dacSendKeyboard(hexmapEditInstrument);
 		
 		Write7Seg(currentHexmapEditPitch%100);
 		normal_7seg_number = currentHexmapEditPitch;

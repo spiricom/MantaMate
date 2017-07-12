@@ -83,6 +83,7 @@ GlobalDisplayState displayState;
 extern unsigned char globalGlide;
 
 tKeyboard* hexmapEditKeyboard;
+MantaInstrument hexmapEditInstrument;
 int currentHexmapEditPitch;
 int currentHexmapEditHex;
 int lastHexmapEditHex;

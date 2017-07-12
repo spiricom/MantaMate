@@ -25,7 +25,7 @@ void uiStep					(MantaInstrument);
 
 void processHexTouch(void);
 
-void touchHexmapEdit(int hex);
+void touchHexmapEdit(int hex, uint8_t weight);
 void releaseHexmapEdit(int hex);
 
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);

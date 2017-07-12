@@ -80,11 +80,14 @@ void initMantaKeys(int numVoices)
 
 
 
-void touchHexmapEdit(int hex)
+void touchHexmapEdit(int hex, uint8_t weight)
 {
 	if (currentHexmapEditHex < 0)
 	{
 		currentHexmapEditHex = hex;
+		
+		tKeyboard_noteOn(hexmapEditKeyboard, hex, weight);
+		dacSendKeyboard(hexmapEditInstrument);
 		
 		currentHexmapEditPitch = tKeyboard_getCurrentNoteForHex(hexmapEditKeyboard, currentHexmapEditHex);
 		
@@ -112,6 +115,9 @@ void releaseHexmapEdit(int hex)
 {
 	if (currentHexmapEditHex == hex) 
 	{
+		tKeyboard_noteOff(hexmapEditKeyboard, hex);
+		dacSendKeyboard(hexmapEditInstrument);
+		
 		lastHexmapEditHex = hex;
 		currentHexmapEditHex = -1;
 		

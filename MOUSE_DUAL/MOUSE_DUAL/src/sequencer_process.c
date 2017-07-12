@@ -613,7 +613,7 @@ void processHexTouch(void)
 		{
 			if (hexmapEditMode)
 			{
-				touchHexmapEdit(i);
+				touchHexmapEdit(i, butt_states[i]);
 			}
 			else if (shiftOption1 || shiftOption2) 
 			{
@@ -821,6 +821,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		else if (type == KeyboardInstrument)
 		{
 			hexmapEditKeyboard = (currentDevice == DeviceMidi || currentDevice == DeviceComputer || takeover) ? &fullKeyboard : &manta[whichInst].keyboard;
+			hexmapEditInstrument = (currentDevice == DeviceMidi || currentDevice == DeviceComputer || takeover) ? InstrumentNil : whichInst;
 			
 			if (whichHex == 0)
 			{
