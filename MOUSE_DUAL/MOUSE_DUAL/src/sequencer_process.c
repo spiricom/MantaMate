@@ -740,10 +740,17 @@ void setHexmapConfigureLEDs	(void)
 			if (manta[inst].type == KeyboardInstrument)
 			{
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst + i, Off);
-				manta_set_LED_hex(16*inst + 0, Amber); // SAVE
-				manta_set_LED_hex(16*inst + 1, Amber); // LOAD
-				manta_set_LED_hex(16*inst + 8, Red); // EDIT
-				manta_set_LED_hex(16*inst + 15, Red); // BLANK
+				manta_set_LED_hex(16*inst + 8, Amber); // SAVE
+				manta_set_LED_hex(16*inst + 9, Amber); // LOAD
+				manta_set_LED_hex(16*inst + 11, Red); // EDIT
+				
+				manta_set_LED_hex(16*inst + 0, Amber); // Default
+				manta_set_LED_hex(16*inst + 1, Amber); // Piano
+				manta_set_LED_hex(16*inst + 2, Amber); // Harmonic
+				manta_set_LED_hex(16*inst + 3, Amber); // Werck
+				manta_set_LED_hex(16*inst + 4, Amber); // Isomorphic
+				manta_set_LED_hex(16*inst + 5, Amber); // Free
+				manta_set_LED_hex(16*inst + 7, Red); // BLANK
 			}
 		}
 	}
@@ -751,10 +758,17 @@ void setHexmapConfigureLEDs	(void)
 	{
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i, Off);
 		
-		manta_set_LED_hex(0, Amber); // SAVE
-		manta_set_LED_hex(1, Amber); // LOAD
-		manta_set_LED_hex(8, Red); // EDIT
-		manta_set_LED_hex(15, Red); // BLANK
+		manta_set_LED_hex(8, Amber); // SAVE
+		manta_set_LED_hex(9, Amber); // LOAD
+		manta_set_LED_hex(11, Red); // EDIT
+		
+		manta_set_LED_hex(0, Amber); // Default
+		manta_set_LED_hex(1, Amber); // Piano
+		manta_set_LED_hex(2, Amber); // Harmonic
+		manta_set_LED_hex(3, Amber); // Werck
+		manta_set_LED_hex(4, Amber); // Isomorphic
+		manta_set_LED_hex(5, Amber); // Free
+		manta_set_LED_hex(7, Red); // BLANK
 	}
 	
 	
@@ -768,25 +782,25 @@ void setCompositionLEDs(void)
 	{
 		for (int inst = 0 ; inst < 2; inst++)
 		{
-			for (int inst = 0 ; inst < 2; inst++)
+			if (manta[inst].type == SequencerInstrument)
 			{
-				if (manta[inst].type == SequencerInstrument)
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(i+16*inst,Off);
+				
+				for (int comp = 0; comp < NUM_COMP; comp++)
 				{
-					for (int comp = 0; comp < NUM_COMP; comp++)
+					if (compositionMap[inst][comp])
 					{
-						if (compositionMap[inst][comp])
-						{
-							if (shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
-							else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
-						}
+						if (shiftOption1SubShift == SubShiftNil)				manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
+						else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
 					}
-					
-					manta_set_LED_hex(14 + 16*inst, Amber);
-					manta_set_LED_hex(15 + 16*inst, Red);
 				}
 				
+				manta_set_LED_hex(14 + 16*inst, Amber);
+				manta_set_LED_hex(15 + 16*inst, Red);
 			}
+			
 		}
+
 	}
 	
 	roll_LEDs = 1;
@@ -823,25 +837,67 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			hexmapEditKeyboard = (currentDevice == DeviceMidi || currentDevice == DeviceComputer || takeover) ? &fullKeyboard : &manta[whichInst].keyboard;
 			hexmapEditInstrument = (currentDevice == DeviceMidi || currentDevice == DeviceComputer || takeover) ? InstrumentNil : whichInst;
 			
-			if (whichHex == 0)
+			if (whichHex == 8)
 			{
 				// Save
+				manta_set_LED_hex(hexagon, Red);
 			}
-			else if (whichHex == 1)
+			else if (whichHex == 9)
 			{
 				// Load
+				manta_set_LED_hex(hexagon, Red);
 			}
-			else if (whichHex == 8)
+			else if (whichHex == 11)
 			{
 				// Edit 
 				hexmapEditMode = TRUE;
 				displayState = UpDownSwitchBlock;
 				setKeyboardLEDs();
+				
+				manta_set_LED_hex(hexagon, Amber);
 			}
-			else if (whichHex == 15)
+			else if (whichHex == 0)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, DefaultMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 1)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, PianoMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 2)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, HarmonicMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 3)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, WickiHaydenMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 4)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, IsomorphicMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 5)
+			{
+				tKeyboard_setToDefault(hexmapEditKeyboard, FreeMap);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 7)
 			{
 				// Blank
 				tKeyboard_blankHexmap(hexmapEditKeyboard);
+				
+				manta_set_LED_hex(hexagon, Amber);
 			}
 			
 		}
@@ -950,8 +1006,9 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 {
     if (shiftOption1)
     {
-        if (manta[currentInstrument].type == SequencerInstrument)	setCompositionLEDs();
-        else														setHexmapConfigureLEDs();
+        setCompositionLEDs();
+		setHexmapConfigureLEDs();
+		setDirectOptionLEDs();
     }
     else if (shiftOption2)
     {
@@ -1889,19 +1946,30 @@ void setDirectLEDs			(void)
 void setDirectOptionLEDs			(void)
 {
 	freeze_LED_update = 1;
-	for (int inst = 0; inst < 2; inst++)
+	if (!takeover)
 	{
-		if (manta[inst].type == DirectInstrument)
+		for (int inst = 0; inst < 2; inst++)
 		{
-			tDirect* direct = &manta[inst].direct;
-			
-			for (int i = 0; i < direct->numOuts; i++)
+			if (manta[inst].type == DirectInstrument)
 			{
-				manta_set_LED_hex(16*inst + direct->outs[i].hex, direct->outs[i].color);
+				tDirect* direct = &manta[inst].direct;
+				
+				for (int i = 0; i < direct->numOuts; i++)
+				{
+					manta_set_LED_hex(16*inst + direct->outs[i].hex, direct->outs[i].color);
+				}
 			}
+			
 		}
-		
 	}
+	else if (takeoverType == DirectInstrument)
+	{
+		for (int i = 0; i < fullDirect.numOuts; i++)
+		{
+			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
+		}
+	}
+	
 	roll_LEDs = 1;
 	freeze_LED_update = 0;
 }

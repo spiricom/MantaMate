@@ -24,6 +24,10 @@ signed int whmap[48] ;
 signed int harmonicmap[48];
 
 signed int pianomap[48];
+
+signed int freemap[48];
+
+signed int isomap[48];
 	
 typedef struct _tKeyboard
 {
@@ -55,8 +59,8 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
 
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
 
-
-void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48], signed int color[48]);
+void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which);
+void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48]);
 void tKeyboard_blankHexmap(tKeyboard* const keyboard);
 void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote);
 signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex);

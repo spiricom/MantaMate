@@ -12,21 +12,134 @@ signed int blankHexmap[48] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
 signed int defaultHexmap[48] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47};
 
-signed int whmap[48] = {0,2,4,6,8,10,12,14,7,9,11,13,15,17,19,21,12,14,16,18,20,22,24,26,19,21,23,25,27,29,31,33,24,26,28,30,32,34,36,38,31,33,35,37,39,41,43,45};
+
+signed int whmap[48] = {
+	0,2,4,6,8,10,12,14,
+	7,9,11,13,15,17,19,21,
+	12,14,16,18,20,22,24,26,
+	19,21,23,25,27,29,31,33,
+	24,26,28,30,32,34,36,38,
+	31,33,35,37,39,41,43,45};
+	
 
 signed int harmonicmap[48] = {0,4,8,12,16,20,24,28,7,11,15,19,23,27,31,35,10,14,18,22,26,30,34,38,17,21,25,29,33,37,41,45,20,24,28,32,36,40,44,48,27,31,35,39,43,47,51,55};
 
 signed int pianomap[48] = {0,2,4,5,7,9,11,12,1,3,-1,6,8,10,-1,-1,12,14,16,17,19,21,23,24,13,15,-1,18,20,22,-1,-1,24,26,28,29,31,33,35,36,25,27,-1,30,32,34,-1,-1};
 	
+signed int freemap[48] = {
+	6,8,10,12,14,16,18,19,
+	13,15,17,19,21,23,25,27,
+	18,20,22,24,26,28,30,32,
+	25,27,29,31,33,35,37,39,
+	30,32,34,36,38,40,42,44,
+	37,39,41,43,45,47,49,51 };
+
+signed int isomap[48] = {
+	18,20,22,24,26,28,30,32,
+	19,21,23,25,27,29,31,33,
+	25,27,29,31,33,35,37,39,
+	26,28,30,32,34,36,38,40,
+	32,34,36,38,40,42,44,46,
+	33,35,37,39,41,43,45,47};
+	
+	
 //signed int hexmaps[100][48];
 
+void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
+{
+	if (which == DefaultMap)
+	{
+		for (int i = 0; i < 48; i++)
+		{
+			keyboard->hexes[i].pitch = defaultHexmap[i];
+			keyboard->hexes[i].color = Amber;
+		}
+	}
+	else if (which == PianoMap)
+	{
+		for (int i = 0; i < 48; i++)
+		{
+			int pitch = pianomap[i];
+			keyboard->hexes[i].pitch = pitch;
+			
+			MantaLEDColor color = Off;
+			
+			if (pitch >= 0)
+			{
+				switch (pitch%12)
+				{
+					case 1:
+					color = Red;
+					break;
+					
+					case 3:
+					color = Red;
+					break;
+					
+					case 6:
+					color = Red;
+					break;
+					
+					case 8:
+					color = Red;
+					break;
+					
+					case 10:
+					color = Red;
+					break;
+					
+					default:
+					color = Amber;
+					break;
+				}
+			}
+			
+			keyboard->hexes[i].color = color;
+			
+		}
+	}
+	else if (which == HarmonicMap || which == WickiHaydenMap)
+	{
+		signed int* pitches = (which == HarmonicMap) ? harmonicmap : whmap;
+		for (int i = 0; i < 48; i++)
+		{
+			int pitch = keyboard->hexes[i].pitch = pitches[i];
+			
+			int pitchMod12 = pitch % 12;
+			
+			MantaLEDColor color = Off;
+			
+			if (pitchMod12 == 7)		color = Amber;
+			else if (pitchMod12 == 0)	color = Red;
+			
+			keyboard->hexes[i].color = color;
+		}
+	}
+	else if (which == IsomorphicMap || which == FreeMap)
+	{
+		signed int* pitches = (which == IsomorphicMap) ? isomap : freemap;
+		for (int i = 0; i < 48; i++)
+		{
+			int pitch = keyboard->hexes[i].pitch = pitches[i];
+			
+			int pitchMod12 = pitch % 12;
+			
+			MantaLEDColor color = Off;
+			
+			if ((pitchMod12 == 9) || (pitchMod12 == 0))			color = Red;
+			else if ((pitchMod12 == 4) || (pitchMod12 == 3))	color = Amber;
+			
+			keyboard->hexes[i].color = color;
+		}
+	}
+}
 
-void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48], signed int color[48])
+
+void tKeyboard_setHexmap(tKeyboard* const keyboard, signed int pitch[48])
 {
 	for (int i = 0; i < 48; i++)
 	{
 		keyboard->hexes[i].pitch = pitch[i];
-		keyboard->hexes[i].color = color[i];
 	}
 }
 

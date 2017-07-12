@@ -35,10 +35,12 @@ typedef enum MantaLEDColor
 
 typedef enum MantaMap
 {
-	WickiHaydenMap,
-	HarmonicMap,
+	DefaultMap,
 	PianoMap,
-	MantaMapCustom,
+	HarmonicMap,
+	WickiHaydenMap,
+	IsomorphicMap,
+	FreeMap,
 	MantaMapNil
 } MantaMap;
 
