@@ -75,7 +75,7 @@ int tIRampSetDest(tIRamp *r, int32_t dest)
 	}
 	//check if it was too small of a change over the time period requested for the integer resolution, and if so, just jump to the value immediately.
 	
-	if ((r->inc == 0) && (distance_to_travel > 0))
+	if ((r->inc == 0) && (distance_to_travel != 0))
 	{
 		r->curr = r->dest;
 	}

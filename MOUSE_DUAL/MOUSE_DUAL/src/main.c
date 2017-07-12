@@ -645,7 +645,7 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 7, MIDIKeyboard.CCs[cc]); //TODO: ramp messes up the ability to really slowly approach tiny increments - should improve that possibility in the ramp code -JS
+				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 14, MIDIKeyboard.CCs[cc]); //TODO: ramp messes up the ability to really slowly approach tiny increments - should improve that possibility in the ramp code -JS
 			}
 			else if (note >= 0)
 			{

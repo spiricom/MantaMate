@@ -153,9 +153,19 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 	MIDIKeyboard.CCsRaw[ctrlNum] = val;
 	if (!MIDIKeyboard.learned)
 	{
+		if ((ctrlNum >=0) && (ctrlNum <=31))
+		{
+			MIDIKeyboard.CCs[ctrlNum] = ((val << 9) + (MIDIKeyboard.CCsRaw[ctrlNum + 32]<<2) +  (MIDIKeyboard.CCsRaw[ctrlNum + 64] >> 5));
+		}
+		
 		if ((ctrlNum >=32) && (ctrlNum <=63))
 		{
-			MIDIKeyboard.CCs[ctrlNum-32] = ((MIDIKeyboard.CCsRaw[ctrlNum - 32] << 9) + (val<<2));
+			MIDIKeyboard.CCs[ctrlNum-32] = ((MIDIKeyboard.CCsRaw[ctrlNum - 32] << 9) + (val << 2) + (MIDIKeyboard.CCsRaw[ctrlNum + 32] >> 5));
+		}
+		
+		if ((ctrlNum >=64) && (ctrlNum <=96))
+		{
+			MIDIKeyboard.CCs[ctrlNum-64] = ((MIDIKeyboard.CCsRaw[ctrlNum - 64] << 9) + (MIDIKeyboard.CCsRaw[ctrlNum - 32] << 2 ) + (val >> 5));
 		}
 	}
 	
