@@ -185,7 +185,10 @@ void parseSysex(void)
 		//iterate through the sysex array and do what we need to do with the message
 		for (int i = 2; i < sysexByteCounter; i++) //only go up to the element right before the "end" message happened
 		{
-			tuning8BitBuffer[i -2] = sysexBuffer[i];
+			if (i < 522) //make sure it doesn't go out of the bounds of the array
+			{
+				tuning8BitBuffer[i -2] = sysexBuffer[i];
+			}
 		}
 		initiateStoringTuningToExternalMemory(tuningPresetToStore);
 	}

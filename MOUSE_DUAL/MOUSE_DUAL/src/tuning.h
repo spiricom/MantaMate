@@ -22,8 +22,7 @@ extern uint64_t scaledoctaveDACvalue;
 const uint32_t factoryTunings[100][50];	
 
 extern uint32_t externalTuning[129];
-extern uint32_t localTuningTemp[129];
-extern uint16_t tuning8BitBuffer[768];
+extern uint16_t tuning8BitBuffer[520];
 
 typedef struct _tTuningTable
 {

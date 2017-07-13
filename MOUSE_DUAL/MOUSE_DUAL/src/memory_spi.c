@@ -136,7 +136,7 @@ void memorySPIEraseBlock(uint16_t block)
 
 
 //in the presets:
-// every "sequence" takes up 620 bytes.
+// every "sequence" takes up 612 bytes.
 
 // a block has 65535 bytes, and they will be set up like this:
 // Page 0 is the global settings and manta sequencer settings

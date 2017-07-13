@@ -328,7 +328,7 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 
 uint16_t encodeBuffer[NUM_INST][sizeOfSerializedSequence]; 
 uint16_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
-uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8680 is 620 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
+uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8568 is 612 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {
