@@ -7,6 +7,7 @@
 
 #include "keyboard.h"
 #include "tuning.h"
+#include "stdlib.h"
 
 signed int blankHexmap[48] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
@@ -169,18 +170,64 @@ void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type)
 	keyboard->arpModeType = type;
 }
 
+
 void tKeyboard_nextNote(tKeyboard* const keyboard)
 {
-	
+	int hex = -1;
+	int index = -1;
+	int random;
 	ArpModeType type = keyboard->arpModeType;
 	
 	tNoteStack* ns = &keyboard->stack;
 	
 	while (keyboard->stack.size > 0)
 	{
-		if (++keyboard->phasor >= keyboard->maxLength) keyboard->phasor = 0;
+		if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
+		{
+			if (++keyboard->phasor >= keyboard->maxLength) keyboard->phasor = 0;
+		}
+		else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
+		{
+			if (--keyboard->phasor < 0) keyboard->phasor = (keyboard->maxLength-1);
+		}
+		else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
+		{
+			if (keyboard->up)
+			{
+				if (++keyboard->phasor >= keyboard->stack.size) 
+				{
+					keyboard->phasor = keyboard->stack.size-2;
+					keyboard->up = FALSE;
+				}
+			}
+			else // down
+			{
+				if (--keyboard->phasor < 0) 
+				{
+					keyboard->phasor = 1;
+					keyboard->up = TRUE;
+				}
+			}
+		}
+		else if (type == ArpModeRandomWalk)
+		{
+			random = rand() % 0xffff;
+			if (random > 0x8000)
+			{
+				keyboard->phasor = (keyboard->phasor + 1) % keyboard->stack.size;
+			}
+			else
+			{
+				keyboard->phasor = (keyboard->phasor - 1) % keyboard->stack.size;
+			}
+		}
+		else if (type == ArpModeRandom)
+		{
+			keyboard->phasor = rand() % keyboard->stack.size;
+		}
 		
-		int hex = tNoteStack_get(ns, keyboard->phasor);
+
+		hex = tNoteStack_get(ns, keyboard->phasor);
 		
 		if (hex >= 0)
 		{
@@ -266,39 +313,39 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 	if ((keyboard->hexes[note].pitch < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
 	else
 	{
-		if (keyboard->playMode != ArpMode)
+		if (keyboard->playMode == ArpMode)
 		{
-			tNoteStack_add(&keyboard->stack, note);
-		}
-		else if (type >= ArpModeUp || type <= ArpModeUpDown)
-		{
-			tKeyboard_orderedAddToStack(keyboard, note);
-		}
+			if ((type >= ArpModeUp && type <= ArpModeUpDown) || type == ArpModeRandomWalk)	tKeyboard_orderedAddToStack(keyboard, note);
+			else																			tNoteStack_add(&keyboard->stack, note);
 
-		BOOL found = FALSE;
-		for (int i = 0; i < keyboard->numVoices; i++)
-		{
-			if (keyboard->voices[i] < 0)	// if inactive voice, give this hex to voice
-			{
-				found = TRUE;
-				
-				keyboard->voices[i] = note;
-				keyboard->lastVoiceToChange = i;
-				
-				keyboard->hexes[note].active = TRUE;
-				
-				break;
-			}
 		}
-		
-		if (!found) //steal
+		else // TouchMode
 		{
-			int whichVoice = keyboard->lastVoiceToChange;
-			int oldNote = keyboard->voices[whichVoice];
-			keyboard->hexes[oldNote].active = FALSE;
+			BOOL found = FALSE;
+			for (int i = 0; i < keyboard->numVoices; i++)
+			{
+				if (keyboard->voices[i] < 0)	// if inactive voice, give this hex to voice
+				{
+					found = TRUE;
+					
+					keyboard->voices[i] = note;
+					keyboard->lastVoiceToChange = i;
+					
+					keyboard->hexes[note].active = TRUE;
+					
+					break;
+				}
+			}
 			
-			keyboard->voices[whichVoice] = note;
-			keyboard->hexes[note].active = TRUE;
+			if (!found) //steal
+			{
+				int whichVoice = keyboard->lastVoiceToChange;
+				int oldNote = keyboard->voices[whichVoice];
+				keyboard->hexes[oldNote].active = FALSE;
+				
+				keyboard->voices[whichVoice] = note;
+				keyboard->hexes[note].active = TRUE;
+			}
 		}
 	}
 }
@@ -313,47 +360,51 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 	{
 		tNoteStack_remove(&keyboard->stack, note);
 		
-		keyboard->hexes[note].active = FALSE;
-		
-		int deactivatedVoice = -1;
-		for (int i = 0; i < keyboard->numVoices; i++)
+		if (keyboard->playMode != ArpMode)
 		{
-			if (keyboard->voices[i] == note)
-			{
-				keyboard->voices[i] = -1;
-				keyboard->lastVoiceToChange = i;
-				
-				deactivatedVoice = i;
-				break;
-			}
-		}
-		
-		if (keyboard->numVoices == 1 && tNoteStack_getSize(&keyboard->stack) > 0)
-		{
-			int oldNote = tNoteStack_first(&keyboard->stack);
-			keyboard->voices[0] = oldNote;
-			keyboard->lastVoiceToChange = 0;
-			keyboard->hexes[oldNote].active = TRUE;
+			keyboard->hexes[note].active = FALSE;
 			
-		}
-		else if (deactivatedVoice != -1)
-		{
-			int i = 0;
-
-			while (1)
+			int deactivatedVoice = -1;
+			for (int i = 0; i < keyboard->numVoices; i++)
 			{
-				otherNote = tNoteStack_get(&keyboard->stack, i++);
-				if (otherNote < 0 ) break;
-				
-				if (keyboard->hexes[otherNote].active == FALSE)
+				if (keyboard->voices[i] == note)
 				{
-					keyboard->voices[deactivatedVoice] = otherNote;
+					keyboard->voices[i] = -1;
+					keyboard->lastVoiceToChange = i;
 					
-					keyboard->lastVoiceToChange = deactivatedVoice;
-					keyboard->hexes[otherNote].active = TRUE;
+					deactivatedVoice = i;
+					break;
+				}
+			}
+			
+			if (keyboard->numVoices == 1 && tNoteStack_getSize(&keyboard->stack) > 0)
+			{
+				int oldNote = tNoteStack_first(&keyboard->stack);
+				keyboard->voices[0] = oldNote;
+				keyboard->lastVoiceToChange = 0;
+				keyboard->hexes[oldNote].active = TRUE;
+				
+			}
+			else if (deactivatedVoice != -1)
+			{
+				int i = 0;
+
+				while (1)
+				{
+					otherNote = tNoteStack_get(&keyboard->stack, i++);
+					if (otherNote < 0 ) break;
+					
+					if (keyboard->hexes[otherNote].active == FALSE)
+					{
+						keyboard->voices[deactivatedVoice] = otherNote;
+						
+						keyboard->lastVoiceToChange = deactivatedVoice;
+						keyboard->hexes[otherNote].active = TRUE;
+					}
 				}
 			}
 		}
+		
 	}
 		
 		

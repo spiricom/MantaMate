@@ -33,13 +33,14 @@ typedef enum MantaLEDColor
 
 typedef enum ArpModeType
 {
-	ArpModeUp,
+	ArpModeUp = 0,
 	ArpModeDown,
 	ArpModeUpDown,
-	ArpModeRandom,
-	ArpModeRandomWalk,
 	ArpModeOrderTouchForward,
 	ArpModeOrderTouchBackward,
+	ArpModeOrderTouchForwardBackward,
+	ArpModeRandomWalk,
+	ArpModeRandom,
 	ArpModeNil
 	
 }ArpModeType;

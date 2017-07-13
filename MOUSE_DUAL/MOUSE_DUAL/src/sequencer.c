@@ -219,8 +219,8 @@ int tSequencer_getHexFromStep(tSequencer* const seq, uint8_t in)
 		hex = pattern_diag[(seq->maxLength - 1) - in];
 	else if (pat == RandomWalk)
 	{
-		plusOrMinus = rand();
-		if (plusOrMinus > 0xffff)
+		plusOrMinus = rand() % 0xffff;
+		if (plusOrMinus > 0x8000)
 		{
 			hex = (in + (plusOrMinus-0xffff)) % seq->maxLength;
 		}

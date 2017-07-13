@@ -265,8 +265,9 @@ OptionType rightOptionMode[16] = {
 	OptionNil,
 	OptionLeft,
 	OptionRight
-	
 };
+
+
 
 
 
@@ -367,7 +368,8 @@ void setCurrentInstrument(MantaInstrument inst)
 	{
 		editNoteOn = -1;
 		currentInstrument = inst;
-		currentOptionMode = (manta[inst].type == SequencerInstrument) ? SequencerOptionMode :
+		currentOptionMode = (shiftOption2) ? RightOptionMode :
+		(manta[inst].type == SequencerInstrument) ? SequencerOptionMode :
 		(manta[inst].type == KeyboardInstrument) ? KeyboardOptionMode :
 		(manta[inst].type == DirectInstrument) ? DirectOptionMode :
 		OptionModeNil;
@@ -1416,8 +1418,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 									
 	if (whichOptionType <= OptionPatternEight)
 	{
-		// NEED THIS FOR KEYBOARD MODE TOO
-		tSequencer_setPattern(sequencer, whichOptionType);
+		if (type == SequencerInstrument)		tSequencer_setPattern(sequencer, whichOptionType);
+		else if (type == KeyboardInstrument)	tKeyboard_setArpModeType(keyboard, whichOptionType);
 		
 		prev_pattern_hex = current_pattern_hex;
 		current_pattern_hex = whichHex;

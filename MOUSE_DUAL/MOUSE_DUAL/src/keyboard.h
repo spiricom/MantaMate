@@ -52,7 +52,9 @@ typedef struct _tKeyboard
 	ArpModeType arpModeType;
 	
 	int currentNote;
-	int phasor, maxLength;
+	int maxLength;
+	int phasor;
+	BOOL up;
 	
 	
 } tKeyboard;
