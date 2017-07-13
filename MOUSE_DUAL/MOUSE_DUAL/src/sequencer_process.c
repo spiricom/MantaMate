@@ -1439,7 +1439,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 			manta[currentInstrument].type = KeyboardInstrument;
 			
 			tKeyboard_init(keyboard, 1);
-			tIRampSetTime(&out[currentInstrument][CVPITCH], globalGlide);
+			tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
 			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 	}
@@ -1537,7 +1537,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 		
 		tKeyboard_init(keyboard, 1);
-		tIRampSetTime(&out[currentInstrument][CVPITCH], globalGlide);
+		tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
 		tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 	}
 	else if (whichOptionType == OptionDuo)

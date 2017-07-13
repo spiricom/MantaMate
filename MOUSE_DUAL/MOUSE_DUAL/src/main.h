@@ -80,7 +80,8 @@ typedef enum MantaInstrumentType
 }MantaInstrumentType;
 
 GlobalDisplayState displayState;
-extern unsigned char globalGlide;
+extern uint16_t globalCVGlide;
+extern uint16_t globalPitchGlide;
 
 tKeyboard* hexmapEditKeyboard;
 MantaInstrument hexmapEditInstrument;
@@ -194,6 +195,10 @@ extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
 extern unsigned char transpose_indication_active;
 extern unsigned char normal_7seg_number;
+
+
+extern BOOL no_device_mode_active;
+
 
 uint8_t freeze_LED_update;
 uint8_t roll_LEDs;

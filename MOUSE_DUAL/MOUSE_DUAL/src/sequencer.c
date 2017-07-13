@@ -148,8 +148,7 @@ void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 	}
 }
 
-uint16_t myglobaltest = 0;
-void        tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
+void	 tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 {
 	tNoteStack_clear(&seq->notestack);
 	

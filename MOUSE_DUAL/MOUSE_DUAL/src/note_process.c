@@ -271,12 +271,15 @@ void dacSendKeyboard(MantaInstrument which)
 		int note = keyboard->voices[i];
 		if (note >= 0)
 		{
+			tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], globalPitchGlide);
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose));
-
+			
+			tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
 			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
 			//if we are in mono mode, then we have room for a trigger output, too
 			if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 			{
+				tIRampSetTime(&out[which][CVKTRIGGER], 0);
 				tIRampSetDest(&out[which][CVKTRIGGER], 65535);
 				keyboard->trigCount = 3;
 			}
@@ -308,7 +311,7 @@ void dacSendMIDIKeyboard(void)
 			{
 				int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
 				tempDACPitch += keyboard->pitchBend;
-				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalGlide);
+				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalPitchGlide);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );

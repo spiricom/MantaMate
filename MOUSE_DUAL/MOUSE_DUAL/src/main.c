@@ -114,8 +114,11 @@ unsigned char SPIbusy = 0;
 unsigned char preset_num = 0;
 unsigned char preset_to_save_num = 0;
 unsigned char savingActive = 0;
-unsigned char globalGlide = 1;
-unsigned char globalGlideMax = 198;
+uint16_t globalPitchGlide = 1;
+uint16_t globalCVGlide = 7;
+uint16_t globalPitchGlideDisplay = 1;
+uint16_t globalCVGlideDisplay = 7;
+unsigned char globalGlideMax = 99;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
@@ -123,10 +126,14 @@ unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
 
+const uint16_t glide_lookup[100] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110, 0};
+
+BOOL no_device_mode_active = FALSE;
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 TuningOrLearnType tuningOrLearn = TUNING_SELECT;
+GlidePreferences glide_pref = GLOBAL_PITCH_GLIDE;
 ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
 
@@ -507,7 +514,7 @@ static void tc2_irq(void)
 						}
 						else if (type == DirectCV)
 						{
-							sendDataToOutput(6*inst+i, 10, butt_states[instrument->direct.outs[i].hex] << 8);
+							sendDataToOutput(6*inst+i, globalCVGlide, butt_states[instrument->direct.outs[i].hex] << 8);
 						}
 					}
 				}
@@ -588,7 +595,7 @@ static void tc2_irq(void)
 				}
 				else if (type == DirectCV)
 				{
-					sendDataToOutput(i, 0, butt_states[fullDirect.outs[i].hex] << 8);
+					sendDataToOutput(i, globalCVGlide, butt_states[fullDirect.outs[i].hex] << 8);
 				}
 			}	
 		}
@@ -617,7 +624,7 @@ static void tc3_irq(void)
 				{
 					for (int i = 0; i < instrument->keyboard.numVoices; i++)
 					{
-						tIRampSetTime (&out[inst][i*3 + CV1], 10);
+						tIRampSetTime (&out[inst][i*3 + CV1], globalCVGlide);
 						tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
 					}
 				}
@@ -629,7 +636,7 @@ static void tc3_irq(void)
 			for (int i = 0; i < fullKeyboard.numVoices; i++)
 			{
 				int inst = (i / 2);
-				tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
+				tIRampSetTime (&out[inst][((i*3) % 6) + CV1], globalCVGlide);
 				tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
 			}
 		}
@@ -644,7 +651,7 @@ static void tc3_irq(void)
 			
 			if (cc >= 0)
 			{
-				sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 14, MIDIKeyboard.CCs[cc]); //TODO: ramp messes up the ability to really slowly approach tiny increments - should improve that possibility in the ramp code -JS
+				sendDataToOutput((n + MIDIKeyboard.firstFreeOutput), globalCVGlide, MIDIKeyboard.CCs[cc]); 
 			}
 			else if (note >= 0)
 			{
@@ -914,7 +921,6 @@ void USB_Mode_Switch_Check(void)
 		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
 		{
 
-			//LED_On(LED1);
 			if (myUSBMode == HOSTMODE)
 			{
 				uhc_stop(1);
@@ -927,12 +933,10 @@ void USB_Mode_Switch_Check(void)
 		}
 		else
 		{
-			//LED_Off(LED1);
 			if (myUSBMode == DEVICEMODE)
 			{
 				udc_stop();
 			}
-			//UHC_MODE_CHANGE(true);
 			uhc_start();
 			myUSBMode = HOSTMODE;
 		}	
@@ -942,6 +946,12 @@ void USB_Mode_Switch_Check(void)
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if (displayState == UpDownSwitchBlock) return;
+	
+	if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
+	{
+		no_device_mode_active = TRUE;
+		return;
+	}
 	
 	if (displayState == HexmapPitchSelect)
 	{
@@ -1120,36 +1130,86 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		
 	}
 	
-	else if (preference_num == PORTAMENTO_TIME)
+	else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
 	{
-
 		if (whichSwitch)
 		{
 			if (upSwitch())
 			{
-				globalGlide = globalGlide + 2;
-				if (globalGlide >= globalGlideMax)
+				if (glide_pref == GLOBAL_PITCH_GLIDE)
 				{
-					globalGlide = globalGlideMax;
+					globalPitchGlide++;
+					if (globalPitchGlide >= globalGlideMax)
+					{
+						globalPitchGlide = globalGlideMax;
+					}
+					Write7Seg(globalPitchGlide);
+					normal_7seg_number = globalPitchGlide;
 				}
+				else  // otherwise it's global cv glide
+				{
+					globalCVGlide++;
+					if (globalCVGlide >= globalGlideMax)
+					{
+						globalCVGlide = globalGlideMax;
+					}
+					if (globalCVGlide < 10)
+					{
+						Write7Seg(globalCVGlide+200);
+						normal_7seg_number = (globalCVGlide + 200);
+					}
+					else
+					{
+						Write7Seg(globalCVGlide);
+						normal_7seg_number = globalCVGlide;
+					}
+				}
+
 			}
 		}
 		else
 		{
 			if (downSwitch())
 			{
-				if (globalGlide <= 0)
+				if (glide_pref == GLOBAL_PITCH_GLIDE)
 				{
-					globalGlide = 0;
+					if (globalPitchGlide <= 0)
+					{
+						globalPitchGlide = 0;
+					}
+					else
+					{
+						globalPitchGlide--;
+					}
+					Write7Seg(globalPitchGlide);
+					normal_7seg_number = globalPitchGlide;
 				}
-				else
+				else  // otherwise it's global cv glide
 				{
-					globalGlide = globalGlide - 2;
+					if (globalCVGlide <= 0)
+					{
+						globalCVGlide = 0;
+					}
+					else
+					{
+						globalCVGlide--;
+					}
+					if (globalCVGlide < 10)
+					{
+						Write7Seg(globalCVGlide+200);
+						normal_7seg_number = (globalCVGlide + 200);
+					}
+					else
+					{
+						Write7Seg(globalCVGlide);
+						normal_7seg_number = globalCVGlide;
+					}
+
 				}
+
 			}
 		}
-		Write7Seg(globalGlide / 2);
-		normal_7seg_number = globalGlide / 2;
+
 	}
 	
 	else if (preference_num == INTERNAL_CLOCK)
@@ -1217,7 +1277,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		if (clock_speed_displayed > 0)
 		{
-			clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so.
+			clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
 		}
 		else
 		{
@@ -1281,6 +1341,32 @@ void Save_Switch_Check(void)
 				clock_pref = CLOCK_DIVIDER;
 				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
 				normal_7seg_number = 200 + tempoDivider;
+			}
+		}
+		
+		
+		else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
+		{
+			if (glide_pref == GLOBAL_PITCH_GLIDE)
+			{
+				//switch to BPM pref
+				glide_pref = GLOBAL_CV_GLIDE;
+				if (globalCVGlide < 10)
+				{
+					Write7Seg(globalCVGlide+200);
+				}
+				else
+				{
+					Write7Seg(globalCVGlide);
+				}
+				normal_7seg_number = globalCVGlide;
+			}
+			else if (glide_pref == GLOBAL_CV_GLIDE)
+			{
+				//switch to Clock Divider pref
+				glide_pref = GLOBAL_PITCH_GLIDE;
+				Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = globalPitchGlide;
 			}
 		}
 		
@@ -1363,12 +1449,12 @@ void updatePreferences(void)
 		normal_7seg_number = globalTuning;
 		break;
 		
-		case PORTAMENTO_TIME:
+		case GLOBAL_GLIDE_PREFERENCES:
 		LED_On(LEFT_POINT_LED);
 		LED_Off(RIGHT_POINT_LED);
 		LED_On(PREFERENCES_LED);
-		Write7Seg(globalGlide);
-		normal_7seg_number = globalGlide;
+		Write7Seg(globalPitchGlide);
+		normal_7seg_number = globalPitchGlide;
 		break;
 		
 		case INTERNAL_CLOCK:

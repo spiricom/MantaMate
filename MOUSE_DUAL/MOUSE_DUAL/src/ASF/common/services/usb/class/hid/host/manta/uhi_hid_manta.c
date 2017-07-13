@@ -275,6 +275,7 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	Assert(uhi_hid_manta_dev.report!=NULL);
 	free(uhi_hid_manta_dev.report);
 	UHI_HID_MANTA_CHANGE(dev, false);
+	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
 	//initNoteStack();
 }
