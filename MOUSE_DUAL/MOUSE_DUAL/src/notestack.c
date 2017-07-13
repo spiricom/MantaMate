@@ -20,14 +20,32 @@ int tNoteStack_contains(tNoteStack* const ns, uint8_t noteVal)
 
 void tNoteStack_add(tNoteStack* const ns, uint8_t noteVal)
 {
-	//first move notes that are already in the stack one position to the right
-	for (int i = ns->size; i > 0; i--)
+	uint8_t j;
+
+	int whereToInsert = 0;
+	if (ns->ordered)
 	{
-		ns->notestack[i] = ns->notestack[(i - 1)];
+		for (j = 0; j < ns->size; j++)
+		{
+			if (noteVal > ns->notestack[j])
+			{
+				if ((noteVal < ns->notestack[j+1]) || (ns->notestack[j+1] == -1))
+				{
+					whereToInsert = j+1;
+					break;
+				}
+			}
+		}
+	}
+		
+	//first move notes that are already in the stack one position to the right
+	for (j = ns->size; j > whereToInsert; j--)
+	{
+		ns->notestack[j] = ns->notestack[(j - 1)];
 	}
 
 	//then, insert the new note into the front of the stack
-	ns->notestack[0] = noteVal;
+	ns->notestack[whereToInsert] = noteVal;
 
 	ns->size++;
 }
@@ -41,14 +59,30 @@ int tNoteStack_addIfNotAlreadyThere(tNoteStack* const ns, uint8_t noteVal)
 
 	if (foundIndex == -1)
 	{
+		int whereToInsert = 0;
+		if (ns->ordered)
+		{
+			for (j = 0; j < ns->size; j++)
+			{
+				if (noteVal > ns->notestack[j])
+				{
+					if ((noteVal < ns->notestack[j+1]) || (ns->notestack[j+1] == -1))
+					{
+						whereToInsert = j+1;
+						break;
+					}
+				}
+			}
+		}
+		
 		//first move notes that are already in the stack one position to the right
-		for (j = ns->size; j > 0; j--)
+		for (j = ns->size; j > whereToInsert; j--)
 		{
 			ns->notestack[j] = ns->notestack[(j - 1)];
 		}
 
 		//then, insert the new note into the front of the stack
-		ns->notestack[0] = noteVal;
+		ns->notestack[whereToInsert] = noteVal;
 
 		ns->size++;
 		
@@ -171,6 +205,7 @@ uint8_t tNoteStack_first(tNoteStack* const ns)
 
 int tNoteStack_init(tNoteStack* const ns, uint8_t cap)
 {
+	ns->ordered = FALSE;
 	ns->size = 0;
 	ns->pos = 0;
 	ns->capacity = cap;

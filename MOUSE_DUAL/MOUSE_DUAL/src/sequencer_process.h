@@ -23,6 +23,8 @@ extern uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]
 void sequencerStep(MantaInstrument inst);
 void uiStep					(MantaInstrument);
 
+void keyboardStep(MantaInstrument inst);
+
 void processHexTouch(void);
 
 void touchHexmapEdit(int hex, uint8_t weight);
