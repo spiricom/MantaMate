@@ -1595,9 +1595,7 @@ void DACsetup(void)
 	dacSetupwait2();
 	gpio_set_gpio_pin(DAC3_CS);
 	dacSetupwait1();
-
 }
-
 
 void dacSetupwait1(void)
 {
@@ -1611,44 +1609,15 @@ void dacSetupwait2(void)
 void dacwait1(void)
 {
 	cpu_delay_us(9,64000000); //8 works but did 9 just to be safe. Interestingly, 5 works if optimizations are off, but breaks with optimization
-	/*
-	static uint8_t i = 0;
-	static uint8_t wastecounter = 0;
-	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 9; i++) //number arrived at by testing when the timing makes the DAC fail
-	{
-		wastecounter++;
-	}
-	*/
 }
 void dacwait2(void)
 {
 	cpu_delay_us(1,64000000);
-	/*
-	//cpu_delay_us(12,64000000);//5
-	static uint8_t i = 0;
-	static uint8_t wastecounter = 0;
-	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 2; i++)
-	{
-		wastecounter++;
-	}
-	*/
 }
 
 void memoryWait(void)
 {
 	cpu_delay_us(20,64000000); // what should this be? needs testing
-	/*
-	//cpu_delay_us(12,64000000);//5
-	static uint8_t i = 0;
-	static uint8_t wastecounter = 0;
-	//cpu_delay_us(12,64000000);//5
-	for (i = 0; i < 20; i++)
-	{
-		wastecounter++;
-	}
-	*/
 }
 
 void enterBootloader(void)
@@ -1684,8 +1653,6 @@ static void setMemorySPI(spi_options_t spiOptions)
 	spi_selectChip(MEMORY_SPI, 0);
 	spi_setupChipReg(MEMORY_SPI, &spiOptions, TARGET_PBACLK_FREQ_HZ);
 	spi_enable(MEMORY_SPI);
-	
-	
 }
 
 void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval)
@@ -1712,7 +1679,6 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC2_CS);
-		dacwait1(); // necessary wait?
 	}
 
 	if (DACnum == 1)
@@ -1724,7 +1690,6 @@ void dacsend(unsigned char DACvoice, unsigned char DACnum, unsigned short DACval
 		while((spi_write(DAC_SPI,dacoutlow)) != 0);
 		dacwait1();
 		gpio_set_gpio_pin(DAC3_CS);
-		dacwait1(); // necessary wait?
 	}
 	SPIbusy = 0;
 }

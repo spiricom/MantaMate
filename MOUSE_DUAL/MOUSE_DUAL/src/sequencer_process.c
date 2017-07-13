@@ -1752,7 +1752,7 @@ void touchUpperHex(uint8_t hexagon)
 			int cStep = sequencer->currentStep;
 			if (tNoteStack_contains(&editStack,stepToHexUI(currentInstrument,cStep)) != -1)
 			{
-				//comment this out if we don't want immediate DAC update, but only update at the beginning of a 
+				//comment this out if we don't want immediate DAC update, but only update at the beginning of a step
 				
 				DAC16Send(2 * currentInstrument, get16BitPitch(&myGlobalTuningTable, currentInstrument, cStep)); // take pitch class, add octave * 12, multiply it by the scalar, divide by 1000 to get 16 bit.
 			}
@@ -2764,7 +2764,7 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 	manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
 	manta_set_LED_button(ButtonBottomLeft, Off);
 	manta_set_LED_button(ButtonBottomRight, (sequencer->playMode == ToggleMode) ? Off : Amber);
-	manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+	//manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 	freeze_LED_update = 0;
 }
 
