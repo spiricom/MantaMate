@@ -469,6 +469,8 @@ void keyboardStep(MantaInstrument inst)
 	 
 	 tKeyboard_nextNote(keyboard);
 	 
+	 if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
+	 
 	 dacSendKeyboard(inst);
 
 	 
@@ -1401,10 +1403,10 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	currentUpperHexUI = hexagon;
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
-	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
-	tDirect* direct = &manta[currentInstrument].direct;
+	tKeyboard* keyboard = takeover ? &fullKeyboard : &manta[currentInstrument].keyboard;
+	tDirect* direct = takeover ? &fullDirect :&manta[currentInstrument].direct;
 	
-	MantaInstrumentType type = manta[currentInstrument].type;
+	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 	
 	uint8_t whichHex = hexagon - MAX_STEPS;
 	
@@ -1459,7 +1461,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		{
 			manta[currentInstrument].type = KeyboardInstrument;
 			
-			tKeyboard_init(keyboard, 1);
+			keyboard->numVoices = 1;
 			tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
 			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
@@ -1557,7 +1559,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		
 		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
 		
-		tKeyboard_init(keyboard, 1);
+		keyboard->numVoices = 1;
 		tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
 		tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 	}
@@ -2893,10 +2895,10 @@ void setSequencerLEDsFor(MantaInstrument inst)
 void setOptionLEDs(void)
 {
 	freeze_LED_update = 1;
-	MantaInstrumentType type = manta[currentInstrument].type;
+	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
-	currentOptionMode =	(currentOptionMode == RightOptionMode) ? RightOptionMode :
+	currentOptionMode =	(shiftOption2) ? RightOptionMode :
 	(type == SequencerInstrument) ? SequencerOptionMode :
 	(type == KeyboardOptionMode) ? KeyboardOptionMode :
 	(type == DirectInstrument) ? DirectOptionMode :
@@ -2909,7 +2911,7 @@ void setOptionLEDs(void)
 								defaultOptionMode;
 								
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
-	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+	tKeyboard* keyboard = takeover ? &fullKeyboard :  &manta[currentInstrument].keyboard;
 	
 	int numVoices = 0;
 	if (takeover)	numVoices = fullKeyboard.numVoices;

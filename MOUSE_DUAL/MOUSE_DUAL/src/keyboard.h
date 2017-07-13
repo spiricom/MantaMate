@@ -46,12 +46,13 @@ typedef struct _tKeyboard
 	
 	signed int transpose;
 	
-	int trigCount;
+	int trigCount[4];
 	
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;
 	
 	int currentNote;
+	int currentVoice;
 	int maxLength;
 	int phasor;
 	BOOL up;

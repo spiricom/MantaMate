@@ -290,6 +290,10 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
+	tKeyboard_init(&manta[InstrumentOne].keyboard, 1);
+	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1);
+	tKeyboard_init(&fullKeyboard, 2);
+	
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 6; j++)
@@ -461,10 +465,7 @@ static void tc2_irq(void)
 		}
 	}
 	
-	if (type_of_device_connected == JoystickConnected)
-	{
-		return;
-	}
+	if (type_of_device_connected == JoystickConnected) return;
 	
 	else if (type_of_device_connected == NoDeviceConnected)
 	{
@@ -526,9 +527,9 @@ static void tc2_irq(void)
 					{
 						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 						{
-							if (--(instrument->keyboard.trigCount) == 0)
+							if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 							{
-								tIRampSetDest(&out[inst][CVKTRIGGER-2], 0);
+								tIRampSetDest(&out[inst][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
 							}
 						}
 					}
@@ -536,7 +537,7 @@ static void tc2_irq(void)
 					{
 						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 						{
-							if (--(instrument->keyboard.trigCount) == 0)
+							if (--(instrument->keyboard.trigCount[0]) == 0)
 							{
 								tIRampSetDest(&out[inst][CVKTRIGGER], 0);
 							}
@@ -590,6 +591,19 @@ static void tc2_irq(void)
 			
 			}
 		}
+		else if (takeoverType == KeyboardInstrument)
+		{
+			if (fullKeyboard.playMode == ArpMode)
+			{
+				if (fullKeyboard.trigCount[fullKeyboard.currentVoice] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+				{
+					if (--(fullKeyboard.trigCount[fullKeyboard.currentVoice]) == 0)
+					{
+						tIRampSetDest(&out[0][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
+					}
+				}
+			}
+		}
 		else if (takeoverType == DirectInstrument)
 		{
 			for (int i = 0; i < fullDirect.numOuts; i++)
@@ -636,8 +650,8 @@ static void tc3_irq(void)
 				{
 					if (instrument->keyboard.playMode == ArpMode)
 					{
-						tIRampSetTime    (&out[inst][CV1], globalCVGlide);
-						tIRampSetDest    (&out[inst][CV1],  butt_states[instrument->keyboard.currentNote] << 4);
+						tIRampSetTime    (&out[inst][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
+						tIRampSetDest    (&out[inst][CV1+3*fullKeyboard.currentVoice],  butt_states[instrument->keyboard.currentNote] << 4);
 					}
 					else
 					{
@@ -656,8 +670,8 @@ static void tc3_irq(void)
 		{
 			if (fullKeyboard.playMode == ArpMode)
 			{
-				tIRampSetTime    (&out[0][CV1], globalCVGlide);
-				tIRampSetDest    (&out[0][CV1],  butt_states[fullKeyboard.currentNote] << 4);
+				tIRampSetTime    (&out[0][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
+				tIRampSetDest    (&out[0][CV1+3*fullKeyboard.currentVoice],  butt_states[fullKeyboard.currentNote] << 4);
 			}
 			else
 			{
