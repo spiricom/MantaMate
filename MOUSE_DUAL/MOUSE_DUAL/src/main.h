@@ -190,7 +190,7 @@ extern uint32_t clock_speed;
 extern uint8_t joystick_mode;
 extern uint32_t USB_frame_counter;
 extern ConnectedDeviceType type_of_device_connected;
-extern unsigned char suspendRetrieve;
+extern SuspendRetrieveType suspendRetrieve;
 extern unsigned char number_for_7Seg;
 extern unsigned char blank7Seg;
 extern unsigned char transpose_indication_active;

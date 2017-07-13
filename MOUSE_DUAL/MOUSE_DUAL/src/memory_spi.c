@@ -27,6 +27,11 @@ unsigned char savePending = 0;
 unsigned char loadPending = 0;
 unsigned char tuningSavePending = 0;
 unsigned char tuningLoadPending = 0;
+unsigned char startupStateSavePending = 0;
+unsigned char startupStateLoadPending = 0;
+
+uint16_t tempPreset = 0;
+
 uint16_t busy;
 
 int memorySPICheckIfBusy(void)
@@ -130,9 +135,12 @@ void memorySPIEraseBlock(uint16_t block)
 // a page is 256 bytes.
 // a sector is 16 pages (4096 bytes)
 // a block is 16 sectors (65535 bytes)
+// there are 256 blocks
 
 // every preset will live in a block (block 0-89)
 // user tunings start at block 100, and there is one tuning per sector (so sectors 1600-1690)
+
+//
 
 
 //in the presets:
@@ -243,9 +251,6 @@ void continueStoringPresetToExternalMemory(void)
 	}
 }
 
-
-
-
 void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
 {
 	currentSector = tuning_num_to_save + 1600;  // user tuning 1-99 are sectors 1601-1699
@@ -287,7 +292,6 @@ void initiateLoadingPresetFromExternalMemory(void)
 	pages_left_to_load = NUM_PAGES_PER_PRESET; //set the variable for the total number of pages to count down from while we store them
     continueLoadingPresetFromExternalMemory();
 	loadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
-	
 }
 
 void continueLoadingPresetFromExternalMemory(void)
@@ -394,4 +398,41 @@ void continueLoadingTuningFromExternalMemory(void)
 			computeTuningDACTable(&myGlobalTuningTable, Local);
 		}
 	}
+}
+
+
+
+void initiateStoringStartupStateToExternalMemory(void)
+{
+	//start by erasing the memory in the location we want to store
+	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
+	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	memorySPIEraseSector(1700); //we only need to erase one sector per tuning
+	startupStateSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	tempPreset = preset_num;
+}
+
+void continueStoringStartupStateToExternalMemory(void)
+{
+	memorySPIWrite(1700, 0, &tempPreset, 1);
+	//mark the save procedure as finished
+	startupStateSavePending = 0;
+	LED_Off(PRESET_SAVE_LED);
+}	
+
+
+
+void loadStartupStateFromExternalMemory(void)
+{
+	memorySPIRead(1700, 0, &tempPreset, 1);
+	startupStateLoadPending = 1;
+}
+
+void continueLoadingStartupStateFromExternalMemory(void)
+{
+	startupStateLoadPending = 0;
+	preset_num = tempPreset;
+	updatePreset();
+	Write7Seg(preset_num);
+	normal_7seg_number = preset_num;
 }

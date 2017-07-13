@@ -119,7 +119,7 @@ uint16_t globalCVGlide = 7;
 uint16_t globalPitchGlideDisplay = 1;
 uint16_t globalCVGlideDisplay = 7;
 unsigned char globalGlideMax = 80;
-unsigned char suspendRetrieve = 0;
+SuspendRetrieveType suspendRetrieve = RetrieveWhenever;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
@@ -306,10 +306,11 @@ int main(void){
 	hexmapEditMode = FALSE;
 	
 	//start off on preset 0;
-	preset_num = 0;
-	delay_ms(600);
+	//preset_num = 0;
+	loadStartupStateFromExternalMemory();
+	delay_ms(600); // why is this necessary? taking it out makes the manta state not get initialized correctly, but it's weird that we need it
 	initTimers();
-	updatePreset();
+	//updatePreset();
 	Write7Seg(0);
 	//I added this global variable - it's to allow minor functions to take over the 7-seg, then go back to whatever it is normally showing.
 	normal_7seg_number = 0;
@@ -333,6 +334,14 @@ int main(void){
 				continueStoringTuningToExternalMemory();
 			}
 		}
+		
+		else if (startupStateSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringStartupStateToExternalMemory();
+			}
+		}
 
 		else if (loadPending)
 		{
@@ -347,6 +356,14 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingTuningFromExternalMemory();
+			}
+		}
+		
+		else if (startupStateLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingStartupStateFromExternalMemory();
 			}
 		}
 
@@ -405,7 +422,7 @@ static void tc2_irq(void)
 			upHeld++;
 			if (upHeld > holdTimeThresh)
 			{
-				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
 				Preset_Switch_Check(1);
 			}
 			buttonFrameCounter = 0;
@@ -415,8 +432,11 @@ static void tc2_irq(void)
 	{
 		if (upHeld > 0)
 		{
-			suspendRetrieve = 0;
-			Preset_Switch_Check(1);
+			if (suspendRetrieve == DontRetrieve)
+			{
+				suspendRetrieve = RetrieveNow;
+				Preset_Switch_Check(1);
+			}
 		}
 		upHeld = 0;
 	}
@@ -429,7 +449,7 @@ static void tc2_irq(void)
 			downHeld++;
 			if (downHeld > holdTimeThresh)
 			{
-				suspendRetrieve = 1; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+				suspendRetrieve =DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
 				Preset_Switch_Check(0);
 			}
 			buttonFrameCounter = 0;
@@ -440,8 +460,11 @@ static void tc2_irq(void)
 	{
 		if (downHeld > 0)
 		{
-			suspendRetrieve = 0;
-			Preset_Switch_Check(0);
+			if (suspendRetrieve == DontRetrieve)
+			{
+				suspendRetrieve = RetrieveNow;
+				Preset_Switch_Check(0);
+			}
 		}
 		downHeld = 0;
 	}
@@ -995,6 +1018,18 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		return;
 	}
 	
+	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes
+	{
+		if (arp_or_touch == ARP_MODE)
+		{
+			arp_or_touch = TOUCH_MODE;
+		}
+		else
+		{
+			arp_or_touch = ARP_MODE;
+		}
+	}
+	
 	if (displayState == HexmapPitchSelect)
 	{
 		if (whichSwitch)
@@ -1049,7 +1084,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		
 		mantaUITunings[currentTuningHex] = currentMantaUITuning;
 		
-		if (!suspendRetrieve)
+		if (suspendRetrieve != DontRetrieve)
 		{
 			loadTuning(currentMantaUITuning);
 		}
@@ -1072,7 +1107,15 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					{
 						preset_num = 99;
 					}
+					if (suspendRetrieve !=DontRetrieve)
+					{
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
+					}
+					Write7Seg(preset_num);
+					normal_7seg_number = preset_num;
 				}
+
 			}
 			else 
 			{
@@ -1086,12 +1129,23 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					{
 						preset_num--;
 					}
+					if (suspendRetrieve != DontRetrieve)
+					{
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
+					}
+					Write7Seg(preset_num);
+					normal_7seg_number = preset_num;
 				}
 			}
-			updatePreset();
-			Write7Seg(preset_num);
-			normal_7seg_number = preset_num;
+			if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
+			{
+				initiateStoringStartupStateToExternalMemory();
+				updatePreset();
+				suspendRetrieve = RetrieveWhenever;
+			}
 		}
+		
 		//otherwise we are currently navigating to save a preset into a slot
 		else
 		{
@@ -1141,7 +1195,14 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 						{
 							globalTuning = 99;
 						}
+						if (suspendRetrieve != DontRetrieve)
+						{
+							loadTuning(globalTuning);
+						}
+						Write7Seg(globalTuning);
+						normal_7seg_number = globalTuning;
 					}
+					
 				}
 				else
 				{
@@ -1155,19 +1216,24 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 						{
 							globalTuning--;
 						}
+						if (suspendRetrieve != DontRetrieve)
+						{
+							loadTuning(globalTuning);
+						}
+						Write7Seg(globalTuning);
+						normal_7seg_number = globalTuning;
 					}
 				}
-				if (!suspendRetrieve)
+				if (suspendRetrieve == RetrieveNow)
 				{
 					loadTuning(globalTuning);
+					suspendRetrieve = RetrieveWhenever;
 				}
-				Write7Seg(globalTuning);
-				normal_7seg_number = globalTuning;
 			}
 		}
 		else //otherwise it's MIDI LEARN mode
 		{
-			
+			//currently decided not to let the user select which number in midi learn mode, it increments automatically
 		}
 		
 	}
@@ -1464,11 +1530,7 @@ void updatePreset(void)
 	
 	if (preset_num >= 10)
 	{
-		if (!suspendRetrieve)
-		{
-			initiateLoadingPresetFromExternalMemory();
-		}
-
+		initiateLoadingPresetFromExternalMemory();
 	}
 }
 

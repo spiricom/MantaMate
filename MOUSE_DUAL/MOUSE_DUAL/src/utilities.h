@@ -220,7 +220,12 @@ typedef enum PanelSwitch
 	PanelSwitchNil,
 } PanelSwitch;
 
-
+typedef enum SuspendRetrieveType
+{
+	RetrieveWhenever,
+	DontRetrieve,
+	RetrieveNow,
+} SuspendRetrieveType;
 
 typedef enum SequencerPatternType {
 	LeftRightRowDown,

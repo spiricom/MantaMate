@@ -26,6 +26,8 @@ extern unsigned char savePending;
 extern unsigned char loadPending;
 extern unsigned char tuningSavePending;
 extern unsigned char tuningLoadPending;
+extern unsigned char startupStateSavePending;
+extern unsigned char startupStateLoadPending;
 // Memory SPI
 
 int memorySPICheckIfBusy(void);
@@ -44,4 +46,10 @@ void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save);
 void continueStoringTuningToExternalMemory(void);
 void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load);
 void continueLoadingTuningFromExternalMemory(void);
+
+
+void initiateStoringStartupStateToExternalMemory(void);
+void continueStoringStartupStateToExternalMemory(void);
+void loadStartupStateFromExternalMemory(void);
+void continueLoadingStartupStateFromExternalMemory(void);
 #endif /* MEMORY_SPI_H_ */
