@@ -342,16 +342,21 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 			
 			if (!found) //steal
 			{
-				if (keyboard->numVoices == 1)
+				//if (keyboard->numVoices == 1)
+				
 				{
-					int oldNote = keyboard->voices[0];
+					int whichVoice = keyboard->lastVoiceToChange;
+					
+					int oldNote = keyboard->voices[whichVoice];
 					keyboard->hexes[oldNote].active = FALSE;
 					
-					keyboard->voices[0] = note;
+					keyboard->voices[whichVoice] = note;
 					keyboard->hexes[note].active = TRUE;
 					
-					keyboard->lastVoiceToChange = 0;
+					keyboard->lastVoiceToChange = whichVoice;
 				}
+				
+				/*
 				else 
 				{
 					for (int i = 0; i < keyboard->numVoices; i++)
@@ -368,6 +373,7 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 						}
 					}
 				}
+				*/
 				
 			}
 		}
