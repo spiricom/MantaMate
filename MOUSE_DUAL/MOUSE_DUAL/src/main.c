@@ -118,7 +118,7 @@ uint16_t globalPitchGlide = 1;
 uint16_t globalCVGlide = 7;
 uint16_t globalPitchGlideDisplay = 1;
 uint16_t globalCVGlideDisplay = 7;
-unsigned char globalGlideMax = 99;
+unsigned char globalGlideMax = 80;
 unsigned char suspendRetrieve = 0;
 unsigned char number_for_7Seg = 0;
 unsigned char blank7Seg = 0;
@@ -126,7 +126,8 @@ unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
 
-const uint16_t glide_lookup[100] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110, 0};
+const uint16_t glide_lookup[80] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900};
+																													   // 33																												56																				  72								 78				
 
 BOOL no_device_mode_active = FALSE;
 
@@ -1139,31 +1140,33 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (glide_pref == GLOBAL_PITCH_GLIDE)
 				{
-					globalPitchGlide++;
-					if (globalPitchGlide >= globalGlideMax)
+					globalPitchGlideDisplay++;
+					if (globalPitchGlideDisplay >= globalGlideMax)
 					{
-						globalPitchGlide = globalGlideMax;
+						globalPitchGlideDisplay = globalGlideMax;
 					}
-					Write7Seg(globalPitchGlide);
-					normal_7seg_number = globalPitchGlide;
+					Write7Seg(globalPitchGlideDisplay);
+					normal_7seg_number = globalPitchGlideDisplay;
+					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 				}
 				else  // otherwise it's global cv glide
 				{
-					globalCVGlide++;
-					if (globalCVGlide >= globalGlideMax)
+					globalCVGlideDisplay++;
+					if (globalCVGlideDisplay >= globalGlideMax)
 					{
-						globalCVGlide = globalGlideMax;
+						globalCVGlideDisplay = globalGlideMax;
 					}
-					if (globalCVGlide < 10)
+					if (globalCVGlideDisplay < 10)
 					{
-						Write7Seg(globalCVGlide+200);
-						normal_7seg_number = (globalCVGlide + 200);
+						Write7Seg(globalCVGlideDisplay+200);
+						normal_7seg_number = (globalCVGlideDisplay + 200);
 					}
 					else
 					{
-						Write7Seg(globalCVGlide);
-						normal_7seg_number = globalCVGlide;
+						Write7Seg(globalCVGlideDisplay);
+						normal_7seg_number = globalCVGlideDisplay;
 					}
+					globalCVGlide = glide_lookup[globalCVGlideDisplay];
 				}
 
 			}
@@ -1174,38 +1177,39 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (glide_pref == GLOBAL_PITCH_GLIDE)
 				{
-					if (globalPitchGlide <= 0)
+					if (globalPitchGlideDisplay <= 0)
 					{
-						globalPitchGlide = 0;
+						globalPitchGlideDisplay = 0;
 					}
 					else
 					{
-						globalPitchGlide--;
+						globalPitchGlideDisplay--;
 					}
-					Write7Seg(globalPitchGlide);
-					normal_7seg_number = globalPitchGlide;
+					Write7Seg(globalPitchGlideDisplay);
+					normal_7seg_number = globalPitchGlideDisplay;
+					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 				}
 				else  // otherwise it's global cv glide
 				{
-					if (globalCVGlide <= 0)
+					if (globalCVGlideDisplay <= 0)
 					{
-						globalCVGlide = 0;
+						globalCVGlideDisplay = 0;
 					}
 					else
 					{
-						globalCVGlide--;
+						globalCVGlideDisplay--;
 					}
-					if (globalCVGlide < 10)
+					if (globalCVGlideDisplay < 10)
 					{
-						Write7Seg(globalCVGlide+200);
-						normal_7seg_number = (globalCVGlide + 200);
+						Write7Seg(globalCVGlideDisplay+200);
+						normal_7seg_number = (globalCVGlideDisplay + 200);
 					}
 					else
 					{
-						Write7Seg(globalCVGlide);
-						normal_7seg_number = globalCVGlide;
+						Write7Seg(globalCVGlideDisplay);
+						normal_7seg_number = globalCVGlideDisplay;
 					}
-
+					globalCVGlide = glide_lookup[globalCVGlideDisplay];
 				}
 
 			}
@@ -1385,7 +1389,7 @@ void Save_Switch_Check(void)
 			{
 				//switch to Clock Divider pref
 				tuningOrLearn = TUNING_SELECT;
-				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
 				normal_7seg_number = globalTuning;
 			}
 		}
