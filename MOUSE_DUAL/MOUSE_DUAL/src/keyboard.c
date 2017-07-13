@@ -322,6 +322,8 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 		}
 		else // TouchMode
 		{
+			tNoteStack_add(&keyboard->stack, note);
+			
 			BOOL found = FALSE;
 			for (int i = 0; i < keyboard->numVoices; i++)
 			{
