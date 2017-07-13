@@ -241,8 +241,10 @@ void tKeyboard_nextNote(tKeyboard* const keyboard)
 void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 {
 	// Arp mode stuff
+	keyboard->currentVoice = 0;
 	keyboard->maxLength = 48;
 	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
 	keyboard->playMode = TouchMode;
 	keyboard->currentNote = -1;
 	
@@ -251,11 +253,12 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	keyboard->numVoicesActive = numVoices;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount = 0;
+	
 	
 	for (int i = 0; i < 4; i ++)
 	{
 		keyboard->voices[i] = -1;
+		keyboard->trigCount[i] = 0;
 	}
 	
 	for (int i = 0; i < 48; i++)
@@ -264,8 +267,6 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	}
 	
 	tNoteStack_init(&keyboard->stack, 48);
-	
-	tKeyboard_setArpModeType(keyboard, ArpModeUp);
 }
 
 void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
@@ -321,6 +322,8 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 		}
 		else // TouchMode
 		{
+			tNoteStack_add(&keyboard->stack, note);
+			
 			BOOL found = FALSE;
 			for (int i = 0; i < keyboard->numVoices; i++)
 			{
@@ -339,12 +342,39 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 			
 			if (!found) //steal
 			{
-				int whichVoice = keyboard->lastVoiceToChange;
-				int oldNote = keyboard->voices[whichVoice];
-				keyboard->hexes[oldNote].active = FALSE;
+				//if (keyboard->numVoices == 1)
 				
-				keyboard->voices[whichVoice] = note;
-				keyboard->hexes[note].active = TRUE;
+				{
+					int whichVoice = keyboard->lastVoiceToChange;
+					
+					int oldNote = keyboard->voices[whichVoice];
+					keyboard->hexes[oldNote].active = FALSE;
+					
+					keyboard->voices[whichVoice] = note;
+					keyboard->hexes[note].active = TRUE;
+					
+					keyboard->lastVoiceToChange = whichVoice;
+				}
+				
+				/*
+				else 
+				{
+					for (int i = 0; i < keyboard->numVoices; i++)
+					{
+						int thisVoiceNote = keyboard->voices[i];
+						
+						if (tNoteStack_contains(&keyboard->stack, thisVoiceNote) >= 0) continue;
+						else
+						{
+							keyboard->hexes[thisVoiceNote].active = FALSE;
+							keyboard->lastVoiceToChange = i;
+							keyboard->voices[i] = note;
+							keyboard->hexes[note].active = TRUE;
+						}
+					}
+				}
+				*/
+				
 			}
 		}
 	}

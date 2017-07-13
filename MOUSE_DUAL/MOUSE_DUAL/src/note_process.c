@@ -51,7 +51,6 @@ void resetMantaUI(void)
 
 void initMantaKeys(int numVoices)
 {
-	
 	if (numVoices < 2)
 	{
 		for (int i = 0; i < NUM_INST; i++)
@@ -60,14 +59,22 @@ void initMantaKeys(int numVoices)
 			
 			tKeyboard* keyboard = &manta[i].keyboard;
 			
-			tKeyboard_init(keyboard,numVoices);
+			keyboard->numVoices = 1;
 		}
 	}
 	else // Takeover mode
 	{
+		if (!takeover && (manta[currentInstrument].keyboard.playMode == ArpMode))
+		{
+			fullKeyboard.playMode = ArpMode;
+			fullKeyboard.arpModeType = manta[currentInstrument].keyboard.arpModeType;
+		}
+		
 		takeover = TRUE;
+		
 		takeoverType = KeyboardInstrument;
-		tKeyboard_init(&fullKeyboard, numVoices);
+		
+		fullKeyboard.numVoices = numVoices;
 	}
 	
 	for(int i=0; i<12; i++)
@@ -266,6 +273,7 @@ void dacSendKeyboard(MantaInstrument which)
 	
 	if (takeover || (which == InstrumentNil))	
 	{
+		which = 0;
 		keyboard = &fullKeyboard;
 	}
 	else			
@@ -278,15 +286,15 @@ void dacSendKeyboard(MantaInstrument which)
 		int newNote = keyboard->currentNote;
 		if (newNote >= 0)
 		{
-			tIRampSetDest(&out[which][CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose));
+			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose));
 
-			tIRampSetDest(&out[which][CVKTRIGGER-2], 65535);
-			keyboard->trigCount = 3;
+			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
+			keyboard->trigCount[keyboard->currentVoice] = 3;
 		}
 		
 		if (keyboard->stack.size <= 0) 
 		{
-			tIRampSetDest(&out[which][CVKTRIGGER-2], 0);
+			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
 		}
 	}
 	else
@@ -303,7 +311,7 @@ void dacSendKeyboard(MantaInstrument which)
 				if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 				{
 					tIRampSetDest(&out[which][CVKTRIGGER], 65535);
-					keyboard->trigCount = 3;
+					keyboard->trigCount[0] = 3;
 				}
 				//this is to avoid retriggers on the same note when other notes are released in monophonic mode
 				prevSentPitch = keyboard->hexes[note].pitch + keyboard->transpose;
