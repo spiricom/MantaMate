@@ -217,6 +217,7 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 		return; // Device not enabled in this interface
 	}
 	uhi_midi_dev.dev = NULL;
+	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);

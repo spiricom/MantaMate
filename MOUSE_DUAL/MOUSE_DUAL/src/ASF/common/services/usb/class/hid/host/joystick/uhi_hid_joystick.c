@@ -606,7 +606,7 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	type_of_device_connected = JoystickConnected;
 	UHI_HID_JOY_CHANGE(dev, true);
 	joystick_mode = true; 
-	globalGlide = 10;
+	globalCVGlide = 10;
 }
 
 void uhi_hid_joy_uninstall(uhc_device_t* dev)
@@ -622,6 +622,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	free(hid_report_parser.reportDesc);
 	clearJoystick(myJoystick);
 	UHI_HID_JOY_CHANGE(dev, false);
+	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
 	joystick_mode = false;
 }
@@ -764,7 +765,7 @@ static void uhi_hid_joy_report_reception(
 				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) >> (myJoystick.joyAxes[i].logical_max_bits - 16));
 			}
 
-			sendDataToOutput(i, globalGlide, tempValue);
+			sendDataToOutput(i, globalCVGlide, tempValue);
 		}
 		for (int i = 0; i < myJoystick.numJoyButton; i++)
 		{

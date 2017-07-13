@@ -15,6 +15,12 @@ uint8_t	noDeviceTrigCount[12] ={0};
 
 void no_device_gate_in(void)
 {
+	if (!no_device_mode_active)
+	{
+		return;
+	}
+	
+	
 	uint32_t myRandom;
 	if (preset_num == 0)
 	{

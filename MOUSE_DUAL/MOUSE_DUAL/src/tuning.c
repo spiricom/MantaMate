@@ -130,8 +130,7 @@ const uint32_t factoryTunings[100][50] =
 								
 								
 uint32_t externalTuning[129];
-uint32_t localTuningTemp[129];
-uint16_t tuning8BitBuffer[768];
+uint16_t tuning8BitBuffer[520];
 
 uint16_t tuningDACTable[128];
 

@@ -246,6 +246,7 @@ void udi_midi_disable(void)
 {
 	udi_midi_nb_data_enabled = 0;
 	udi_midi_data_running = false;
+	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
 	LED_Off(USB_CONNECTED_LED);
 }

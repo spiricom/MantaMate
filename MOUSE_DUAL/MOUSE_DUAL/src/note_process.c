@@ -335,7 +335,7 @@ void dacSendMIDIKeyboard(void)
 			{
 				int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
 				tempDACPitch += keyboard->pitchBend;
-				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalGlide);
+				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalPitchGlide);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
 				tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
 				tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
