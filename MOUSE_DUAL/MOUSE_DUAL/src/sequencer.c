@@ -185,12 +185,13 @@ void	 tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 	}
 }
 
+static uint8_t plusOrMinus;
 
 int tSequencer_getHexFromStep(tSequencer* const seq, uint8_t in)
 {
 	SequencerPatternType pat = seq->pattern;
 	int hex = -1;
-	int plusOrMinus;
+
 	
 	if (pat == LeftRightRowDown)
 		hex = pattern_row_reverse[(seq->maxLength - 1) - in];
@@ -216,17 +217,50 @@ int tSequencer_getHexFromStep(tSequencer* const seq, uint8_t in)
 		hex = pattern_diag_reverse[(seq->maxLength - 1) - in];
 	else if (pat == RightLeftDiagUp)
 		hex = pattern_diag[(seq->maxLength - 1) - in];
-	else if (pat == RandomWalk)
+	else if (pat == RandomWalk) //needs fixing - not sure I understand what you're up to well enough to fix...   as far as I understand it, the "in" input is the seq phasor, which can up to up to numbers beyond the current hex step number (i.e. up to 32). If that's true, how can we grab the current hex value so that we can return the properly incremented version? I'm confused...
 	{
-		plusOrMinus = rand() % 0xffff;
-		if (plusOrMinus > 0x8000)
+		plusOrMinus = (uint8_t)((rand() >> 15) & 1); //coin flip   right shifting by 15 to avoid cyclic pattern in low 12 bits or so
+		hex = seq->currentStep;
+		if (plusOrMinus > 0)
 		{
-			hex = (in + (plusOrMinus-0xffff)) % seq->maxLength;
+			//go up
+			while(1)
+			{
+				hex = (hex + 1) % seq->maxLength;
+				if (seq->step[hex].toggled == 1)
+				{
+					break;
+				}
+			}
 		}
 		else
 		{
-			hex = (in - plusOrMinus) % seq->maxLength;
+			//go down
+			while(1)
+			{
+				if (hex > 0)
+				{
+					hex = (hex - 1) % seq->maxLength;
+					if (seq->step[hex].toggled == 1)
+					{
+						break;
+					}
+				}
+				else
+				{
+					hex = seq->maxLength-1;
+					if (seq->step[hex].toggled == 1)
+					{
+						break;
+					}
+				}
+
+			}
 		}
+	}
+	else if (pat == FullRandom)
+	{
+		hex = (rand() >> 8) % seq->maxLength;
 	}
 	else if (pat == OrderTouch)
 		hex = tNoteStack_next(&seq->notestack);

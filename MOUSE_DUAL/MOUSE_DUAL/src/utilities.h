@@ -121,8 +121,14 @@ typedef enum GlobalPreferences
 	TUNING_AND_LEARN,
 	GLOBAL_GLIDE_PREFERENCES,
 	INTERNAL_CLOCK,
-	PREFERENCES_COUNT//so that we can ask for the number of values in the enum
+	PREFERENCES_COUNT
 }GlobalPreferences;
+
+typedef enum ArpVsTouch
+{
+	ARP_MODE,
+	TOUCH_MODE
+}ArpVsTouch;
 
 typedef enum GlobalDisplayState
 {
@@ -234,6 +240,7 @@ typedef enum SequencerPatternType {
 	RightLeftDiagUp,
 	LeftRightColUp,
 	RightLeftColDown,
+	FullRandom,
 	SequencerPatternTypeNil,
 	
 }SequencerPatternType;

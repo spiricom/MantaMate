@@ -131,13 +131,15 @@ const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,1
 
 BOOL no_device_mode_active = FALSE;
 
+
+
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 TuningOrLearnType tuningOrLearn = TUNING_SELECT;
 GlidePreferences glide_pref = GLOBAL_PITCH_GLIDE;
 ClockPreferences clock_pref = BPM;
 ConnectedDeviceType type_of_device_connected = NoDeviceConnected;
-
+ArpVsTouch arp_or_touch = ARP_MODE;
 
 uint8_t freeze_LED_update = 0;
 
@@ -154,9 +156,6 @@ uint32_t clock_speed_max = 99;
 uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 3;
 uint32_t tempoDividerMax = 9;
-
-
-
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
 
@@ -1567,40 +1566,38 @@ void DACsetup(void)
 	spi_mode = TWELVEBIT;
 	
 	gpio_clr_gpio_pin(DAC2_CS);
-	dacwait1();
-	dacwait1();
-	dacwait1();
+	dacSetupwait1();
 	spi_write(DAC_SPI,0x30);
 	spi_write(DAC_SPI,0x00);
 	spi_write(DAC_SPI,0x0F);
-	dacwait2();
-	dacwait2();
-	dacwait2();
-	dacwait2();
+	dacSetupwait2();
 	gpio_set_gpio_pin(DAC2_CS);
-	dacwait1();
-	dacwait1();
-	dacwait1();
-
+	dacSetupwait1();
 	gpio_clr_gpio_pin(DAC3_CS);
-	dacwait1();
-	dacwait1();
-	dacwait1();
+	dacSetupwait1();
 	spi_write(DAC_SPI,0x30);
 	spi_write(DAC_SPI,0x00);
 	spi_write(DAC_SPI,0x0F);
-	dacwait2();
-	dacwait2();
-	dacwait2();
-	dacwait2();
+	dacSetupwait2();
 	gpio_set_gpio_pin(DAC3_CS);
-	dacwait1();
-	dacwait1();
-	dacwait1();
+	dacSetupwait1();
+
+}
+
+
+void dacSetupwait1(void)
+{
+	cpu_delay_us(3,64000000);
+}
+void dacSetupwait2(void)
+{
+	cpu_delay_us(40,64000000);
 }
 
 void dacwait1(void)
 {
+	cpu_delay_us(9,64000000); //8 works but did 9 just to be safe. Interestingly, 5 works if optimizations are off, but breaks with optimization
+	/*
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
 	//cpu_delay_us(12,64000000);//5
@@ -1608,9 +1605,12 @@ void dacwait1(void)
 	{
 		wastecounter++;
 	}
+	*/
 }
 void dacwait2(void)
 {
+	cpu_delay_us(1,64000000);
+	/*
 	//cpu_delay_us(12,64000000);//5
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
@@ -1619,10 +1619,13 @@ void dacwait2(void)
 	{
 		wastecounter++;
 	}
+	*/
 }
 
 void memoryWait(void)
 {
+	cpu_delay_us(20,64000000); // what should this be? needs testing
+	/*
 	//cpu_delay_us(12,64000000);//5
 	static uint8_t i = 0;
 	static uint8_t wastecounter = 0;
@@ -1631,6 +1634,7 @@ void memoryWait(void)
 	{
 		wastecounter++;
 	}
+	*/
 }
 
 void enterBootloader(void)

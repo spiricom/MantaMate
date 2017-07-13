@@ -305,6 +305,8 @@ void main_resume_action(void);
 
 
 //function prototypes//
+void dacSetupwait1(void);
+void dacSetupwait2(void);
 void dacwait1(void);
 void dacwait2(void);
 void memoryWait(void);
