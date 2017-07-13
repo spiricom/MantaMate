@@ -349,6 +349,7 @@ int main(void){
 		if (new_manta_attached)
 		{
 			manta_LED_set_mode(HOST_CONTROL_FULL);
+			manta_clear_all_LEDs();
 			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
 		}

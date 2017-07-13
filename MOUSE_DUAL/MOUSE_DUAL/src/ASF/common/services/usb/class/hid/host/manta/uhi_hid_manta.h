@@ -108,6 +108,7 @@ extern void manta_set_LED_hex(uint8_t hex, MantaLEDColor color);
 extern void manta_set_LED_slider(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_button(uint8_t button, uint8_t color);
+extern void manta_clear_all_LEDs(void);
 extern void manta_send_LED(void);
 
 extern uint8_t firstEdition;

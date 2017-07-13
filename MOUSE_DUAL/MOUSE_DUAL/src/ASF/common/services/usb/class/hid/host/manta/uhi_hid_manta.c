@@ -540,6 +540,21 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 	//call manta_send_LED() after you have all your lights properly set.
 }
 
+void manta_clear_all_LEDs(void)
+{
+	//clear amber LEDs
+	for (int i = 0; i < 9; i++)
+	{
+		uhi_manta_report[0][i] = 0;
+	}
+	//skip the 10th byte ([9]) because that holds the mode information
+	//then clear the red LEDs
+	for (int i = 0; i < 6; i++)
+	{
+		uhi_manta_report[0][i+10] = 0;
+	}
+}
+
 int which_bit = 0;
 int which_byte = 0;
 
