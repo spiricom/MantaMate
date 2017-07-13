@@ -511,7 +511,7 @@ static void tc2_irq(void)
 						}
 					}
 				}
-				else if (instrument->type == KeyboardInstrument) // DirectInstrument
+				else if (instrument->type == KeyboardInstrument)
 				{
 					if (instrument->keyboard.numVoices == 1)
 					{
@@ -520,6 +520,16 @@ static void tc2_irq(void)
 							if (--(instrument->keyboard.trigCount) == 0)
 							{
 								tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+							}
+						}
+					}
+					else if (instrument->keyboard.playMode == ArpMode)
+					{
+						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(instrument->keyboard.trigCount) == 0)
+							{
+								tIRampSetDest(&out[inst][CVKTRIGGER-2], 0);
 							}
 						}
 					}
@@ -615,26 +625,43 @@ static void tc3_irq(void)
 	
 				if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 				{
-					for (int i = 0; i < instrument->keyboard.numVoices; i++)
+					if (instrument->keyboard.playMode == ArpMode)
 					{
-						tIRampSetTime (&out[inst][i*3 + CV1], 10);
-						tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4); 
+						tIRampSetTime    (&out[inst][CV1], 10);
+						tIRampSetDest    (&out[inst][CV1],  butt_states[instrument->keyboard.currentNote] << 4);
 					}
+					else
+					{
+						for (int i = 0; i < instrument->keyboard.numVoices; i++)
+						{
+							tIRampSetTime    (&out[inst][i*3 + CV1], 10);
+							tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4);
+						}
+					}
+					
 				}
 		
 			}
 		}
 		else if (takeoverType == KeyboardInstrument) // Takeover mode
 		{
-			for (int i = 0; i < fullKeyboard.numVoices; i++)
+			if (fullKeyboard.playMode == ArpMode)
 			{
-				int inst = (i / 2);
-				tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
-				tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+				tIRampSetTime    (&out[0][CV1], 10);
+				tIRampSetDest    (&out[0][CV1],  butt_states[fullKeyboard.currentNote] << 4);
 			}
+			else
+			{
+				for (int i = 0; i < fullKeyboard.numVoices; i++)
+				{
+					int inst = (i / 2);
+					tIRampSetTime (&out[inst][((i*3) % 6) + CV1], 10);
+					tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+				}
+			}
+			
 		}
 	}
-	
 	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 	{
 		for (int n = 0; n < 12; n++)
@@ -1412,14 +1439,27 @@ void clockHappened(void)
 	{
 		if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
 		if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);
+		
+		if (!takeover)
+		{
+			if (manta[InstrumentOne].type == KeyboardInstrument) keyboardStep(InstrumentOne);
+			if (manta[InstrumentTwo].type == KeyboardInstrument) keyboardStep(InstrumentTwo);
+		}
+		else if (takeoverType == KeyboardInstrument)
+		{
+			keyboardStep(InstrumentNil);
+		}
+		
 	}
-	
-	if (type_of_device_connected == NoDeviceConnected)
+	else if (type_of_device_connected == MIDIKeyboardConnected)
+	{
+		keyboardStep(InstrumentNil);
+	}
+	else if (type_of_device_connected == NoDeviceConnected)
 	{
 		no_device_gate_in();
 	}
-	
-	if (type_of_device_connected == MIDIComputerConnected)
+	else if (type_of_device_connected == MIDIComputerConnected)
 	{
 		midi_ext_gate_in();
 	}

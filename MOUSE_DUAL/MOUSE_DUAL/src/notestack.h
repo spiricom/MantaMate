@@ -5,6 +5,7 @@
  *  Author: Jeff Snyder
  */ 
 #include "stdint.h"
+#include "utilities.h"
 
 #ifndef NOTESTACK_H_
 #define NOTESTACK_H_
@@ -19,6 +20,7 @@ typedef struct _tNoteStack
 	uint8_t pos;
 	uint8_t size;
 	uint8_t capacity;
+	BOOL ordered;
 	
 } tNoteStack;
 

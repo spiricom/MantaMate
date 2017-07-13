@@ -46,9 +46,14 @@ typedef struct _tKeyboard
 	
 	signed int transpose;
 	
-	SequencerPatternType pattern;
-	
 	int trigCount;
+	
+	MantaPlayMode playMode;
+	ArpModeType arpModeType;
+	
+	int currentNote;
+	int phasor, maxLength;
+	
 	
 } tKeyboard;
 
@@ -58,6 +63,12 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices);
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
 
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note);
+
+void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type);
+
+void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal);
+
+void tKeyboard_nextNote(tKeyboard* const keyboard);
 
 void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which);
 void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48]);

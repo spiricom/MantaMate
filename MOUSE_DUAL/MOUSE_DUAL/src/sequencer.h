@@ -46,6 +46,7 @@ typedef struct _tStep
 	uint16_t octave;
 	uint16_t kbdhex;
 	uint16_t pglide;
+	;
 	
 	// Trigger only
 	uint8_t on[4];
@@ -81,6 +82,8 @@ typedef struct _tSequencer
 	GlobalOptionType pitchOrTrigger;
 	
 	signed int transpose;
+	
+	MantaPlayMode playMode;
 	
 	int lastTouch;
 	

@@ -164,8 +164,42 @@ signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHe
 	return keyboard->hexes[whichHex].pitch;
 }
 
+void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type)
+{
+	keyboard->arpModeType = type;
+}
+
+void tKeyboard_nextNote(tKeyboard* const keyboard)
+{
+	
+	ArpModeType type = keyboard->arpModeType;
+	
+	tNoteStack* ns = &keyboard->stack;
+	
+	while (keyboard->stack.size > 0)
+	{
+		if (++keyboard->phasor >= keyboard->maxLength) keyboard->phasor = 0;
+		
+		int hex = tNoteStack_get(ns, keyboard->phasor);
+		
+		if (hex >= 0)
+		{
+			keyboard->currentNote = hex;
+			return hex;
+		}
+	}
+	return -1;
+}
+
 void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 {
+	// Arp mode stuff
+	keyboard->maxLength = 48;
+	keyboard->phasor = 0;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+	
+	// Normal stuff
 	keyboard->numVoices = numVoices;
 	keyboard->numVoicesActive = numVoices;
 	keyboard->lastVoiceToChange = 0;
@@ -183,15 +217,63 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	}
 	
 	tNoteStack_init(&keyboard->stack, 48);
+	
+	tKeyboard_setArpModeType(keyboard, ArpModeUp);
 }
+
+void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
+{
+	uint8_t j;
+	int myPitch, thisPitch, nextPitch;
+	
+	tNoteStack* ns = &thisKeyboard->stack;
+	
+	int whereToInsert = 0;
+
+	for (j = 0; j < ns->size; j++)
+	{
+		myPitch = thisKeyboard->hexes[noteVal].pitch;
+		thisPitch = thisKeyboard->hexes[ns->notestack[j]].pitch;
+		nextPitch = thisKeyboard->hexes[ns->notestack[j+1]].pitch;
+			
+		if (myPitch > thisPitch)
+		{
+			if ((myPitch < nextPitch) || (nextPitch == -1))
+			{
+				whereToInsert = j+1;
+				break;
+			}
+		}
+	}
+	
+	//first move notes that are already in the stack one position to the right
+	for (j = ns->size; j > whereToInsert; j--)
+	{
+		ns->notestack[j] = ns->notestack[(j - 1)];
+	}
+
+	//then, insert the new note into the front of the stack
+	ns->notestack[whereToInsert] =  noteVal;
+
+	ns->size++;
+}
+
 //ADDING A NOTE
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 {
+	ArpModeType type = keyboard->arpModeType;
 	// if not in keymap or already on stack, dont do anything. else, add that note.
 	if ((keyboard->hexes[note].pitch < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
 	else
 	{
-		tNoteStack_add(&keyboard->stack, note);
+		if (keyboard->playMode != ArpMode)
+		{
+			tNoteStack_add(&keyboard->stack, note);
+		}
+		else if (type >= ArpModeUp || type <= ArpModeUpDown)
+		{
+			tKeyboard_orderedAddToStack(keyboard, note);
+		}
 
 		BOOL found = FALSE;
 		for (int i = 0; i < keyboard->numVoices; i++)

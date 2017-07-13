@@ -31,7 +31,18 @@ typedef enum MantaLEDColor
 	
 }	MantaLEDColor;
 
-
+typedef enum ArpModeType
+{
+	ArpModeUp,
+	ArpModeDown,
+	ArpModeUpDown,
+	ArpModeRandom,
+	ArpModeRandomWalk,
+	ArpModeOrderTouchForward,
+	ArpModeOrderTouchBackward,
+	ArpModeNil
+	
+}ArpModeType;
 
 typedef enum MantaMap
 {
@@ -264,7 +275,6 @@ MantaSliderMode currentMantaSliderMode;
 
 MantaEditPlayMode edit_vs_play;
 MantaButton currentFunctionButton;
-MantaPlayMode playMode;
 
 BOOL shiftOption1;
 BOOL shiftOption1Lock;

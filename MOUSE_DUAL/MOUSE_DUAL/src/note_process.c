@@ -134,15 +134,19 @@ void touchKeyboardHex(int hex, uint8_t weight)
 		if (manta[currentInstrument].type == KeyboardInstrument)
 		{
 			tKeyboard_noteOn(&manta[currentInstrument].keyboard, hex, weight);
-			dacSendKeyboard(currentInstrument);
 			manta_set_LED_hex(hex, (manta[currentInstrument].keyboard.hexes[hex].pitch >= 0) ? ((manta[currentInstrument].keyboard.hexes[hex].color == Off) ? Amber : Off) : Off);
+			
+			if (manta[currentInstrument].keyboard.playMode == TouchMode)	dacSendKeyboard(currentInstrument);
 		}
+		
+		
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOn(&fullKeyboard, hex, weight);
-		dacSendKeyboard(InstrumentNil);
 		manta_set_LED_hex(hex, (fullKeyboard.hexes[hex].pitch >= 0) ? ((fullKeyboard.hexes[hex].color == Off) ? Amber : Off) : Off);
+		
+		if (fullKeyboard.playMode == TouchMode) dacSendKeyboard(InstrumentNil);
 	}
 }
 
@@ -153,15 +157,17 @@ void releaseKeyboardHex(int hex)
 		if (manta[currentInstrument].type == KeyboardInstrument)
 		{
 			tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
-			dacSendKeyboard(currentInstrument);
 			manta_set_LED_hex(hex, manta[currentInstrument].keyboard.hexes[hex].color);
+			
+			if (manta[currentInstrument].keyboard.playMode == TouchMode) dacSendKeyboard(currentInstrument);
 		}
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
 		tKeyboard_noteOff(&fullKeyboard, hex);
-		dacSendKeyboard(InstrumentNil);
 		manta_set_LED_hex(hex, fullKeyboard.hexes[hex].color);
+
+		if (fullKeyboard.playMode == TouchMode) dacSendKeyboard(InstrumentNil);
 	}
 }
 
@@ -266,30 +272,51 @@ void dacSendKeyboard(MantaInstrument which)
 	{
 		keyboard = &manta[which].keyboard;
 	}
-	for (int i = 0; i < keyboard->numVoices; i++)
+	
+	if (keyboard->playMode == ArpMode)
 	{
-		int note = keyboard->voices[i];
-		if (note >= 0)
+		int newNote = keyboard->currentNote;
+		if (newNote >= 0)
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose));
+			tIRampSetDest(&out[which][CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose));
 
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
-			//if we are in mono mode, then we have room for a trigger output, too
-			if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
-			{
-				tIRampSetDest(&out[which][CVKTRIGGER], 65535);
-				keyboard->trigCount = 3;
-			}
-			//this is to avoid retriggers on the same note when other notes are released in monophonic mode
-			prevSentPitch = keyboard->hexes[note].pitch + keyboard->transpose;
+			tIRampSetDest(&out[which][CVKTRIGGER-2], 65535);
+			keyboard->trigCount = 3;
 		}
-		else
+		
+		if (keyboard->stack.size <= 0) 
 		{
-			tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
-			//let the monophonic trigger handling know there has been a note-off event
-			prevSentPitch = -1;
+			tIRampSetDest(&out[which][CVKTRIGGER-2], 0);
 		}
 	}
+	else
+	{
+		for (int i = 0; i < keyboard->numVoices; i++)
+		{
+			int note = keyboard->voices[i];
+			if (note >= 0)
+			{
+				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose));
+
+				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
+				//if we are in mono mode, then we have room for a trigger output, too
+				if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+				{
+					tIRampSetDest(&out[which][CVKTRIGGER], 65535);
+					keyboard->trigCount = 3;
+				}
+				//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+				prevSentPitch = keyboard->hexes[note].pitch + keyboard->transpose;
+			}
+			else
+			{
+				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
+				//let the monophonic trigger handling know there has been a note-off event
+				prevSentPitch = -1;
+			}
+		}
+	}
+	
 }
 
 
