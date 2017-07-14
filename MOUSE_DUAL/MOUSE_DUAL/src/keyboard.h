@@ -31,26 +31,20 @@ signed int isomap[48];
 	
 typedef struct _tKeyboard
 {
+	// Encode this in preset
 	int numVoices;
-	int numVoicesActive;
-	
-	int voices[MAX_VOICES];
-	
-	int lastVoiceToChange;
-	
-	tNoteStack stack;
-	
-	MantaMap map;
-
 	tHex hexes[48];
-	
 	signed int transpose;
-	
-	int trigCount[4];
-	
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;
+	// - - - - - - - - - - -
 	
+	int numVoicesActive;
+	int voices[MAX_VOICES];
+	int lastVoiceToChange;
+	tNoteStack stack;
+	MantaMap map;
+	int trigCount[4];
 	int currentNote;
 	int currentVoice;
 	int maxLength;

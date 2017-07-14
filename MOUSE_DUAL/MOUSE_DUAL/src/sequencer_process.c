@@ -321,9 +321,6 @@ int keyNoteOn;
 int glideNoteOn;
 int trigSelectOn;
 
-
-
-
 tNoteStack editStack;
 tNoteStack noteOnStack; // all notes on at any point during runtime
 

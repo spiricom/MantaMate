@@ -79,20 +79,6 @@ typedef enum MantaInstrumentType
 	MantaInstrumentTypeNil
 }MantaInstrumentType;
 
-GlobalDisplayState displayState;
-extern uint16_t globalCVGlide;
-extern uint16_t globalPitchGlide;
-
-tKeyboard* hexmapEditKeyboard;
-MantaInstrument hexmapEditInstrument;
-int currentHexmapEditPitch;
-int currentHexmapEditHex;
-int lastHexmapEditHex;
-
-
-BOOL hexmapEditMode;
-
-
 typedef struct _tMantaInstrument
 {
 	tKeyboard	keyboard;
@@ -101,9 +87,19 @@ typedef struct _tMantaInstrument
 	MantaInstrumentType type;
 } tMantaInstrument;
 
+GlobalDisplayState displayState;
+tKeyboard* hexmapEditKeyboard;
+MantaInstrument hexmapEditInstrument;
+int currentHexmapEditPitch;
+int currentHexmapEditHex;
+int lastHexmapEditHex;
+BOOL hexmapEditMode;
 
-// - - - - SAVE ALL THIS WITH PRESET - - - -
+// Encode this in preset
 MantaInstrument currentInstrument;
+
+extern uint16_t globalCVGlide;
+extern uint16_t globalPitchGlide;
 
 MantaInstrumentType takeoverType;
 BOOL takeover;

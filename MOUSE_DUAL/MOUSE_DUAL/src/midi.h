@@ -30,7 +30,14 @@ void initMIDIKeys(int numVoices, BOOL pitchout);
 
 typedef struct _tMIDIKeyboard
 {
+	// Encode this in preset
 	int numVoices;
+	int learnedCCsAndNotes[128][2];
+	MantaPlayMode playMode;
+	ArpModeType arpModeType;
+	signed int transpose;
+	// - - - - - - - - - - -
+	
 	int numVoicesActive;
 	
 	int voices[MAX_VOICES][2];
@@ -43,17 +50,11 @@ typedef struct _tMIDIKeyboard
 	
 	uint8_t CCsRaw[128];
 	
-	int learnedCCsAndNotes[128][2];
-	
 	BOOL learned;
 	
 	int lastVoiceToChange;
 	
 	tNoteStack stack;
-	
-	signed int transpose;
-	
-	SequencerPatternType pattern;
 	
 	int trigCount;
 	

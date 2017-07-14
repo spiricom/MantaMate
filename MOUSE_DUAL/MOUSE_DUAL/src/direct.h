@@ -38,7 +38,9 @@ typedef struct _tDirectOutput
 
 typedef struct _tDirect
 {
+	// Encode this in preset
 	tDirectOutput outs[12];
+	// - - - - - - - - - - 
 	
 	int numOuts;
 	
