@@ -327,7 +327,6 @@ static void uhi_hid_manta_report_reception(
 	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 64)) {
 		return; // HID mouse transfer aborted
 	}
-	manta_data_lock = 1;
 	// Decode hexagon buttons
 	for(i=0; i<48; i++)
 	{
@@ -341,7 +340,6 @@ static void uhi_hid_manta_report_reception(
 	{
 		func_button_states[i] = uhi_hid_manta_dev.report[i+49] + 0x80;
 	}
-	manta_data_lock = 0;
 	
 	if(((sliders[0] != pastsliders[0]) && (sliders[0] != 255)) || ((sliders[1] != pastsliders[1]) && (sliders[1] != 255)))
 	{
