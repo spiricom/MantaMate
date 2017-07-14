@@ -66,12 +66,14 @@ typedef enum SequencerDataType
 
 typedef struct _tSequencer
 {
+	// Encode this in preset
 	tStep step[MAX_STEPS];
 	int8_t octave;
 	SequencerPatternType pattern;
 	GlobalOptionType pitchOrTrigger;
 	signed int transpose;
 	MantaPlayMode playMode;
+	// - - - - - - - - - - -
 	
 	int phasor;
 	int currentStep,prevStep;
@@ -82,11 +84,6 @@ typedef struct _tSequencer
 	uint8_t trigCount[5]; //doesn't need to be saved in a preset or composition, just for temporary handling of trigger off times
 	
 	int maxLength;
-	
-	
-	
-	
-	
 	
 	int lastTouch;
 	
