@@ -107,9 +107,8 @@ KbdHex,
 PitchGlide,
 CVGlide
 */
-// we're using 16_bit ints even though we are only using the first 8 bits of them because using 8_bit ints didn't work for SPI sending functions for some reason... 
-// would be nice to figure out why and reduce the size of these arrays, since they are wasting space on the chip -JS
-void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
+
+void        tSequencer_encode(tSequencer* const seq, uint8_t* sBuffer)
 {
 	sBuffer[SeqOctave] = seq->octave;
 	sBuffer[SeqMaxLength] = seq->maxLength;
@@ -148,7 +147,7 @@ void        tSequencer_encode(tSequencer* const seq, uint16_t* sBuffer)
 	}
 }
 
-void	 tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
+void	 tSequencer_decode(tSequencer* const seq, uint8_t* sBuffer)
 {
 	tNoteStack_clear(&seq->notestack);
 	
@@ -181,7 +180,6 @@ void	 tSequencer_decode(tSequencer* const seq, uint16_t* sBuffer)
 		seq->step[hex].kbdhex = sBuffer[offset+14];
 		seq->step[hex].pglide = (sBuffer[offset+15] << 8) + sBuffer[offset+16];//
 		seq->step[hex].cvglide = (sBuffer[offset+17] << 8) + sBuffer[offset+18];//
-		
 	}
 }
 

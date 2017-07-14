@@ -328,9 +328,9 @@ tNoteStack editStack;
 tNoteStack noteOnStack; // all notes on at any point during runtime
 
 
-uint16_t encodeBuffer[NUM_INST][sizeOfSerializedSequence]; 
-uint16_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
-uint16_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8568 is 612 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
+uint8_t encodeBuffer[NUM_INST][sizeOfSerializedSequence]; 
+uint8_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
+uint8_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8568 is 612 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {
@@ -3317,7 +3317,7 @@ void seqwait(void)
 
 
 //maybe would be more efficient with memcpy? Not sure if that would be better than an iterated array in this case -JS
-void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer)
+void memoryInternalReadSequencer(int whichSeq, int whichhex, uint8_t* buffer)
 {
 	for (int i = 0; i < sizeOfSerializedSequence; i++)
 	{
@@ -3325,7 +3325,7 @@ void memoryInternalReadSequencer(int whichSeq, int whichhex, uint16_t* buffer)
 	}
 }
 
-void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint16_t* buffer)
+void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint8_t* buffer)
 {
 	for (int i = 0; i < sizeOfSerializedSequence; i++)
 	{

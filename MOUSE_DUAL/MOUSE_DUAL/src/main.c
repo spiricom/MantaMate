@@ -154,7 +154,7 @@ uint8_t new_manta_attached = false;
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
-uint32_t tempoDivider = 3;
+uint32_t tempoDivider = 4 ;
 uint32_t tempoDividerMax = 9;
 
 uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)

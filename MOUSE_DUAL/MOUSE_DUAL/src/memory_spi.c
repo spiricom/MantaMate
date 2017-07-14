@@ -6,15 +6,13 @@
  */ 
 
 //S25FL164K0XMFA011 is the chip (or a newer chip in the same family)
-//a page is 256 bytes. 
+// a page is 256 bytes. 
 // a sector is 16 pages (4096 bytes)
 // a block is 16 sectors (65535 bytes)
 
 
 
 #include "memory_spi.h"
-
-
 
 //external memory variables
 uint32_t sectors_left_to_erase = 0;
@@ -23,6 +21,10 @@ uint16_t currentPage = 0;
 uint16_t startingSector = 0;
 uint32_t pages_left_to_store = 0;
 uint32_t pages_left_to_load = 0;
+
+uint16_t numTuningBytesRemaining_toSend = 0;
+uint16_t numTuningBytesRemaining_toGet = 0;
+
 unsigned char savePending = 0;
 unsigned char loadPending = 0;
 unsigned char tuningSavePending = 0;
@@ -30,7 +32,7 @@ unsigned char tuningLoadPending = 0;
 unsigned char startupStateSavePending = 0;
 unsigned char startupStateLoadPending = 0;
 
-uint16_t tempPreset = 0;
+uint8_t tempPreset[8] = {0, 125, 126, 127, 128, 129, 130, 131};
 
 uint16_t busy;
 
@@ -69,8 +71,9 @@ static void memorySPIWriteEnable(void)
 }
 
 //no longer blocking!  Must check status before doing anything else with memory chip (it will not be ready otherwise)
-void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
+void memorySPIWrite(int sector, int page, uint8_t* buffer, int numBytes)
 {
+	
 	// Write Enable
 	memorySPIWriteEnable();
 	
@@ -81,14 +84,19 @@ void memorySPIWrite(int sector, int page, uint16_t* buffer, int numBytes)
 	
 	for (int i = 0; i < numBytes; i++)
 	{
-		spi_write(MEMORY_SPI, (buffer[i]&0xffff));
+		//spi_write(MEMORY_SPI, (buffer[i]&0xffff));
+ 		spi_write(MEMORY_SPI, buffer[i]);
 	}
 	
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+	
 }
 
-void memorySPIRead(int sector, int page, uint16_t* buffer, int numBytes)
+void memorySPIRead(int sector, int page, uint8_t* buffer, int numBytes)
 {
+	uint8_t *_ram = buffer;
+	uint16_t data;
+	
 	// READ Read Data
 	gpio_clr_gpio_pin(MEMORY_CS);memoryWait();
 	spi_write(MEMORY_SPI, 0x03); // Read Data code
@@ -98,9 +106,11 @@ void memorySPIRead(int sector, int page, uint16_t* buffer, int numBytes)
 	for (int i = 0; i < numBytes; i++)
 	{
 		spi_write(MEMORY_SPI, 0x00);
-		spi_read(MEMORY_SPI, &buffer[i]);
+		spi_read(MEMORY_SPI, &data);
+		*_ram++ = data;
 	}
 	memoryWait();gpio_set_gpio_pin(MEMORY_CS);memoryWait();
+	
 }
 
 // Sector can be 0-2047
@@ -140,8 +150,6 @@ void memorySPIEraseBlock(uint16_t block)
 // every preset will live in a block (block 0-89)
 // user tunings start at block 100, and there is one tuning per sector (so sectors 1600-1690)
 
-//
-
 
 //in the presets:
 // every "sequence" takes up 612 bytes.
@@ -153,13 +161,14 @@ void memorySPIEraseBlock(uint16_t block)
 // Page 3 is the MIDI device preset settings (when connected to a computer)
 // Pages 4, 5, 6 is the current sequencer 1 (3 pages per sequence)
 // Pages 7, 8, 9 is the current sequencer 2 (3 pages per sequence)
-// Pages 10-43 is the composition collection for sequencer 1 (34 pages per sequence if there are 14 storable sequences)
-// Pages 44-77 is the composition collection for sequencer 2 (34 pages per sequence if there are 14 storable sequences)
+// Pages 10-43 is the composition collection for sequencer 1 (34 pages per sequence if there are 14 savable sequences)
+// Pages 44-77 is the composition collection for sequencer 2 (34 pages per sequence if there are 14 savable sequences)
 
 // sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
 
 //global settings format:
 // byte 1 = seq1Pvt, seq2Pvt, sequencer_mode, clock_speed, compositions,  
+
 #define NUM_COMPOSITIONS 2
 #define NUM_PAGES_PER_SEQUENCE 3
 #define NUM_PAGES_PER_COMPOSITION 34
@@ -171,6 +180,8 @@ void memorySPIEraseBlock(uint16_t block)
 
 uint8_t whichSequence = 0;
 uint8_t sequencePageNumber = 0;
+
+// whole preset saving and loading
 
 void initiateStoringPresetToExternalMemory(void)
 {
@@ -251,46 +262,14 @@ void continueStoringPresetToExternalMemory(void)
 	}
 }
 
-void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
-{
-	currentSector = tuning_num_to_save + 1600;  // user tuning 1-99 are sectors 1601-1699
-	currentPage = 0; //start on the first page
-	
-	//start by erasing the memory in the location we want to store
-	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
-	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
-	memorySPIEraseSector(currentSector); //we only need to erase one sector per tuning
-	tuningSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
-}
-
-void continueStoringTuningToExternalMemory(void)
-{
-	//if there are bytes to store, write those bytes!
-	if (pages_left_to_store > 0)
-	{
-		memorySPIWrite(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], 256);
-		
-		//update variables for next round
-		currentPage++;
-		pages_left_to_store--;
-	}
-	else //otherwise save is done!
-	{
-		//mark the save procedure as finished
-		tuningSavePending = 0;
-		sendSysexSaveConfim(); //let the computer know that the save completed correctly
-		LED_Off(PRESET_SAVE_LED);
-	}
-}
-
 void initiateLoadingPresetFromExternalMemory(void)
 {
 	startingSector = preset_num * 16;  // * 16 to get the sector number we will store it in
 	currentSector = preset_num * 16;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
 	currentPage = 0; //start on the first page
-		
+	
 	pages_left_to_load = NUM_PAGES_PER_PRESET; //set the variable for the total number of pages to count down from while we store them
-    continueLoadingPresetFromExternalMemory();
+	continueLoadingPresetFromExternalMemory();
 	loadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
@@ -349,11 +328,62 @@ void continueLoadingPresetFromExternalMemory(void)
 }
 
 
+// tuning saving and loading
+
+void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
+{
+	currentSector = tuning_num_to_save + 1600;  // user tuning 1-99 are sectors 1601-1699
+	currentPage = 0; //start on the first page
+	
+	//start by erasing the memory in the location we want to store
+	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
+	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	numTuningBytesRemaining_toSend =  TUNING_8BIT_BUFFER_SIZE;
+	memorySPIEraseSector(currentSector); //we only need to erase one sector per tuning
+	tuningSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+}
+
+void continueStoringTuningToExternalMemory(void)
+{
+	//if there are bytes to store, write those bytes!
+	if (pages_left_to_store > 0)
+	{
+		uint16_t numTuningBytesToSend;
+		
+		if (numTuningBytesRemaining_toSend > 256)
+		{
+			numTuningBytesToSend = 256;
+		}
+		else
+		{
+			numTuningBytesToSend = numTuningBytesRemaining_toSend;
+		}
+		
+		
+		memorySPIWrite(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], numTuningBytesToSend);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_store--;
+		numTuningBytesRemaining_toSend -= numTuningBytesToSend;
+	}
+	else //otherwise save is done!
+	{
+		//mark the save procedure as finished
+		tuningSavePending = 0;
+		sendSysexSaveConfim(); //let the computer know that the save completed correctly
+		LED_Off(PRESET_SAVE_LED);
+	}
+}
+
+
+
+
 void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load)
 {
 	currentSector = tuning_to_load + 1600;  // set sector to the location of the tuning we want to load
 	currentPage = 0; //start on the first page
-		
+	numTuningBytesRemaining_toGet = TUNING_8BIT_BUFFER_SIZE;
 	pages_left_to_load = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
 	continueLoadingTuningFromExternalMemory();
 	tuningLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
@@ -364,11 +394,23 @@ void continueLoadingTuningFromExternalMemory(void)
 {
 	if (pages_left_to_load > 0)
 	{
-		memorySPIRead(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], 256);
+		
+		uint16_t numTuningBytesToGet = 0;
+		if (numTuningBytesRemaining_toGet > 256)
+		{
+			numTuningBytesToGet = 256;
+		}
+		else
+		{
+			numTuningBytesToGet = numTuningBytesRemaining_toGet;
+		}
+		
+		memorySPIRead(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], numTuningBytesToGet);
 		
 		//update variables for next round
 		currentPage++;
 		pages_left_to_load--;
+		numTuningBytesRemaining_toGet -= numTuningBytesToGet;
 	}
 	else //otherwise load is done!
 	{
@@ -402,36 +444,40 @@ void continueLoadingTuningFromExternalMemory(void)
 
 
 
+
+// startup state saving and loading
+
 void initiateStoringStartupStateToExternalMemory(void)
 {
 	//start by erasing the memory in the location we want to store
-	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
 	pages_left_to_store = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
 	memorySPIEraseSector(1700); //we only need to erase one sector per tuning
 	startupStateSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
-	tempPreset = preset_num;
+	tempPreset[0] = preset_num;
+	tempPreset[1] = 125;
+	tempPreset[2] = 200;
+	tempPreset[3] = 201;
 }
 
 void continueStoringStartupStateToExternalMemory(void)
 {
-	memorySPIWrite(1700, 0, &tempPreset, 1);
+	memorySPIWrite(1700, 0, &tempPreset, 8);
 	//mark the save procedure as finished
 	startupStateSavePending = 0;
-	LED_Off(PRESET_SAVE_LED);
 }	
 
 
 
 void loadStartupStateFromExternalMemory(void)
 {
-	memorySPIRead(1700, 0, &tempPreset, 1);
+	memorySPIRead(1700, 0, &tempPreset, 8);
 	startupStateLoadPending = 1;
 }
 
 void continueLoadingStartupStateFromExternalMemory(void)
 {
 	startupStateLoadPending = 0;
-	preset_num = tempPreset;
+	preset_num = tempPreset[0];
 	updatePreset();
 	Write7Seg(preset_num);
 	normal_7seg_number = preset_num;

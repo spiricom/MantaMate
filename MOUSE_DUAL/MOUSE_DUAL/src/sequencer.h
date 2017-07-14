@@ -115,8 +115,8 @@ void		tSequencer_randomizeToggled(tSequencer* const seq);
 void		tSequencer_randomizeTrigger(tSequencer* const seq);
 void		tSequencer_randomizeAll(tSequencer* const seq);
 
-void        tSequencer_encode(tSequencer* const, uint16_t* sBuffer);
-void        tSequencer_decode(tSequencer* const, uint16_t* sBuffer);
+void        tSequencer_encode(tSequencer* const, uint8_t* sBuffer);
+void        tSequencer_decode(tSequencer* const, uint8_t* sBuffer);
 
 
 
