@@ -605,7 +605,6 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	uhi_hid_joy_start_trans_report(dev->address);
 	type_of_device_connected = JoystickConnected;
 	UHI_HID_JOY_CHANGE(dev, true);
-	joystick_mode = true; 
 	globalCVGlide = 10;
 }
 
@@ -624,7 +623,6 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	UHI_HID_JOY_CHANGE(dev, false);
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
-	joystick_mode = false;
 }
 //@}
 

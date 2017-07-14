@@ -105,7 +105,6 @@ spi_options_t spiOptionsMemory =
 	.modfdis      = 1
 };
 
-
 unsigned short dacouthigh = 0;
 unsigned short dacoutlow = 0;
 unsigned short DAC1outhigh = 0;
@@ -128,10 +127,7 @@ unsigned char normal_7seg_number = 0;
 
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
 																													   // 33																												56																				  72								 78				
-
 BOOL no_device_mode_active = FALSE;
-
-
 
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
@@ -147,7 +143,6 @@ uint8_t currentNumberToMIDILearn = 0;
 uint32_t dummycounter = 0;
 uint8_t manta_mapper = 0;
 uint8_t tuning_count = 0;
-uint8_t manta_data_lock = 0; // probably not necessary, added this when I was worried about read and write happening simultaneously, but it wasn't the case.
 uint8_t spi_mode = 0;
 uint8_t new_manta_attached = false;
 
@@ -157,20 +152,22 @@ uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 4 ;
 uint32_t tempoDividerMax = 9;
 
-uint32_t USB_frame_counter = 0; // used by the internal sequencer clock to count USB frames (which are the source of the internal sequencer metronome)
-
-uint8_t joystick_mode = 0; 
+uint32_t upHeld = 0;
+uint32_t downHeld = 0;
+uint32_t holdTimeThresh = 8;
+static uint32_t clockFrameCounter = 0;
+static uint32_t buttonFrameCounter = 0;
+static uint32_t buttonHoldSpeed = 120;
+static uint32_t blink7SegCounter = 0;
+static uint32_t blinkSpeed7Seg = 500;
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
-// here's some interrupt stuff I added to try to get the external gate working
 #define EXT_INT_EXAMPLE_PIN_LINE1               AVR32_EIC_EXTINT_7_PIN
 #define EXT_INT_EXAMPLE_FUNCTION_LINE1          AVR32_EIC_EXTINT_7_FUNCTION
 #define EXT_INT_EXAMPLE_LINE1                   EXT_INT7 // this should be right JS
 #define EXT_INT_EXAMPLE_IRQ_LINE1               AVR32_EIC_IRQ_7 // not sure what this should be
 #define EXT_INT_EXAMPLE_NB_LINES				1
-
-#define  PATTERN_TEST_LENGTH        (sizeof(test_pattern)/sizeof(U8))
 
 //! Structure holding the configuration parameters of the EIC module.
 eic_options_t eic_options[EXT_INT_EXAMPLE_NB_LINES];
@@ -187,9 +184,8 @@ const U8 test_pattern[] =  {
 0x99};
 
 
-// Outputs 0 through 11 (counting left to right top down), expects 12 bit.
-// I abstracted this one step away from the DAC to put ramps in there -JS
-//now you add a final argument to tell it how many bits -- assuming 16 or 12.
+// Outputs 0 through 11 (counting left to right top down), expects 16 bit.
+
 void sendDataToOutput(int which, int ramp, uint16_t data)
 {
 	
@@ -256,8 +252,6 @@ void sendDataToOutput(int which, int ramp, uint16_t data)
 	}
 }
 
-int testVal = 0;
-int loopCounter = 0;
 
 /*! \brief Main function. Execution starts here.
  */
@@ -379,15 +373,6 @@ int main(void){
 		
 	}
 }
-
-uint32_t upHeld = 0;
-uint32_t downHeld = 0;
-uint32_t holdTimeThresh = 8;
-static uint32_t clockFrameCounter = 0;
-static uint32_t buttonFrameCounter = 0;
-static uint32_t buttonHoldSpeed = 120;
-static uint32_t blink7SegCounter = 0;
-static uint32_t blinkSpeed7Seg = 500;
 
 
 
