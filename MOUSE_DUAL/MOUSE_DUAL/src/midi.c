@@ -63,7 +63,11 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 					if (!(tuningOrLearn == MIDILEARN))
 					{
 						tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
-						dacSendMIDIKeyboard();
+						if (MIDIKeyboard.playMode != ArpMode)
+						{
+							dacSendMIDIKeyboard();
+						}
+
 					}
 					else
 					{
@@ -76,7 +80,10 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 					if (!(tuningOrLearn == MIDILEARN))
 					{
 						tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
-						dacSendMIDIKeyboard();
+						if (MIDIKeyboard.playMode != ArpMode)
+						{
+							dacSendMIDIKeyboard();
+						}
 					}
 				}
 				break;
@@ -84,7 +91,10 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 				if (!(tuningOrLearn == MIDILEARN))
 				{
 					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
-					dacSendMIDIKeyboard();
+					if (MIDIKeyboard.playMode != ArpMode)
+					{
+						dacSendMIDIKeyboard();
+					}
 				}
 			break;
 			
@@ -114,6 +124,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			break;
 		}
 	}
+	
 	else //otherwise, we are in the middle of a sysex message, let's keep pluggin them bytes into the message to parse once it's finished
 	{
 		if (ctrlByte == 0xf7)
@@ -238,12 +249,12 @@ void initMIDIArpeggiator(void)
 
 void initMIDIKeys(int numVoices, BOOL pitchout)
 {
-		tMIDIKeyboard_init(&MIDIKeyboard, numVoices, pitchout);
-		
-		for(int i=0; i<12; i++)
-		{
-			sendDataToOutput(i, 5, 0);
-		}
+	tMIDIKeyboard_init(&MIDIKeyboard, numVoices, pitchout);
+	
+	for(int i=0; i<12; i++)
+	{
+		sendDataToOutput(i, 5, 0);
+	}
 }
 
 void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
@@ -252,9 +263,20 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->numVoicesActive = numVoices;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = pitchOutput;
+	
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
 
 	if (keyboard->pitchOutput == 0)
 	{
@@ -276,7 +298,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	for (int i = 0; i < 128; i++)
 	{
 		keyboard->learnedCCsAndNotes[i][0] = i+1;
-		keyboard->learnedCCsAndNotes[i][1] = -1;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
 		MIDIKeyboard.CCsRaw[i] = 0;
 		MIDIKeyboard.CCs[i] = 0;
 		keyboard->notes[i][0] = 0;
@@ -289,9 +311,13 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	}
 		
 	tNoteStack_init(&keyboard->stack, 128);
+	
+	tNoteStack_init(&keyboard->orderStack, 128);
 
 }
 
+
+//instead of inmcluding in dacsend, should have a separate pitch bend ramp, that is added when the ramps are ticked and sent to DAC
 void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte)
 {
 	int32_t tempPitch = (highbyte << 7) +  lowbyte;
@@ -299,43 +325,47 @@ void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t h
 	keyboard->pitchBend = (tempPitch / wholeStepDACDivider);
 }
 
+
+
+
 void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 {
 	// if not in keymap or already on stack, dont do anything. else, add that note.
 	if (tNoteStack_contains(&keyboard->stack, note) >= 0) return;
 	else
 	{
+		tMIDIKeyboard_orderedAddToStack(keyboard, note);
 		tNoteStack_add(&keyboard->stack, note);
-
 		
-		BOOL found = FALSE;
-		for (int i = 0; i < keyboard->numVoices; i++)
+		if (keyboard->playMode != ArpMode)
 		{
-			if (keyboard->voices[i][0] < 0)	// if inactive voice, give this note to voice
+			BOOL found = FALSE;
+			for (int i = 0; i < keyboard->numVoices; i++)
 			{
-				found = TRUE;
+				if (keyboard->voices[i][0] < 0)	// if inactive voice, give this note to voice
+				{
+					found = TRUE;
 					
-				keyboard->voices[i][0] = note;
-				keyboard->voices[i][1] = vel;
-				keyboard->lastVoiceToChange = i;
-				keyboard->notes[note][0] = vel;
-				keyboard->notes[note][1] = 1;
-				break;
+					keyboard->voices[i][0] = note;
+					keyboard->voices[i][1] = vel;
+					keyboard->lastVoiceToChange = i;
+					keyboard->notes[note][0] = vel;
+					keyboard->notes[note][1] = 1;
+					break;
+				}
 			}
-		}
 			
-		if (!found) //steal
-		{
-			int whichVoice = keyboard->lastVoiceToChange;
-			int oldNote = keyboard->voices[whichVoice][0];	
-			keyboard->voices[whichVoice][0] = note;
-			keyboard->voices[whichVoice][1] = vel;
-			keyboard->notes[oldNote][1] = 0; //mark the stolen voice as inactive (in the second dimension of the notes array)
+			if (!found) //steal
+			{
+				int whichVoice = keyboard->lastVoiceToChange;
+				int oldNote = keyboard->voices[whichVoice][0];	
+				keyboard->voices[whichVoice][0] = note;
+				keyboard->voices[whichVoice][1] = vel;
+				keyboard->notes[oldNote][1] = 0; //mark the stolen voice as inactive (in the second dimension of the notes array)
 			
-			keyboard->notes[note][0] = vel;
-			keyboard->notes[note][1] = TRUE;
-
-			
+				keyboard->notes[note][0] = vel;
+				keyboard->notes[note][1] = TRUE;
+			}
 		}
 	}
 }
@@ -344,6 +374,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 {
 
 	tNoteStack_remove(&keyboard->stack, note);
+	tNoteStack_remove(&keyboard->orderStack, note);
 	keyboard->notes[note][0] = 0;
 	keyboard->notes[note][1] = 0;
 	
@@ -405,7 +436,7 @@ void learnMIDINote(uint8_t note, uint8_t vel)
 	if (!alreadyFoundNote) //if it's new
 	{
 		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][1] = note; //store the note number in the learned array
-		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][0] = -1; //mark the CC part of the array as not applicable
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][0] = 255; //mark the CC part of the array as not applicable
 		currentNumberToMIDILearn++;
 		if (currentNumberToMIDILearn <= 9)
 		{
@@ -435,7 +466,7 @@ void learnMIDICC(uint8_t ctrlnum, uint8_t val)
 	if (!alreadyFoundCC) //if it's new
 	{
 		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][0] = ctrlnum; //store the CC in the learned array
-		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][1] = -1; //mark the note part of the array as not applicable
+		MIDIKeyboard.learnedCCsAndNotes[currentNumberToMIDILearn][1] = 255; //mark the note part of the array as not applicable
 		currentNumberToMIDILearn++;
 		if (currentNumberToMIDILearn <= 9)
 		{
@@ -450,3 +481,149 @@ void learnMIDICC(uint8_t ctrlnum, uint8_t val)
 	}
 }
 
+
+//arp stuff
+
+void tMIDIKeyboard_nextNote(tMIDIKeyboard* const keyboard)
+{
+	int random;
+	ArpModeType type = keyboard->arpModeType;
+	
+	tNoteStack* ns = ((type >= ArpModeUp && type <= ArpModeUpDown) || type == ArpModeRandomWalk) ? &keyboard->orderStack :  &keyboard->stack;
+
+	if (ns->size == 1)
+	{
+		keyboard->phasor = 0;
+	}
+	else if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
+	{
+		if (++keyboard->phasor >= ns->size) keyboard->phasor = 0;
+	}
+	else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
+	{
+		if (--keyboard->phasor < 0) keyboard->phasor = (ns->size-1);
+	}
+	else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
+	{
+		if (keyboard->up)
+		{
+			if (++keyboard->phasor >= ns->size)
+			{
+				keyboard->phasor = ns->size-2;
+				keyboard->up = FALSE;
+			}
+		}
+		else // down
+		{
+			if (--keyboard->phasor < 0)
+			{
+				keyboard->phasor = 1;
+				keyboard->up = TRUE;
+			}
+		}
+	}
+	else if (type == ArpModeRandomWalk)
+	{
+		random = (rand() >> 15) & 1;
+		if (random > 0)
+		{
+			keyboard->phasor++;
+		}
+		else
+		{
+			keyboard->phasor--;
+		}
+		
+		if (keyboard->phasor >= ns->size)
+		{
+			keyboard->phasor = ns->size - 2;
+		}
+		else if (keyboard->phasor < 0)
+		{
+			keyboard->phasor = 1;
+		}
+	}
+	else if (type == ArpModeRandom)
+	{
+		keyboard->phasor = ((rand() >> 15) % (ns->size ? ns->size : 1));
+	}
+		
+	keyboard->currentNote =  tNoteStack_get(ns, keyboard->phasor);
+}
+
+void tMIDIKeyboard_orderedAddToStack(tMIDIKeyboard* thisKeyboard, uint8_t noteVal)
+{
+	
+	uint8_t j;
+	int myPitch, thisPitch, nextPitch;
+	
+	tNoteStack* ns = &thisKeyboard->orderStack;
+	
+	int whereToInsert = 0;
+
+	for (j = 0; j < ns->size; j++)
+	{
+		myPitch = noteVal;
+		thisPitch = ns->notestack[j];
+		nextPitch = ns->notestack[j+1];
+		
+		if (myPitch > thisPitch)
+		{
+			if ((myPitch < nextPitch) || (nextPitch == -1))
+			{
+				whereToInsert = j+1;
+				break;
+			}
+		}
+	}
+	
+	//first move notes that are already in the stack one position to the right
+	for (j = ns->size; j > whereToInsert; j--)
+	{
+		ns->notestack[j] = ns->notestack[(j - 1)];
+	}
+
+	//then, insert the new note into the front of the stack
+	ns->notestack[whereToInsert] =  noteVal;
+
+	ns->size++;
+	
+}
+
+void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
+{
+		buffer[0] = keyboard->numVoices;
+		buffer[1] = keyboard->transpose >> 8;
+		buffer[2] = keyboard->transpose & 0xff;
+		buffer[3] = keyboard->playMode;
+		buffer[4] = keyboard->arpModeType;
+		int index_count = 5;
+		
+		for (int i = 0; i < 128; i++)
+		{
+			for (int j = 0; j < 2; j++)
+			{
+				buffer[index_count] = keyboard->learnedCCsAndNotes[i][j];
+				index_count++;
+			}
+		}
+}
+
+// 128*2 + 5 = 261
+void tMIDIKeyboard_decode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
+{
+	keyboard->numVoices = buffer[0];
+	keyboard->transpose = (buffer[1] << 8) +  buffer[2];
+	keyboard->playMode = buffer[3];
+	keyboard->arpModeType = buffer[4];
+	int index_count = 5;
+		
+	for (int i = 0; i < 128; i++)
+	{
+		for (int j = 0; j < 2; j++)
+		{
+			keyboard->learnedCCsAndNotes[i][j] = buffer[index_count];
+			index_count++;
+		}
+	}
+}

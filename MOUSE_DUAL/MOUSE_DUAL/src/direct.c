@@ -82,3 +82,28 @@ void tDirect_setOutputType(tDirect* const direct, int output, DirectType type)
 									
 }
 
+void tDirect_encode(tDirect* const direct, uint8_t* buffer)
+{
+	for (int i = 0; i < 12; i++)
+	{
+		buffer[i*2] = direct->outs[i].hex;
+		buffer[(i*2) + 1] = direct->outs[i].type;
+	}
+}
+
+// 24 bytes
+void tDirect_decode(tDirect* const direct, uint8_t* buffer)
+{
+	DirectType type = DirectTypeNil;
+	for (int i = 0; i < 12; i++)
+	{
+		direct->outs[i].hex = buffer[i*2];	
+		type = buffer[(i*2) + 1];
+		direct->outs[i].type = type;	
+		direct->outs[i].color =	(type == DirectCV) ? Amber :
+								(type == DirectGate) ? Red :
+								(type == DirectTrigger) ? BothOn :
+								Off;
+	}
+
+}

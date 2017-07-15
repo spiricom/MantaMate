@@ -11,13 +11,6 @@
 #include "utilities.h"
 //#include "7Segment.h"
 
-#define NUM_COMP 14
-
-bool compositionMap[2][NUM_COMP];
-
-int currentComp[2] = {-1,-1};
-	
-int currentHexmapHex = -1;
 
 SubShift shiftOption1SubShift = SubShiftNil;
 SubShift shiftOption2SubShift = SubShiftNil;
@@ -325,9 +318,9 @@ tNoteStack editStack;
 tNoteStack noteOnStack; // all notes on at any point during runtime
 
 
-uint8_t encodeBuffer[NUM_INST][sizeOfSerializedSequence]; 
-uint8_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
-uint8_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences]; //8568 is 612 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
+uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER]; 
+uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
+uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK]; //8610 is 615 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {
@@ -420,7 +413,7 @@ void initMantaSequencer(void)
 	keyNoteOn = -1;
 	glideNoteOn = -1;
 	
-	
+	/////WE ARE CHANGING THIS AND THE WHOLE WAY IT WORKS
 	if (preset_num == 0)
 	{
 		for (int i = 0; i < NUM_INST; i++)
@@ -433,8 +426,8 @@ void initMantaSequencer(void)
 				tSequencer_init(&manta[i].sequencer, PitchMode, 32);
 				tIRampSetTime(&out[i][CVTRIGGER], 0);
 
-				tSequencer_encode(&manta[i].sequencer, encodeBuffer);
-				memoryInternalWriteSequencer(i, 0, encodeBuffer);
+				tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
+				memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
 				
 				compositionMap[i][0] = true;
 				currentComp[i] = 0;
@@ -442,11 +435,11 @@ void initMantaSequencer(void)
 			else
 			{   //otherwise we are loading a saved preset, so we need to prepare that data properly
 				tSequencer_init(&manta[i].sequencer, PitchMode, 32);
-				tSequencer_encode(&manta[i].sequencer, encodeBuffer);
-				memoryInternalWriteSequencer(i, 0, encodeBuffer);
+				tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
+				memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
 				compositionMap[i][0] = true;
 				currentComp[i] = 0;
-				tSequencer_decode(&manta[i].sequencer, decodeBuffer);
+				tSequencer_decode(&manta[i].sequencer, decodeBuffer[i]);
 			}
 		}
 	}
@@ -469,8 +462,18 @@ void keyboardStep(MantaInstrument inst)
 	 if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
 	 
 	 dacSendKeyboard(inst);
+}
 
-	 
+void MIDIKeyboardStep(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard;
+	if (keyboard->playMode != ArpMode) return;
+	
+	tMIDIKeyboard_nextNote(keyboard);
+	
+	if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
+	
+	dacSendMIDIKeyboard();
 }
 
 void sequencerStep(MantaInstrument inst)
@@ -940,8 +943,8 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				{
 					if (compositionMap[whichInst][whichHex])
 					{
-						memoryInternalReadSequencer(whichInst, whichHex,decodeBuffer);
-						tSequencer_decode(sequencer, decodeBuffer);
+						memoryInternalReadSequencer(whichInst, whichHex,decodeBuffer[whichInst]);
+						tSequencer_decode(sequencer, decodeBuffer[whichInst]);
 						
 						currentComp[whichInst] = whichHex;
 						
@@ -954,8 +957,8 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 					manta_set_LED_hex(hexagon, Amber);
 					
 					compositionMap[whichInst][whichHex] = true;
-					tSequencer_encode(sequencer, encodeBuffer);
-					memoryInternalWriteSequencer(whichInst, whichHex, encodeBuffer);
+					tSequencer_encode(sequencer, encodeBuffer[whichInst]);
+					memoryInternalWriteSequencer(whichInst, whichHex,encodeBuffer[whichInst]);
 				}
 				else if (shiftOption1SubShift == SubShiftTopRight)
 				{
@@ -3316,26 +3319,26 @@ void seqwait(void)
 //maybe would be more efficient with memcpy? Not sure if that would be better than an iterated array in this case -JS
 void memoryInternalReadSequencer(int whichSeq, int whichhex, uint8_t* buffer)
 {
-	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	for (int i = 0; i < NUM_BYTES_PER_SEQUENCER; i++)
 	{
-		buffer[i] = memoryInternalCompositionBuffer[whichSeq][(whichhex*sizeOfSerializedSequence) + i];
+		buffer[i] = memoryInternalCompositionBuffer[whichSeq][(whichhex*NUM_BYTES_PER_SEQUENCER) + i];
 	}
 }
 
 void memoryInternalWriteSequencer(int whichSeq, int whichhex, uint8_t* buffer)
 {
-	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	for (int i = 0; i < NUM_BYTES_PER_SEQUENCER; i++)
 	{
-		memoryInternalCompositionBuffer[whichSeq][(whichhex*sizeOfSerializedSequence) + i] = buffer[i];
+		memoryInternalCompositionBuffer[whichSeq][(whichhex*NUM_BYTES_PER_SEQUENCER) + i] = buffer[i];
 	}
 }
 
 void memoryInternalCopySequencer(int sourceSeq, int sourceComp, int destSeq, int destComp)
 {
-	for (int i = 0; i < sizeOfSerializedSequence; i++)
+	for (int i = 0; i < NUM_BYTES_PER_SEQUENCER; i++)
 	{
-		memoryInternalCompositionBuffer[destSeq][(destComp*sizeOfSerializedSequence) + i] = 
-		memoryInternalCompositionBuffer[sourceSeq][(sourceComp*sizeOfSerializedSequence) + i];
+		memoryInternalCompositionBuffer[destSeq][(destComp*NUM_BYTES_PER_SEQUENCER) + i] = 
+		memoryInternalCompositionBuffer[sourceSeq][(sourceComp*NUM_BYTES_PER_SEQUENCER) + i];
 	}
 	
 }

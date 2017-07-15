@@ -152,6 +152,7 @@ uint32_t clock_speed_displayed = 0;
 uint32_t tempoDivider = 4 ;
 uint32_t tempoDividerMax = 9;
 
+uint8_t SevSegArpMode = 0;
 uint32_t upHeld = 0;
 uint32_t downHeld = 0;
 uint32_t holdTimeThresh = 8;
@@ -280,12 +281,16 @@ int main(void){
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
 	currentHexmapEditHex = -1;
+	currentHexmapHex = -1;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
 	tKeyboard_init(&manta[InstrumentOne].keyboard, 1);
 	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1);
 	tKeyboard_init(&fullKeyboard, 2);
+	
+	currentComp[InstrumentOne]=  -1;
+	currentComp[InstrumentTwo]=  -1;
 	
 	for (int i = 0; i < 2; i++)
 	{
@@ -300,8 +305,8 @@ int main(void){
 	hexmapEditMode = FALSE;
 	
 	//start off on preset 0;
-	//preset_num = 0;
-	loadStartupStateFromExternalMemory();
+	preset_num = 0;
+	//loadStartupStateFromExternalMemory();
 	delay_ms(600); // why is this necessary? taking it out makes the manta state not get initialized correctly, but it's weird that we need it
 	initTimers();
 	//updatePreset();
@@ -336,6 +341,14 @@ int main(void){
 				continueStoringStartupStateToExternalMemory();
 			}
 		}
+		
+		else if (hexmapSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringHexmapToExternalMemory();
+			}
+		}
 
 		else if (loadPending)
 		{
@@ -358,6 +371,14 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingStartupStateFromExternalMemory();
+			}
+		}
+		
+		else if (hexmapLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingHexmapFromExternalMemory();
 			}
 		}
 
@@ -490,12 +511,22 @@ static void tc2_irq(void)
 	else if ((type_of_device_connected == MIDIKeyboardConnected) || (type_of_device_connected == MIDIComputerConnected))
 	{
 		tMIDIKeyboard* keyboard =  &MIDIKeyboard;
-
-		if (keyboard->trigCount > 0)
+		
+		for (int i = 0; i < keyboard->numVoices; i++)
 		{
-			if (--(keyboard->trigCount) == 0)
+			if (keyboard->trigCount[i] > 0)
 			{
-				sendDataToOutput(3, 0, 0x0);
+				if (--(keyboard->trigCount[i]) == 0)
+				{
+					if (keyboard->playMode == ArpMode)
+					{
+						sendDataToOutput((3*i+CVKTRIGGER)-2, 0, 0x0);
+					}
+					else
+					{
+						sendDataToOutput(3, 0, 0x0);
+					}
+				}
 			}
 		}
 	}
@@ -699,11 +730,11 @@ static void tc3_irq(void)
 			int cc = MIDIKeyboard.learnedCCsAndNotes[n][0];
 			int note = MIDIKeyboard.learnedCCsAndNotes[n][1];
 			
-			if (cc >= 0)
+			if (cc < 255) //255 is the mark for "unused" == the mark of the BEAST
 			{
 				sendDataToOutput((n + MIDIKeyboard.firstFreeOutput), globalCVGlide, MIDIKeyboard.CCs[cc]); 
 			}
-			else if (note >= 0)
+			else if (note < 255)
 			{
 				if (MIDIKeyboard.notes[note][0] > 0)
 				{
@@ -1002,146 +1033,77 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		no_device_mode_active = TRUE;
 		return;
 	}
-	
-	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes
+
+	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
 	{
-		if (arp_or_touch == ARP_MODE)
+		SevSegArpMode = 1;
+
+		if(upSwitch())
 		{
-			arp_or_touch = TOUCH_MODE;
+			MIDIKeyboard.playMode = ArpMode;
+			MIDIKeyboard.arpModeType++;
+			if (MIDIKeyboard.arpModeType >= 8)
+			{
+				MIDIKeyboard.arpModeType = 7;
+			}
+			Write7Seg(MIDIKeyboard.arpModeType+1);
 		}
-		else
+		
+		if(downSwitch())
 		{
-			arp_or_touch = ARP_MODE;
+
+			if (MIDIKeyboard.arpModeType > 0)
+			{
+				MIDIKeyboard.arpModeType--;
+				MIDIKeyboard.playMode = ArpMode;
+				Write7Seg(MIDIKeyboard.arpModeType+1);
+			}
+			else if (MIDIKeyboard.arpModeType == 0)
+			{
+				MIDIKeyboard.playMode = TouchMode;
+				Write7Seg(0);
+			}
 		}
+		
 	}
 	
-	if (displayState == HexmapPitchSelect)
+	else
 	{
-		if (whichSwitch)
-		{
-			if (upSwitch())
-			{
-				if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
-			}
-		}
-		else
-		{
-			if (downSwitch())
-			{
-				if (currentHexmapEditPitch >= 0) currentHexmapEditPitch--;
-			}
-		}
-		
-		tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
-		
-		dacSendKeyboard(hexmapEditInstrument);
-		
-		Write7Seg(currentHexmapEditPitch%100);
-		normal_7seg_number = currentHexmapEditPitch;
-	}
-	else if (displayState == TuningHexSelect)
-	{
-		if (whichSwitch)
-		{
-			if (upSwitch())
-			{
-				currentMantaUITuning++;
-				if (currentMantaUITuning >= 99)
-				{
-					currentMantaUITuning = 99;
-				}
-			}
-		}
-		else
-		{
-			if (downSwitch())
-			{
-				if (currentMantaUITuning <= 0)
-				{
-					currentMantaUITuning = 0;
-				}
-				else
-				{
-					currentMantaUITuning--;
-				}
-			}
-		}
-		
-		mantaUITunings[currentTuningHex] = currentMantaUITuning;
-		
-		if (suspendRetrieve != DontRetrieve)
-		{
-			loadTuning(currentMantaUITuning);
-		}
-		
-		Write7Seg(currentMantaUITuning);
-		normal_7seg_number = currentMantaUITuning;
-	}
-	else if (preference_num == PRESET_SELECT)
-	{	
-		//if we are not in Save mode, then we are trying to instantaneously load a preset
-		if (!savingActive)
+			
+		if (displayState == HexmapPitchSelect)
 		{
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					preset_num++;
-					
-					if (preset_num > 99)
-					{
-						preset_num = 99;
-					}
-					if (suspendRetrieve !=DontRetrieve)
-					{
-						initiateStoringStartupStateToExternalMemory();
-						updatePreset();
-					}
-					Write7Seg(preset_num);
-					normal_7seg_number = preset_num;
+					if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
 				}
-
 			}
-			else 
+			else
 			{
 				if (downSwitch())
 				{
-					if (preset_num <= 0)
-					{
-						preset_num = 0;
-					}
-					else
-					{
-						preset_num--;
-					}
-					if (suspendRetrieve != DontRetrieve)
-					{
-						initiateStoringStartupStateToExternalMemory();
-						updatePreset();
-					}
-					Write7Seg(preset_num);
-					normal_7seg_number = preset_num;
+					if (currentHexmapEditPitch >= 0) currentHexmapEditPitch--;
 				}
 			}
-			if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
-			{
-				initiateStoringStartupStateToExternalMemory();
-				updatePreset();
-				suspendRetrieve = RetrieveWhenever;
-			}
-		}
 		
-		//otherwise we are currently navigating to save a preset into a slot
-		else
+			tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
+		
+			dacSendKeyboard(hexmapEditInstrument);
+		
+			Write7Seg(currentHexmapEditPitch%100);
+			normal_7seg_number = currentHexmapEditPitch;
+		}
+		else if (displayState == TuningHexSelect)
 		{
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					preset_to_save_num++;
-					if (preset_to_save_num > 99)
+					currentMantaUITuning++;
+					if (currentMantaUITuning >= 99)
 					{
-						preset_to_save_num = 99;
+						currentMantaUITuning = 99;
 					}
 				}
 			}
@@ -1149,237 +1111,331 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (downSwitch())
 				{
-					if (preset_to_save_num <= 10)
+					if (currentMantaUITuning <= 0)
 					{
-						preset_to_save_num = 10;
+						currentMantaUITuning = 0;
 					}
 					else
 					{
-						preset_to_save_num--;
+						currentMantaUITuning--;
 					}
 				}
 			}
-			//should make it blink for extra clarity
-			Write7Seg(preset_to_save_num);
-			normal_7seg_number = preset_to_save_num;
+		
+			mantaUITunings[currentTuningHex] = currentMantaUITuning;
+		
+			if (suspendRetrieve != DontRetrieve)
+			{
+				loadTuning(currentMantaUITuning);
+			}
+		
+			Write7Seg(currentMantaUITuning);
+			normal_7seg_number = currentMantaUITuning;
 		}
-	}
-	
-	else if (preference_num == TUNING_AND_LEARN)
-	{
-		if (tuningOrLearn == TUNING_SELECT)
-		{
-			if (!tuningLoading)
+		else if (preference_num == PRESET_SELECT)
+		{	
+			//if we are not in Save mode, then we are trying to instantaneously load a preset
+			if (!savingActive)
 			{
 				if (whichSwitch)
 				{
 					if (upSwitch())
 					{
-						globalTuning++;
-						if (globalTuning >= 99)
+						preset_num++;
+					
+						if (preset_num > 99)
 						{
-							globalTuning = 99;
+							preset_num = 99;
+						}
+						if (suspendRetrieve !=DontRetrieve)
+						{
+							initiateStoringStartupStateToExternalMemory();
+							updatePreset();
+						}
+						Write7Seg(preset_num);
+						normal_7seg_number = preset_num;
+					}
+
+				}
+				else 
+				{
+					if (downSwitch())
+					{
+						if (preset_num <= 0)
+						{
+							preset_num = 0;
+						}
+						else
+						{
+							preset_num--;
 						}
 						if (suspendRetrieve != DontRetrieve)
 						{
-							loadTuning(globalTuning);
+							initiateStoringStartupStateToExternalMemory();
+							updatePreset();
 						}
-						Write7Seg(globalTuning);
-						normal_7seg_number = globalTuning;
+						Write7Seg(preset_num);
+						normal_7seg_number = preset_num;
 					}
-					
+				}
+				if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
+				{
+					initiateStoringStartupStateToExternalMemory();
+					updatePreset();
+					suspendRetrieve = RetrieveWhenever;
+				}
+			}
+		
+			//otherwise we are currently navigating to save a preset into a slot
+			else
+			{
+				if (whichSwitch)
+				{
+					if (upSwitch())
+					{
+						preset_to_save_num++;
+						if (preset_to_save_num > 99)
+						{
+							preset_to_save_num = 99;
+						}
+					}
 				}
 				else
 				{
 					if (downSwitch())
 					{
-						if (globalTuning <= 0)
+						if (preset_to_save_num <= 10)
 						{
-							globalTuning = 0;
+							preset_to_save_num = 10;
 						}
 						else
 						{
-							globalTuning--;
+							preset_to_save_num--;
 						}
-						if (suspendRetrieve != DontRetrieve)
+					}
+				}
+				//should make it blink for extra clarity
+				Write7Seg(preset_to_save_num);
+				normal_7seg_number = preset_to_save_num;
+			}
+		}
+	
+		else if (preference_num == TUNING_AND_LEARN)
+		{
+			if (tuningOrLearn == TUNING_SELECT)
+			{
+				if (!tuningLoading)
+				{
+					if (whichSwitch)
+					{
+						if (upSwitch())
 						{
-							loadTuning(globalTuning);
+							globalTuning++;
+							if (globalTuning >= 99)
+							{
+								globalTuning = 99;
+							}
+							if (suspendRetrieve != DontRetrieve)
+							{
+								loadTuning(globalTuning);
+							}
+							Write7Seg(globalTuning);
+							normal_7seg_number = globalTuning;
 						}
-						Write7Seg(globalTuning);
-						normal_7seg_number = globalTuning;
+					
+					}
+					else
+					{
+						if (downSwitch())
+						{
+							if (globalTuning <= 0)
+							{
+								globalTuning = 0;
+							}
+							else
+							{
+								globalTuning--;
+							}
+							if (suspendRetrieve != DontRetrieve)
+							{
+								loadTuning(globalTuning);
+							}
+							Write7Seg(globalTuning);
+							normal_7seg_number = globalTuning;
+						}
+					}
+					if (suspendRetrieve == RetrieveNow)
+					{
+						loadTuning(globalTuning);
+						suspendRetrieve = RetrieveWhenever;
 					}
 				}
-				if (suspendRetrieve == RetrieveNow)
-				{
-					loadTuning(globalTuning);
-					suspendRetrieve = RetrieveWhenever;
-				}
 			}
-		}
-		else //otherwise it's MIDI LEARN mode
-		{
-			//currently decided not to let the user select which number in midi learn mode, it increments automatically
-		}
+			else //otherwise it's MIDI LEARN mode
+			{
+				//currently decided not to let the user select which number in midi learn mode, it increments automatically
+			}
 		
-	}
-	
-	else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
-	{
-		if (whichSwitch)
-		{
-			if (upSwitch())
-			{
-				if (glide_pref == GLOBAL_PITCH_GLIDE)
-				{
-					globalPitchGlideDisplay++;
-					if (globalPitchGlideDisplay >= globalGlideMax)
-					{
-						globalPitchGlideDisplay = globalGlideMax;
-					}
-					Write7Seg(globalPitchGlideDisplay);
-					normal_7seg_number = globalPitchGlideDisplay;
-					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
-				}
-				else  // otherwise it's global cv glide
-				{
-					globalCVGlideDisplay++;
-					if (globalCVGlideDisplay >= globalGlideMax)
-					{
-						globalCVGlideDisplay = globalGlideMax;
-					}
-					if (globalCVGlideDisplay < 10)
-					{
-						Write7Seg(globalCVGlideDisplay+200);
-						normal_7seg_number = (globalCVGlideDisplay + 200);
-					}
-					else
-					{
-						Write7Seg(globalCVGlideDisplay);
-						normal_7seg_number = globalCVGlideDisplay;
-					}
-					globalCVGlide = glide_lookup[globalCVGlideDisplay];
-				}
-
-			}
 		}
-		else
-		{
-			if (downSwitch())
-			{
-				if (glide_pref == GLOBAL_PITCH_GLIDE)
-				{
-					if (globalPitchGlideDisplay <= 0)
-					{
-						globalPitchGlideDisplay = 0;
-					}
-					else
-					{
-						globalPitchGlideDisplay--;
-					}
-					Write7Seg(globalPitchGlideDisplay);
-					normal_7seg_number = globalPitchGlideDisplay;
-					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
-				}
-				else  // otherwise it's global cv glide
-				{
-					if (globalCVGlideDisplay <= 0)
-					{
-						globalCVGlideDisplay = 0;
-					}
-					else
-					{
-						globalCVGlideDisplay--;
-					}
-					if (globalCVGlideDisplay < 10)
-					{
-						Write7Seg(globalCVGlideDisplay+200);
-						normal_7seg_number = (globalCVGlideDisplay + 200);
-					}
-					else
-					{
-						Write7Seg(globalCVGlideDisplay);
-						normal_7seg_number = globalCVGlideDisplay;
-					}
-					globalCVGlide = glide_lookup[globalCVGlideDisplay];
-				}
-
-			}
-		}
-
-	}
 	
-	else if (preference_num == INTERNAL_CLOCK)
-	{
-
-		if (clock_pref == BPM)
+		else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
 		{
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					clock_speed_displayed++;
-					if (clock_speed_displayed >= clock_speed_max)
+					if (glide_pref == GLOBAL_PITCH_GLIDE)
 					{
-						clock_speed_displayed = clock_speed_max;
+						globalPitchGlideDisplay++;
+						if (globalPitchGlideDisplay >= globalGlideMax)
+						{
+							globalPitchGlideDisplay = globalGlideMax;
+						}
+						Write7Seg(globalPitchGlideDisplay);
+						normal_7seg_number = globalPitchGlideDisplay;
+						globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 					}
+					else  // otherwise it's global cv glide
+					{
+						globalCVGlideDisplay++;
+						if (globalCVGlideDisplay >= globalGlideMax)
+						{
+							globalCVGlideDisplay = globalGlideMax;
+						}
+						if (globalCVGlideDisplay < 10)
+						{
+							Write7Seg(globalCVGlideDisplay+200);
+							normal_7seg_number = (globalCVGlideDisplay + 200);
+						}
+						else
+						{
+							Write7Seg(globalCVGlideDisplay);
+							normal_7seg_number = globalCVGlideDisplay;
+						}
+						globalCVGlide = glide_lookup[globalCVGlideDisplay];
+					}
+
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (clock_speed_displayed <= 0)
+					if (glide_pref == GLOBAL_PITCH_GLIDE)
 					{
-						clock_speed_displayed = 0;
+						if (globalPitchGlideDisplay <= 0)
+						{
+							globalPitchGlideDisplay = 0;
+						}
+						else
+						{
+							globalPitchGlideDisplay--;
+						}
+						Write7Seg(globalPitchGlideDisplay);
+						normal_7seg_number = globalPitchGlideDisplay;
+						globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 					}
-					else
+					else  // otherwise it's global cv glide
 					{
-						clock_speed_displayed--;
+						if (globalCVGlideDisplay <= 0)
+						{
+							globalCVGlideDisplay = 0;
+						}
+						else
+						{
+							globalCVGlideDisplay--;
+						}
+						if (globalCVGlideDisplay < 10)
+						{
+							Write7Seg(globalCVGlideDisplay+200);
+							normal_7seg_number = (globalCVGlideDisplay + 200);
+						}
+						else
+						{
+							Write7Seg(globalCVGlideDisplay);
+							normal_7seg_number = globalCVGlideDisplay;
+						}
+						globalCVGlide = glide_lookup[globalCVGlideDisplay];
 					}
+
 				}
 			}
-			Write7Seg(clock_speed_displayed);
-			normal_7seg_number = clock_speed_displayed;
+
 		}
-		else if (clock_pref == CLOCK_DIVIDER)
+	
+		else if (preference_num == INTERNAL_CLOCK)
 		{
-			if (whichSwitch)
+
+			if (clock_pref == BPM)
 			{
-				if (upSwitch())
+				if (whichSwitch)
 				{
-					tempoDivider++;
-					if (tempoDivider >= tempoDividerMax)
+					if (upSwitch())
 					{
-						tempoDivider = tempoDividerMax;
+						clock_speed_displayed++;
+						if (clock_speed_displayed >= clock_speed_max)
+						{
+							clock_speed_displayed = clock_speed_max;
+						}
 					}
 				}
+				else
+				{
+					if (downSwitch())
+					{
+						if (clock_speed_displayed <= 0)
+						{
+							clock_speed_displayed = 0;
+						}
+						else
+						{
+							clock_speed_displayed--;
+						}
+					}
+				}
+				Write7Seg(clock_speed_displayed);
+				normal_7seg_number = clock_speed_displayed;
+			}
+			else if (clock_pref == CLOCK_DIVIDER)
+			{
+				if (whichSwitch)
+				{
+					if (upSwitch())
+					{
+						tempoDivider++;
+						if (tempoDivider >= tempoDividerMax)
+						{
+							tempoDivider = tempoDividerMax;
+						}
+					}
+				}
+				else
+				{
+					if (downSwitch())
+					{
+						if (tempoDivider <= 0)
+						{
+							tempoDivider = 0;
+						}
+						else
+						{
+							tempoDivider--;
+						}
+					}
+				}
+				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+				normal_7seg_number = 200 + tempoDivider;
+			}
+			if (clock_speed_displayed > 0)
+			{
+				clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
 			}
 			else
 			{
-				if (downSwitch())
-				{
-					if (tempoDivider <= 0)
-					{
-						tempoDivider = 0;
-					}
-					else
-					{
-						tempoDivider--;
-					}
-				}
+				clock_speed = 0;
 			}
-			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
-			normal_7seg_number = 200 + tempoDivider;
-		}
-		if (clock_speed_displayed > 0)
-		{
-			clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
-		}
-		else
-		{
-			clock_speed = 0;
-		}
 
+		}
 	}
 }
 
@@ -1408,6 +1464,15 @@ void Preferences_Switch_Check(void)
 			LED_Off(PRESET_SAVE_LED);
 		}
 
+	}
+	
+	else
+	{
+		if (SevSegArpMode == 1)
+		{
+			SevSegArpMode = 0;
+			Write7Seg(normal_7seg_number);
+		}
 	}
 }
 
@@ -1604,7 +1669,7 @@ void clockHappened(void)
 	}
 	else if (type_of_device_connected == MIDIKeyboardConnected)
 	{
-		keyboardStep(InstrumentNil);
+		MIDIKeyboardStep();
 	}
 	else if (type_of_device_connected == NoDeviceConnected)
 	{
@@ -1612,6 +1677,7 @@ void clockHappened(void)
 	}
 	else if (type_of_device_connected == MIDIComputerConnected)
 	{
+		MIDIKeyboardStep();
 		midi_ext_gate_in();
 	}
 }
@@ -1938,4 +2004,166 @@ void loadNoDevicePreset(void)
 	;
 }
 
+void mantaMatePreset_encode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	
+	buffer[indexCounter++] = 1; // MantaMateVersion
+	
+	buffer[indexCounter++] = takeover;
+	buffer[indexCounter++] = takeoverType;
+	
+	buffer[indexCounter++] = currentInstrument;
+	buffer[indexCounter++] = manta[InstrumentOne].type;
+	buffer[indexCounter++] = manta[InstrumentTwo].type;
+	
+	for (int inst = 0; inst < 2; inst++)
+	{
+		buffer[indexCounter++] = currentComp[inst];
+		for (int i = 0; i < 16; i++)
+		{
+			buffer[indexCounter++] = compositionMap[inst][i];
+		}
+	}
+	
+	buffer[indexCounter++] = globalPitchGlide >> 8;
+	buffer[indexCounter++] = globalPitchGlide & 0xff;
+	
+	buffer[indexCounter++] = globalCVGlide >> 8;
+	buffer[indexCounter++] = globalCVGlide & 0xff;
+	
+	buffer[indexCounter++] = myGlobalTuningTable.cardinality;
+	for (int i = 0; i < 128; i++)
+	{
+		buffer[indexCounter++] = (myGlobalTuningTable.tuningDACTable[i] >> 8);
+		buffer[indexCounter++] = (myGlobalTuningTable.tuningDACTable[i] & 0xff);
+	}
+	
+	buffer[indexCounter++] = globalTuning;
+	buffer[indexCounter++] = tuningToUse; 
+	buffer[indexCounter++] = currentTuningHex;
+	buffer[indexCounter++] = currentMantaUITuning;
+	for (int i = 0; i < 31; i++)
+	{
+		buffer[indexCounter++] = mantaUITunings[i];
+	}
+	
+	tKeyboard_encode(&manta[InstrumentOne].keyboard, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_KEYBOARD;
+	tKeyboard_encode(&manta[InstrumentTwo].keyboard, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_KEYBOARD;
+	tKeyboard_encode(&fullKeyboard, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_KEYBOARD;
+	
+	tDirect_encode(&manta[InstrumentOne].direct, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_DIRECT;
+	tDirect_encode(&manta[InstrumentTwo].direct, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_DIRECT;
+	tDirect_encode(&fullDirect, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_DIRECT;
+	
+	tMIDIKeyboard_encode(&MIDIKeyboard, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
+	
+	tSequencer_encode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_SEQUENCER;
+	tSequencer_encode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_SEQUENCER;
+	
+	//the 14*2 compositions!  14 per sequencer
+	//this is not as efficient as it could be because it's copying data we already have
+	for (int inst = 0; inst < NUM_INST; inst++)
+	{
+		for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
+		{
+			buffer[indexCounter++] = memoryInternalCompositionBuffer[inst][i];
+		}
+	}
+	
+}
 
+void mantaMatePreset_decode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	uint16_t lowByte, highByte;
+	
+	int version = buffer[indexCounter++];
+	
+	if (version == 1)
+	{
+		takeover = buffer[indexCounter++];
+		takeoverType = buffer[indexCounter++];
+		
+		currentInstrument = buffer[indexCounter++];
+		manta[InstrumentOne].type = buffer[indexCounter++];
+		manta[InstrumentTwo].type = buffer[indexCounter++];
+		
+		for (int inst = 0; inst < 2; inst++)
+		{
+			currentComp[inst] = buffer[indexCounter++];
+			for (int i = 0; i < 16; i++)
+			{
+				compositionMap[inst][i] = buffer[indexCounter++];
+			}
+		}
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		
+		globalTuning = buffer[indexCounter++];
+		tuningToUse = buffer[indexCounter++];
+		currentTuningHex = buffer[indexCounter++];
+		currentMantaUITuning = buffer[indexCounter++];
+		for (int i = 0; i < 31; i++)
+		{
+			mantaUITunings[i] = buffer[indexCounter++];
+		}
+		
+		tKeyboard_decode(&manta[InstrumentOne].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&manta[InstrumentTwo].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&fullKeyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		
+		tDirect_decode(&manta[InstrumentOne].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&manta[InstrumentTwo].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&fullDirect, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		
+		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
+		
+		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+		
+		//the 14*2 compositions!  14 per sequencer
+		//this is not as efficient as it could be because it's copying data we already have
+		for (int inst = 0; inst < NUM_INST; inst++)
+		{
+			for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
+			{
+				memoryInternalCompositionBuffer[inst][i] = buffer[indexCounter++];
+			}
+		}
+		
+	}
+
+}

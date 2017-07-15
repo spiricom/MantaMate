@@ -60,4 +60,7 @@ void tDirect_assignHexToOutput(tDirect* const direct, int hex, int output);
 
 void tDirect_setOutputType(tDirect* const direct, int output, DirectType type);
 
+void tDirect_encode(tDirect* const direct, uint8_t* buffer);
+void tDirect_decode(tDirect* const direct, uint8_t* buffer);
+
 #endif /* DIRECT_H_ */

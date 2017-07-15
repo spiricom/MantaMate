@@ -11,19 +11,12 @@
 
 #include "sequencer.h"
 
-#define NUM_INST 2
-#define sizeOfSerializedSequence  612 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
-#define sizeOfBankOfSequences  sizeOfSerializedSequence*14 //there are now 14 possible sequence slots in composition mode
-
-extern uint8_t encodeBuffer[NUM_INST][sizeOfSerializedSequence];
-extern uint8_t decodeBuffer[NUM_INST][sizeOfSerializedSequence];
-extern uint8_t memoryInternalCompositionBuffer[NUM_INST][sizeOfBankOfSequences];
-
 
 void sequencerStep(MantaInstrument inst);
 void uiStep					(MantaInstrument);
 
 void keyboardStep(MantaInstrument inst);
+void MIDIKeyboardStep(void);
 
 void processHexTouch(void);
 

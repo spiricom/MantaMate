@@ -28,6 +28,8 @@ signed int pianomap[48];
 signed int freemap[48];
 
 signed int isomap[48];
+
+uint8_t hexmapBuffer[NUM_BYTES_PER_HEXMAP];
 	
 typedef struct _tKeyboard
 {
@@ -43,6 +45,7 @@ typedef struct _tKeyboard
 	int voices[MAX_VOICES];
 	int lastVoiceToChange;
 	tNoteStack stack;
+	tNoteStack orderStack;
 	MantaMap map;
 	int trigCount[4];
 	int currentNote;
@@ -72,5 +75,11 @@ void tKeyboard_setHexmap(tKeyboard* const keyboard,signed int pitch[48]);
 void tKeyboard_blankHexmap(tKeyboard* const keyboard);
 void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote);
 signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex);
+
+void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer);
+void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer);
+
+void tKeyboard_encode(tKeyboard* const keyboard, uint8_t* buffer);
+void tKeyboard_decode(tKeyboard* const keyboard, uint8_t* buffer);
 
 #endif /* KEYBOARD_H_ */

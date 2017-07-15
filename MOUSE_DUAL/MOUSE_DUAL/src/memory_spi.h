@@ -20,14 +20,14 @@ extern uint32_t sectors_left_to_erase;
 extern uint16_t currentSector;
 extern uint16_t currentPage;
 extern uint16_t startingSector;
-extern uint32_t pages_left_to_store;
-extern uint32_t pages_left_to_load;
 extern unsigned char savePending;
 extern unsigned char loadPending;
 extern unsigned char tuningSavePending;
 extern unsigned char tuningLoadPending;
 extern unsigned char startupStateSavePending;
 extern unsigned char startupStateLoadPending;
+extern unsigned char hexmapSavePending;
+extern unsigned char hexmapLoadPending;
 // Memory SPI
 
 int memorySPICheckIfBusy(void);
@@ -41,15 +41,19 @@ void continueStoringPresetToExternalMemory(void);
 void initiateLoadingPresetFromExternalMemory(void);
 void continueLoadingPresetFromExternalMemory(void);
 
-
 void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save);
 void continueStoringTuningToExternalMemory(void);
 void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load);
 void continueLoadingTuningFromExternalMemory(void);
 
-
 void initiateStoringStartupStateToExternalMemory(void);
 void continueStoringStartupStateToExternalMemory(void);
 void loadStartupStateFromExternalMemory(void);
 void continueLoadingStartupStateFromExternalMemory(void);
+
+void initiateStoringHexmapToExternalMemory(uint8_t hexmap_num_to_save);
+void continueStoringHexmapToExternalMemory(void);
+void initiateLoadingHexmapFromExternalMemory(uint8_t hexmap_to_load);
+void continueLoadingHexmapFromExternalMemory(void);
+
 #endif /* MEMORY_SPI_H_ */

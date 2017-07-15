@@ -85,7 +85,7 @@ typedef enum BOOL
 #define NUM_HEXES 48
 #define MAX_VOICES 4
 
-
+#define NUM_BYTES_PER_HEXMAP 1152
 
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType
@@ -283,9 +283,7 @@ typedef enum StepParameterType {
 	On4
 }StepParameterType;
 
-
-// Sequencer Modes
-SequencerPatternType pattern_type;
+GlobalOptionType full_vs_split;
 
 
 MantaSliderMode prevMantaSliderMode;
@@ -301,9 +299,7 @@ BOOL shiftOption1Lock;
 BOOL shiftOption2;
 BOOL shiftOption2Lock;
 
-GlobalOptionType full_vs_split;
 
-GlobalOptionType seq1PvT, seq2PvT;
 
 /* Integer version of Ramp */
 typedef struct _tIRamp {

@@ -160,7 +160,7 @@
         <board id="board.evk1100" value="Add" config="" content-id="Atmel.ASF" />
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>com.atmel.avrdbg.tool.atmelice</avrtool>
+    <avrtool>com.atmel.avrdbg.tool.jtagice3plus</avrtool>
     <avrtoolinterface>JTAG</avrtoolinterface>
     <com_atmel_avrdbg_tool_jtagice3plus>
       <ToolOptions>
@@ -173,7 +173,7 @@
           <JtagInstrBitsAfter>0</JtagInstrBitsAfter>
           <JtagSelectedDeviceIndexInChain>
           </JtagSelectedDeviceIndexInChain>
-          <JtagDbgClock>0</JtagDbgClock>
+          <JtagDbgClock>7500000</JtagDbgClock>
           <JtagDaisyChainDevices>
           </JtagDaisyChainDevices>
         </InterfaceProperties>
@@ -194,13 +194,13 @@
       </ToolNumber>
       <ToolName>Simulator</ToolName>
     </com_atmel_avrdbg_tool_simulator>
-    <avrtoolserialnumber>J41800079194</avrtoolserialnumber>
+    <avrtoolserialnumber>J30200025218</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x0</avrdeviceexpectedsignature>
     <avrtoolinterfaceclock>7500000</avrtoolinterfaceclock>
     <com_atmel_avrdbg_tool_atmelice>
       <ToolOptions>
         <InterfaceProperties>
-          <JtagDbgClock>7500000</JtagDbgClock>
+          <JtagDbgClock>0</JtagDbgClock>
         </InterfaceProperties>
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>

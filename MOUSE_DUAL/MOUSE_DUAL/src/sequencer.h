@@ -57,8 +57,11 @@ typedef struct _tStep
 typedef enum SequencerDataType
 {
 	SeqOctave = 0, 
-	SeqMaxLength,
 	SeqPitchOrTrigger,
+	SeqTransposeHigh,
+	SeqTransposeLow,
+	SeqPattern,
+	SeqPlayMode,
 	SeqSteps,
 	SequencerDataTypeNil
 	
@@ -117,8 +120,6 @@ void		tSequencer_randomizeAll(tSequencer* const seq);
 
 void        tSequencer_encode(tSequencer* const, uint8_t* sBuffer);
 void        tSequencer_decode(tSequencer* const, uint8_t* sBuffer);
-
-
 
 
 

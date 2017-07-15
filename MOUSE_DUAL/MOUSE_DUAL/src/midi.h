@@ -32,7 +32,7 @@ typedef struct _tMIDIKeyboard
 {
 	// Encode this in preset
 	int numVoices;
-	int learnedCCsAndNotes[128][2];
+	uint8_t learnedCCsAndNotes[128][2];
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;
 	signed int transpose;
@@ -55,12 +55,18 @@ typedef struct _tMIDIKeyboard
 	int lastVoiceToChange;
 	
 	tNoteStack stack;
-	
-	int trigCount;
+	tNoteStack orderStack;
 	
 	int32_t pitchBend;
 	
 	BOOL pitchOutput;
+	
+	int trigCount[4];
+	int currentNote;
+	int currentVoice;
+	int maxLength;
+	int phasor;
+	BOOL up;
 	
 } tMIDIKeyboard;
 
@@ -75,5 +81,11 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchout);
 void learnMIDINote(uint8_t msgByte1, uint8_t msgByte2);
 
 void learnMIDICC(uint8_t msgByte1, uint8_t msgByte2);
+
+void tMIDIKeyboard_nextNote(tMIDIKeyboard* const keyboard);
+void tMIDIKeyboard_orderedAddToStack(tMIDIKeyboard* thisKeyboard, uint8_t noteVal);
+
+void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer);
+void tMIDIKeyboard_decode(tMIDIKeyboard* const keyboard, uint8_t* buffer);
 
 #endif /* MIDI_H_ */

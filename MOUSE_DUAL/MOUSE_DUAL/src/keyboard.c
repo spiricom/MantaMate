@@ -174,68 +174,63 @@ void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type)
 void tKeyboard_nextNote(tKeyboard* const keyboard)
 {
 	int hex = -1;
-	int index = -1;
 	int random;
 	ArpModeType type = keyboard->arpModeType;
 	
-	tNoteStack* ns = &keyboard->stack;
+	tNoteStack* ns = ((type >= ArpModeUp && type <= ArpModeUpDown) || type == ArpModeRandomWalk) ? &keyboard->orderStack :  &keyboard->stack;
 	
-	while (keyboard->stack.size > 0)
+	if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
 	{
-		if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
+		if (++keyboard->phasor >= ns->size) keyboard->phasor = 0;
+	}
+	else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
+	{
+		if (--keyboard->phasor < 0) keyboard->phasor = (ns->size-1);
+	}
+	else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
+	{
+		if (keyboard->up)
 		{
-			if (++keyboard->phasor >= keyboard->maxLength) keyboard->phasor = 0;
-		}
-		else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
-		{
-			if (--keyboard->phasor < 0) keyboard->phasor = (keyboard->maxLength-1);
-		}
-		else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
-		{
-			if (keyboard->up)
+			if (++keyboard->phasor >= ns->size) 
 			{
-				if (++keyboard->phasor >= keyboard->stack.size) 
-				{
-					keyboard->phasor = keyboard->stack.size-2;
-					keyboard->up = FALSE;
-				}
-			}
-			else // down
-			{
-				if (--keyboard->phasor < 0) 
-				{
-					keyboard->phasor = 1;
-					keyboard->up = TRUE;
-				}
+				keyboard->phasor = ns->size-2;
+				keyboard->up = FALSE;
 			}
 		}
-		else if (type == ArpModeRandomWalk)
+		else // down
 		{
-			random = rand() % 0xffff;
-			if (random > 0x8000)
+			if (--keyboard->phasor < 0) 
 			{
-				keyboard->phasor = (keyboard->phasor + 1) % keyboard->stack.size;
+				keyboard->phasor = 1;
+				keyboard->up = TRUE;
 			}
-			else
-			{
-				keyboard->phasor = (keyboard->phasor - 1) % keyboard->stack.size;
-			}
-		}
-		else if (type == ArpModeRandom)
-		{
-			keyboard->phasor = rand() % keyboard->stack.size;
-		}
-		
-
-		hex = tNoteStack_get(ns, keyboard->phasor);
-		
-		if (hex >= 0)
-		{
-			keyboard->currentNote = hex;
-			return hex;
 		}
 	}
-	return -1;
+	else if (type == ArpModeRandomWalk)
+	{
+		random = rand() % 0xffff;
+		if (random > 0x8000)
+		{
+			keyboard->phasor = (keyboard->phasor + 1) % ns->size;
+		}
+		else
+		{
+			keyboard->phasor = (keyboard->phasor - 1) % ns->size;
+		}
+	}
+	else if (type == ArpModeRandom)
+	{
+		keyboard->phasor = rand() % ns->size;
+	}
+		
+
+	hex = tNoteStack_get(ns, keyboard->phasor);
+		
+	if (hex >= 0)
+	{
+		keyboard->currentNote = hex;
+	}
+
 }
 
 void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
@@ -267,6 +262,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	}
 	
 	tNoteStack_init(&keyboard->stack, 48);
+	tNoteStack_init(&keyboard->orderStack, 48);
 }
 
 void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
@@ -274,7 +270,7 @@ void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
 	uint8_t j;
 	int myPitch, thisPitch, nextPitch;
 	
-	tNoteStack* ns = &thisKeyboard->stack;
+	tNoteStack* ns = &thisKeyboard->orderStack;
 	
 	int whereToInsert = 0;
 
@@ -309,21 +305,15 @@ void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
 //ADDING A NOTE
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 {
-	ArpModeType type = keyboard->arpModeType;
 	// if not in keymap or already on stack, dont do anything. else, add that note.
 	if ((keyboard->hexes[note].pitch < 0) || (tNoteStack_contains(&keyboard->stack, note) >= 0)) return;
 	else
 	{
-		if (keyboard->playMode == ArpMode)
-		{
-			if ((type >= ArpModeUp && type <= ArpModeUpDown) || type == ArpModeRandomWalk)	tKeyboard_orderedAddToStack(keyboard, note);
-			else																			tNoteStack_add(&keyboard->stack, note);
-
-		}
-		else // TouchMode
-		{
-			tNoteStack_add(&keyboard->stack, note);
+		tKeyboard_orderedAddToStack(keyboard, note);
+		tNoteStack_add(&keyboard->stack, note);
 			
+		if (keyboard->playMode != ArpMode)
+		{
 			BOOL found = FALSE;
 			for (int i = 0; i < keyboard->numVoices; i++)
 			{
@@ -377,6 +367,8 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 				
 			}
 		}
+		
+		
 	}
 }
 
@@ -441,3 +433,42 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 
 }
 
+
+void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
+{
+	for (int i = 0; i < 48; i++)
+	{
+		buffer[i*3] = keyboard->hexes[i].pitch >> 8;
+		buffer[(i*3) + 1] = keyboard->hexes[i].pitch & 0xff;
+		buffer[(i*3) + 2] = keyboard->hexes[i].color & 0xff;
+	}
+}
+
+void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
+{
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].pitch = (buffer[i*3] << 8) + buffer[(i*3)+1];
+		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*3)+2];
+	}
+}
+
+void tKeyboard_encode(tKeyboard* const keyboard, uint8_t* buffer)
+{
+	buffer[0] = keyboard->numVoices;
+	buffer[1] = keyboard->transpose >> 8;
+	buffer[2] = keyboard->transpose & 0xff;
+	buffer[3] = keyboard->playMode;
+	buffer[4] = keyboard->arpModeType;
+	tKeyboard_hexmapEncode(keyboard, &buffer[5]);
+}
+
+//3*48 + 5 = 149
+void tKeyboard_decode(tKeyboard* const keyboard, uint8_t* buffer)
+{
+	keyboard->numVoices = buffer[0];
+	keyboard->transpose = (buffer[1] << 8) +  buffer[2];
+	keyboard->playMode = buffer[3];
+	keyboard->arpModeType = buffer[4];
+	tKeyboard_hexmapDecode(keyboard, &buffer[5]);
+}

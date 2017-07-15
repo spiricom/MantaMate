@@ -30,7 +30,7 @@ extern uint8_t tuning8BitBuffer[TUNING_8BIT_BUFFER_SIZE];
 typedef struct _tTuningTable
 {
 	uint16_t tuningDACTable[128];
-	int16_t cardinality;
+	uint8_t cardinality;
 }tTuningTable;
 
 
