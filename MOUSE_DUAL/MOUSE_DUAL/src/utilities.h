@@ -228,24 +228,25 @@ typedef enum SuspendRetrieveType
 } SuspendRetrieveType;
 
 typedef enum SequencerPatternType {
-	LeftRightRowDown,
 	LeftRightRowUp,
-	LeftRightDiagDown,
+	LeftRightRowDown,
 	LeftRightDiagUp,
-	LeftRightColDown,
-	RightLeftColUp,
-	RandomWalk,
+	RightLeftDiagUp,
+	LeftRightColUp,
+	Caterpillar,
 	OrderTouch,
+	RandomPattern,
 	
 	//not using atm
 	RecordTouch,
 	RightLeftRowDown,
 	RightLeftRowUp,
 	RightLeftDiagDown,
-	RightLeftDiagUp,
-	LeftRightColUp,
+	RightLeftColUp,
+	LeftRightDiagDown,
+	LeftRightColDown,
 	RightLeftColDown,
-	FullRandom,
+	RandomWalk,
 	SequencerPatternTypeNil,
 	
 }SequencerPatternType;

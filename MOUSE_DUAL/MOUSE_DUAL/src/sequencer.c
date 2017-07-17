@@ -13,6 +13,8 @@ uint8_t pattern_col_down[MAX_STEPS] =				{0,8,16,24,  1,9,17,25,  2,10,18,26,  3
 	
 uint8_t pattern_col_up[MAX_STEPS] =					{24,16,8,0,  25,17,9,1,   26,18,10,2,   27,19,11,3,  28,20,12,4,  29,21,13,5,  30,22,14,6, 31,23,15,7};
 uint8_t pattern_row_reverse[MAX_STEPS] =			{7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,23,22,21,20,19,18,17,16,31,30,29,28,27,26,25,24};
+	
+uint8_t pattern_caterpillar[MAX_STEPS] =			{0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15,16,24,17,25,18,26,19,27,20,28,21,29,22,30,23,31};
 
 uint8_t pattern_diag[MAX_STEPS] =			{0, 1,8,16, 2,9,17,24, 3,10,18,25, 4,11,19,26, 5,12,20,27, 6,13,21,28, 7,14,22,29, 15,23,30, 31};
 uint8_t pattern_diag_reverse[MAX_STEPS] =	{0, 16,8,1, 24,17,9,2, 25,18,10,3, 26,19,11,4, 27,20,12,5, 28,21,13,6, 29,22,14,7, 30,23,15, 31};
@@ -118,53 +120,61 @@ int tSequencer_getHexFromStep(tSequencer* const seq, uint8_t in)
 		hex = pattern_diag_reverse[(seq->maxLength - 1) - in];
 	else if (pat == RightLeftDiagUp)
 		hex = pattern_diag[(seq->maxLength - 1) - in];
-	else if (pat == RandomWalk) //needs fixing - not sure I understand what you're up to well enough to fix...   as far as I understand it, the "in" input is the seq phasor, which can up to up to numbers beyond the current hex step number (i.e. up to 32). If that's true, how can we grab the current hex value so that we can return the properly incremented version? I'm confused...
+	else if (pat == RandomPattern) //needs fixing - not sure I understand what you're up to well enough to fix...   as far as I understand it, the "in" input is the seq phasor, which can up to up to numbers beyond the current hex step number (i.e. up to 32). If that's true, how can we grab the current hex value so that we can return the properly incremented version? I'm confused...
 	{
-		plusOrMinus = (uint8_t)((rand() >> 15) & 1); //coin flip   right shifting by 15 to avoid cyclic pattern in low 12 bits or so
-		hex = seq->currentStep;
-		if (plusOrMinus > 0)
+		if (seq->reverse)
 		{
-			//go up
-			while(1)
+			plusOrMinus = (uint8_t)((rand() >> 15) & 1); //coin flip   right shifting by 15 to avoid cyclic pattern in low 12 bits or so
+			hex = seq->currentStep;
+			if (plusOrMinus > 0)
 			{
-				hex = (hex + 1) % seq->maxLength;
-				if (seq->step[hex].toggled == 1)
+				//go up
+				while(1)
 				{
-					break;
+					hex = (hex + 1) % seq->maxLength;
+					if (seq->step[hex].toggled == 1)
+					{
+						break;
+					}
+				}
+			}
+			else
+			{
+				//go down
+				while(1)
+				{
+					if (hex > 0)
+					{
+						hex = (hex - 1) % seq->maxLength;
+						if (seq->step[hex].toggled == 1)
+						{
+							break;
+						}
+					}
+					else
+					{
+						hex = seq->maxLength-1;
+						if (seq->step[hex].toggled == 1)
+						{
+							break;
+						}
+					}
+
 				}
 			}
 		}
 		else
 		{
-			//go down
-			while(1)
-			{
-				if (hex > 0)
-				{
-					hex = (hex - 1) % seq->maxLength;
-					if (seq->step[hex].toggled == 1)
-					{
-						break;
-					}
-				}
-				else
-				{
-					hex = seq->maxLength-1;
-					if (seq->step[hex].toggled == 1)
-					{
-						break;
-					}
-				}
-
-			}
+			hex = (rand() >> 8) % seq->maxLength;
 		}
+		
 	}
-	else if (pat == FullRandom)
+	else if (pat == Caterpillar)
 	{
-		hex = (rand() >> 8) % seq->maxLength;
+		hex = pattern_caterpillar[in];
 	}
 	else if (pat == OrderTouch)
-		hex = tNoteStack_next(&seq->notestack);
+		hex = seq->notestack.notestack[in];
 	else
 		;//Other
 		
@@ -182,7 +192,7 @@ static int getIndexInPattern(uint8_t* pattern, uint8_t value)
 int tSequencer_getStepFromHex(tSequencer* const seq, uint8_t hex)
 {
 	SequencerPatternType pat = seq->pattern;
-	int step = -1;
+	int step = 0;
 	// WORKING: 1, 2, 7
 	// NOT WORKING: 3, 4, 5, 6 
 
@@ -198,17 +208,11 @@ int tSequencer_getStepFromHex(tSequencer* const seq, uint8_t hex)
 		step = getIndexInPattern(pattern_col_up, hex);
 	else if (pat == RightLeftColUp)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_up, hex);
-	else if (pat == RandomWalk) 
-	{
-			// TODO: Decide what to do for  Random. Just doing LeftRightRowDown for now
-			step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
-	}
 	else if (pat == OrderTouch)
 	{
 			// TODO: Decide what to do for Order. Just doing LeftRightRowDown for now
 			step = (seq->maxLength - 1) - getIndexInPattern(pattern_row_reverse, hex);
 	}
-	
 	else if (pat == LeftRightColUp)
 		step = getIndexInPattern(pattern_col_down, hex);
 	else if (pat == RightLeftRowDown)
@@ -219,6 +223,8 @@ int tSequencer_getStepFromHex(tSequencer* const seq, uint8_t hex)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_col_down, hex);
 	else if (pat == RightLeftDiagDown)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag_reverse, hex);
+	else if (pat == Caterpillar)
+		step = getIndexInPattern(pattern_caterpillar, hex);
 	else if (pat == RightLeftDiagUp)
 		step = (seq->maxLength - 1) - getIndexInPattern(pattern_diag, hex);
 	
@@ -234,7 +240,14 @@ void tSequencer_next(tSequencer* const seq)
 	
 	while (seq->notestack.size > 0)
 	{
-		if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
+		if (!seq->reverse)
+		{
+			if (++seq->phasor >= seq->maxLength) seq->phasor = 0;
+		}
+		else
+		{
+			if (--seq->phasor < 0) seq->phasor = seq->maxLength-1;
+		}
 		
 		hex = tSequencer_getHexFromStep(seq, seq->phasor);
 		
@@ -397,6 +410,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		seq->maxLength = 32;
 	}
 	
+	seq->reverse = FALSE;
 	seq->lastTouch = 0;
 	seq->transpose = 0;
 	seq->currentStep = 0;

@@ -381,6 +381,7 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 	else
 	{
 		tNoteStack_remove(&keyboard->stack, note);
+		tNoteStack_remove(&keyboard->orderStack, note);
 		
 		if (keyboard->playMode != ArpMode)
 		{

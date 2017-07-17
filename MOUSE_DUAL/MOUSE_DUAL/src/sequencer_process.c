@@ -61,8 +61,8 @@ uint8_t stepToHexUI(MantaInstrument, uint8_t noteIn);
 void downOctaveForEditStackSteps(MantaInstrument);
 void upOctaveForEditStackSteps(MantaInstrument);
 
-/* - - - - - - KEY PATTERNS - - - - - - - -*/
 
+/* - - - - - - KEY PATTERNS - - - - - - - -*/
 typedef enum TriggerPanelButtonType
 {
 	S1TrigPanelSelect = 0, 
@@ -70,6 +70,7 @@ typedef enum TriggerPanelButtonType
 	SXTrigPanelNil
 	
 } TriggerPanelButtonType;
+
 
 typedef enum PitchPanelButtonType
 {
@@ -91,7 +92,7 @@ typedef enum PitchPanelButtonType
 	KeyboardPanelGlide = 252,
 	KeyboardEndOctave = 12
 } PitchPanelButtonType;
-// Upper keyboard pattern
+
 uint8_t keyboard_pattern[16] = {KeyboardPanelKeyC,	    KeyboardPanelKeyD,		KeyboardPanelKeyE,	KeyboardPanelKeyF,		KeyboardPanelKeyG,		KeyboardPanelKeyA,		KeyboardPanelKeyB,		 KeyboardPanelRest, 
 								KeyboardPanelKeyCSharp, KeyboardPanelKeyDSharp, KeyboardPanelGlide, KeyboardPanelKeyFSharp, KeyboardPanelKeyGSharp, KeyboardPanelKeyASharp, KeyboardPanelOctaveDown, KeyboardPanelOctaveUp};
 	
@@ -303,9 +304,7 @@ OptionType defaultOptionMode[16] = {
 	OptionNil,
 	OptionLeft,
 	OptionRight
-	
 };
-
 
 uint8_t amberHexes[NUM_INST][MAX_STEPS];
 
@@ -401,7 +400,7 @@ void initMantaSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	shiftOption1 =				FALSE;
 	shiftOption2 =				FALSE;
-	shiftOption2Lock = FALSE;
+	shiftOption2Lock =			FALSE;
 	
 	resetEditStack();
 	
@@ -1050,16 +1049,19 @@ void touchLowerHex(uint8_t hexagon)
 	
 	if (manta[currentInstrument].type == SequencerInstrument)
 	{
-		if (edit_vs_play == PlayToggleMode && sequencer->playMode == TouchMode)
+		if (sequencer->playMode == TouchMode)
 		{
 			jumpToStep(currentInstrument, hexagon);
 			
-			manta_set_LED_hex(hexagon, Amber);
-			if (sequencer->lastTouch != hexagon) manta_set_LED_hex(sequencer->lastTouch, Off);
+			if (edit_vs_play == PlayToggleMode)
+			{
+				manta_set_LED_hex(hexagon, Amber);
+				if (sequencer->lastTouch != hexagon) manta_set_LED_hex(sequencer->lastTouch, Off);
+			}
 			
 			sequencer->lastTouch = hexagon;
 			
-			return;	
+			if (edit_vs_play == PlayToggleMode) return;	
 		}
 		
 		if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
@@ -1420,8 +1422,23 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 									
 	if (whichOptionType <= OptionPatternEight)
 	{
-		if (type == SequencerInstrument)		tSequencer_setPattern(sequencer, whichOptionType);
-		else if (type == KeyboardInstrument)	tKeyboard_setArpModeType(keyboard, whichOptionType);
+		if (type == SequencerInstrument)		
+		{
+			if (whichOptionType != sequencer->pattern)
+			{
+				sequencer->reverse = FALSE;
+			}
+			else
+			{
+				sequencer->reverse = (sequencer->reverse ? FALSE : TRUE);
+			}
+			
+			tSequencer_setPattern(sequencer, whichOptionType);
+		}
+		else if (type == KeyboardInstrument)	
+		{
+			tKeyboard_setArpModeType(keyboard, whichOptionType);
+		}
 		
 		prev_pattern_hex = current_pattern_hex;
 		current_pattern_hex = whichHex;
@@ -2959,7 +2976,7 @@ void setOptionLEDs(void)
 		}
 		else if (option <= OptionPatternEight)
 		{
-			manta_set_LED_hex(hex,	(type == SequencerInstrument) ? ((option == sequencer->pattern) ? Red : Amber) :
+			manta_set_LED_hex(hex,	(type == SequencerInstrument) ? ((option == sequencer->pattern) ? (sequencer->reverse ? Red : BothOn) : Amber) : 
 									(type == KeyboardInstrument) ? ((option == keyboard->arpModeType) ? Red : Amber) : Off);	
 		}
 		else if (!takeover && option == OptionLeft)

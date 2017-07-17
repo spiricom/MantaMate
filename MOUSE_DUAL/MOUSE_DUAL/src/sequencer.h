@@ -78,6 +78,7 @@ typedef struct _tSequencer
 	MantaPlayMode playMode;
 	// - - - - - - - - - - -
 	
+	BOOL reverse;
 	int phasor;
 	int currentStep,prevStep;
 	int stepGo;
