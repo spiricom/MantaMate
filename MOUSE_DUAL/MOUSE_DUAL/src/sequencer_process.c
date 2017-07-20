@@ -383,6 +383,8 @@ void initMantaSequencer(void)
 	shiftOption2 =				FALSE;
 	shiftOption2Lock =			FALSE;
 	
+	
+	currentHexUI = -1;
 	resetEditStack();
 	
 	// Initialize the noteOnStack. :D !!!
@@ -406,20 +408,20 @@ void initMantaSequencer(void)
 				tSequencer_init(&manta[i].sequencer, PitchMode, 32);
 				tIRampSetTime(&out[i][CVTRIGGER], 0);
 
-				tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
-				memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
+				//tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
+				//memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
 				
-				compositionMap[i][0] = true;
+				compositionMap[i][0] = false;
 				currentComp[i] = 0;
 			}
 			else
 			{   //otherwise we are loading a saved preset, so we need to prepare that data properly
 				tSequencer_init(&manta[i].sequencer, PitchMode, 32);
-				tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
-				memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
-				compositionMap[i][0] = true;
+				//tSequencer_encode(&manta[i].sequencer, encodeBuffer[i]);
+				//memoryInternalWriteSequencer(i, 0, encodeBuffer[i]);
+				compositionMap[i][0] = false;
 				currentComp[i] = 0;
-				tSequencer_decode(&manta[i].sequencer, decodeBuffer[i]);
+				//tSequencer_decode(&manta[i].sequencer, decodeBuffer[i]);
 			}
 		}
 	}

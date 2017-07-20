@@ -260,7 +260,17 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
+	freeze_LED_update = TRUE;
+	mantaReady = FALSE;
 	type_of_device_connected = MantaConnected;
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 16; j++)
+		{
+			uhi_manta_report[i][j] = 0;
+		}
+	}
+
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
 	new_manta_attached = true;
@@ -268,12 +278,40 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
 {
+	int i = 0;
+	
 	if (uhi_hid_manta_dev.dev != dev) 
 		return; // Device not enabled in this interface
+	mantaReady = FALSE;
+	freeze_LED_update = TRUE;
+	for (i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 16; j++)
+		{
+			uhi_manta_report[i][j] = 0;
+		}
+	}
 
 	uhi_hid_manta_dev.dev = NULL;
 	Assert(uhi_hid_manta_dev.report!=NULL);
 	free(uhi_hid_manta_dev.report);
+
+	// Decode hexagon buttons
+	for(i=0; i<48; i++)
+	{
+		butt_states[i] = 0;
+	}
+	//decode sliders
+	for(i=0; i<4; i++)
+	sliders[i] = 0;
+	//decode function buttons
+	for(i=0; i<4; i++)
+	{
+		func_button_states[i] = 0;
+	}
+	processSliders(0, 0);
+	processSliders(1, 0);
+	processHexTouch();
 	UHI_HID_MANTA_CHANGE(dev, false);
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;

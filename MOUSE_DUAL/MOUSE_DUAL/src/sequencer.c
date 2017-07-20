@@ -415,7 +415,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	seq->prevStep = 0;
 	seq->lengthCounter = 0;
 	seq->phasor = 0;
-	seq->pattern = LeftRightRowDown;
+	seq->pattern = LeftRightRowUp;
 	seq->octave = 3;
 	seq->pitchOrTrigger = type;
 	seq->playMode = ToggleMode;
