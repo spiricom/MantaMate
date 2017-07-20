@@ -3016,8 +3016,8 @@ void setOptionLEDs(void)
 		else if (option == OptionEditType)
 		{
 			manta_set_LED_hex(hex,	(sequencer->editType == NormalEdit) ? Amber : 
-									(sequencer->editType == RandomEdit) ? BothOn : 
-									(sequencer->editType == SubtleEdit) ? Red :
+									(sequencer->editType == RandomEdit) ? Red : 
+									(sequencer->editType == SubtleEdit) ? BothOn :
 									Off);
 		}
 		else if (option == OptionKeyArp)
