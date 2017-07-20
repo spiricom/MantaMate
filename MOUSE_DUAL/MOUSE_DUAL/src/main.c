@@ -268,7 +268,15 @@ int main(void){
 	sysclk_init();
 	flashc_set_wait_state(1); // necessary because the MCU is running at higher than 33MHz. -JS
 	board_init();
-
+	
+	//comment this bootloader check in when the firmware is ready for release
+	/*
+	if (downSwitch() > 0) //enter MSC bootloader instead of main program if the down switch is held during startup
+	{
+		usb_msc_bl_start();
+	}
+	*/
+	
 	ui_init();
 
 	//initialize the SPI bus for DAC
@@ -393,6 +401,7 @@ int main(void){
 		sleepmgr_enter_sleep();
 		
 	}
+	
 }
 
 
@@ -1732,7 +1741,7 @@ void memoryWait(void)
 {
 	cpu_delay_us(20,64000000); // what should this be? needs testing
 }
-
+/*
 void enterBootloader(void)
 {
 	//Reset into Bootloader 
@@ -1746,6 +1755,18 @@ void enterBootloader(void)
 	wdt_enable(&opt);
 	while(1);
 }
+*/
+
+void usb_msc_bl_start (void)
+{
+	Disable_global_interrupt();
+	// Write at destination (AVR32_FLASHC_USER_PAGE + ISP_FORCE_OFFSET) the value
+	// ISP_FORCE_VALUE. Size of ISP_FORCE_VALUE is 4 bytes.
+	flashc_memset32(AVR32_FLASHC_USER_PAGE + ISP_FORCE_OFFSET, ISP_FORCE_VALUE, 4, TRUE);
+	wdt_enable(17777);
+	while (1);           // wait WDT time-out to reset and start the MSC bootloader
+}
+
 
 static void setDACSPI(spi_options_t spiOptions)
 {
