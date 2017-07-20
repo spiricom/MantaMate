@@ -120,15 +120,14 @@ tDirect fullDirect;
 tMIDIKeyboard MIDIKeyboard;
 tTuningTable myGlobalTuningTable;
 
-
-// ADD THESEEEEE
 bool compositionMap[2][NUM_COMP];
 int currentComp[2];
-// ADDD THESE TWoo
 	
 int currentHexmapHex;
 
 int currentTuningHex;
+
+int subtleInterval;
 
 #define NUM_BYTES_PER_PRESET (77*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER) + (1*NUM_BYTES_PER_MIDIKEYBOARD) + (2*NUM_BYTES_PER_COMPOSITION_BANK))
 //#define NUM_BYTES_PER_PRESET 768 //(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD))
@@ -179,6 +178,28 @@ tMantaInstrument manta[NUM_INST];
 
 void mantaMatePreset_encode(uint8_t* buffer);
 void mantaMatePreset_decode(uint8_t* buffer);
+
+// OUTPUT
+void dacSendPitchMode	(MantaInstrument, uint8_t step);
+void dacSendTriggerMode	(MantaInstrument, uint8_t step);
+
+// LEDs
+void setSequencerLEDs		(void);
+void setKeyboardLEDs		(void);
+void setDirectLEDs			(void);
+
+void setPanelSelectLEDs		(void);
+void setSliderLEDsFor		(MantaInstrument, int note);
+void setKeyboardLEDsFor		(MantaInstrument, int note);
+void setOptionLEDs			(void);
+void setCompositionLEDs     (void);
+void setHexmapLEDs			(void);
+void setHexmapConfigureLEDs	(void);
+void setDirectOptionLEDs	(void);
+void setSequencerLEDsFor	(MantaInstrument);
+
+void setTriggerPanelLEDsFor	(MantaInstrument, TriggerPanel panel);
+void resetSliderMode		(void);
 
 tIRamp out[2][6];
 

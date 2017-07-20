@@ -174,7 +174,6 @@ unsigned short calculateDACvalue(uint8_t noteVal, TuningLoadLocation local_or_ex
 	uint32_t octavenum;
 	uint32_t templongoctave;
 	uint32_t DACval;
-	uint32_t note;
 
 	pitchclass = (noteVal % cardinality);  //get the pitch class
 	octavenum = noteVal / cardinality;  //get which octave it occurs in

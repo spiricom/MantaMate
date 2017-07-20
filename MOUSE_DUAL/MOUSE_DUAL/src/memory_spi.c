@@ -13,6 +13,7 @@
 
 
 #include "memory_spi.h"
+#include "main.h"
 
 uint8_t whichSequence = 0;
 uint8_t sequencePageNumber = 0;
@@ -265,6 +266,14 @@ void continueLoadingPresetFromExternalMemory(void)
 		//mark the load procedure as finished
 		loadPending = 0;
 		mantaMatePreset_decode(mantamate_internal_preset_buffer);
+		
+		setKeyboardLEDs();
+		setDirectLEDs();
+		setSequencerLEDs();
+		shiftOption1 = FALSE;
+		shiftOption2 = FALSE;
+		hexmapEditMode = FALSE;
+		displayState = GlobalDisplayStateNil;
 
 	}
 

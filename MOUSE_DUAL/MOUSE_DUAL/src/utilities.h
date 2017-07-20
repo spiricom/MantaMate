@@ -171,6 +171,16 @@ typedef enum MantaPlayMode {
 	MantaPlayModeNil,
 }MantaPlayMode;
 
+
+typedef enum EditModeType
+{
+	NormalEdit,
+	RandomEdit,
+	SubtleEdit,
+	EditModeNil,
+	
+} EditModeType;
+
 typedef enum MantaKeySelectMode {
 	KeyMode = 0,
 	SelectMode,
@@ -275,7 +285,6 @@ typedef enum StepParameterType {
 	Fine,
 	Octave,
 	Note,
-	KbdHex,
 	PitchGlide,
 	CVGlide,
 	On1,

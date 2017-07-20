@@ -49,7 +49,6 @@ void tSequencer_setParameterValue(tSequencer* const seq, uint8_t step, StepParam
 	else if (param == Fine)				seq->step[step].fine = value;
 	else if (param == Octave)			seq->step[step].octave = value;
 	else if (param == Note)				seq->step[step].note = value;
-	else if (param == KbdHex)			seq->step[step].kbdhex = value;
 	else if (param == PitchGlide)		seq->step[step].pglide = value;
 	else if (param ==CVGlide)			seq->step[step].cvglide = value;
 	else if (param == On1)				seq->step[step].on[PanelOne] = value;
@@ -74,7 +73,6 @@ uint16_t tSequencer_getParameterValue(tSequencer* const seq, uint8_t step, StepP
 	else if (param == Fine)			val = seq->step[step].fine;
 	else if (param == Octave)		val = seq->step[step].octave;
 	else if (param == Note)			val = seq->step[step].note;
-	else if (param == KbdHex)		val = seq->step[step].kbdhex;
 	else if (param == PitchGlide)	val = seq->step[step].pglide;
 	else if (param == CVGlide)		val = seq->step[step].cvglide;
 	else if (param == On1)			val = seq->step[step].on[PanelOne];
@@ -437,7 +435,6 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		seq->step[i].pitch = 0;  // keyboard pitch zero
 		seq->step[i].fine = 2048; // 2048 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
 		seq->step[i].octave = 3;  // octave
-		seq->step[i].kbdhex = MAX_STEPS + 0;  // hexagon number in keyboard range
 		seq->step[i].pglide = 5;
 		seq->step[i].cvglide = 5;
 		
@@ -476,7 +473,6 @@ CV4,
 Pitch,
 Fine,
 Octave,
-KbdHex,
 PitchGlide,
 CVGlide
 */
@@ -514,11 +510,10 @@ void        tSequencer_encode(tSequencer* const seq, uint8_t* sBuffer)
 		sBuffer[offset+11] = (seq->step[hex].fine >> 8) & 255;
 		sBuffer[offset+12] = seq->step[hex].fine & 255;
 		sBuffer[offset+13] = seq->step[hex].octave;
-		sBuffer[offset+14] = seq->step[hex].kbdhex;
-		sBuffer[offset+15] = (seq->step[hex].pglide >> 8) & 255;
-		sBuffer[offset+16] = seq->step[hex].pglide & 255;
-		sBuffer[offset+17] = (seq->step[hex].cvglide >> 8) & 255;
-		sBuffer[offset+18] = seq->step[hex].cvglide & 255;
+		sBuffer[offset+14] = (seq->step[hex].pglide >> 8) & 255;
+		sBuffer[offset+15] = seq->step[hex].pglide & 255;
+		sBuffer[offset+16] = (seq->step[hex].cvglide >> 8) & 255;
+		sBuffer[offset+17] = seq->step[hex].cvglide & 255;
 	}
 }
 
@@ -553,9 +548,8 @@ void	 tSequencer_decode(tSequencer* const seq, uint8_t* sBuffer)
 		seq->step[hex].pitch = sBuffer[offset+10];
 		seq->step[hex].fine = (sBuffer[offset+11] << 8) + sBuffer[offset+12];//
 		seq->step[hex].octave = sBuffer[offset+13];
-		seq->step[hex].kbdhex = sBuffer[offset+14];
-		seq->step[hex].pglide = (sBuffer[offset+15] << 8) + sBuffer[offset+16];//
-		seq->step[hex].cvglide = (sBuffer[offset+17] << 8) + sBuffer[offset+18];//
+		seq->step[hex].pglide = (sBuffer[offset+14] << 8) + sBuffer[offset+15];//
+		seq->step[hex].cvglide = (sBuffer[offset+16] << 8) + sBuffer[offset+17];//
 	}
 }
 

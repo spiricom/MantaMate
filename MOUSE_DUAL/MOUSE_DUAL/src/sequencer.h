@@ -44,7 +44,6 @@ typedef struct _tStep
 	uint16_t pitch;
 	uint16_t fine;   
 	uint16_t octave;
-	uint16_t kbdhex;
 	uint16_t pglide;
 	;
 	
@@ -77,6 +76,8 @@ typedef struct _tSequencer
 	signed int transpose;
 	MantaPlayMode playMode;
 	// - - - - - - - - - - -
+	
+	EditModeType editType;
 	
 	BOOL reverse;
 	int phasor;

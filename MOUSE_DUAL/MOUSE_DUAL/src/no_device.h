@@ -11,6 +11,7 @@
 
 #include "main.h"
 
+#define EIGHT_BIT_DIV (RAND_MAX / 256)
 #define TWELVE_BIT_DIV (RAND_MAX / 4096)
 #define SIXTEEN_BIT_DIV (RAND_MAX / 65535)
 
