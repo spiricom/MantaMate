@@ -125,7 +125,6 @@ unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
 
-BOOL mantaReady = FALSE;
 
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
 																													   // 33																												56																				  72								 78				
@@ -394,11 +393,11 @@ int main(void){
 
 		if (new_manta_attached)
 		{
-			delay_ms(150);
+			delay_ms(50);
 			manta_LED_set_mode(HOST_CONTROL_FULL);
 			manta_clear_all_LEDs();
 			manta_send_LED();
-			mantaReady = TRUE;
+			type_of_device_connected = MantaConnected;
 			freeze_LED_update = FALSE;
 			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
@@ -545,7 +544,7 @@ static void tc2_irq(void)
 			}
 		}
 	}
-	else if ((type_of_device_connected == MantaConnected) && (mantaReady == TRUE))
+	else if (type_of_device_connected == MantaConnected)
 	{
 		if (!takeover) // Dual instrument, not takeover
 		{
@@ -691,7 +690,7 @@ static void tc3_irq(void)
 
 	tc_read_sr(TC3, TC3_CHANNEL);
 
-	if ((type_of_device_connected == MantaConnected) && (mantaReady == TRUE))
+	if (type_of_device_connected == MantaConnected)
 	{
 		if (!takeover) // Dual instrument, not takeover
 		{
@@ -1573,7 +1572,7 @@ void Save_Switch_Check(void)
 void updatePreset(void)
 {
 	
-	if ((type_of_device_connected == MantaConnected) && (mantaReady == TRUE))
+	if (type_of_device_connected == MantaConnected)
 	{
 		loadMantaPreset();
 	}
@@ -1667,7 +1666,7 @@ void updateSave(void)
 
 void clockHappened(void)
 {
-	if ((type_of_device_connected == MantaConnected) && (mantaReady == TRUE))
+	if (type_of_device_connected == MantaConnected)
 	{
 		if (manta[InstrumentOne].type == SequencerInstrument) sequencerStep(InstrumentOne);
 		if (manta[InstrumentTwo].type == SequencerInstrument) sequencerStep(InstrumentTwo);

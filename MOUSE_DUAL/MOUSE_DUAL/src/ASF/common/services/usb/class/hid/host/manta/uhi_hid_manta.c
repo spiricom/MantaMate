@@ -261,8 +261,7 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	freeze_LED_update = TRUE;
-	mantaReady = FALSE;
-	type_of_device_connected = MantaConnected;
+
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 16; j++)
@@ -282,7 +281,7 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	
 	if (uhi_hid_manta_dev.dev != dev) 
 		return; // Device not enabled in this interface
-	mantaReady = FALSE;
+
 	freeze_LED_update = TRUE;
 	for (i = 0; i < 8; i++)
 	{
