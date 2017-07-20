@@ -333,6 +333,11 @@ uint8_t downSwitch(void);
 uint8_t preferencesSwitch(void);
 uint8_t saveSwitch(void);
 
+//bootloader related values
+#define ISP_FORCE_VALUE               ('M' << 24 | 'S' << 16 | 'I' << 8 | 'F')
+#define ISP_FORCE_OFFSET              0x1F8
+//start bootloader function
+void usb_msc_bl_start(void);
 
 /*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
