@@ -598,7 +598,9 @@ void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 		buffer[2] = keyboard->transpose & 0xff;
 		buffer[3] = keyboard->playMode;
 		buffer[4] = keyboard->arpModeType;
-		int index_count = 5;
+		buffer[5] = keyboard->learned;
+		buffer[6] = keyboard->firstFreeOutput;
+		int index_count = 7;
 		
 		for (int i = 0; i < 128; i++)
 		{
@@ -610,14 +612,16 @@ void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 		}
 }
 
-// 128*2 + 5 = 261
+// 128*2 + 7 = 263
 void tMIDIKeyboard_decode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 {
 	keyboard->numVoices = buffer[0];
 	keyboard->transpose = (buffer[1] << 8) +  buffer[2];
 	keyboard->playMode = buffer[3];
 	keyboard->arpModeType = buffer[4];
-	int index_count = 5;
+	keyboard->learned = buffer[5];
+	keyboard->firstFreeOutput = buffer[6];
+	int index_count = 7;
 		
 	for (int i = 0; i < 128; i++)
 	{

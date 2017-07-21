@@ -60,14 +60,16 @@
 #include "no_device.h"
 #include "midi.h"
 #include "tuning.h"
-
+#include "no_device.h"
+#include "wdt.h"
 
 
 #define NUM_BYTES_PER_KEYBOARD 149
 #define NUM_BYTES_PER_DIRECT 24
-#define NUM_BYTES_PER_MIDIKEYBOARD 261
+#define NUM_BYTES_PER_MIDIKEYBOARD 263
 #define NUM_BYTES_PER_SEQUENCER  615 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
 #define NUM_BYTES_PER_COMPOSITION_BANK  (NUM_BYTES_PER_SEQUENCER*14) //there are now 14 possible sequence slots in composition mode
+#define NUM_BYTES_PER_NODEVICE_PATTERN ((32 * 2) * 12)
 
 #define NUM_INST 2
 #define NUM_COMP 14
@@ -119,6 +121,10 @@ tKeyboard fullKeyboard;
 tDirect fullDirect;
 tMIDIKeyboard MIDIKeyboard;
 tTuningTable myGlobalTuningTable;
+tNoDevicePattern noDevicePatterns;
+
+
+wdt_opt_t myWDT;
 
 bool compositionMap[2][NUM_COMP];
 int currentComp[2];
@@ -129,21 +135,31 @@ int currentTuningHex;
 
 int subtleInterval;
 
-#define NUM_BYTES_PER_PRESET (77*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER) + (1*NUM_BYTES_PER_MIDIKEYBOARD) + (2*NUM_BYTES_PER_COMPOSITION_BANK))
-//#define NUM_BYTES_PER_PRESET 768 //(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD))
+#define NUM_BYTES_PER_MANTA_PRESET (76*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER) + (2*NUM_BYTES_PER_COMPOSITION_BANK))
+#define NUM_PAGES_PER_MANTA_PRESET 76//((NUM_BYTES_PER_PRESET / 256) + 1) 
+#define NUM_SECTORS_PER_MANTA_PRESET 5//((NUM_PAGES_PER_PRESET / 16) + 1)
+#define NUM_SECTORS_BETWEEN_MANTA_PRESETS 16 // leave a bunch of space for manta presets by aligning the presets to block edges
 
-#define NUM_PAGES_PER_PRESET 77//((NUM_BYTES_PER_PRESET / 256) + 1) 43
-#define NUM_SECTORS_PER_PRESET 5//((NUM_PAGES_PER_PRESET / 16) + 1) 3
+#define NUM_BYTES_PER_MIDI_PRESET (3*256) // 263(num bytes per midi preset besides midikeyboard) + 263(num bytes per midikeyboard) rounded up to multiple of 256 bytes
+#define NUM_PAGES_PER_MIDI_PRESET 3//((NUM_BYTES_PER_PRESET / 256) + 1) 
+#define NUM_SECTORS_PER_MIDI_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1) 
 
+#define NUM_BYTES_PER_NODEVICE_PRESET (4*256) // 3 + NUM_BYTES_PER_NODEVICE_PATTERN (32 steps, 2 bytes per step, * 12 outputs) rounded up to multiple of 256 bytes
+#define NUM_PAGES_PER_NODEVICE_PRESET 4//((NUM_BYTES_PER_PRESET / 256) + 1)
+#define NUM_SECTORS_PER_NODEVICE_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
 
-
-#define STARTUP_STATE_SECTOR 2000
-#define TUNING_STARTING_SECTOR 1600
-#define HEXMAP_STARTING_SECTOR 1700
 #define NUM_PAGES_PER_TUNING 3
 #define NUM_PAGES_PER_HEXMAP 1
+#define NUM_PAGES_PER_STARTUP_STATE 1
 
-uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_PRESET]; //this is currently 10922
+#define MANTA_PRESET_STARTING_SECTOR 0
+#define TUNING_STARTING_SECTOR 1600
+#define HEXMAP_STARTING_SECTOR 1700
+#define STARTUP_STATE_SECTOR 2000
+#define MIDI_PRESET_STARTING_SECTOR 3000
+#define NODEVICE_PRESET_STARTING_SECTOR 3100
+
+uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //this is currently 19456
 
 #define GLOBALS_BYTE_ADDRESS 0
 
@@ -155,8 +171,7 @@ uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_PRESET]; //this is curren
 #define DIRECT2_BYTE_ADDRESS (DIRECT1_BYTE_ADDRESS + NUM_BYTES_PER_DIRECT)
 #define FULLDIRECT_BYTE_ADDRESS (DIRECT2_BYTE_ADDRESS + NUM_BYTES_PER_DIRECT)
 
-#define MIDIKEYBOARD_BYTE_ADDRESS (FULLDIRECT_BYTE_ADDRESS + NUM_BYTES_PER_DIRECT)
-#define SEQUENCER1_BYTE_ADDRESS (MIDIKEYBOARD_BYTE_ADDRESS +  NUM_BYTES_PER_MIDIKEYBOARD)
+#define SEQUENCER1_BYTE_ADDRESS  (FULLDIRECT_BYTE_ADDRESS + NUM_BYTES_PER_DIRECT)
 #define SEQUENCER2_BYTE_ADDRESS (SEQUENCER1_BYTE_ADDRESS +  NUM_BYTES_PER_SEQUENCER)
 
 #define COMPOSITIONBANK1_BYTE_ADDRESS (SEQUENCER2_BYTE_ADDRESS + NUM_BYTES_PER_SEQUENCER)
@@ -176,8 +191,14 @@ extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITI
 tMantaInstrument manta[NUM_INST];
 // - - - - - - - - - - - - - - - - - - - - -
 
-void mantaMatePreset_encode(uint8_t* buffer);
-void mantaMatePreset_decode(uint8_t* buffer);
+void mantaPreset_encode(uint8_t* buffer);
+void mantaPreset_decode(uint8_t* buffer);
+
+void midiPreset_encode(uint8_t* buffer);
+void midiPreset_decode(uint8_t* buffer);
+
+void noDevicePreset_encode(uint8_t* buffer);
+void noDevicePreset_decode(uint8_t* buffer);
 
 // OUTPUT
 void dacSendPitchMode	(MantaInstrument, uint8_t step);

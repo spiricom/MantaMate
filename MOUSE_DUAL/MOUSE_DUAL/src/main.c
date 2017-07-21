@@ -330,11 +330,11 @@ int main(void){
 	while (true) {	
 
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
-		if (savePending)
+		if (mantaSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
-				continueStoringPresetToExternalMemory();
+				continueStoringMantaPresetToExternalMemory();
 			}
 		}
 		else if (tuningSavePending)
@@ -361,11 +361,11 @@ int main(void){
 			}
 		}
 
-		else if (loadPending)
+		else if (mantaLoadPending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
-				continueLoadingPresetFromExternalMemory();
+				continueLoadingMantaPresetFromExternalMemory();
 			}
 		}
 		
@@ -515,9 +515,9 @@ static void tc2_irq(void)
 	{
 		for (int i = 0; i < 12; i++)
 		{
-			if (noDeviceTrigCount[i] > 0)
+			if (noDevicePatterns.trigCount[i] > 0)
 			{
-				if (--(noDeviceTrigCount[i]) == 0)
+				if (--(noDevicePatterns.trigCount[i]) == 0)
 				{
 					sendDataToOutput(i, 0, 0x0);
 				}
@@ -1642,6 +1642,22 @@ void Save_Switch_Check(void)
 
 void updatePreset(void)
 {
+	if (preset_num >= 10)
+	{
+		if (type_of_device_connected == MantaConnected)
+		{
+			initiateLoadingMantaPresetFromExternalMemory();
+		}
+		else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+		{
+			initiateLoadingMidiPresetFromExternalMemory();
+		}
+		else if (type_of_device_connected == NoDeviceConnected)
+		{
+			initiateLoadingNoDevicePresetFromExternalMemory();
+		}
+	}
+	
 	
 	if (type_of_device_connected == MantaConnected)
 	{
@@ -1662,11 +1678,6 @@ void updatePreset(void)
 	else if (type_of_device_connected == NoDeviceConnected)
 	{
 		loadNoDevicePreset();
-	}
-	
-	if (preset_num >= 10)
-	{
-		initiateLoadingPresetFromExternalMemory();
 	}
 }
 
@@ -1728,7 +1739,18 @@ void updateSave(void)
 	}
 	else
 	{
-		initiateStoringPresetToExternalMemory();
+		if (type_of_device_connected == MantaConnected)
+		{
+			initiateStoringMantaPresetToExternalMemory();
+		}
+		else if ((type_of_device_connected == MIDIKeyboardConnected)||(type_of_device_connected == MIDIComputerConnected))
+		{
+			initiateStoringMidiPresetToExternalMemory();
+		}
+		else if (type_of_device_connected == NoDeviceConnected)
+		{
+			initiateStoringNoDevicePresetToExternalMemory();
+		}		
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
@@ -1819,13 +1841,15 @@ void memoryWait(void)
 	cpu_delay_us(20,64000000); // what should this be? needs testing
 }
 
+
 void usb_msc_bl_start (void)
 {
 	Disable_global_interrupt();
 	// Write at destination (AVR32_FLASHC_USER_PAGE + ISP_FORCE_OFFSET) the value
 	// ISP_FORCE_VALUE. Size of ISP_FORCE_VALUE is 4 bytes.
 	flashc_memset32(AVR32_FLASHC_USER_PAGE + ISP_FORCE_OFFSET, ISP_FORCE_VALUE, 4, TRUE);
-	wdt_enable(17777);
+	myWDT.us_timeout_period = 17777;
+	wdt_enable(&myWDT);
 	while (1);           // wait WDT time-out to reset and start the MSC bootloader
 }
 
@@ -2087,7 +2111,7 @@ void loadNoDevicePreset(void)
 	;
 }
 
-void mantaMatePreset_encode(uint8_t* buffer)
+void mantaPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
@@ -2145,9 +2169,6 @@ void mantaMatePreset_encode(uint8_t* buffer)
 	tDirect_encode(&fullDirect, &buffer[indexCounter]);
 	indexCounter += NUM_BYTES_PER_DIRECT;
 	
-	tMIDIKeyboard_encode(&MIDIKeyboard, &buffer[indexCounter]);
-	indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
-	
 	tSequencer_encode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
 	indexCounter += NUM_BYTES_PER_SEQUENCER;
 	tSequencer_encode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
@@ -2165,7 +2186,7 @@ void mantaMatePreset_encode(uint8_t* buffer)
 	
 }
 
-void mantaMatePreset_decode(uint8_t* buffer)
+void mantaPreset_decode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	uint16_t lowByte, highByte;
@@ -2229,9 +2250,6 @@ void mantaMatePreset_decode(uint8_t* buffer)
 		tDirect_decode(&fullDirect, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_DIRECT;
 		
-		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
-		
 		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
@@ -2246,7 +2264,96 @@ void mantaMatePreset_decode(uint8_t* buffer)
 				memoryInternalCompositionBuffer[inst][i] = buffer[indexCounter++];
 			}
 		}
+	}
+}
+
+
+void midiPreset_encode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	
+	buffer[indexCounter++] = 1; // MantaMateVersion
+	
+	buffer[indexCounter++] = globalPitchGlide >> 8;
+	buffer[indexCounter++] = globalPitchGlide & 0xff;
+	
+	buffer[indexCounter++] = globalCVGlide >> 8;
+	buffer[indexCounter++] = globalCVGlide & 0xff;
+	
+	buffer[indexCounter++] = myGlobalTuningTable.cardinality;
+	for (int i = 0; i < 128; i++)
+	{
+		buffer[indexCounter++] = (myGlobalTuningTable.tuningDACTable[i] >> 8);
+		buffer[indexCounter++] = (myGlobalTuningTable.tuningDACTable[i] & 0xff);
+	}
+	buffer[indexCounter++] = globalTuning;
+	
+	tMIDIKeyboard_encode(&MIDIKeyboard, &buffer[indexCounter]);
+	indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
+}
+
+
+void midiPreset_decode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	uint16_t lowByte, highByte;
+	
+	int version = buffer[indexCounter++];
+	
+	if (version == 1)
+	{
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
 		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		globalTuning = buffer[indexCounter++];
+		
+		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
+		
+	}
+
+}
+
+
+void noDevicePreset_encode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	
+	buffer[indexCounter++] = 1; // MantaMateVersion
+	
+	buffer[indexCounter++] = globalCVGlide >> 8;
+	buffer[indexCounter++] = globalCVGlide & 0xff;
+	
+	//tNoDevice_encode(&noDevicePattern, &buffer[indexCounter]);
+}
+
+
+void noDevicePreset_decode(uint8_t* buffer)
+{
+	uint32_t indexCounter = 0;
+	uint16_t lowByte, highByte;
+	
+	int version = buffer[indexCounter++];
+	
+	if (version == 1)
+	{
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		//tNoDevice_decode(&NoDevicePattern, &buffer[indexCounter]);	
 	}
 
 }

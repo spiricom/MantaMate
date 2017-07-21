@@ -20,8 +20,12 @@ extern uint32_t sectors_left_to_erase;
 extern uint16_t currentSector;
 extern uint16_t currentPage;
 extern uint16_t startingSector;
-extern unsigned char savePending;
-extern unsigned char loadPending;
+extern unsigned char mantaSavePending;
+extern unsigned char mantaLoadPending;
+extern unsigned char midiSavePending;
+extern unsigned char midiLoadPending;
+extern unsigned char noDeviceSavePending;
+extern unsigned char noDeviceLoadPending;
 extern unsigned char tuningSavePending;
 extern unsigned char tuningLoadPending;
 extern unsigned char startupStateSavePending;
@@ -36,10 +40,20 @@ void memorySPIRead(int sector, int page, uint8_t* buffer, int numBytes);
 void memorySPIEraseSector(uint16_t sector); // Sector can be 0-2047
 void memorySPIEraseBlock(uint16_t block); // Block 0 - 127
 
-void initiateStoringPresetToExternalMemory(void);
-void continueStoringPresetToExternalMemory(void);
-void initiateLoadingPresetFromExternalMemory(void);
-void continueLoadingPresetFromExternalMemory(void);
+void initiateStoringMantaPresetToExternalMemory(void);
+void continueStoringMantaPresetToExternalMemory(void);
+void initiateLoadingMantaPresetFromExternalMemory(void);
+void continueLoadingMantaPresetFromExternalMemory(void);
+
+void initiateStoringMidiPresetToExternalMemory(void);
+void continueStoringMidiPresetToExternalMemory(void);
+void initiateLoadingMidiPresetFromExternalMemory(void);
+void continueLoadingMidiPresetFromExternalMemory(void);
+
+void initiateStoringNoDevicePresetToExternalMemory(void);
+void continueStoringNoDevicePresetToExternalMemory(void);
+void initiateLoadingNoDevicePresetFromExternalMemory(void);
+void continueLoadingNoDevicePresetFromExternalMemory(void);
 
 void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save);
 void continueStoringTuningToExternalMemory(void);

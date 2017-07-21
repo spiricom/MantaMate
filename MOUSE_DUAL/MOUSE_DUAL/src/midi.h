@@ -36,21 +36,19 @@ typedef struct _tMIDIKeyboard
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;
 	signed int transpose;
+	BOOL learned;
+	int firstFreeOutput;
 	// - - - - - - - - - - -
 	
 	int numVoicesActive;
 	
 	int voices[MAX_VOICES][2];
 	
-	int firstFreeOutput;
-	
 	int notes[128][2];
 	
 	int CCs[128];
 	
 	uint8_t CCsRaw[128];
-	
-	BOOL learned;
 	
 	int lastVoiceToChange;
 	
