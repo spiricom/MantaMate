@@ -100,7 +100,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			
 			case 224:
 			tMIDIKeyboard_pitchBend(&MIDIKeyboard, msgByte1, msgByte2);
-			dacSendMIDIKeyboard();
+			//dacSendMIDIKeyboard();
 			break;
 			
 			// control change
@@ -323,6 +323,7 @@ void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t h
 	int32_t tempPitch = (highbyte << 7) +  lowbyte;
 	tempPitch = (tempPitch - 8192) * 1000;
 	keyboard->pitchBend = (tempPitch / wholeStepDACDivider);
+	tIRampSetDest(&pitchBendRamp, keyboard->pitchBend);
 }
 
 

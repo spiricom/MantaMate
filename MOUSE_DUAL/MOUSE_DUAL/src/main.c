@@ -310,6 +310,8 @@ int main(void){
 		}
 	}
 	
+	tIRampInit(&pitchBendRamp, 2000, 10);
+	tIRampSetDest(&pitchBendRamp, 0);
 	takeover = FALSE;
 	hexmapEditMode = FALSE;
 	
@@ -393,7 +395,7 @@ int main(void){
 
 		if (new_manta_attached)
 		{
-			delay_ms(50);
+			delay_ms(5); //seems to help it get through the attachment process before it gets connected
 			manta_LED_set_mode(HOST_CONTROL_FULL);
 			manta_clear_all_LEDs();
 			manta_send_LED();
@@ -763,18 +765,87 @@ static void tc3_irq(void)
 		}
 	}
 	
-	DAC16Send	(0, tIRampTick(&out[0][0]));
-	dacsend     (0, 0,  tIRampTick(&out[0][1])); 
-	dacsend     (0, 1,  tIRampTick(&out[0][2]));  
-	DAC16Send	(1, tIRampTick(&out[0][3]));
-	dacsend     (1, 0,  tIRampTick(&out[0][4]));
-	dacsend     (1, 1,  tIRampTick(&out[0][5]));
-	DAC16Send	(2, tIRampTick(&out[1][0]));
-	dacsend     (2, 0,  tIRampTick(&out[1][1]));
-	dacsend     (2, 1,  tIRampTick(&out[1][2]));
-	DAC16Send	(3, tIRampTick(&out[1][3]));
-	dacsend     (3, 0,  tIRampTick(&out[1][4]));
-	dacsend     (3, 1,  tIRampTick(&out[1][5]));
+	//now tick those RAMPs and send the data to the DACs
+	if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+	{
+		int32_t tempPitchBend = tIRampTick(&pitchBendRamp);
+		if (MIDIKeyboard.numVoices == 1)
+		{
+			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+			DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
+			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+			DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+			DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+		}
+		else if (MIDIKeyboard.numVoices == 2)
+		{
+			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+			DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+			DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+		}
+		else if (MIDIKeyboard.numVoices == 3)
+		{
+			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+			DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
+			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+			DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+		}
+		else if (MIDIKeyboard.numVoices == 4)
+		{
+			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+			DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
+			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+			DAC16Send	(3, (uint16_t)(tIRampTick(&out[1][3]) + tempPitchBend));
+			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+		}
+	}
+	else
+	{
+		DAC16Send	(0, (uint16_t)tIRampTick(&out[0][0]));
+		dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+		dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+		DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
+		dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+		dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+		DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+		dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+		dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+		DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+		dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+		dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+	}
+
 	
 }
 

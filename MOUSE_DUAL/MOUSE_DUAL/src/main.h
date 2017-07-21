@@ -203,6 +203,8 @@ void resetSliderMode		(void);
 
 tIRamp out[2][6];
 
+tIRamp pitchBendRamp;
+
 uint8_t readData;
 
 uint8_t* readDataArray[256];

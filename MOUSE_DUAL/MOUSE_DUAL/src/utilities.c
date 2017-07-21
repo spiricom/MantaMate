@@ -21,7 +21,7 @@ int tIRampInit(tIRamp *r, int32_t sr, int32_t time) {
 	return 0;
 }
 
-uint16_t tIRampTick(tIRamp *r) {
+int32_t tIRampTick(tIRamp *r) {
 	
 	r->curr += r->inc;
 	
@@ -30,8 +30,9 @@ uint16_t tIRampTick(tIRamp *r) {
 		r->inc = 0;
 		r->curr = r->dest;
 	}
-	return (uint16_t) (r->curr >> 10); //get it back into the usual range from 0-65535
+	return (r->curr >> 10); //get it back into the usual range from 0-65535
 }
+
 
 //ramp time can't be larger than 512
 int tIRampSetTime(tIRamp *r, int32_t time) 

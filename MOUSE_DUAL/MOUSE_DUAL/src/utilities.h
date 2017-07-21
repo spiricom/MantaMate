@@ -319,7 +319,7 @@ typedef struct _tIRamp {
 	int32_t time;
 } tIRamp;
 
-uint16_t tIRampTick(tIRamp *r);
+int32_t tIRampTick(tIRamp *r);
 int tIRampSetTime(tIRamp *r, int32_t time);
 int tIRampSetDest(tIRamp *r, int32_t dest);
 int tIRampInit(tIRamp *r, int32_t sr, int32_t time);
