@@ -14,11 +14,11 @@
 #define EIGHT_BIT_DIV (RAND_MAX / 256)
 #define TWELVE_BIT_DIV (RAND_MAX / 4096)
 #define SIXTEEN_BIT_DIV (RAND_MAX / 65535)
+#define ELEVEN_BIT_MAX (65535/2)
 
 
 
 
-/*
 typedef enum NoDeviceReadType
 {
 	RandomVoltage = 0,
@@ -26,20 +26,31 @@ typedef enum NoDeviceReadType
 	TriggerPulse,
 	GateToggle
 }	NoDeviceReadType;
-*/
+
 typedef struct _tNoDevicePattern
 {
-	uint16_t patterns[12][17]; //12 outputs, each with a "number of beats active" value and then indexes for 16 total possible beats 
-	int readType;
+	//save with preset
+	uint16_t patterns[12][33]; //12 outputs, each with a "number of beats active" value and then indexes for 32 total possible beats 
+	NoDeviceReadType readType;
+	uint8_t patternLength;
+	BOOL allTheSameLength;
+	//
+	
 	uint8_t trigCount[12];
+	uint8_t patternCounter[12];
+	uint8_t outputState[12];
+
 } tNoDevicePattern;
 
 
 
 void no_device_gate_in(void);
-
-void setRampsWithDividerValsPlusTrig(void);
-void setRampsWithDividerVals(void);
+void triggerOnFirstDACOutput(void);
+void noDeviceRandomVoltagePattern(BOOL sameLength);
+void noDeviceGateOutPattern(BOOL sameLength);
+void noDeviceGateTogglePattern(BOOL sameLength);
+void noDeviceTrigOutPattern(BOOL sameLength);
+void noDeviceCreateNewRandomPatterns(void);
 void tNoDevice_encode(tNoDevicePattern* const patterns, uint8_t* buffer);
 void tNoDevice_decode(tNoDevicePattern* const patterns, uint8_t* buffer);
 

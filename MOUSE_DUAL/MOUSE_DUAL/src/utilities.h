@@ -153,7 +153,7 @@ typedef enum GlidePreferences
 typedef enum TuningOrLearnType
 {
 	TUNING_SELECT,
-	MIDILEARN
+	MIDILEARN_AND_LENGTH
 }TuningOrLearnType;
 
 

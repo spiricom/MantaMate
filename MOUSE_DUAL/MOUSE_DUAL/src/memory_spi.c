@@ -433,7 +433,7 @@ void continueLoadingNoDevicePresetFromExternalMemory(void)
 	{
 		//mark the load procedure as finished
 		noDeviceLoadPending = 0;
-		noDevicePreset_decode(mantamate_internal_preset_buffer);
+  		noDevicePreset_decode(mantamate_internal_preset_buffer);
 	}
 }
 

@@ -60,7 +60,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 144:
 				if (msgByte2)
 				{
-					if (!(tuningOrLearn == MIDILEARN))
+					if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 					{
 						tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
 						if (MIDIKeyboard.playMode != ArpMode)
@@ -77,7 +77,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 				}
 				else //to deal with note-offs represented as a note-on with zero velocity
 				{
-					if (!(tuningOrLearn == MIDILEARN))
+					if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 					{
 						tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
 						if (MIDIKeyboard.playMode != ArpMode)
@@ -88,7 +88,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 				}
 				break;
 			case 128:
-				if (!(tuningOrLearn == MIDILEARN))
+				if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 				{
 					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
 					if (MIDIKeyboard.playMode != ArpMode)
@@ -105,7 +105,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			
 			// control change
 			case 176:
-			if (!(tuningOrLearn == MIDILEARN))
+			if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 			{
 				controlChange(msgByte1,msgByte2);
 			}

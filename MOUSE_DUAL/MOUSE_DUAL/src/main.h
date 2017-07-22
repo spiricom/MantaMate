@@ -144,8 +144,8 @@ int subtleInterval;
 #define NUM_PAGES_PER_MIDI_PRESET 3//((NUM_BYTES_PER_PRESET / 256) + 1) 
 #define NUM_SECTORS_PER_MIDI_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1) 
 
-#define NUM_BYTES_PER_NODEVICE_PRESET (4*256) // 3 + NUM_BYTES_PER_NODEVICE_PATTERN (32 steps, 2 bytes per step, * 12 outputs) rounded up to multiple of 256 bytes
-#define NUM_PAGES_PER_NODEVICE_PRESET 4//((NUM_BYTES_PER_PRESET / 256) + 1)
+#define NUM_BYTES_PER_NODEVICE_PRESET (2*256) // 3 + NUM_BYTES_PER_NODEVICE_PATTERN (32 steps, 2 bytes per step, * 12 outputs) rounded up to multiple of 256 bytes
+#define NUM_PAGES_PER_NODEVICE_PRESET 2//((NUM_BYTES_PER_PRESET / 256) + 1)
 #define NUM_SECTORS_PER_NODEVICE_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
 
 #define NUM_PAGES_PER_TUNING 3
@@ -157,7 +157,7 @@ int subtleInterval;
 #define HEXMAP_STARTING_SECTOR 1700
 #define STARTUP_STATE_SECTOR 2000
 #define MIDI_PRESET_STARTING_SECTOR 3000
-#define NODEVICE_PRESET_STARTING_SECTOR 3100
+#define NODEVICE_PRESET_STARTING_SECTOR 2001
 
 uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //this is currently 19456
 

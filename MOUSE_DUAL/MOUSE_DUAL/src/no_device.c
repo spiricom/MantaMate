@@ -21,218 +21,427 @@ void no_device_gate_in(void)
 		return;
 	}
 	
-	
 	uint32_t myRandom;
+	
+	
 	if (preset_num == 0)
 	{
+		noDevicePatterns.readType = RandomVoltage;
 		//all outputs are sample-and-hold random values except the first which is just a trigger on every clock
-		tIRampSetDest(&out[0][0], 65535);
-		noDevicePatterns.trigCount[0] = 8;
-		myRandom = (rand() / SIXTEEN_BIT_DIV);
-		tIRampSetDest(&out[0][3], myRandom);
-		myRandom = (rand() / SIXTEEN_BIT_DIV);
-		tIRampSetDest(&out[1][0], myRandom);
-		myRandom = (rand() / SIXTEEN_BIT_DIV);
-		tIRampSetDest(&out[1][3], myRandom);
+		triggerOnFirstDACOutput();
 
-		for (int i = 0; i < 2; i++)
+		for (int i = 1; i < 16; i++)
 		{
-			myRandom = (rand() / TWELVE_BIT_DIV);
-			tIRampSetDest(&out[i][1], myRandom);
-			myRandom = (rand() / TWELVE_BIT_DIV);
-			tIRampSetDest(&out[i][2], myRandom);
-			myRandom = (rand() / TWELVE_BIT_DIV);
-			tIRampSetDest(&out[i][4], myRandom);
-			myRandom = (rand() / TWELVE_BIT_DIV);
-			tIRampSetDest(&out[i][5], myRandom);
+			myRandom = (rand() / SIXTEEN_BIT_DIV);
+			sendDataToOutput(i, globalCVGlide, myRandom);
 		}
 	}
 	
 	else if (preset_num == 1)
 	{
-		//first output is a clock trigger
-		tIRampSetDest(&out[0][0], 65535);
-		noDevicePatterns.trigCount[0] = 8;
-		tIRampSetDest(&out[0][3], (rand() > (RAND_MAX / 2)) * 65535);
-		tIRampSetDest(&out[1][0], (rand() > (RAND_MAX / 2)) * 65535);
-		tIRampSetDest(&out[1][3], (rand() > (RAND_MAX / 2)) * 65535);
-		for (int i = 0; i < 2; i++)
+		noDevicePatterns.readType = GatePulse;	
+		//stream of random gates
+		triggerOnFirstDACOutput();
+		
+		for (int i = 1; i < 16; i++)
 		{
-			tIRampSetDest(&out[i][1],(rand() > (RAND_MAX / 2)) * 4095);
-			tIRampSetDest(&out[i][2],(rand() > (RAND_MAX / 2)) * 4095);
-			tIRampSetDest(&out[i][4],(rand() > (RAND_MAX / 2)) * 4095);
-			tIRampSetDest(&out[i][5],(rand() > (RAND_MAX / 2)) * 4095);
+			myRandom = ((rand() / SIXTEEN_BIT_DIV) & 1);
+			sendDataToOutput(i, 0, myRandom * 65535);
 		}
 	}
 	
-
-	// divider triggers
 	else if (preset_num == 2)
 	{
-		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		noDevicePatterns.readType = TriggerPulse;	
+		//stream of random triggers
+		triggerOnFirstDACOutput();
+		for (int i = 1; i < 16; i++)
 		{
-			if ((dividerCount % (i+1)) == 0)
-			{
-				dividerValues[i] = 1;
-				noDevicePatterns.trigCount[i] = 8;
-			}
-			else
-			{
-				dividerValues[i] = 0;
-				noDevicePatterns.trigCount[i] = 0;
-			}
+			myRandom = ((rand() / SIXTEEN_BIT_DIV) & 1);
+			sendDataToOutput(i, 0, myRandom * 65535);
+			noDevicePatterns.trigCount[i] = 8;
 		}
-		if (dividerCount >= 12)
-		{
-			dividerCount = 0;
-		}
-		setRampsWithDividerVals();
 	}
 	
+
+	// Dividers ---  CONSECUTIVE INTEGERS
+	
+	//RANDOM VOLTAGE STYLE
 	else if (preset_num == 3)
 	{
+		noDevicePatterns.readType = RandomVoltage;			
+		triggerOnFirstDACOutput();
 		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (i+1)) == 0)
 			{
-				dividerValues[i] = 1;
-			}
-			else
-			{
-				dividerValues[i] = 0;
+				sendDataToOutput(i, globalCVGlide, (rand()/SIXTEEN_BIT_DIV));
 			}
 		}
 		if (dividerCount >= 12)
 		{
 			dividerCount = 0;
 		}
-		setRampsWithDividerValsPlusTrig();
 	}
 	
-	// divider gate/toggles
+	
+	//GATE STYLE
 	else if (preset_num == 4)
 	{
+		noDevicePatterns.readType = GatePulse;	
+		
+		triggerOnFirstDACOutput();
 		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (i+1)) == 0)
-			dividerValues[i] = !dividerValues[i];
+			{
+				noDevicePatterns.outputState[i] = 1;
+			}
+			else
+			{
+				noDevicePatterns.outputState[i] = 0;
+			}
+			sendDataToOutput(i, 0, noDevicePatterns.outputState[i]*65535);
 		}
 		if (dividerCount >= 12)
 		{
 			dividerCount = 0;
 		}
-		setRampsWithDividerVals();
 	}
 	
-	// divider triggers
+	//TOGGLE STYLE
 	else if (preset_num == 5)
 	{
+		noDevicePatterns.readType = GateToggle;	
+		
+		triggerOnFirstDACOutput();
 		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		for (int i = 1; i < 12; i++)
 		{
-			if ((dividerCount % (1<<i)) == 0)
+			if ((dividerCount % (i+1)) == 0)
 			{
-				dividerValues[i] = 1;
-				noDevicePatterns.trigCount[i] = 8;
+				noDevicePatterns.outputState[i] = !noDevicePatterns.outputState[i]; //flip it!
 			}
-			else
-			{
-				dividerValues[i] = 0;
-				noDevicePatterns.trigCount[i] = 0;
-			}
+			sendDataToOutput(i, 0, noDevicePatterns.outputState[i]*65535);
 		}
-		if (dividerCount >= 2048)
+		if (dividerCount >= 12)
 		{
 			dividerCount = 0;
 		}
-		setRampsWithDividerVals();
 	}
 	
+	//TRIGGER STYLE
 	else if (preset_num == 6)
 	{
+		noDevicePatterns.readType = TriggerPulse;	
+		triggerOnFirstDACOutput();
 		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		for (int i = 1; i < 12; i++)
+		{
+			if ((dividerCount % (i+1)) == 0)
+			sendDataToOutput(i, 0, 65535);
+			noDevicePatterns.trigCount[i] = 8;
+		}
+		if (dividerCount >= 12)
+		{
+			dividerCount = 0;
+		}
+	}
+	
+	// Dividers --- POWERS OF TWO
+	
+	// RANDOM VOLTAGE STYLE
+	else if (preset_num == 7)
+	{
+		noDevicePatterns.readType = RandomVoltage;	
+		triggerOnFirstDACOutput();
+		dividerCount++;
+		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (1<<i)) == 0)
 			{
-				dividerValues[i] = 1;
+				sendDataToOutput(i, globalCVGlide, (rand()/SIXTEEN_BIT_DIV));
+			}
+		}
+		if (dividerCount >= 2048)
+		{
+			dividerCount = 0;
+		}
+	}
+	
+	//GATE STYLE
+	else if (preset_num == 8)
+	{
+		noDevicePatterns.readType = GatePulse;	
+		
+		triggerOnFirstDACOutput();
+		dividerCount++;
+		for (int i = 1; i < 12; i++)
+		{
+			if ((dividerCount % (1<<i)) == 0)
+			{
+				sendDataToOutput(i, 0, 65535);
 			}
 			else
 			{
-				dividerValues[i] = 0;
+				sendDataToOutput(i, 0, 0);
 			}
 		}
 		if (dividerCount >= 2048)
 		{
 			dividerCount = 0;
 		}
-		setRampsWithDividerValsPlusTrig();
 	}
 	
-	// divider gate/toggles
-	else if (preset_num == 7)
+	// TOGGLE STYLE
+	else if (preset_num == 9)
 	{
+		noDevicePatterns.readType = GateToggle;	
+		triggerOnFirstDACOutput();
 		dividerCount++;
-		for (int i = 0; i < 12; i++)
+		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (1<<i)) == 0)
-			dividerValues[i] = !dividerValues[i];
+			{
+				noDevicePatterns.outputState[i] = !noDevicePatterns.outputState[i]; 
+				sendDataToOutput(i, 0, noDevicePatterns.outputState[i] * 65535);
+			}
 		}
 		if (dividerCount >= 2048)
 		{
 			dividerCount = 0;
 		}
-		setRampsWithDividerVals();
+	}
+	
+	// TRIGGER STYLE
+	else if (preset_num == 10)
+	{
+		noDevicePatterns.readType = TriggerPulse;	
+		triggerOnFirstDACOutput();
+		dividerCount++;
+		for (int i = 1; i < 12; i++)
+		{
+			if ((dividerCount % (1<<i)) == 0)
+			{
+				sendDataToOutput(i, 0, 65535);
+				noDevicePatterns.trigCount[i] = 8;
+			}
+		}
+		if (dividerCount >= 2048)
+		{
+			dividerCount = 0;
+		}
+	}
+	
+	else if (preset_num == 11)
+	{
+		noDeviceRandomVoltagePattern(TRUE);
+	}
+	else if (preset_num == 12)
+	{
+		noDeviceGateOutPattern(TRUE);
+	}
+	else if (preset_num == 13)
+	{
+		noDeviceGateTogglePattern(TRUE);
+	}
+	else if (preset_num == 14)
+	{
+		noDeviceTrigOutPattern(TRUE);
+	}
+	else if (preset_num == 15)
+	{
+		noDeviceRandomVoltagePattern(FALSE);
+	}
+	else if (preset_num == 16)
+	{
+		noDeviceGateOutPattern(FALSE);
+	}
+	else if (preset_num == 17)
+	{
+		noDeviceGateTogglePattern(FALSE);
+	}
+	else if (preset_num == 18)
+	{
+		noDeviceTrigOutPattern(FALSE);
+	}
+	
+	else
+	{
+		if (noDevicePatterns.readType == RandomVoltage)
+		{
+			noDeviceRandomVoltagePattern(noDevicePatterns.allTheSameLength);
+		}
+		else if (noDevicePatterns.readType == GatePulse)
+		{
+			noDeviceGateOutPattern(noDevicePatterns.allTheSameLength);
+		}
+		else if (noDevicePatterns.readType == GateToggle)
+		{
+			noDeviceGateTogglePattern(noDevicePatterns.allTheSameLength);
+		}
+		else if (noDevicePatterns.readType == TriggerPulse)
+		{
+			noDeviceTrigOutPattern(noDevicePatterns.allTheSameLength);
+		}
+	}
+	//first free preset for storage is preset 19
+}
+
+
+void noDeviceRandomVoltagePattern(BOOL sameLength)
+{
+	noDevicePatterns.readType = RandomVoltage;	
+	noDevicePatterns.allTheSameLength = sameLength;
+	tIRampSetDest(&out[0][0],65535);
+	noDevicePatterns.trigCount[0] = 8;
+	for (int i = 1; i < 12; i++)
+	{
+		noDevicePatterns.patternCounter[i]++;
+		if (sameLength == FALSE)
+		{
+			if ((noDevicePatterns.patternCounter[i] > noDevicePatterns.patterns[i][0]) || (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength))
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		else
+		{
+			if (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength)
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		sendDataToOutput(i, globalCVGlide, noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1]);
 	}
 }
 
-void setRampsWithDividerValsPlusTrig(void)
+void noDeviceGateOutPattern(BOOL sameLength)
 {
-	tIRampSetDest(&out[0][0], 65535);
+	noDevicePatterns.readType = GatePulse;	
+	noDevicePatterns.allTheSameLength = sameLength;
+	tIRampSetDest(&out[0][0],65535);
 	noDevicePatterns.trigCount[0] = 8;
-	tIRampSetDest(&out[0][1],  dividerValues[1] * 4095);
-	tIRampSetDest(&out[0][2],  dividerValues[2] * 4095);
-	tIRampSetDest(&out[0][3],  dividerValues[3] * 65535);
-	tIRampSetDest(&out[0][4], dividerValues[4] * 4095);
-	tIRampSetDest(&out[0][5], dividerValues[5] * 4095);
-	tIRampSetDest(&out[1][0], dividerValues[6] * 65535);
-	tIRampSetDest(&out[1][1], dividerValues[7] * 4095);
-	tIRampSetDest(&out[1][2], dividerValues[8] * 4095);
-	tIRampSetDest(&out[1][3], dividerValues[9] * 65535);
-	tIRampSetDest(&out[1][4], dividerValues[10] * 4095);
-	tIRampSetDest(&out[1][5], dividerValues[11] * 4095);
+	for (int i = 1; i < 12; i++)
+	{
+		noDevicePatterns.patternCounter[i]++;
+		if (sameLength == FALSE)
+		{
+			if ((noDevicePatterns.patternCounter[i] > noDevicePatterns.patterns[i][0]) || (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength))
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		else
+		{
+			if (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength)
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
+	}
 }
 
-void setRampsWithDividerVals(void)
+void noDeviceGateTogglePattern(BOOL sameLength)
 {
-	tIRampSetDest(&out[0][0],  dividerValues[0] * 65535);
-	tIRampSetDest(&out[0][1],  dividerValues[1] * 4095);
-	tIRampSetDest(&out[0][2],  dividerValues[2] * 4095);
-	tIRampSetDest(&out[0][3],  dividerValues[3] * 65535);
-	tIRampSetDest(&out[0][4], dividerValues[4] * 4095);
-	tIRampSetDest(&out[0][5], dividerValues[5] * 4095);
-	tIRampSetDest(&out[1][0], dividerValues[6] * 65535);
-	tIRampSetDest(&out[1][1], dividerValues[7] * 4095);
-	tIRampSetDest(&out[1][2], dividerValues[8] * 4095);
-	tIRampSetDest(&out[1][3], dividerValues[9] * 65535);
-	tIRampSetDest(&out[1][4], dividerValues[10] * 4095);
-	tIRampSetDest(&out[1][5], dividerValues[11] * 4095);
+	noDevicePatterns.readType = GateToggle;	
+	noDevicePatterns.allTheSameLength = sameLength;
+	tIRampSetDest(&out[0][0],65535);
+	noDevicePatterns.trigCount[0] = 8;
+	for (int i = 1; i < 12; i++)
+	{
+		noDevicePatterns.patternCounter[i]++;
+		if (sameLength == FALSE)
+		{
+			if ((noDevicePatterns.patternCounter[i] > noDevicePatterns.patterns[i][0]) || (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength))
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		else
+		{
+			if (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength)
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		if ((noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)) //flip the output gate if a random pulse is in the array
+		{
+			noDevicePatterns.outputState[i] = !noDevicePatterns.outputState[i];
+		}
+		sendDataToOutput(i, 0, noDevicePatterns.outputState[i]*65535);
+	}
+}
+
+void noDeviceTrigOutPattern(BOOL sameLength)
+{
+	noDevicePatterns.readType = TriggerPulse;	
+	noDevicePatterns.allTheSameLength = sameLength;
+	tIRampSetDest(&out[0][0],65535);
+	noDevicePatterns.trigCount[0] = 8;
+	for (int i = 1; i < 12; i++)
+	{
+		noDevicePatterns.patternCounter[i]++;
+		if (sameLength == FALSE)
+		{
+			if ((noDevicePatterns.patternCounter[i] > noDevicePatterns.patterns[i][0]) || (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength))
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		else
+		{
+			if (noDevicePatterns.patternCounter[i] >= noDevicePatterns.patternLength)
+			{
+				noDevicePatterns.patternCounter[i] = 0;
+			}
+		}
+		
+		int tempNewValue = (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX);
+		
+		if ((tempNewValue > 0) && (noDevicePatterns.outputState[i] == 0))//if the value is TRUE and is was previously FALSE, send a trigger
+		{
+			
+			sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
+			noDevicePatterns.trigCount[i] = 8;
+		}
+		noDevicePatterns.outputState[i] = tempNewValue;
+
+	}
 }
 
 
+void noDeviceCreateNewRandomPatterns(void)
+{
+	for (int i = 0; i < 11; i++)
+	{
+		noDevicePatterns.patterns[i][0] = (((rand() >> 15) % 31) + 2); //random number between 2 and 32
+		for (int j = 1; j < 17; j++)
+		{
+			noDevicePatterns.patterns[i][j] = (uint16_t)(rand() / SIXTEEN_BIT_DIV); // a random 16-bit integer
+		}
+	}
+}
+
+void triggerOnFirstDACOutput(void)
+{
+		tIRampSetDest(&out[0][0], 65535);
+		noDevicePatterns.trigCount[0] = 8;
+}
 
 void tNoDevice_encode(tNoDevicePattern* nodevice, uint8_t* buffer)
 {
 	buffer[0] =  nodevice->readType;
-
-	int index_count = 1;
+	buffer[1] =  nodevice->patternLength;
+	buffer[2] =  nodevice->allTheSameLength;
+	int index_count = 3;
 	
 	for (int i = 0; i < 12; i++)
 	{
-		for (int j = 0; j < 17; j++)
+		for (int j = 0; j < 33; j++)
 		{
 			buffer[index_count] =  nodevice->patterns[i][j] >> 8;
 			index_count++;
@@ -244,16 +453,20 @@ void tNoDevice_encode(tNoDevicePattern* nodevice, uint8_t* buffer)
 
 void tNoDevice_decode(tNoDevicePattern* nodevice, uint8_t* buffer)
 {
-	buffer[0] =  nodevice->readType;
-	int index_count = 1;
+	nodevice->readType = buffer[0];
+	nodevice->patternLength = buffer[1];
+	nodevice->allTheSameLength = buffer[2];
+	int index_count = 3;
 	
 	for (int i = 0; i < 12; i++)
 	{
-		for (int j = 0; j < 17; j++)
+		for (int j = 0; j < 33; j++)
 		{
 			nodevice->patterns[i][j] = (buffer[index_count] << 8) +  buffer[index_count+1];
-			index_count++;
-			index_count++;
+			index_count = (index_count + 2);
 		}
+		nodevice->patternCounter[i] = 0;
+		nodevice->outputState[i] = 0;
+		nodevice->trigCount[i] = 0;
 	}
 }

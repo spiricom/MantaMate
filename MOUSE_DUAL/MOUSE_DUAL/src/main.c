@@ -286,6 +286,10 @@ int main(void){
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
+	//make a randomized pattern for the NoDevice pattern presets
+	noDeviceCreateNewRandomPatterns();
+	noDevicePatterns.patternLength = 16;
+	
 	loadTuning(globalTuning);
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
@@ -316,8 +320,15 @@ int main(void){
 	hexmapEditMode = FALSE;
 	
 	//start off on preset 0;
+	
+	
+	
+	
 	preset_num = 0;
 	//loadStartupStateFromExternalMemory();
+	
+	
+	
 	//delay_ms(600); // why is this necessary? taking it out makes the manta state not get initialized correctly, but it's weird that we need it
 	initTimers();
 	//updatePreset();
@@ -337,6 +348,20 @@ int main(void){
 				continueStoringMantaPresetToExternalMemory();
 			}
 		}
+		else if (midiSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringMidiPresetToExternalMemory();
+			}
+		}
+		else if (noDeviceSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringNoDevicePresetToExternalMemory();
+			}
+		}
 		else if (tuningSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -344,15 +369,6 @@ int main(void){
 				continueStoringTuningToExternalMemory();
 			}
 		}
-		
-		else if (startupStateSavePending)
-		{
-			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
-			{
-				continueStoringStartupStateToExternalMemory();
-			}
-		}
-		
 		else if (hexmapSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -360,7 +376,13 @@ int main(void){
 				continueStoringHexmapToExternalMemory();
 			}
 		}
-
+		else if (startupStateSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringStartupStateToExternalMemory();
+			}
+		}
 		else if (mantaLoadPending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -368,7 +390,20 @@ int main(void){
 				continueLoadingMantaPresetFromExternalMemory();
 			}
 		}
-		
+		else if (midiLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingMidiPresetFromExternalMemory();
+			}
+		}
+		else if (noDeviceLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingNoDevicePresetFromExternalMemory();
+			}
+		}
 		else if (tuningLoadPending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -376,7 +411,13 @@ int main(void){
 				continueLoadingTuningFromExternalMemory();
 			}
 		}
-		
+		else if (hexmapLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingHexmapFromExternalMemory();
+			}
+		}
 		else if (startupStateLoadPending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -385,14 +426,6 @@ int main(void){
 			}
 		}
 		
-		else if (hexmapLoadPending)
-		{
-			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
-			{
-				continueLoadingHexmapFromExternalMemory();
-			}
-		}
-
 		if (new_manta_attached)
 		{
 			delay_ms(5); //seems to help it get through the attachment process before it gets connected
@@ -1357,9 +1390,43 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					}
 				}
 			}
-			else //otherwise it's MIDI LEARN mode
+			else //otherwise it's MIDI LEARN mode or PATTERN LENGTH mode.  Ignore buttons in MIDI LEARN, in no device mode change length
 			{
-				//currently decided not to let the user select which number in midi learn mode, it increments automatically
+				if (type_of_device_connected == NoDeviceConnected)
+				{
+					if (whichSwitch)
+					{
+						if (upSwitch())
+						{
+							if (noDevicePatterns.patternLength >= 32)
+							{
+								noDevicePatterns.patternLength = 32;
+							}
+							else
+							{
+								noDevicePatterns.patternLength++;
+							}
+							Write7Seg(noDevicePatterns.patternLength);
+							normal_7seg_number = noDevicePatterns.patternLength;
+						}
+					}
+					else
+					{
+						if (downSwitch())
+						{
+							if (noDevicePatterns.patternLength <= 1)
+							{
+								noDevicePatterns.patternLength = 1;
+							}
+							else
+							{
+								noDevicePatterns.patternLength--;
+							}
+							Write7Seg(noDevicePatterns.patternLength);
+							normal_7seg_number = noDevicePatterns.patternLength;
+						}
+					}
+				}
 			}
 		
 		}
@@ -1531,7 +1598,7 @@ void Preferences_Switch_Check(void)
 	{
 		
 		tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
-		
+		LED_Off(PRESET_SAVE_LED); //turn this off, in case we were editing the nodevice length
 		//if we aren't in a current save state, act normal and change preferences
 		if (!savingActive)
 		{
@@ -1621,18 +1688,29 @@ void Save_Switch_Check(void)
 		{
 			if (tuningOrLearn == TUNING_SELECT)
 			{
-				//switch to midilearn 
-				tuningOrLearn = MIDILEARN;
-				currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
-				Write7Seg(currentNumberToMIDILearn+200);
-				normal_7seg_number = currentNumberToMIDILearn+200;
+				if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+				{
+					//switch to midilearn
+					tuningOrLearn = MIDILEARN_AND_LENGTH; //midilearn in this case
+					currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
+					Write7Seg(currentNumberToMIDILearn+200);
+					normal_7seg_number = currentNumberToMIDILearn+200;
+				}
+				else if (type_of_device_connected == NoDeviceConnected)
+				{
+					tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
+					Write7Seg(noDevicePatterns.patternLength);
+					normal_7seg_number = noDevicePatterns.patternLength;
+					LED_On(PRESET_SAVE_LED); //to give some indication
+				}
 			}
-			else if (tuningOrLearn == MIDILEARN)
+			else if (tuningOrLearn == MIDILEARN_AND_LENGTH)
 			{
 				//switch to Clock Divider pref
 				tuningOrLearn = TUNING_SELECT;
 				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
 				normal_7seg_number = globalTuning;
+				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
 			}
 		}
 	}
@@ -1652,7 +1730,7 @@ void updatePreset(void)
 		{
 			initiateLoadingMidiPresetFromExternalMemory();
 		}
-		else if (type_of_device_connected == NoDeviceConnected)
+		if ((type_of_device_connected == NoDeviceConnected) && (preset_num >= 19))
 		{
 			initiateLoadingNoDevicePresetFromExternalMemory();
 		}
@@ -2336,7 +2414,7 @@ void noDevicePreset_encode(uint8_t* buffer)
 	buffer[indexCounter++] = globalCVGlide >> 8;
 	buffer[indexCounter++] = globalCVGlide & 0xff;
 	
-	//tNoDevice_encode(&noDevicePattern, &buffer[indexCounter]);
+	tNoDevice_encode(&noDevicePatterns, &buffer[indexCounter]);
 }
 
 
@@ -2353,7 +2431,7 @@ void noDevicePreset_decode(uint8_t* buffer)
 		lowByte = buffer[indexCounter++];
 		globalCVGlide = highByte + lowByte;
 		
-		//tNoDevice_decode(&NoDevicePattern, &buffer[indexCounter]);	
+		tNoDevice_decode(&noDevicePatterns, &buffer[indexCounter]);	
 	}
 
 }
