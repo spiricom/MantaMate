@@ -926,9 +926,10 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				// Edit 
 				hexmapEditMode = TRUE;
 				displayState = UpDownSwitchBlock;
-				setKeyboardLEDs();
 				
-				manta_set_LED_hex(hexagon, Amber);
+				manta_set_LED_slider(SliderOne, 0);
+				manta_set_LED_slider(SliderTwo, 0);
+				setKeyboardLEDs();
 			}
 			else if (whichHex == 0)
 			{

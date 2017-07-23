@@ -84,7 +84,7 @@ typedef enum BOOL
 #define NUM_HEXES 48
 #define MAX_VOICES 4
 
-#define NUM_BYTES_PER_HEXMAP 1152
+
 
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType

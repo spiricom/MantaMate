@@ -64,7 +64,7 @@
 #include "wdt.h"
 
 
-#define NUM_BYTES_PER_KEYBOARD 149
+#define NUM_BYTES_PER_KEYBOARD (NUM_BYTES_PER_HEXMAP+5)
 #define NUM_BYTES_PER_DIRECT 25
 #define NUM_BYTES_PER_MIDIKEYBOARD 263
 #define NUM_BYTES_PER_SEQUENCER  615 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)

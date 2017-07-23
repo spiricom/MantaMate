@@ -442,6 +442,9 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 		buffer[i*3] = keyboard->hexes[i].pitch >> 8;
 		buffer[(i*3) + 1] = keyboard->hexes[i].pitch & 0xff;
 		buffer[(i*3) + 2] = keyboard->hexes[i].color & 0xff;
+		
+		buffer[(i*3) + 3] = keyboard->hexes[i].fine >> 8;
+		buffer[(i*3) + 4] = keyboard->hexes[i].fine & 0xff;
 	}
 }
 
@@ -451,6 +454,8 @@ void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
 	{
 		keyboard->hexes[i].pitch = (buffer[i*3] << 8) + buffer[(i*3)+1];
 		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*3)+2];
+		
+		keyboard->hexes[i].fine = (buffer[(i*3)+3] << 8) + buffer[(i*3)+4];
 	}
 }
 
