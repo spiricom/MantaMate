@@ -37,7 +37,7 @@ void setParameterForStep(MantaInstrument, uint8_t step, StepParameterType param,
 uint16_t getParameterFromStep(MantaInstrument, uint8_t step, StepParameterType param);
 void resetEditStack(void);
 uint8_t hexUIToStep(uint8_t hexagon);
-uint8_t stepToHexUI(MantaInstrument, uint8_t noteIn);
+uint8_t stepToHexUI(MantaInstrument, int step);
 void downOctaveForEditStackSteps(MantaInstrument);
 void upOctaveForEditStackSteps(MantaInstrument);
 
@@ -1922,22 +1922,22 @@ void resetSliderMode(void)
 void setSequencerLEDs(void)
 {
 	freeze_LED_update = 1;
-	if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
+	
+		
+		
+	if (full_vs_split == FullMode)
 	{
-		
-		if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
-		else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
-		
 		setSequencerLEDsFor(currentInstrument);
 	}
-	else if (manta[InstrumentOne].type == SequencerInstrument)
+	else
 	{
 		setSequencerLEDsFor(InstrumentOne);
-	}
-	else if (manta[InstrumentTwo].type == SequencerInstrument)
-	{
 		setSequencerLEDsFor(InstrumentTwo);
 	}
+		
+	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
+	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
+
 	roll_LEDs = 1;
 	freeze_LED_update = 0;
 	
@@ -2702,7 +2702,10 @@ int pitchToKbdHex(int pitch)
 
 void setKeyboardLEDsFor(MantaInstrument inst, int note)
 {	
+	if (manta[inst].type != SequencerInstrument) return;
+	
 	freeze_LED_update = 1;
+
 	tSequencer* sequencer = &manta[inst].sequencer;
 	int setRed = 1;
 	int nt = 0;
@@ -2905,7 +2908,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	
 	int hexUI = 0;
 
-	for (int i = 0; i < sequencer->maxLength; i++)
+	for (int i = 0; i < ((full_vs_split == FullMode) ? 32 : 16); i++)
 	{
 		hexUI = stepToHexUI(inst, i);
 
@@ -3466,53 +3469,32 @@ uint8_t hexUIToStep(uint8_t hexagon)
 	return step;
 }
 
-uint8_t stepToHexUI(MantaInstrument inst, uint8_t stepIn)
+uint8_t stepToHexUI(MantaInstrument inst, int step)
 {
+	step = (step < 0) ? 0 : step;
 	
-	int hex = 0;
-	int step = 0;
 	if (full_vs_split == SplitMode)
 	{
-		if (stepIn < 0)
-		{
-			step = 0;
-		}
-		else if (stepIn < 16)
-		{
-			step = stepIn;
-		}
-		else
+		if (step >= 16)
 		{
 			step = 15;
 		}
 		
-		if (inst == InstrumentOne)
+		if (inst == InstrumentTwo)
 		{
-			hex = step;
-		}
-		else
-		{
-			hex = step + 16;
+			step += 16;
 		}
 		
 	}
 	else
 	{
-		if (stepIn < 0)
+		 if (step >= 32)
 		{
-			hex = 0;
-		}
-		else if (stepIn < 32)
-		{
-			hex = stepIn;
-		}
-		else
-		{
-			hex = 31;
+			step = 31;
 		}
 	}
 	
-	return hex;
+	return step;
 }
 
 // Resets edit stack so it only contains most recently touched hex.
