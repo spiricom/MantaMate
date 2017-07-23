@@ -683,6 +683,7 @@ void processHexTouch(void)
 		pastbutt_states[i] = butt_states[i];
 	}
 	
+	BOOL buttonTouched = FALSE;
 	for (int i = 0; i < 4; i++)
 	{
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
@@ -690,18 +691,22 @@ void processHexTouch(void)
 			//a round function button was just pressed
 			resetSliderMode();
 			
+			buttonTouched = TRUE;
+			
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
 			else if (!hexmapEditMode)
 			{
 				if (i == ButtonTopRight)			touchTopRightButton();
 				else if (i == ButtonTopLeft)		touchTopLeftButton();
 				else if (i == ButtonBottomRight)	touchBottomRightButton();
-			}
+			}	
 			
 		}
 		
 		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
 		{		
+			buttonTouched = TRUE;
+			
 			if (!hexmapEditMode)
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
@@ -710,6 +715,34 @@ void processHexTouch(void)
 				else if (i == ButtonBottomRight)	releaseBottomRightButton();
 			}
 		}
+		
+		if (buttonTouched && !hexmapEditMode)
+		{
+			if (manta[currentInstrument].type == SequencerInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off :
+				(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+				manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+			else if (manta[currentInstrument].type == KeyboardInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, Off);
+				manta_set_LED_button(ButtonTopRight, Off);
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+			else if (manta[currentInstrument].type == DirectInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, Off);
+				manta_set_LED_button(ButtonTopRight, Off);
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+		}
+		
+		
 		
 		past_func_button_states[i] = func_button_states[i];
 	}		
@@ -2032,6 +2065,8 @@ void setDirectOptionLEDs			(void)
 			{
 				tDirect* direct = &manta[inst].direct;
 				
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
+				
 				for (int i = 0; i < direct->numOuts; i++)
 				{
 					manta_set_LED_hex(16*inst + direct->outs[i].hex, direct->outs[i].color);
@@ -2042,6 +2077,8 @@ void setDirectOptionLEDs			(void)
 	}
 	else if (takeoverType == DirectInstrument)
 	{
+		for (int i = 0; i < 16; i++) manta_set_LED_hex(i,Off);
+		
 		for (int i = 0; i < fullDirect.numOuts; i++)
 		{
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
@@ -2817,9 +2854,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 		}		
 	}
 	
-	manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
-	manta_set_LED_button(ButtonBottomLeft, Off);
-	manta_set_LED_button(ButtonBottomRight, (sequencer->playMode == ToggleMode) ? Off : Amber);
 	//manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 	freeze_LED_update = 0;
 }
