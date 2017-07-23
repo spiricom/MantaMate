@@ -1155,34 +1155,50 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 
 	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
 	{
-		SevSegArpMode = 1;
-
-		if(upSwitch())
-		{
-			MIDIKeyboard.playMode = ArpMode;
-			MIDIKeyboard.arpModeType++;
-			if (MIDIKeyboard.arpModeType >= 8)
-			{
-				MIDIKeyboard.arpModeType = 7;
-			}
-			Write7Seg(MIDIKeyboard.arpModeType+1);
-		}
 		
-		if(downSwitch())
+		if (type_of_device_connected == NoDeviceConnected)
 		{
-
-			if (MIDIKeyboard.arpModeType > 0)
+			if(upSwitch())
 			{
-				MIDIKeyboard.arpModeType--;
+				noDeviceCreateNewRandomPatterns();
+			}
+			else if (downSwitch())
+			{
+				noDeviceSlightlyAlterRandomPatterns();
+			}
+		}
+		else //otherwise you are trying to set an arpeggiator mode or touch mode change to Manta or MIDI.
+		{
+			SevSegArpMode = 1;
+
+			if(upSwitch())
+			{
 				MIDIKeyboard.playMode = ArpMode;
+				MIDIKeyboard.arpModeType++;
+				if (MIDIKeyboard.arpModeType >= 8)
+				{
+					MIDIKeyboard.arpModeType = 7;
+				}
 				Write7Seg(MIDIKeyboard.arpModeType+1);
 			}
-			else if (MIDIKeyboard.arpModeType == 0)
+			
+			else if(downSwitch())
 			{
-				MIDIKeyboard.playMode = TouchMode;
-				Write7Seg(0);
+
+				if (MIDIKeyboard.arpModeType > 0)
+				{
+					MIDIKeyboard.arpModeType--;
+					MIDIKeyboard.playMode = ArpMode;
+					Write7Seg(MIDIKeyboard.arpModeType+1);
+				}
+				else if (MIDIKeyboard.arpModeType == 0)
+				{
+					MIDIKeyboard.playMode = TouchMode;
+					Write7Seg(0);
+				}
 			}
 		}
+		
 		
 	}
 	

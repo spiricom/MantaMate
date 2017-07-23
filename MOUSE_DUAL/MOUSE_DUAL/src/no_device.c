@@ -416,12 +416,59 @@ void noDeviceTrigOutPattern(BOOL sameLength)
 
 void noDeviceCreateNewRandomPatterns(void)
 {
-	for (int i = 0; i < 11; i++)
+	for (int i = 0; i < 12; i++)
 	{
 		noDevicePatterns.patterns[i][0] = (((rand() >> 15) % 31) + 2); //random number between 2 and 32
-		for (int j = 1; j < 17; j++)
+		for (int j = 1; j < NUM_ELEMENTS_PER_PATTERN; j++)
 		{
 			noDevicePatterns.patterns[i][j] = (uint16_t)(rand() / SIXTEEN_BIT_DIV); // a random 16-bit integer
+		}
+	}
+}
+
+void noDeviceSlightlyAlterRandomPatterns(void)
+{
+	for (int i = 0; i < 12; i++)
+	{
+		if (((rand()>>15) & 1) == 1) //roll one die to see if we should change this output's pattern at all (50% chance)
+		{
+			
+			if (((rand()>>15) & 1) == 1) //roll one die to see if you should increment the pattern length at all
+			{
+				if (((rand()>>15) & 1) == 1) //roll a second die to see which direction   1 == go up
+				{
+					if (noDevicePatterns.patterns[i][0] < 32)
+					{
+						noDevicePatterns.patterns[i][0]++;
+					}
+				}
+				else // zero == go down
+				{
+					if (noDevicePatterns.patterns[i][0] > 2)
+					{
+						noDevicePatterns.patterns[i][0]--;
+					}
+				}
+			}
+		
+			for (int j = 1; j < NUM_ELEMENTS_PER_PATTERN; j++)
+			{
+				int myIncrement = 0;
+				if (((rand()>>15) % 2) == 0) //roll die to see if it changes
+				{
+					if (((rand()>>15) & 1) == 1) //roll die to see if it goes up or down. 1 == up
+					{
+						myIncrement = ((rand() >> 15) % 16383);
+					}
+					else
+					{
+						myIncrement = -((rand() >> 15) % 16383);
+					}
+				}
+			
+				noDevicePatterns.patterns[i][j] += myIncrement; // it will overflow but that's OK
+			}
+			
 		}
 	}
 }
@@ -441,7 +488,7 @@ void tNoDevice_encode(tNoDevicePattern* nodevice, uint8_t* buffer)
 	
 	for (int i = 0; i < 12; i++)
 	{
-		for (int j = 0; j < 33; j++)
+		for (int j = 0; j < NUM_ELEMENTS_PER_PATTERN; j++)
 		{
 			buffer[index_count] =  nodevice->patterns[i][j] >> 8;
 			index_count++;
@@ -460,7 +507,7 @@ void tNoDevice_decode(tNoDevicePattern* nodevice, uint8_t* buffer)
 	
 	for (int i = 0; i < 12; i++)
 	{
-		for (int j = 0; j < 33; j++)
+		for (int j = 0; j < NUM_ELEMENTS_PER_PATTERN; j++)
 		{
 			nodevice->patterns[i][j] = (buffer[index_count] << 8) +  buffer[index_count+1];
 			index_count = (index_count + 2);
