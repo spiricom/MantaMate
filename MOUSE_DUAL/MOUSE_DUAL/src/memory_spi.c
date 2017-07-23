@@ -270,14 +270,7 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 		//mark the load procedure as finished
 		mantaLoadPending = 0;
 		mantaPreset_decode(mantamate_internal_preset_buffer);
-		
-		setKeyboardLEDs();
-		setDirectLEDs();
-		setSequencerLEDs();
-		shiftOption1 = FALSE;
-		shiftOption2 = FALSE;
-		hexmapEditMode = FALSE;
-		displayState = GlobalDisplayStateNil;
+		initMantaLEDState();
 	}
 }
 

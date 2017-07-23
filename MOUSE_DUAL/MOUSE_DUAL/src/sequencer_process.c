@@ -6,7 +6,7 @@
  */ 
 #include "asf.h"
 #include "main.h"
-#include "note_process.h"
+#include "manta_keys.h"
 #include "uhi_hid_manta.h"
 #include "utilities.h"
 //#include "7Segment.h"
@@ -446,17 +446,6 @@ void keyboardStep(MantaInstrument inst)
 	 dacSendKeyboard(inst);
 }
 
-void MIDIKeyboardStep(void)
-{
-	tMIDIKeyboard* keyboard = &MIDIKeyboard;
-	if (keyboard->playMode != ArpMode) return;
-	
-	tMIDIKeyboard_nextNote(keyboard);
-	
-	if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
-	
-	dacSendMIDIKeyboard();
-}
 
 void sequencerStep(MantaInstrument inst)
 {
@@ -520,35 +509,70 @@ MantaButton lastFunctionButton;
 
 void releaseDirectHex(int hex)
 {
-	tDirect* direct = &manta[currentInstrument].direct;
-	
-	int output = tDirect_getOutputForHex(direct, hex);
-	
-	if (direct->outs[output].type == DirectGate)
+	if (!takeover)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		tDirect* direct = &manta[currentInstrument].direct;
+		
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		if (direct->outs[output].type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		}
+	}
+	else
+	{
+		tDirect* direct = &fullDirect;
+			
+		int output = tDirect_getOutputForHex(direct, hex);
+			
+		if (direct->outs[output].type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		}
 	}
 	
 }
 
 void touchDirectHex(int hex)
 {
-	tDirect* direct = &manta[currentInstrument].direct;
-	
-	int output = tDirect_getOutputForHex(direct, hex);
-	
-	DirectType type = direct->outs[output].type;
-	
-	if (type == DirectGate)
+	if (!takeover)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		tDirect* direct = &manta[currentInstrument].direct;
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		DirectType type = direct->outs[output].type;
+		
+		if (type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		}
+		else if (type == DirectTrigger)
+		{
+			// set output high then start timer
+			direct->outs[output].trigCount = 2;
+			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		}
 	}
-	else if (type == DirectTrigger)
+	else
 	{
-		// set output high then start timer
-		direct->outs[output].trigCount = 2;
-		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		tDirect* direct = &fullDirect;
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		DirectType type = direct->outs[output].type;
+		
+		if (type == DirectGate)
+		{
+			sendDataToOutput(output, 0, 0xffff);
+		}
+		else if (type == DirectTrigger)
+		{
+			// set output high then start timer
+			direct->outs[output].trigCount = 5;
+			sendDataToOutput(output, 0, 0xffff);
+		}
 	}
+	
 }
 
 void processHexTouch(void)
@@ -971,38 +995,32 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 	}
     else if (shiftOption2)
     {
-        if (hexagon < 31)
-        {
+		if (hexagon == 0) // load global tuning
+		{
+			manta_set_LED_hex(0, Amber);
+			loadTuning(globalTuning);
+		}
+		else if (hexagon < 32)
+		{
 			 // Tuning hex
-		    manta_set_LED_hex(currentTuningHex, Amber);
+		    manta_set_LED_hex(currentTuningHex, Off);
 			
 			currentTuningHex = hexagon;
 			
+			manta_set_LED_hex(currentTuningHex, Amber);
+			
+			currentMantaUITuning = mantaUITunings[currentTuningHex];
+			
+			Write7Seg(currentMantaUITuning); // Set display
+			
+			loadTuning(currentMantaUITuning);
+			
 			if (shiftOption2Lock)
 			{
-				 manta_set_LED_hex(currentTuningHex, BothOn);
-				
-				 currentMantaUITuning = mantaUITunings[currentTuningHex];
-				 
 				 displayState = TuningHexSelect;
-				 
-				 Write7Seg(currentMantaUITuning); // Set display
 			}
-			else
-			{
-				manta_set_LED_hex(currentTuningHex, Red);
-				
-				currentMantaUITuning = mantaUITunings[currentTuningHex];
-				
-				// LOAD TUNING HERE
-				loadTuning(currentMantaUITuning);
-			}
+			
         }
-		else if (hexagon == 31) // load global tuning
-		{
-			manta_set_LED_hex(31, Amber);
-			loadTuning(globalTuning);
-		}
 
     }
 }
@@ -1921,26 +1939,27 @@ void resetSliderMode(void)
 
 void setSequencerLEDs(void)
 {
-	freeze_LED_update = 1;
+	if (!takeover)
+	{
+		freeze_LED_update = 1;
 	
+		if (full_vs_split == FullMode)
+		{
+			setSequencerLEDsFor(currentInstrument);
+		}
+		else
+		{
+			setSequencerLEDsFor(InstrumentOne);
+			setSequencerLEDsFor(InstrumentTwo);
+		}
 		
-		
-	if (full_vs_split == FullMode)
-	{
-		setSequencerLEDsFor(currentInstrument);
-	}
-	else
-	{
-		setSequencerLEDsFor(InstrumentOne);
-		setSequencerLEDsFor(InstrumentTwo);
-	}
-		
-	if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
-	else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
+		if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
+		else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
 
-	roll_LEDs = 1;
-	freeze_LED_update = 0;
-	
+		roll_LEDs = 1;
+		freeze_LED_update = 0;
+	}
+
 }
 
 void setKeyboardLEDs(void)
@@ -1991,6 +2010,7 @@ void setDirectLEDs			(void)
 	}
 	else if (takeoverType == DirectInstrument)
 	{
+		manta_clear_all_LEDs();
 		for (int i = 0; i < fullDirect.numOuts; i++)
 		{
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
@@ -2289,12 +2309,12 @@ void setTuningLEDs(void)
 	
 	if (takeover || (type1 == SequencerInstrument) || (type1 == KeyboardInstrument) || (type2 == SequencerInstrument) || (type2 == KeyboardInstrument))
 	{
-		for (int i = 0; i < 31; i++)
+		for (int i = 1; i < 32; i++)
 		{
-			manta_set_LED_hex(i, (i == currentTuningHex) ? Red : Amber);
+			manta_set_LED_hex(i, (i == currentTuningHex) ? Amber : Off);
 		}
 		
-		manta_set_LED_hex(31, Red); // Return to Global tuning (globalTuning)
+		manta_set_LED_hex(0, Red); // Return to Global tuning (globalTuning)
 	}
 
 	
@@ -3307,7 +3327,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 			}
 			
 			
-			value =	(editType == RandomEdit) ? (((float)rand() / RAND_MAX) * 12) :
+			value =	(editType == RandomEdit) ? (((float) rand() / RAND_MAX) * 12) :
 					(editType == SubtleEdit) ? pitch :
 					value;
 			
@@ -3329,7 +3349,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 	{	
 		for (; i < size; i++)
 		{
-			value =	(editType == RandomEdit) ? (rand() / RAND_MAX * 8) :
+			value =	(editType == RandomEdit) ? (((float) rand() / RAND_MAX) * 8) :
 			(editType == SubtleEdit) ? (sequencer->step[hexUIToStep(editStack.notestack[i])].octave + ((rand() % 0xffff) > 0x8000) ? 1 : -1) :
 			value;
 			

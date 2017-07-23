@@ -40,9 +40,8 @@ typedef struct _tDirect
 {
 	// Encode this in preset
 	tDirectOutput outs[12];
-	// - - - - - - - - - - 
-	
 	int numOuts;
+	// - - - - - - - - - - 
 	
 	int numActive;
 	
@@ -59,6 +58,18 @@ int tDirect_getOutputForHex(tDirect* const direct, int hex);
 void tDirect_assignHexToOutput(tDirect* const direct, int hex, int output);
 
 void tDirect_setOutputType(tDirect* const direct, int output, DirectType type);
+
+
+void initMantaAllCV(void);
+
+void initMantaAllGates(void);
+
+void initMantaAllTriggers(void);
+
+void initMantaCVAndGates(void);
+
+void initMantaCVAndTriggers(void);
+
 
 void tDirect_encode(tDirect* const direct, uint8_t* buffer);
 void tDirect_decode(tDirect* const direct, uint8_t* buffer);

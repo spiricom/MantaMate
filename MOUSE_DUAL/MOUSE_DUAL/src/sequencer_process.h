@@ -11,12 +11,11 @@
 
 #include "sequencer.h"
 
-
 void sequencerStep(MantaInstrument inst);
 void uiStep					(MantaInstrument);
 
 void keyboardStep(MantaInstrument inst);
-void MIDIKeyboardStep(void);
+
 
 void processHexTouch(void);
 

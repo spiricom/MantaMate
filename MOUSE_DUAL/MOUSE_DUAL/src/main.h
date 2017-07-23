@@ -51,7 +51,7 @@
 #include "utilities.h"
 #include "memory_spi.h"
 #include "7Segment.h"
-#include "note_process.h"
+#include "manta_keys.h"
 #include "sequencer_process.h"
 #include "direct.h"
 #include "usb_protocol_cdc.h"
@@ -65,7 +65,7 @@
 
 
 #define NUM_BYTES_PER_KEYBOARD 149
-#define NUM_BYTES_PER_DIRECT 24
+#define NUM_BYTES_PER_DIRECT 25
 #define NUM_BYTES_PER_MIDIKEYBOARD 263
 #define NUM_BYTES_PER_SEQUENCER  615 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
 #define NUM_BYTES_PER_COMPOSITION_BANK  (NUM_BYTES_PER_SEQUENCER*14) //there are now 14 possible sequence slots in composition mode
@@ -123,6 +123,7 @@ tMIDIKeyboard MIDIKeyboard;
 tTuningTable myGlobalTuningTable;
 tNoDevicePattern noDevicePatterns;
 
+int prevSentPitch;
 
 wdt_opt_t myWDT;
 
@@ -229,6 +230,10 @@ tIRamp pitchBendRamp;
 uint8_t readData;
 
 uint8_t* readDataArray[256];
+
+
+
+
 
 void blink(void);
 
@@ -348,6 +353,10 @@ void releaseBottomRightButton	(void);
 void allUIStepsOff(MantaInstrument inst);
 void uiOff(void);
 
+
+void initMantaLEDState(void);
+
+
 void setCurrentInstrument(MantaInstrument inst);
 
 void sendDataToOutput(int which, int ramp, uint16_t data);
@@ -366,8 +375,7 @@ void enterBootloader(void);
 void sendDataToExternalMemory(void);
 void savePreset(void);
 void loadNoDevicePreset(void);
-void loadMIDIKeyboardPreset(void);
-void loadMIDIComputerPreset(void);
+void loadMIDIPreset(void);
 void loadJoystickPreset(void);
 void loadMantaPreset(void);
 

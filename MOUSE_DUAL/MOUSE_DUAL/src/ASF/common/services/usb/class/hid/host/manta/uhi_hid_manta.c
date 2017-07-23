@@ -50,7 +50,7 @@
 #include "uhc.h"
 #include "uhi_hid_manta.h"
 #include "main.h"
-#include "note_process.h"
+#include "manta_keys.h"
 #include <string.h>
 #include "7Segment.h"
 #include "sequencer_process.h"
