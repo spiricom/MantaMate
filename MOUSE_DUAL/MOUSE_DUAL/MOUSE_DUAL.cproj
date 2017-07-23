@@ -616,9 +616,6 @@
     <Compile Include="src\memory_spi.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\note_process_utilities.c">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="src\preset.c">
       <SubType>compile</SubType>
     </Compile>
@@ -757,10 +754,10 @@
     <None Include="src\config\conf_twi.h">
       <SubType>compile</SubType>
     </None>
-    <Compile Include="src\note_process.c">
+    <Compile Include="src\manta_keys.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\note_process.h">
+    <Compile Include="src\manta_keys.h">
       <SubType>compile</SubType>
     </Compile>
     <None Include="src\config\conf_clock.h">

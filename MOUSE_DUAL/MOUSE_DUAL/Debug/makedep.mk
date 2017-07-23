@@ -18,8 +18,6 @@ src\keyboard.c
 
 src\memory_spi.c
 
-src\note_process_utilities.c
-
 src\preset.c
 
 src\utilities.c
@@ -52,7 +50,7 @@ src\7Segment.c
 
 src\ASF\common\services\usb\class\hid\dual\mouse\example\at32uc3a0512_evk1100\ui.c
 
-src\note_process.c
+src\manta_keys.c
 
 src\ASF\avr32\boards\evk1100\init.c
 

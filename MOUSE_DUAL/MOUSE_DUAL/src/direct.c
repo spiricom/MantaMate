@@ -28,6 +28,7 @@ void tDirect_init(tDirect* const direct, int numOuts)
 
 		direct->outs[i].trigCount = 0;
 	}
+	
 }
 
 void tDirect_assignHexToOutput(tDirect* const direct, int hex, int output)
@@ -50,7 +51,6 @@ DirectType tDirect_getOutputTypeForHex(tDirect* const direct, int hex)
 	
 	if (output < 0)		return DirectTypeNil;
 	else				return direct->outs[output].type;
-
 }
 
 int tDirect_getOutputForHex(tDirect* const direct, int hex)
@@ -82,13 +82,111 @@ void tDirect_setOutputType(tDirect* const direct, int output, DirectType type)
 									
 }
 
+
+void initMantaAllCV(void)
+{
+	takeover = TRUE;
+	takeoverType = DirectInstrument;
+	manta[InstrumentOne].type = DirectInstrument;
+	fullDirect.numOuts = 12;
+	for (int i = 0; i < 12; i++)
+	{
+		fullDirect.map[i] = i;
+		fullDirect.outs[i].hex = i;
+		tDirect_setOutputType(&fullDirect, i, DirectCV);
+		fullDirect.outs[i].color =	Amber;
+	}
+
+}
+
+void initMantaAllGates(void)
+{
+	takeover = TRUE;
+	takeoverType = DirectInstrument;
+	manta[InstrumentOne].type = DirectInstrument;
+	fullDirect.numOuts = 12;
+	for (int i = 0; i < 12; i++)
+	{
+		fullDirect.map[i] = i;
+		fullDirect.outs[i].hex = i;
+		tDirect_setOutputType(&fullDirect, i, DirectGate);
+		fullDirect.outs[i].color = Red;
+	}
+
+}
+
+void initMantaAllTriggers(void)
+{
+	takeover = TRUE;
+	takeoverType = DirectInstrument;
+	manta[InstrumentOne].type = DirectInstrument;
+	fullDirect.numOuts = 12;
+	for (int i = 0; i < 12; i++)
+	{
+		fullDirect.map[i] = i;
+		fullDirect.outs[i].hex = i;
+		tDirect_setOutputType(&fullDirect, i, DirectTrigger);
+		fullDirect.outs[i].color =	BothOn;
+	}	
+}
+
+void initMantaCVAndGates(void)
+{
+	takeover = TRUE;
+	takeoverType = DirectInstrument;
+	manta[InstrumentOne].type = DirectInstrument;
+	fullDirect.numOuts = 12;
+	for (int i = 0; i < 6; i++)
+	{
+		fullDirect.map[i] = i;
+		fullDirect.outs[i].hex = i;
+		tDirect_setOutputType(&fullDirect, i, DirectCV);
+		fullDirect.outs[i].color =	Amber;
+	}	
+	for (int i = 0; i < 6; i++)
+	{
+		fullDirect.map[i+6] = i+6;
+		fullDirect.outs[i+6].hex = i+6;
+		tDirect_setOutputType(&fullDirect, i+6, DirectGate);
+		fullDirect.outs[i+6].color =	Red;
+	}
+
+}
+
+void initMantaCVAndTriggers(void)
+{
+	takeover = TRUE;
+	takeoverType = DirectInstrument;
+	manta[InstrumentOne].type = DirectInstrument;
+	fullDirect.numOuts = 12;
+	for (int i = 0; i < 6; i++)
+	{
+		fullDirect.map[i] = i;
+		fullDirect.outs[i].hex = i;
+		tDirect_setOutputType(&fullDirect, i, DirectCV);
+		fullDirect.outs[i].color =	Amber;
+	}	
+	for (int i = 0; i < 6; i++)
+	{
+		fullDirect.map[i+6] = i+6;
+		fullDirect.outs[i+6].hex = i+6;
+		tDirect_setOutputType(&fullDirect, i+6, DirectTrigger);
+		fullDirect.outs[i+6].color =	BothOn;
+	}
+
+}
+
+
 void tDirect_encode(tDirect* const direct, uint8_t* buffer)
 {
+
 	for (int i = 0; i < 12; i++)
 	{
 		buffer[i*2] = direct->outs[i].hex;
 		buffer[(i*2) + 1] = direct->outs[i].type;
 	}
+	
+	buffer[24] = direct->numOuts;
 }
 
 // 24 bytes
@@ -105,5 +203,5 @@ void tDirect_decode(tDirect* const direct, uint8_t* buffer)
 								(type == DirectTrigger) ? BothOn :
 								Off;
 	}
-
+	direct->numOuts = buffer[24];
 }

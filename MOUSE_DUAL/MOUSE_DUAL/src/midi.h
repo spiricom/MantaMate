@@ -26,6 +26,15 @@ void controlChange(uint8_t ctrlNum, uint8_t val);
 
 void initMIDIArpeggiator(void);
 void initMIDIKeys(int numVoices, BOOL pitchout);
+void initMIDIAllCV(void);
+void initMIDIAllGates(void);
+void initMIDIAllTriggers(void);
+void initMIDICVAndGates(void);
+void initMIDICVAndTriggers(void);
+
+void MIDIKeyboardStep(void);
+
+void dacSendMIDIKeyboard(void);
 
 
 typedef struct _tMIDIKeyboard
@@ -38,6 +47,7 @@ typedef struct _tMIDIKeyboard
 	signed int transpose;
 	BOOL learned;
 	int firstFreeOutput;
+	GateVsTriggerType gatesOrTriggers;
 	// - - - - - - - - - - -
 	
 	int numVoicesActive;

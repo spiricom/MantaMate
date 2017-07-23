@@ -52,7 +52,7 @@
 #include <string.h>
 #include "main.h"
 #include <fastmath.h>
-#include "note_process.h"
+#include "manta_keys.h"
 #include "7Segment.h"
 #include <time.h>
 

@@ -28,7 +28,6 @@ typedef enum MantaLEDColor
 	BothOn,
 	MantaLEDColorNil,
 	
-	
 }	MantaLEDColor;
 
 typedef enum ArpModeType
@@ -156,6 +155,11 @@ typedef enum TuningOrLearnType
 	MIDILEARN_AND_LENGTH
 }TuningOrLearnType;
 
+typedef enum GateVsTriggerType
+{
+	GATES,
+	TRIGGERS
+}GateVsTriggerType;
 
 typedef enum MantaEditPlayMode {
 	EditMode = 0,

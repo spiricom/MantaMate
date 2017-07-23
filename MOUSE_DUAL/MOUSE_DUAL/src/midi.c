@@ -244,7 +244,49 @@ void sendSysexSaveConfim(void)
 
 void initMIDIArpeggiator(void)
 {
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
 	
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = TRUE;
+	keyboard->gatesOrTriggers = GATES;
+
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeOrderTouchForward; //let's default to order touched
+	keyboard->playMode = ArpMode;
+	keyboard->currentNote = -1;
+
+	keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
+
+	//default learned CCs and notes are just the CCs 1-128 - notes are skipped
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = i+1;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+
+	for (int i = 0; i < 4; i ++)
+	{
+		keyboard->voices[i][0] = -1;
+	}
+
+	tNoteStack_init(&keyboard->stack, 128);
+
+	tNoteStack_init(&keyboard->orderStack, 128);	
 }
 
 void initMIDIKeys(int numVoices, BOOL pitchout)
@@ -255,6 +297,221 @@ void initMIDIKeys(int numVoices, BOOL pitchout)
 	{
 		sendDataToOutput(i, 5, 0);
 	}
+}
+
+void initMIDIAllCV(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = FALSE;
+	keyboard->gatesOrTriggers = GATES;
+	
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+	
+	keyboard->firstFreeOutput = 0;
+
+	//default learned CCs and notes are just the CCs 1-128 - notes are skipped
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = i+1;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+}
+
+void initMIDIAllGates(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = FALSE;
+	keyboard->gatesOrTriggers = GATES;
+		
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+
+	keyboard->firstFreeOutput = 0;
+
+	//clear out default ccs and notes
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = 255;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+	//add in midi notes 60-71 for gates   //would be nice to set it up to do full chromatic instead by pitch class...
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][1] = 60 + i;
+	}
+}
+
+void initMIDIAllTriggers(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = FALSE;
+	keyboard->gatesOrTriggers = TRIGGERS;
+		
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+
+	keyboard->firstFreeOutput = 0;
+
+	//clear out default ccs and notes
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = 255;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+	//add in midi notes 60-71 for gates   //would be nice to set it up to do full chromatic instead by pitch class...
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][1] = 60 + i;
+	}
+}
+
+void initMIDICVAndGates(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = FALSE;
+	keyboard->gatesOrTriggers = GATES;
+		
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+
+	keyboard->firstFreeOutput = 0;
+
+	//clear out default ccs and notes
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = 255;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+	//add in CCs 1-6
+	for (int i = 0; i < 6; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = i + 1;
+	}
+	//add in midi notes 60-66 for gates   //would be nice to set it up to do full chromatic instead by pitch class...
+	for (int i = 0; i < 6; i++)
+	{
+		keyboard->learnedCCsAndNotes[i + 6][1] = 60 + i;
+	}
+}
+
+void initMIDICVAndTriggers(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard; //check that this is correct
+	keyboard->numVoices = 1;
+	keyboard->numVoicesActive = 1;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	keyboard->trigCount[0] = 0;
+	keyboard->trigCount[1] = 0;
+	keyboard->trigCount[2] = 0;
+	keyboard->trigCount[3] = 0;
+	keyboard->learned = FALSE;
+	keyboard->pitchOutput = FALSE;
+	keyboard->gatesOrTriggers = TRIGGERS;
+	
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 128;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+
+	keyboard->firstFreeOutput = 0;
+
+	//clear out default ccs and notes
+	for (int i = 0; i < 128; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = 255;
+		keyboard->learnedCCsAndNotes[i][1] = 255;
+		MIDIKeyboard.CCsRaw[i] = 0;
+		MIDIKeyboard.CCs[i] = 0;
+		keyboard->notes[i][0] = 0;
+		keyboard->notes[i][1] = 0;
+	}
+	//add in CCs 1-6
+	for (int i = 0; i < 6; i++)
+	{
+		keyboard->learnedCCsAndNotes[i][0] = i + 1;
+	}
+	//add in midi notes 60-66 for gates   //would be nice to set it up to do full chromatic instead by pitch class...
+	for (int i = 0; i < 6; i++)
+	{
+		keyboard->learnedCCsAndNotes[i + 6][1] = 60 + i;
+	}	
 }
 
 void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
@@ -269,6 +526,7 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->trigCount[3] = 0;
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = pitchOutput;
+	keyboard->gatesOrTriggers = GATES;
 	
 	// Arp mode stuff
 	keyboard->currentVoice = 0;
@@ -591,6 +849,79 @@ void tMIDIKeyboard_orderedAddToStack(tMIDIKeyboard* thisKeyboard, uint8_t noteVa
 	
 }
 
+void MIDIKeyboardStep(void)
+{
+	tMIDIKeyboard* keyboard = &MIDIKeyboard;
+	if (keyboard->playMode != ArpMode) return;
+	
+	tMIDIKeyboard_nextNote(keyboard);
+	
+	if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
+	
+	dacSendMIDIKeyboard();
+}
+
+void dacSendMIDIKeyboard(void)
+{
+	tMIDIKeyboard* keyboard;
+	keyboard = &MIDIKeyboard;
+	
+	if (keyboard->pitchOutput > 0)
+	{
+		if (keyboard->playMode == ArpMode)
+		{
+			int newNote = keyboard->currentNote;
+			if (newNote >= 0)
+			{
+				tIRampSetDest(&out[0][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
+
+				tIRampSetDest(&out[0][CVKTRIGGER-2+(3*keyboard->currentVoice)], 65535);
+				keyboard->trigCount[keyboard->currentVoice] = 3;
+			}
+			
+			if (keyboard->stack.size <= 0)
+			{
+				tIRampSetDest(&out[0][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
+			}
+		}
+		else
+		{
+			
+			
+			for (int i = 0; i < keyboard->numVoices; i++)
+			{
+				int note = keyboard->voices[i][0];
+				int velocity = keyboard->voices[i][1];
+				if (note >= 0)
+				{
+					int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
+					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalPitchGlide);
+					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
+					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
+					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
+					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 3);
+					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL],velocity << 5);
+					//if we are in mono mode, then we have room for a trigger output, too
+					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+					{
+						tIRampSetDest(&out[0][CVKTRIGGER], 65535);
+						keyboard->trigCount[0] = 3;
+					}
+					//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+					prevSentPitch = note + keyboard->transpose;
+				}
+				else
+				{
+					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
+					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 0);
+					//let the monophonic trigger handling know there has been a note-off event
+					prevSentPitch = -1;
+				}
+			}
+		}
+	}
+}
+
 void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 {
 		buffer[0] = keyboard->numVoices;
@@ -600,7 +931,8 @@ void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 		buffer[4] = keyboard->arpModeType;
 		buffer[5] = keyboard->learned;
 		buffer[6] = keyboard->firstFreeOutput;
-		int index_count = 7;
+		buffer[7] = keyboard->gatesOrTriggers;
+		int index_count = 8;
 		
 		for (int i = 0; i < 128; i++)
 		{
@@ -621,7 +953,8 @@ void tMIDIKeyboard_decode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 	keyboard->arpModeType = buffer[4];
 	keyboard->learned = buffer[5];
 	keyboard->firstFreeOutput = buffer[6];
-	int index_count = 7;
+	keyboard->gatesOrTriggers = buffer[7];
+	int index_count = 8;
 		
 	for (int i = 0; i < 128; i++)
 	{

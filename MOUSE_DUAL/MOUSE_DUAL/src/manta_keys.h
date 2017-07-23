@@ -6,8 +6,8 @@
  */ 
 
 
-#ifndef NOTE_PROCESS_H_
-#define NOTE_PROCESS_H_
+#ifndef MANTA_KEYS_H_
+#define MANTA_KEYS_H_
 
 
 #include "keyboard.h"
@@ -25,12 +25,13 @@ unsigned short lookupDACvalue(tTuningTable* myTable, uint16_t noteVal, signed in
 
 void initMantaKeys(int numVoices);
 void dacSendKeyboard(MantaInstrument);
-void dacSendMIDIKeyboard(void);
+
 void processSliderKeys(uint8_t sliderNum, uint16_t val);
 void resetMantaUI(void);
 
+		
 
 void noteOut(void);
 
 
-#endif /* NOTE_PROCESS_H_ */
+#endif /* MANTA_KEYS_H_ */

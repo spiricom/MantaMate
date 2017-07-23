@@ -49,7 +49,7 @@
 #include "main.h"
 #include "7Segment.h"
 #include "udi_cdc.h"
-#include "note_process.h"
+#include "manta_keys.h"
 #include "midi.h"
 
 uint8_t myReceiveBuf[64];

@@ -124,7 +124,7 @@ unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
-
+int prevSentPitch = -1;
 
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
 																													   // 33																												56																				  72								 78				
@@ -1735,24 +1735,7 @@ void Save_Switch_Check(void)
 
 
 void updatePreset(void)
-{
-	if (preset_num >= 10)
-	{
-		if (type_of_device_connected == MantaConnected)
-		{
-			initiateLoadingMantaPresetFromExternalMemory();
-		}
-		else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
-		{
-			initiateLoadingMidiPresetFromExternalMemory();
-		}
-		if ((type_of_device_connected == NoDeviceConnected) && (preset_num >= 19))
-		{
-			initiateLoadingNoDevicePresetFromExternalMemory();
-		}
-	}
-	
-	
+{	
 	if (type_of_device_connected == MantaConnected)
 	{
 		loadMantaPreset();
@@ -1761,13 +1744,9 @@ void updatePreset(void)
 	{
 		loadJoystickPreset();
 	}
-	else if (type_of_device_connected == MIDIComputerConnected)
+	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 	{
-		loadMIDIComputerPreset();
-	}
-	else if (type_of_device_connected == MIDIKeyboardConnected)
-	{
-		loadMIDIKeyboardPreset();
+		loadMIDIPreset();
 	}
 	else if (type_of_device_connected == NoDeviceConnected)
 	{
@@ -2156,17 +2135,58 @@ void loadMantaPreset(void)
 	if (preset_num == 0)
 	{
 		initMantaSequencer();
+		initMantaLEDState();
 	}
-	if ((preset_num >= 1) && (preset_num <= 4))
+	else if ((preset_num >= 1) && (preset_num <= 4))
 	{
 		initMantaKeys(preset_num);
+		initMantaLEDState();
 	}
+	else if (preset_num == 5)
+	{
+		initMantaAllCV();
+		initMantaLEDState();
+	}
+	else if (preset_num == 6)
+	{
+		initMantaAllGates();
+		initMantaLEDState();
+	}
+	else if (preset_num == 7)
+	{
+		initMantaAllTriggers();
+		initMantaLEDState();
+	}
+	else if (preset_num == 8)
+	{
+		initMantaCVAndGates();
+		initMantaLEDState();
+	}
+	else if (preset_num == 9)
+	{
+		initMantaCVAndTriggers();
+		initMantaLEDState();
+	}
+	else
+	{
+		initiateLoadingMantaPresetFromExternalMemory();
+	}
+}
+
+void initMantaLEDState(void)
+{
+	setKeyboardLEDs();
+	setDirectLEDs();
+	setSequencerLEDs();
 	setCurrentInstrument(InstrumentOne);
+	shiftOption1 = FALSE;
+	shiftOption2 = FALSE;
+	hexmapEditMode = FALSE;
+	displayState = GlobalDisplayStateNil;
 }
 
 void loadJoystickPreset(void)
 {
-	takeover = TRUE;
 	//joystick only has preset 0
 	if (preset_num != 0)
 	{
@@ -2176,33 +2196,45 @@ void loadJoystickPreset(void)
 	}
 }
 
-void loadMIDIComputerPreset(void)
+void loadMIDIPreset(void)
 {
 	if (preset_num == 0)
 	{
 		initMIDIArpeggiator();
 	}
-	if ((preset_num >= 1) && (preset_num <= 4))
+	else if ((preset_num >= 1) && (preset_num <= 4))
 	{
 		initMIDIKeys(preset_num, TRUE);
 	}
-}
-void loadMIDIKeyboardPreset(void)
-{
-	if (preset_num == 0)
+	else if (preset_num == 5)
 	{
-		//initMIDIArpeggiator();
-		initMIDIKeys(1, FALSE);
+		initMIDIAllCV();
 	}
-	if ((preset_num >= 1) && (preset_num <= 4))
+	else if (preset_num == 6)
 	{
-		initMIDIKeys(preset_num, TRUE);
+		initMIDIAllGates();
+	}
+	else if (preset_num == 7)
+	{
+		initMIDIAllTriggers();
+	}
+	else if (preset_num == 8)
+	{
+		initMIDICVAndGates();
+	}
+	else if (preset_num == 9)
+	{
+		initMIDICVAndTriggers();
+	}
+	else
+	{
+		initiateLoadingMidiPresetFromExternalMemory();
 	}
 }
 
 void loadNoDevicePreset(void)
 {
-	;
+	; //presets are handled internally by no_device_gate_in
 }
 
 void mantaPreset_encode(uint8_t* buffer)
@@ -2343,7 +2375,6 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_DIRECT;
 		tDirect_decode(&fullDirect, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_DIRECT;
-		
 		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
@@ -2383,7 +2414,6 @@ void midiPreset_encode(uint8_t* buffer)
 	buffer[indexCounter++] = globalTuning;
 	
 	tMIDIKeyboard_encode(&MIDIKeyboard, &buffer[indexCounter]);
-	indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
 }
 
 
@@ -2414,8 +2444,6 @@ void midiPreset_decode(uint8_t* buffer)
 		globalTuning = buffer[indexCounter++];
 		
 		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_MIDIKEYBOARD;
-		
 	}
 
 }

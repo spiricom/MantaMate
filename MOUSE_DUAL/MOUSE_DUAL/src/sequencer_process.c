@@ -6,7 +6,7 @@
  */ 
 #include "asf.h"
 #include "main.h"
-#include "note_process.h"
+#include "manta_keys.h"
 #include "uhi_hid_manta.h"
 #include "utilities.h"
 //#include "7Segment.h"
@@ -446,17 +446,6 @@ void keyboardStep(MantaInstrument inst)
 	 dacSendKeyboard(inst);
 }
 
-void MIDIKeyboardStep(void)
-{
-	tMIDIKeyboard* keyboard = &MIDIKeyboard;
-	if (keyboard->playMode != ArpMode) return;
-	
-	tMIDIKeyboard_nextNote(keyboard);
-	
-	if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
-	
-	dacSendMIDIKeyboard();
-}
 
 void sequencerStep(MantaInstrument inst)
 {
@@ -520,35 +509,70 @@ MantaButton lastFunctionButton;
 
 void releaseDirectHex(int hex)
 {
-	tDirect* direct = &manta[currentInstrument].direct;
-	
-	int output = tDirect_getOutputForHex(direct, hex);
-	
-	if (direct->outs[output].type == DirectGate)
+	if (!takeover)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		tDirect* direct = &manta[currentInstrument].direct;
+		
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		if (direct->outs[output].type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		}
+	}
+	else
+	{
+		tDirect* direct = &fullDirect;
+			
+		int output = tDirect_getOutputForHex(direct, hex);
+			
+		if (direct->outs[output].type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+		}
 	}
 	
 }
 
 void touchDirectHex(int hex)
 {
-	tDirect* direct = &manta[currentInstrument].direct;
-	
-	int output = tDirect_getOutputForHex(direct, hex);
-	
-	DirectType type = direct->outs[output].type;
-	
-	if (type == DirectGate)
+	if (!takeover)
 	{
-		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		tDirect* direct = &manta[currentInstrument].direct;
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		DirectType type = direct->outs[output].type;
+		
+		if (type == DirectGate)
+		{
+			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		}
+		else if (type == DirectTrigger)
+		{
+			// set output high then start timer
+			direct->outs[output].trigCount = 2;
+			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		}
 	}
-	else if (type == DirectTrigger)
+	else
 	{
-		// set output high then start timer
-		direct->outs[output].trigCount = 2;
-		sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
+		tDirect* direct = &fullDirect;
+		int output = tDirect_getOutputForHex(direct, hex);
+		
+		DirectType type = direct->outs[output].type;
+		
+		if (type == DirectGate)
+		{
+			sendDataToOutput(output, 0, 0xffff);
+		}
+		else if (type == DirectTrigger)
+		{
+			// set output high then start timer
+			direct->outs[output].trigCount = 5;
+			sendDataToOutput(output, 0, 0xffff);
+		}
 	}
+	
 }
 
 void processHexTouch(void)
@@ -1921,25 +1945,30 @@ void resetSliderMode(void)
 
 void setSequencerLEDs(void)
 {
-	freeze_LED_update = 1;
-	if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
+
+	if (!takeover)
 	{
+		freeze_LED_update = 1;
+		if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
+		{
 		
-		if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
-		else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
+			if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
+			else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
 		
-		setSequencerLEDsFor(currentInstrument);
+			setSequencerLEDsFor(currentInstrument);
+		}
+		else if (manta[InstrumentOne].type == SequencerInstrument)
+		{
+			setSequencerLEDsFor(InstrumentOne);
+		}
+		else if (manta[InstrumentTwo].type == SequencerInstrument)
+		{
+			setSequencerLEDsFor(InstrumentTwo);
+		}
+		roll_LEDs = 1;
+		freeze_LED_update = 0;
 	}
-	else if (manta[InstrumentOne].type == SequencerInstrument)
-	{
-		setSequencerLEDsFor(InstrumentOne);
-	}
-	else if (manta[InstrumentTwo].type == SequencerInstrument)
-	{
-		setSequencerLEDsFor(InstrumentTwo);
-	}
-	roll_LEDs = 1;
-	freeze_LED_update = 0;
+	
 	
 }
 
@@ -1991,6 +2020,7 @@ void setDirectLEDs			(void)
 	}
 	else if (takeoverType == DirectInstrument)
 	{
+		manta_clear_all_LEDs();
 		for (int i = 0; i < fullDirect.numOuts; i++)
 		{
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
