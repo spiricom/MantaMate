@@ -684,6 +684,8 @@ void processHexTouch(void)
 	}
 	
 	BOOL buttonTouched = FALSE;
+	BOOL topRon = FALSE;
+	BOOL topLon = FALSE;
 	for (int i = 0; i < 4; i++)
 	{
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
@@ -696,8 +698,16 @@ void processHexTouch(void)
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
 			else if (!hexmapEditMode)
 			{
-				if (i == ButtonTopRight)			touchTopRightButton();
-				else if (i == ButtonTopLeft)		touchTopLeftButton();
+				if (i == ButtonTopRight)			
+				{
+					topRon = TRUE;
+					touchTopRightButton();
+				}
+				else if (i == ButtonTopLeft)		
+				{
+					topLon = TRUE;
+					touchTopLeftButton();
+				}
 				else if (i == ButtonBottomRight)	touchBottomRightButton();
 			}	
 			
@@ -710,7 +720,7 @@ void processHexTouch(void)
 			if (!hexmapEditMode)
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
-				else if (i == ButtonTopRight)			releaseTopRightButton();
+				else if (i == ButtonTopRight)		releaseTopRightButton();
 				else if (i == ButtonTopLeft)		releaseTopLeftButton();
 				else if (i == ButtonBottomRight)	releaseBottomRightButton();
 			}
@@ -720,16 +730,18 @@ void processHexTouch(void)
 		{
 			if (manta[currentInstrument].type == SequencerInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off :
+				manta_set_LED_button(ButtonTopLeft, shiftOption2 ? (topLon ? Amber : Off) :
+				(currentMantaSliderMode == SliderModeOne) ? Off :
 				(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
-				manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
+				manta_set_LED_button(ButtonTopRight, shiftOption2 ? (topRon ? Amber : Off) :
+				(edit_vs_play == EditMode) ? Red : Amber);
 				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
 				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
 			}
 			else if (manta[currentInstrument].type == KeyboardInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, Off);
-				manta_set_LED_button(ButtonTopRight, Off);
+				manta_set_LED_button(ButtonTopLeft, (topLon  ? (shiftOption2 ? Amber : Red) : Off) );
+				manta_set_LED_button(ButtonTopRight, (topRon  ? (shiftOption2 ? Amber : Red) : Off));
 				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
 				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
 			}
