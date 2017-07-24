@@ -45,6 +45,11 @@ void continueStoringMantaPresetToExternalMemory(void);
 void initiateLoadingMantaPresetFromExternalMemory(void);
 void continueLoadingMantaPresetFromExternalMemory(void);
 
+void initiateStoringMantaCompositionsToExternalMemory(void);
+void continueStoringMantaCompositionsToExternalMemory(void);
+void initiateLoadingMantaCompositionsFromExternalMemory(void);
+void continueLoadingMantaCompositionsFromExternalMemory(void);
+
 void initiateStoringMidiPresetToExternalMemory(void);
 void continueStoringMidiPresetToExternalMemory(void);
 void initiateLoadingMidiPresetFromExternalMemory(void);

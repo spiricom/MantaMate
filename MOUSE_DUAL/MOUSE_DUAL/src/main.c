@@ -163,6 +163,9 @@ static uint32_t buttonHoldSpeed = 120;
 static uint32_t blink7SegCounter = 0;
 static uint32_t blinkSpeed7Seg = 500;
 
+int mantaCompositionSavePending = 0;
+int mantaCompositionLoadPending = 0;
+
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
 #define EXT_INT_EXAMPLE_PIN_LINE1               AVR32_EIC_EXTINT_7_PIN
@@ -348,6 +351,13 @@ int main(void){
 				continueStoringMantaPresetToExternalMemory();
 			}
 		}
+		else if (mantaCompositionSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringMantaCompositionsToExternalMemory();
+			}
+		}
 		else if (midiSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -388,6 +398,13 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingMantaPresetFromExternalMemory();
+			}
+		}
+		else if (mantaCompositionLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingMantaCompositionsFromExternalMemory();
 			}
 		}
 		else if (midiLoadPending)
@@ -1908,7 +1925,7 @@ void dacwait2(void)
 
 void memoryWait(void)
 {
-	cpu_delay_us(20,64000000); // what should this be? needs testing
+	cpu_delay_us(1,64000000); // what should this be? needs testing   was 20
 }
 
 
@@ -2168,7 +2185,7 @@ void loadMantaPreset(void)
 	{
 		initiateLoadingMantaPresetFromExternalMemory();
 	}
-	clearDACoutputs();
+	//clearDACoutputs();
 }
 
 void initMantaLEDState(void)
@@ -2229,7 +2246,7 @@ void loadMIDIPreset(void)
 	{
 		initiateLoadingMidiPresetFromExternalMemory();
 	}
-	clearDACoutputs();
+	//clearDACoutputs();
 }
 
 void loadNoDevicePreset(void)
@@ -2308,17 +2325,6 @@ void mantaPreset_encode(uint8_t* buffer)
 	indexCounter += NUM_BYTES_PER_SEQUENCER;
 	tSequencer_encode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 	indexCounter += NUM_BYTES_PER_SEQUENCER;
-	
-	//the 14*2 compositions!  14 per sequencer
-	//this is not as efficient as it could be because it's copying data we already have
-	for (int inst = 0; inst < NUM_INST; inst++)
-	{
-		for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
-		{
-			buffer[indexCounter++] = memoryInternalCompositionBuffer[inst][i];
-		}
-	}
-	
 }
 
 void mantaPreset_decode(uint8_t* buffer)
@@ -2388,16 +2394,6 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
-		
-		//the 14*2 compositions!  14 per sequencer
-		//this is not as efficient as it could be because it's copying data we already have
-		for (int inst = 0; inst < NUM_INST; inst++)
-		{
-			for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
-			{
-				memoryInternalCompositionBuffer[inst][i] = buffer[indexCounter++];
-			}
-		}
 	}
 }
 

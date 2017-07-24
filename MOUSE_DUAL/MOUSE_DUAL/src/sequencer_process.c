@@ -300,7 +300,7 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 
 uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER]; 
 uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
-uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK]; //8610 is 615 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
+uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP]; //8610 is 615 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {

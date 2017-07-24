@@ -161,26 +161,16 @@ void memorySPIEraseBlock(uint16_t block)
 
 
 //in the presets:
-// every "sequence" takes up 612 bytes.
+// a block has 65535 bytes
 
-// a block has 65535 bytes, and they will be set up like this:
-// Page 0 is the global settings and manta sequencer settings
-// Page 1 is the Manta keyboard-mode preset settings
-// Page 2 is the MIDI host preset settings
-// Page 3 is the MIDI device preset settings (when connected to a computer)
-// Pages 4, 5, 6 is the current sequencer 1 (3 pages per sequence)
-// Pages 7, 8, 9 is the current sequencer 2 (3 pages per sequence)
-// Pages 10-43 is the composition collection for sequencer 1 (34 pages per sequence if there are 14 savable sequences)
-// Pages 44-77 is the composition collection for sequencer 2 (34 pages per sequence if there are 14 savable sequences)
 
-// sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using (since we only use 4 sectors per preset = 200ms instead of 500ms save time)
-
-//global settings format:
-// byte 1 = seq1Pvt, seq2Pvt, sequencer_mode, clock_speed, compositions,  
-
+// sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using
 
 uint16_t bytes_left_to_transfer;
 uint16_t pages_left_to_transfer;
+
+int whichInstCompositions = 0;
+
 // manta preset saving and loading
 
 void initiateStoringMantaPresetToExternalMemory(void)
@@ -233,9 +223,10 @@ void continueStoringMantaPresetToExternalMemory(void)
 	}
 	else //otherwise save is done!
 	{
-		//mark the save procedure as finished
+		//mark the save procedure as finished, but start up the composition save procedure on the first of the two composition sets
+		whichInstCompositions = 0;
+		initiateStoringMantaCompositionsToExternalMemory();
 		mantaSavePending = 0;	
-		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
@@ -269,10 +260,141 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 	{
 		//mark the load procedure as finished
 		mantaLoadPending = 0;
+		whichInstCompositions = 0;
+		initiateLoadingMantaCompositionsFromExternalMemory();
 		mantaPreset_decode(mantamate_internal_preset_buffer);
 		initMantaLEDState();
 	}
 }
+
+
+/// store and load the composition sets for the Manta
+
+void initiateStoringMantaCompositionsToExternalMemory(void)
+{
+	if (whichInstCompositions == 0)
+	{
+		startingSector = (preset_to_save_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET; //after the manta preset info, pop in the composition array
+	}
+	else
+	{
+		startingSector = (preset_to_save_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK; //after the manta preset info, pop in the composition array
+	}
+	
+	
+	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage = 0; //start on the first page
+	
+	//start by erasing the memory in the location we want to store
+	sectors_left_to_erase = NUM_SECTORS_PER_COMPOSITION_BANK; //erase 5 sectors because that will give us enough room for a whole preset
+	pages_left_to_transfer = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
+	bytes_left_to_transfer = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
+	memorySPIEraseSector(currentSector);
+	sectors_left_to_erase--;
+	
+	mantaCompositionSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+}
+
+
+
+void continueStoringMantaCompositionsToExternalMemory(void)
+{
+	//if there are still sectors to erase, do those
+	if (sectors_left_to_erase > 0)
+	{
+		currentSector++;
+		memorySPIEraseSector(currentSector); //erase 5 sectors because that will give us enough room for a whole preset
+		sectors_left_to_erase--;
+	}
+	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
+	else if (pages_left_to_transfer > 0)
+	{
+		//otherwise we are ready to start saving data
+		// store a page
+		if (currentPage == 0)
+		{
+			currentSector = startingSector; // start back at the beginning of the memory location for this preset (it was incremented to erase)
+			//store global prefs data structure
+		}
+		
+		memorySPIWrite(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) ,  &memoryInternalCompositionBuffer[whichInstCompositions][currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		
+		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+	}
+	else //otherwise save is done!
+	{
+		//if you just finished the first set, start the second set
+		if (whichInstCompositions == 0)
+		{
+				whichInstCompositions = 1;
+				initiateStoringMantaCompositionsToExternalMemory();
+		}
+		//otherwise, you're all done!
+		else
+		{
+			//mark the save procedure as finished
+			mantaCompositionSavePending = 0;
+			LED_Off(PRESET_SAVE_LED);
+		}
+
+	}
+}
+
+
+void initiateLoadingMantaCompositionsFromExternalMemory(void)
+{
+	if (whichInstCompositions == 0)
+	{
+		startingSector = (preset_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET; //after the manta preset info, pop in the composition array
+	}
+	else
+	{
+		startingSector = (preset_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK; //after the manta preset info, pop in the composition array
+	}
+	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage = 0; //start on the first page
+	
+	pages_left_to_transfer = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
+	bytes_left_to_transfer = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
+	mantaCompositionLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+}
+
+void continueLoadingMantaCompositionsFromExternalMemory(void)
+{
+	if (pages_left_to_transfer > 0)
+	{
+		memorySPIRead(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) , &memoryInternalCompositionBuffer[whichInstCompositions][currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		
+		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+	}
+
+	else //otherwise load is done!
+	{
+		if (whichInstCompositions == 0)
+		{
+			whichInstCompositions = 1;
+			initiateLoadingMantaCompositionsFromExternalMemory();
+		}
+		else
+		{
+			//mark the load procedure as finished
+			mantaCompositionLoadPending = 0;
+		}
+	}
+}
+
+
+
 
 
 /// MIDI preset saving and loading
