@@ -561,20 +561,13 @@ static void tc2_irq(void)
 	{
 		tMIDIKeyboard* keyboard =  &MIDIKeyboard;
 		
-		for (int i = 0; i < keyboard->numVoices; i++)
+		for (int i = 0; i < 12; i++)
 		{
 			if (keyboard->trigCount[i] > 0)
 			{
 				if (--(keyboard->trigCount[i]) == 0)
 				{
-					if (keyboard->playMode == ArpMode)
-					{
-						sendDataToOutput((3*i+CVKTRIGGER)-2, 0, 0x0);
-					}
-					else
-					{
-						sendDataToOutput(3, 0, 0x0);
-					}
+					sendDataToOutput(i, 0, 0x0);
 				}
 			}
 		}
@@ -779,7 +772,7 @@ static void tc3_irq(void)
 			int cc = MIDIKeyboard.learnedCCsAndNotes[n][0];
 			int note = MIDIKeyboard.learnedCCsAndNotes[n][1];
 			
-			if (cc < 255) //255 is the mark for "unused" == the mark of the BEAST
+			if (cc < 255) //255 is the mark for "unused" == the mark of the BEAST : HAIL SATAN!
 			{
 				sendDataToOutput((n + MIDIKeyboard.firstFreeOutput), globalCVGlide, MIDIKeyboard.CCs[cc]); 
 			}
@@ -788,6 +781,10 @@ static void tc3_irq(void)
 				if (MIDIKeyboard.notes[note][0] > 0)
 				{
 					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 65535);
+					if (MIDIKeyboard.gatesOrTriggers == TRIGGERS)
+					{
+						MIDIKeyboard.trigCount[n + MIDIKeyboard.firstFreeOutput] = TRIGGER_TIMING;
+					}
 				}
 				else
 				{

@@ -242,6 +242,8 @@ volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
 
+#define TRIGGER_TIMING 4
+
 #define CVPITCH 0
 #define CVTRIGGER 1
 #define CV1P 2

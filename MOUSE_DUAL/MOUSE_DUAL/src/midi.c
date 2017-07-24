@@ -250,10 +250,10 @@ void initMIDIArpeggiator(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = TRUE;
 	keyboard->gatesOrTriggers = GATES;
@@ -306,10 +306,10 @@ void initMIDIAllCV(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = FALSE;
 	keyboard->gatesOrTriggers = GATES;
@@ -343,10 +343,10 @@ void initMIDIAllGates(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = FALSE;
 	keyboard->gatesOrTriggers = GATES;
@@ -385,10 +385,10 @@ void initMIDIAllTriggers(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = FALSE;
 	keyboard->gatesOrTriggers = TRIGGERS;
@@ -427,10 +427,10 @@ void initMIDICVAndGates(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = FALSE;
 	keyboard->gatesOrTriggers = GATES;
@@ -474,10 +474,10 @@ void initMIDICVAndTriggers(void)
 	keyboard->numVoicesActive = 1;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = FALSE;
 	keyboard->gatesOrTriggers = TRIGGERS;
@@ -520,10 +520,10 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	keyboard->numVoicesActive = numVoices;
 	keyboard->lastVoiceToChange = 0;
 	keyboard->transpose = 0;
-	keyboard->trigCount[0] = 0;
-	keyboard->trigCount[1] = 0;
-	keyboard->trigCount[2] = 0;
-	keyboard->trigCount[3] = 0;
+	for (int i = 0; i < 12; i++)
+	{
+		keyboard->trigCount[i] = 0;
+	}
 	keyboard->learned = FALSE;
 	keyboard->pitchOutput = pitchOutput;
 	keyboard->gatesOrTriggers = GATES;
@@ -874,19 +874,27 @@ void dacSendMIDIKeyboard(void)
 			if (newNote >= 0)
 			{
 				tIRampSetDest(&out[0][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
-
+		
 				tIRampSetDest(&out[0][CVKTRIGGER-2+(3*keyboard->currentVoice)], 65535);
-				keyboard->trigCount[keyboard->currentVoice] = 3;
+				
+				if (keyboard->numVoices < 2)
+				{
+					sendDataToOutput(3, 0, 65535);
+					keyboard->trigCount[3] = TRIGGER_TIMING;
+				}
+				if (keyboard->gatesOrTriggers == TRIGGERS)
+				{				
+					keyboard->trigCount[CVKTRIGGER-2+(3*keyboard->currentVoice)] = TRIGGER_TIMING;
+				}
 			}
 			
 			if (keyboard->stack.size <= 0)
 			{
-				tIRampSetDest(&out[0][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
+				tIRampSetDest(&out[0][CVKTRIGGER-2+(3*keyboard->currentVoice)], 0);
 			}
 		}
 		else
 		{
-			
 			
 			for (int i = 0; i < keyboard->numVoices; i++)
 			{
@@ -905,7 +913,7 @@ void dacSendMIDIKeyboard(void)
 					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 					{
 						tIRampSetDest(&out[0][CVKTRIGGER], 65535);
-						keyboard->trigCount[0] = 3;
+						keyboard->trigCount[3] = TRIGGER_TIMING;
 					}
 					//this is to avoid retriggers on the same note when other notes are released in monophonic mode
 					prevSentPitch = note + keyboard->transpose;

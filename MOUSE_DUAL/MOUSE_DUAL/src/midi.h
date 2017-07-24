@@ -69,7 +69,7 @@ typedef struct _tMIDIKeyboard
 	
 	BOOL pitchOutput;
 	
-	int trigCount[4];
+	int trigCount[12];
 	int currentNote;
 	int currentVoice;
 	int maxLength;

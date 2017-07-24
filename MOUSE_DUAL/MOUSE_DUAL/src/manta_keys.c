@@ -286,7 +286,7 @@ void dacSendKeyboard(MantaInstrument which)
 			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose));
 
 			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
-			keyboard->trigCount[keyboard->currentVoice] = 3;
+			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
 		}
 		
 		if (keyboard->stack.size <= 0) 
@@ -308,7 +308,7 @@ void dacSendKeyboard(MantaInstrument which)
 				if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 				{
 					tIRampSetDest(&out[which][CVKTRIGGER], 65535);
-					keyboard->trigCount[0] = 3;
+					keyboard->trigCount[0] = TRIGGER_TIMING;
 				}
 				//this is to avoid retriggers on the same note when other notes are released in monophonic mode
 				prevSentPitch = keyboard->hexes[note].pitch + keyboard->transpose;
