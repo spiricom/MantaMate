@@ -23,14 +23,21 @@ int tIRampInit(tIRamp *r, int32_t sr, int32_t time) {
 
 int32_t tIRampTick(tIRamp *r) {
 	
-	r->curr += r->inc;
-	
-	if (((r->curr >= r->dest) && (r->inc > 0)) || ((r->curr <= r->dest) && (r->inc < 0)))
+	if (r->inc == 0)
 	{
-		r->inc = 0;
-		r->curr = r->dest;
+		return (r->curr >> 10);
 	}
-	return (r->curr >> 10); //get it back into the usual range from 0-65535
+	else
+	{
+		r->curr += r->inc;
+	
+		if (((r->curr >= r->dest) && (r->inc > 0)) || ((r->curr <= r->dest) && (r->inc < 0)))
+		{
+			r->inc = 0;
+			r->curr = r->dest;
+		}
+		return (r->curr >> 10); //get it back into the usual range from 0-65535
+	}
 }
 
 

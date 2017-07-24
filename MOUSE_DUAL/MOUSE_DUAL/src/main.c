@@ -2168,6 +2168,7 @@ void loadMantaPreset(void)
 	{
 		initiateLoadingMantaPresetFromExternalMemory();
 	}
+	clearDACoutputs();
 }
 
 void initMantaLEDState(void)
@@ -2191,6 +2192,7 @@ void loadJoystickPreset(void)
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
 	}
+	clearDACoutputs();
 }
 
 void loadMIDIPreset(void)
@@ -2227,11 +2229,21 @@ void loadMIDIPreset(void)
 	{
 		initiateLoadingMidiPresetFromExternalMemory();
 	}
+	clearDACoutputs();
 }
 
 void loadNoDevicePreset(void)
 {
-	; //presets are handled internally by no_device_gate_in
+	//presets are handled internally by no_device_gate_in
+	clearDACoutputs();
+}
+
+void clearDACoutputs(void)
+{
+	for (int i = 0; i < 12; i++)
+	{
+		sendDataToOutput(i,0,0);		
+	}
 }
 
 void mantaPreset_encode(uint8_t* buffer)
