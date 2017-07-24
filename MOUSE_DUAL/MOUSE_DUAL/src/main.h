@@ -240,6 +240,7 @@ uint8_t* readDataArray[256];
 
 uint32_t currentMantaPresetBufferPosition;
 
+BOOL busyWithUSB;
 
 void blink(void);
 
