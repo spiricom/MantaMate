@@ -1145,7 +1145,7 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (displayState == UpDownSwitchBlock) return;
+	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 	
 	if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{

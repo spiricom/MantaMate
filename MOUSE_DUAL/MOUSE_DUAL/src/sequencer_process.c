@@ -580,7 +580,7 @@ void processHexTouch(void)
 	uint8_t newHexUIOn = 0;
 	uint8_t newHexUIOff = 0;
 	uint8_t newUpperHexUI = 0;
-	MantaInstrumentType type = manta[currentInstrument].type;
+	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 
 	//check the sequencer step hexagons
 	for (int i = 0; i < 48; i++)
@@ -892,7 +892,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		if (type == DirectInstrument)
 		{	
 			
-			tDirect* direct = &manta[whichInst].direct;
+			tDirect* direct = takeover ? &fullDirect : &manta[whichInst].direct;
 			
 			int output = tDirect_getOutputForHex(direct, whichHex);
 			DirectType type = direct->outs[output].type;
@@ -904,7 +904,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			
 			tDirect_setOutputType(direct, output, type);
 			
-			setDirectLEDs();
+			setDirectOptionLEDs();
 		}
 		else if (type == KeyboardInstrument)
 		{
@@ -1043,6 +1043,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
     {
 		if (hexagon == 0) // load global tuning
 		{
+			currentTuningHex = -1;
 			manta_set_LED_hex(0, Amber);
 			loadTuning(globalTuning);
 		}
@@ -1081,9 +1082,9 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
     }
     else if (shiftOption2)
     {
-		if (hexagon == 31)
+		if (hexagon == 0)
 		{
-			manta_set_LED_hex(31, Red);
+			manta_set_LED_hex(0, Red);
 		}
     }
 }
@@ -1653,8 +1654,11 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionSixOut)
 	{
-		tDirect_init(&manta[currentInstrument].direct, 12);
-		for (int i = 0; i < 12; i++)
+		takeover = FALSE;
+		
+		tDirect_init(&manta[currentInstrument].direct, 6);
+	
+		for (int i = 0; i < 6; i++)
 		{
 			tIRampSetTime(&out[currentInstrument][i], 0);
 		}

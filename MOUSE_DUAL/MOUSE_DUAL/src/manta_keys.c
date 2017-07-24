@@ -148,7 +148,6 @@ void touchKeyboardHex(int hex, uint8_t weight)
 			if (manta[currentInstrument].keyboard.playMode == TouchMode)	dacSendKeyboard(currentInstrument);
 		}
 		
-		
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
