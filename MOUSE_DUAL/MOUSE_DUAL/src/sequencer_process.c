@@ -1523,6 +1523,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		
 		if (type != KeyboardInstrument)
 		{
+			takeover = FALSE;
 			manta[currentInstrument].type = KeyboardInstrument;
 			
 			keyboard->numVoices = 1;
