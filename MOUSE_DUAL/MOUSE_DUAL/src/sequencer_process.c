@@ -37,7 +37,7 @@ void setParameterForStep(MantaInstrument, uint8_t step, StepParameterType param,
 uint16_t getParameterFromStep(MantaInstrument, uint8_t step, StepParameterType param);
 void resetEditStack(void);
 uint8_t hexUIToStep(uint8_t hexagon);
-uint8_t stepToHexUI(MantaInstrument, uint8_t noteIn);
+uint8_t stepToHexUI(MantaInstrument, int step);
 void downOctaveForEditStackSteps(MantaInstrument);
 void upOctaveForEditStackSteps(MantaInstrument);
 
@@ -580,7 +580,7 @@ void processHexTouch(void)
 	uint8_t newHexUIOn = 0;
 	uint8_t newHexUIOff = 0;
 	uint8_t newUpperHexUI = 0;
-	MantaInstrumentType type = manta[currentInstrument].type;
+	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 
 	//check the sequencer step hexagons
 	for (int i = 0; i < 48; i++)
@@ -683,6 +683,9 @@ void processHexTouch(void)
 		pastbutt_states[i] = butt_states[i];
 	}
 	
+	BOOL buttonTouched = FALSE;
+	BOOL topRon = FALSE;
+	BOOL topLon = FALSE;
 	for (int i = 0; i < 4; i++)
 	{
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
@@ -690,26 +693,68 @@ void processHexTouch(void)
 			//a round function button was just pressed
 			resetSliderMode();
 			
+			buttonTouched = TRUE;
+			
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
 			else if (!hexmapEditMode)
 			{
-				if (i == ButtonTopRight)			touchTopRightButton();
-				else if (i == ButtonTopLeft)		touchTopLeftButton();
+				if (i == ButtonTopRight)			
+				{
+					topRon = TRUE;
+					touchTopRightButton();
+				}
+				else if (i == ButtonTopLeft)		
+				{
+					topLon = TRUE;
+					touchTopLeftButton();
+				}
 				else if (i == ButtonBottomRight)	touchBottomRightButton();
-			}
+			}	
 			
 		}
 		
 		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
 		{		
+			buttonTouched = TRUE;
+			
 			if (!hexmapEditMode)
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
-				else if (i == ButtonTopRight)			releaseTopRightButton();
+				else if (i == ButtonTopRight)		releaseTopRightButton();
 				else if (i == ButtonTopLeft)		releaseTopLeftButton();
 				else if (i == ButtonBottomRight)	releaseBottomRightButton();
 			}
 		}
+		
+		if (buttonTouched && !hexmapEditMode)
+		{
+			if (manta[currentInstrument].type == SequencerInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, shiftOption2 ? (topLon ? Amber : Off) :
+				(currentMantaSliderMode == SliderModeOne) ? Off :
+				(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+				manta_set_LED_button(ButtonTopRight, shiftOption2 ? (topRon ? Amber : Off) :
+				(edit_vs_play == EditMode) ? Red : Amber);
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+			else if (manta[currentInstrument].type == KeyboardInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, (topLon  ? (shiftOption2 ? Amber : Red) : Off) );
+				manta_set_LED_button(ButtonTopRight, (topRon  ? (shiftOption2 ? Amber : Red) : Off));
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+			else if (manta[currentInstrument].type == DirectInstrument)
+			{
+				manta_set_LED_button(ButtonTopLeft, Off);
+				manta_set_LED_button(ButtonTopRight, Off);
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+			}
+		}
+		
+		
 		
 		past_func_button_states[i] = func_button_states[i];
 	}		
@@ -847,7 +892,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		if (type == DirectInstrument)
 		{	
 			
-			tDirect* direct = &manta[whichInst].direct;
+			tDirect* direct = takeover ? &fullDirect : &manta[whichInst].direct;
 			
 			int output = tDirect_getOutputForHex(direct, whichHex);
 			DirectType type = direct->outs[output].type;
@@ -859,7 +904,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			
 			tDirect_setOutputType(direct, output, type);
 			
-			setDirectLEDs();
+			setDirectOptionLEDs();
 		}
 		else if (type == KeyboardInstrument)
 		{
@@ -881,9 +926,10 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				// Edit 
 				hexmapEditMode = TRUE;
 				displayState = UpDownSwitchBlock;
-				setKeyboardLEDs();
 				
-				manta_set_LED_hex(hexagon, Amber);
+				manta_set_LED_slider(SliderOne, 0);
+				manta_set_LED_slider(SliderTwo, 0);
+				setKeyboardLEDs();
 			}
 			else if (whichHex == 0)
 			{
@@ -995,38 +1041,33 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 	}
     else if (shiftOption2)
     {
-        if (hexagon < 31)
-        {
+		if (hexagon == 0) // load global tuning
+		{
+			currentTuningHex = -1;
+			manta_set_LED_hex(0, Amber);
+			loadTuning(globalTuning);
+		}
+		else if (hexagon < 32)
+		{
 			 // Tuning hex
-		    manta_set_LED_hex(currentTuningHex, Amber);
+		    manta_set_LED_hex(currentTuningHex, Off);
 			
 			currentTuningHex = hexagon;
 			
+			manta_set_LED_hex(currentTuningHex, Amber);
+			
+			currentMantaUITuning = mantaUITunings[currentTuningHex];
+			
+			Write7Seg(currentMantaUITuning); // Set display
+			
+			loadTuning(currentMantaUITuning);
+			
 			if (shiftOption2Lock)
 			{
-				 manta_set_LED_hex(currentTuningHex, BothOn);
-				
-				 currentMantaUITuning = mantaUITunings[currentTuningHex];
-				 
 				 displayState = TuningHexSelect;
-				 
-				 Write7Seg(currentMantaUITuning); // Set display
 			}
-			else
-			{
-				manta_set_LED_hex(currentTuningHex, Red);
-				
-				currentMantaUITuning = mantaUITunings[currentTuningHex];
-				
-				// LOAD TUNING HERE
-				loadTuning(currentMantaUITuning);
-			}
+			
         }
-		else if (hexagon == 31) // load global tuning
-		{
-			manta_set_LED_hex(31, Amber);
-			loadTuning(globalTuning);
-		}
 
     }
 }
@@ -1041,9 +1082,9 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
     }
     else if (shiftOption2)
     {
-		if (hexagon == 31)
+		if (hexagon == 0)
 		{
-			manta_set_LED_hex(31, Red);
+			manta_set_LED_hex(0, Red);
 		}
     }
 }
@@ -1483,6 +1524,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		
 		if (type != KeyboardInstrument)
 		{
+			takeover = FALSE;
 			manta[currentInstrument].type = KeyboardInstrument;
 			
 			keyboard->numVoices = 1;
@@ -1612,8 +1654,11 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionSixOut)
 	{
-		tDirect_init(&manta[currentInstrument].direct, 12);
-		for (int i = 0; i < 12; i++)
+		takeover = FALSE;
+		
+		tDirect_init(&manta[currentInstrument].direct, 6);
+	
+		for (int i = 0; i < 6; i++)
 		{
 			tIRampSetTime(&out[currentInstrument][i], 0);
 		}
@@ -1945,31 +1990,27 @@ void resetSliderMode(void)
 
 void setSequencerLEDs(void)
 {
-
 	if (!takeover)
 	{
 		freeze_LED_update = 1;
-		if (manta[currentInstrument].type == SequencerInstrument && full_vs_split == FullMode)
+	
+		if (full_vs_split == FullMode)
 		{
-		
-			if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
-			else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
-		
 			setSequencerLEDsFor(currentInstrument);
 		}
-		else if (manta[InstrumentOne].type == SequencerInstrument)
+		else
 		{
 			setSequencerLEDsFor(InstrumentOne);
-		}
-		else if (manta[InstrumentTwo].type == SequencerInstrument)
-		{
 			setSequencerLEDsFor(InstrumentTwo);
 		}
+		
+		if (edit_vs_play == TrigToggleMode)		setKeyboardLEDsFor(currentInstrument, 0);
+		else /* PlayToggleMode or EditMode */	setKeyboardLEDsFor(currentInstrument, -1);
+
 		roll_LEDs = 1;
 		freeze_LED_update = 0;
 	}
-	
-	
+
 }
 
 void setKeyboardLEDs(void)
@@ -2042,6 +2083,8 @@ void setDirectOptionLEDs			(void)
 			{
 				tDirect* direct = &manta[inst].direct;
 				
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
+				
 				for (int i = 0; i < direct->numOuts; i++)
 				{
 					manta_set_LED_hex(16*inst + direct->outs[i].hex, direct->outs[i].color);
@@ -2052,6 +2095,8 @@ void setDirectOptionLEDs			(void)
 	}
 	else if (takeoverType == DirectInstrument)
 	{
+		for (int i = 0; i < 16; i++) manta_set_LED_hex(i,Off);
+		
 		for (int i = 0; i < fullDirect.numOuts; i++)
 		{
 			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
@@ -2319,12 +2364,12 @@ void setTuningLEDs(void)
 	
 	if (takeover || (type1 == SequencerInstrument) || (type1 == KeyboardInstrument) || (type2 == SequencerInstrument) || (type2 == KeyboardInstrument))
 	{
-		for (int i = 0; i < 31; i++)
+		for (int i = 1; i < 32; i++)
 		{
-			manta_set_LED_hex(i, (i == currentTuningHex) ? Red : Amber);
+			manta_set_LED_hex(i, (i == currentTuningHex) ? Amber : Off);
 		}
 		
-		manta_set_LED_hex(31, Red); // Return to Global tuning (globalTuning)
+		manta_set_LED_hex(0, Red); // Return to Global tuning (globalTuning)
 	}
 
 	
@@ -2732,7 +2777,10 @@ int pitchToKbdHex(int pitch)
 
 void setKeyboardLEDsFor(MantaInstrument inst, int note)
 {	
+	if (manta[inst].type != SequencerInstrument) return;
+	
 	freeze_LED_update = 1;
+
 	tSequencer* sequencer = &manta[inst].sequencer;
 	int setRed = 1;
 	int nt = 0;
@@ -2824,9 +2872,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 		}		
 	}
 	
-	manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? Red : Amber);
-	manta_set_LED_button(ButtonBottomLeft, Off);
-	manta_set_LED_button(ButtonBottomRight, (sequencer->playMode == ToggleMode) ? Off : Amber);
 	//manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 	freeze_LED_update = 0;
 }
@@ -2935,7 +2980,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	
 	int hexUI = 0;
 
-	for (int i = 0; i < sequencer->maxLength; i++)
+	for (int i = 0; i < ((full_vs_split == FullMode) ? 32 : 16); i++)
 	{
 		hexUI = stepToHexUI(inst, i);
 
@@ -3334,7 +3379,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 			}
 			
 			
-			value =	(editType == RandomEdit) ? (((float)rand() / RAND_MAX) * 12) :
+			value =	(editType == RandomEdit) ? (((float) rand() / RAND_MAX) * 12) :
 					(editType == SubtleEdit) ? pitch :
 					value;
 			
@@ -3356,7 +3401,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 	{	
 		for (; i < size; i++)
 		{
-			value =	(editType == RandomEdit) ? (rand() / RAND_MAX * 8) :
+			value =	(editType == RandomEdit) ? (((float) rand() / RAND_MAX) * 8) :
 			(editType == SubtleEdit) ? (sequencer->step[hexUIToStep(editStack.notestack[i])].octave + ((rand() % 0xffff) > 0x8000) ? 1 : -1) :
 			value;
 			
@@ -3496,53 +3541,32 @@ uint8_t hexUIToStep(uint8_t hexagon)
 	return step;
 }
 
-uint8_t stepToHexUI(MantaInstrument inst, uint8_t stepIn)
+uint8_t stepToHexUI(MantaInstrument inst, int step)
 {
+	step = (step < 0) ? 0 : step;
 	
-	int hex = 0;
-	int step = 0;
 	if (full_vs_split == SplitMode)
 	{
-		if (stepIn < 0)
-		{
-			step = 0;
-		}
-		else if (stepIn < 16)
-		{
-			step = stepIn;
-		}
-		else
+		if (step >= 16)
 		{
 			step = 15;
 		}
 		
-		if (inst == InstrumentOne)
+		if (inst == InstrumentTwo)
 		{
-			hex = step;
-		}
-		else
-		{
-			hex = step + 16;
+			step += 16;
 		}
 		
 	}
 	else
 	{
-		if (stepIn < 0)
+		 if (step >= 32)
 		{
-			hex = 0;
-		}
-		else if (stepIn < 32)
-		{
-			hex = stepIn;
-		}
-		else
-		{
-			hex = 31;
+			step = 31;
 		}
 	}
 	
-	return hex;
+	return step;
 }
 
 // Resets edit stack so it only contains most recently touched hex.

@@ -1142,7 +1142,7 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
-	if (displayState == UpDownSwitchBlock) return;
+	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 	
 	if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{
@@ -2273,7 +2273,7 @@ void mantaPreset_encode(uint8_t* buffer)
 	buffer[indexCounter++] = tuningToUse; 
 	buffer[indexCounter++] = currentTuningHex;
 	buffer[indexCounter++] = currentMantaUITuning;
-	for (int i = 0; i < 31; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		buffer[indexCounter++] = mantaUITunings[i];
 	}
@@ -2354,7 +2354,7 @@ void mantaPreset_decode(uint8_t* buffer)
 		tuningToUse = buffer[indexCounter++];
 		currentTuningHex = buffer[indexCounter++];
 		currentMantaUITuning = buffer[indexCounter++];
-		for (int i = 0; i < 31; i++)
+		for (int i = 0; i < 32; i++)
 		{
 			mantaUITunings[i] = buffer[indexCounter++];
 		}

@@ -171,6 +171,39 @@ void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type)
 }
 
 
+void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
+{
+	// Arp mode stuff
+	keyboard->currentVoice = 0;
+	keyboard->maxLength = 48;
+	keyboard->phasor = 0;
+	keyboard->arpModeType = ArpModeUp;
+	keyboard->playMode = TouchMode;
+	keyboard->currentNote = -1;
+	keyboard->up = TRUE;
+	
+	// Normal stuff
+	keyboard->numVoices = numVoices;
+	keyboard->numVoicesActive = numVoices;
+	keyboard->lastVoiceToChange = 0;
+	keyboard->transpose = 0;
+	
+	
+	for (int i = 0; i < 4; i ++)
+	{
+		keyboard->voices[i] = -1;
+		keyboard->trigCount[i] = 0;
+	}
+	
+	for (int i = 0; i < 48; i++)
+	{
+		tHex_init(&keyboard->hexes[i], i);
+	}
+	
+	tNoteStack_init(&keyboard->stack, 48);
+	tNoteStack_init(&keyboard->orderStack, 48);
+}
+
 void tKeyboard_nextNote(tKeyboard* const keyboard)
 {
 	int hex = -1;
@@ -211,11 +244,11 @@ void tKeyboard_nextNote(tKeyboard* const keyboard)
 		random = rand() % 0xffff;
 		if (random > 0x8000)
 		{
-			keyboard->phasor = (keyboard->phasor + 1) % ns->size;
+			if (++keyboard->phasor >= ns->size) keyboard->phasor = 0;
 		}
 		else
 		{
-			keyboard->phasor = (keyboard->phasor - 1) % ns->size;
+			if (--keyboard->phasor < 0) keyboard->phasor = ns->size - 1;
 		}
 	}
 	else if (type == ArpModeRandom)
@@ -224,48 +257,21 @@ void tKeyboard_nextNote(tKeyboard* const keyboard)
 	}
 		
 
-	hex = tNoteStack_get(ns, keyboard->phasor);
+	if (keyboard->phasor >= 0 && keyboard->phasor < 48)
+	{
+		hex = tNoteStack_get(ns, (keyboard->phasor % ns->size));
 		
-	if (hex >= 0)
-	{
-		keyboard->currentNote = hex;
+		if (hex >= 0)
+		{
+			keyboard->currentNote = hex;
+		}
 	}
+	
 
 }
 
-void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
-{
-	// Arp mode stuff
-	keyboard->currentVoice = 0;
-	keyboard->maxLength = 48;
-	keyboard->phasor = 0;
-	keyboard->arpModeType = ArpModeUp;
-	keyboard->playMode = TouchMode;
-	keyboard->currentNote = -1;
-	
-	// Normal stuff
-	keyboard->numVoices = numVoices;
-	keyboard->numVoicesActive = numVoices;
-	keyboard->lastVoiceToChange = 0;
-	keyboard->transpose = 0;
-	
-	
-	for (int i = 0; i < 4; i ++)
-	{
-		keyboard->voices[i] = -1;
-		keyboard->trigCount[i] = 0;
-	}
-	
-	for (int i = 0; i < 48; i++)
-	{
-		tHex_init(&keyboard->hexes[i], i);
-	}
-	
-	tNoteStack_init(&keyboard->stack, 48);
-	tNoteStack_init(&keyboard->orderStack, 48);
-}
 
-void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
+void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t hex)
 {
 	uint8_t j;
 	int myPitch, thisPitch, nextPitch;
@@ -276,13 +282,13 @@ void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
 
 	for (j = 0; j < ns->size; j++)
 	{
-		myPitch = thisKeyboard->hexes[noteVal].pitch;
+		myPitch = thisKeyboard->hexes[hex].pitch;
 		thisPitch = thisKeyboard->hexes[ns->notestack[j]].pitch;
 		nextPitch = thisKeyboard->hexes[ns->notestack[j+1]].pitch;
 			
-		if (myPitch > thisPitch)
+		if (myPitch >= thisPitch)
 		{
-			if ((myPitch < nextPitch) || (nextPitch == -1))
+			if ((myPitch < nextPitch) || (ns->notestack[j+1] == -1))
 			{
 				whereToInsert = j+1;
 				break;
@@ -297,7 +303,7 @@ void tKeyboard_orderedAddToStack(tKeyboard* thisKeyboard, uint8_t noteVal)
 	}
 
 	//then, insert the new note into the front of the stack
-	ns->notestack[whereToInsert] =  noteVal;
+	ns->notestack[whereToInsert] =  hex;
 
 	ns->size++;
 }
@@ -442,6 +448,9 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 		buffer[i*3] = keyboard->hexes[i].pitch >> 8;
 		buffer[(i*3) + 1] = keyboard->hexes[i].pitch & 0xff;
 		buffer[(i*3) + 2] = keyboard->hexes[i].color & 0xff;
+		
+		buffer[(i*3) + 3] = keyboard->hexes[i].fine >> 8;
+		buffer[(i*3) + 4] = keyboard->hexes[i].fine & 0xff;
 	}
 }
 
@@ -451,6 +460,8 @@ void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
 	{
 		keyboard->hexes[i].pitch = (buffer[i*3] << 8) + buffer[(i*3)+1];
 		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*3)+2];
+		
+		keyboard->hexes[i].fine = (buffer[(i*3)+3] << 8) + buffer[(i*3)+4];
 	}
 }
 

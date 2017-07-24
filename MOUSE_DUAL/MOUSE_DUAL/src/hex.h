@@ -11,10 +11,14 @@
 
 #include "utilities.h"
 
+// 6 bytes to save per hex
 typedef struct _tHex
 {
 	int16_t pitch; // mapped to which pitchclass
 	MantaLEDColor color; // hex color
+
+	uint16_t fine;
+	
 	BOOL active; // meaning, is assigned to active voice
 	
 } tHex;

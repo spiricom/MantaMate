@@ -113,6 +113,9 @@ void touchHexmapEdit(int hex, uint8_t weight)
 		
 		Write7Seg(currentHexmapEditPitch%100);
 		
+		manta_set_LED_slider(SliderOne, (hexmapEditKeyboard->hexes[currentHexmapEditHex].pitch >> 4) + 1);
+		manta_set_LED_slider(SliderTwo, (hexmapEditKeyboard->hexes[currentHexmapEditHex].fine >> 9) + 1);
+		
 		displayState = HexmapPitchSelect;
 	}
 }
@@ -144,7 +147,6 @@ void touchKeyboardHex(int hex, uint8_t weight)
 			
 			if (manta[currentInstrument].keyboard.playMode == TouchMode)	dacSendKeyboard(currentInstrument);
 		}
-		
 		
 	}
 	else if (takeoverType == KeyboardInstrument)
@@ -244,24 +246,53 @@ void releaseFunctionButtonKeys(MantaButton button)
 
 void processSliderKeys(uint8_t sliderNum, uint16_t val)
 {
-	if (manta[currentInstrument].type != KeyboardInstrument) return;
-	tKeyboard* keyboard;
-	if (takeover || (currentInstrument == InstrumentNil))
+	if (displayState == HexmapPitchSelect)
 	{
-		keyboard = &fullKeyboard;
+		// Fine tune and octave for pitch
+		if (sliderNum == SliderOne)
+		{
+			hexmapEditKeyboard->hexes[currentHexmapEditHex].pitch = (val >> 5);
+			
+			currentHexmapEditPitch = hexmapEditKeyboard->hexes[currentHexmapEditHex].pitch;
+
+			dacSendKeyboard(hexmapEditInstrument);
+			
+			Write7Seg(currentHexmapEditPitch%100);
+			normal_7seg_number = currentHexmapEditPitch;
+		}
+		else if (sliderNum == SliderTwo)
+		{
+			hexmapEditKeyboard->hexes[currentHexmapEditHex].fine = val;
+			
+			dacSendKeyboard(hexmapEditInstrument);
+		}
+		
+		manta_set_LED_slider(SliderOne, (hexmapEditKeyboard->hexes[currentHexmapEditHex].pitch >> 4) + 1);
+		manta_set_LED_slider(SliderTwo, (hexmapEditKeyboard->hexes[currentHexmapEditHex].fine >> 9) + 1);
 	}
 	else
 	{
-		keyboard = &manta[currentInstrument].keyboard;
-	}
-	if (keyboard->numVoices < 4)
-	{
-		int whichGroup = (keyboard->numVoices * 3) / 6;
-		int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+		if (manta[currentInstrument].type != KeyboardInstrument) return;
+		
+		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+		
+		if (takeover || (currentInstrument == InstrumentNil))	keyboard = &fullKeyboard;
+		
+		if (keyboard->numVoices < 4)
+		{
+			int whichGroup = (keyboard->numVoices * 3) / 6;
+			int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
 			
-		tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
-		tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+			tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+			tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+			
+			manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+		}
+		
 	}
+	
+	
+	
 }
 
 void dacSendKeyboard(MantaInstrument which)
@@ -283,7 +314,7 @@ void dacSendKeyboard(MantaInstrument which)
 		int newNote = keyboard->currentNote;
 		if (newNote >= 0)
 		{
-			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose));
+			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
 
 			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
 			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
@@ -301,7 +332,7 @@ void dacSendKeyboard(MantaInstrument which)
 			int note = keyboard->voices[i];
 			if (note >= 0)
 			{
-				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose));
+				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose) + ((keyboard->hexes[note].fine >> 2) - 512));
 
 				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
 				//if we are in mono mode, then we have room for a trigger output, too

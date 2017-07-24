@@ -14,7 +14,7 @@
 extern uint8_t globalTuning;
 extern uint8_t tuningToUse;
 
-extern uint8_t mantaUITunings[31];
+extern uint8_t mantaUITunings[32];
 extern uint8_t currentMantaUITuning;
 
 extern uint64_t scaledoctaveDACvalue;

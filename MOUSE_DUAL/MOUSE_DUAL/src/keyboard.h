@@ -29,13 +29,15 @@ signed int freemap[48];
 
 signed int isomap[48];
 
+#define NUM_BYTES_PER_HEXMAP 288 // was 1152 = 144 * 8 which was always wrong...
+
 uint8_t hexmapBuffer[NUM_BYTES_PER_HEXMAP];
 	
 typedef struct _tKeyboard
 {
 	// Encode this in preset
 	int numVoices;
-	tHex hexes[48];
+	tHex hexes[48]; // 288 bytes
 	signed int transpose;
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;
