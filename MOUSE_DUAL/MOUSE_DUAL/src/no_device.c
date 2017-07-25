@@ -59,7 +59,7 @@ void no_device_gate_in(void)
 		{
 			myRandom = ((rand() / SIXTEEN_BIT_DIV) & 1);
 			sendDataToOutput(i, 0, myRandom * 65535);
-			noDevicePatterns.trigCount[i] = 8;
+			noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
 		}
 	}
 	
@@ -142,7 +142,7 @@ void no_device_gate_in(void)
 		{
 			if ((dividerCount % (i+1)) == 0)
 			sendDataToOutput(i, 0, 65535);
-			noDevicePatterns.trigCount[i] = 8;
+			noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
 		}
 		if (dividerCount >= 12)
 		{
@@ -226,7 +226,7 @@ void no_device_gate_in(void)
 			if ((dividerCount % (1<<i)) == 0)
 			{
 				sendDataToOutput(i, 0, 65535);
-				noDevicePatterns.trigCount[i] = 8;
+				noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
 			}
 		}
 		if (dividerCount >= 2048)
@@ -296,7 +296,7 @@ void noDeviceRandomVoltagePattern(BOOL sameLength)
 	noDevicePatterns.readType = RandomVoltage;	
 	noDevicePatterns.allTheSameLength = sameLength;
 	tIRampSetDest(&out[0][0],65535);
-	noDevicePatterns.trigCount[0] = 8;
+	noDevicePatterns.trigCount[0] = TRIGGER_TIMING;
 	for (int i = 1; i < 12; i++)
 	{
 		noDevicePatterns.patternCounter[i]++;
@@ -323,7 +323,7 @@ void noDeviceGateOutPattern(BOOL sameLength)
 	noDevicePatterns.readType = GatePulse;	
 	noDevicePatterns.allTheSameLength = sameLength;
 	tIRampSetDest(&out[0][0],65535);
-	noDevicePatterns.trigCount[0] = 8;
+	noDevicePatterns.trigCount[0] = TRIGGER_TIMING;
 	for (int i = 1; i < 12; i++)
 	{
 		noDevicePatterns.patternCounter[i]++;
@@ -350,7 +350,7 @@ void noDeviceGateTogglePattern(BOOL sameLength)
 	noDevicePatterns.readType = GateToggle;	
 	noDevicePatterns.allTheSameLength = sameLength;
 	tIRampSetDest(&out[0][0],65535);
-	noDevicePatterns.trigCount[0] = 8;
+	noDevicePatterns.trigCount[0] = TRIGGER_TIMING;
 	for (int i = 1; i < 12; i++)
 	{
 		noDevicePatterns.patternCounter[i]++;
@@ -381,7 +381,7 @@ void noDeviceTrigOutPattern(BOOL sameLength)
 	noDevicePatterns.readType = TriggerPulse;	
 	noDevicePatterns.allTheSameLength = sameLength;
 	tIRampSetDest(&out[0][0],65535);
-	noDevicePatterns.trigCount[0] = 8;
+	noDevicePatterns.trigCount[0] = TRIGGER_TIMING;
 	for (int i = 1; i < 12; i++)
 	{
 		noDevicePatterns.patternCounter[i]++;
@@ -406,7 +406,7 @@ void noDeviceTrigOutPattern(BOOL sameLength)
 		{
 			
 			sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
-			noDevicePatterns.trigCount[i] = 8;
+			noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
 		}
 		noDevicePatterns.outputState[i] = tempNewValue;
 
@@ -476,7 +476,7 @@ void noDeviceSlightlyAlterRandomPatterns(void)
 void triggerOnFirstDACOutput(void)
 {
 		tIRampSetDest(&out[0][0], 65535);
-		noDevicePatterns.trigCount[0] = 8;
+		noDevicePatterns.trigCount[0] = TRIGGER_TIMING;
 }
 
 void tNoDevice_encode(tNoDevicePattern* nodevice, uint8_t* buffer)

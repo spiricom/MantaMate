@@ -130,6 +130,8 @@ const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,1
 																													   // 33																												56																				  72								 78				
 BOOL no_device_mode_active = FALSE;
 
+BOOL busyWithUSB = FALSE;
+
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 TuningOrLearnType tuningOrLearn = TUNING_SELECT;
@@ -162,6 +164,9 @@ static uint32_t buttonFrameCounter = 0;
 static uint32_t buttonHoldSpeed = 120;
 static uint32_t blink7SegCounter = 0;
 static uint32_t blinkSpeed7Seg = 500;
+
+int mantaCompositionSavePending = 0;
+int mantaCompositionLoadPending = 0;
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -349,6 +354,13 @@ int main(void){
 				continueStoringMantaPresetToExternalMemory();
 			}
 		}
+		else if (mantaCompositionSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringMantaCompositionsToExternalMemory();
+			}
+		}
 		else if (midiSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -389,6 +401,13 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingMantaPresetFromExternalMemory();
+			}
+		}
+		else if (mantaCompositionLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingMantaCompositionsFromExternalMemory();
 			}
 		}
 		else if (midiLoadPending)
@@ -437,6 +456,7 @@ int main(void){
 			freeze_LED_update = FALSE;
 			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
+			busyWithUSB = FALSE;
 		}
 		
 		sleepmgr_enter_sleep();
@@ -457,265 +477,262 @@ static void tc2_irq(void)
 	//TC2 is now also the internal metronome clock, the up/down button held sensing, and the 7seg blinker
 	// as well as the timer for turning off triggers on the outputs
 	
-	//step the internal clock
-	if (clock_speed != 0)
-	{
-		if (clockFrameCounter >= clock_speed)
-		{
-			clockHappened();
-			clockFrameCounter = 0;
-		}
-		clockFrameCounter++;
-	}
 
-
-	//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
-	if (upSwitch())
+	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
-		buttonFrameCounter++;
-		if (buttonFrameCounter > buttonHoldSpeed)
-		{
-			upHeld++;
-			if (upHeld > holdTimeThresh)
-			{
-				suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
-				Preset_Switch_Check(1);
-			}
-			buttonFrameCounter = 0;
-		}
-	}
-	else
-	{
-		if (upHeld > 0)
-		{
-			if (suspendRetrieve == DontRetrieve)
-			{
-				suspendRetrieve = RetrieveNow;
-				Preset_Switch_Check(1);
-			}
-		}
-		upHeld = 0;
-	}
-	
-	if (downSwitch())
-	{
-		buttonFrameCounter++;
-		if (buttonFrameCounter > buttonHoldSpeed)
-		{
-			downHeld++;
-			if (downHeld > holdTimeThresh)
-			{
-				suspendRetrieve =DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
-				Preset_Switch_Check(0);
-			}
-			buttonFrameCounter = 0;
-		}
-
-	}
-	else
-	{
-		if (downHeld > 0)
-		{
-			if (suspendRetrieve == DontRetrieve)
-			{
-				suspendRetrieve = RetrieveNow;
-				Preset_Switch_Check(0);
-			}
-		}
-		downHeld = 0;
-	}
-	
-	blink7SegCounter++;
-	
-	if (blink7SegCounter >= blinkSpeed7Seg)
-	{
-		blink7SegCounter = 0;
 		
-		if (savingActive)
+		//step the internal clock
+		if (clock_speed != 0)
 		{
-			blank7Seg = !blank7Seg;
-			Write7Seg(number_for_7Seg);
+			if (clockFrameCounter >= clock_speed)
+			{
+				clockHappened();
+				clockFrameCounter = 0;
+			}
+			clockFrameCounter++;
+		}
+
+
+		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
+		if (upSwitch())
+		{
+			buttonFrameCounter++;
+			if (buttonFrameCounter > buttonHoldSpeed)
+			{
+				upHeld++;
+				if (upHeld > holdTimeThresh)
+				{
+					suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+					Preset_Switch_Check(1);
+				}
+				buttonFrameCounter = 0;
+			}
 		}
 		else
 		{
-			blank7Seg = 0;
-			Write7Seg(number_for_7Seg);
-		}
-	}
-	
-	if (type_of_device_connected == JoystickConnected) return;
-	
-	else if (type_of_device_connected == NoDeviceConnected)
-	{
-		for (int i = 0; i < 12; i++)
-		{
-			if (noDevicePatterns.trigCount[i] > 0)
+			if (upHeld > 0)
 			{
-				if (--(noDevicePatterns.trigCount[i]) == 0)
+				if (suspendRetrieve == DontRetrieve)
 				{
-					sendDataToOutput(i, 0, 0x0);
+					suspendRetrieve = RetrieveNow;
+					Preset_Switch_Check(1);
 				}
 			}
+			upHeld = 0;
 		}
-	}
-	else if ((type_of_device_connected == MIDIKeyboardConnected) || (type_of_device_connected == MIDIComputerConnected))
-	{
-		tMIDIKeyboard* keyboard =  &MIDIKeyboard;
+	
+		if (downSwitch())
+		{
+			buttonFrameCounter++;
+			if (buttonFrameCounter > buttonHoldSpeed)
+			{
+				downHeld++;
+				if (downHeld > holdTimeThresh)
+				{
+					suspendRetrieve =DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+					Preset_Switch_Check(0);
+				}
+				buttonFrameCounter = 0;
+			}
+
+		}
+		else
+		{
+			if (downHeld > 0)
+			{
+				if (suspendRetrieve == DontRetrieve)
+				{
+					suspendRetrieve = RetrieveNow;
+					Preset_Switch_Check(0);
+				}
+			}
+			downHeld = 0;
+		}
+	
+		blink7SegCounter++;
+	
+		if (blink7SegCounter >= blinkSpeed7Seg)
+		{
+			blink7SegCounter = 0;
 		
-		for (int i = 0; i < keyboard->numVoices; i++)
-		{
-			if (keyboard->trigCount[i] > 0)
+			if (savingActive)
 			{
-				if (--(keyboard->trigCount[i]) == 0)
+				blank7Seg = !blank7Seg;
+				Write7Seg(number_for_7Seg);
+			}
+			else
+			{
+				blank7Seg = 0;
+				Write7Seg(number_for_7Seg);
+			}
+		}
+	
+		if (type_of_device_connected == JoystickConnected) return;
+	
+		else if (type_of_device_connected == NoDeviceConnected)
+		{
+			for (int i = 0; i < 12; i++)
+			{
+				if (noDevicePatterns.trigCount[i] > 0)
 				{
-					if (keyboard->playMode == ArpMode)
+					if (--(noDevicePatterns.trigCount[i]) == 0)
 					{
-						sendDataToOutput((3*i+CVKTRIGGER)-2, 0, 0x0);
-					}
-					else
-					{
-						sendDataToOutput(3, 0, 0x0);
+						sendDataToOutput(i, 0, 0x0);
 					}
 				}
 			}
 		}
-	}
-	else if (type_of_device_connected == MantaConnected)
-	{
-		if (!takeover) // Dual instrument, not takeover
+		else if ((type_of_device_connected == MIDIKeyboardConnected) || (type_of_device_connected == MIDIComputerConnected))
 		{
-			for (int inst = 0; inst < 2; inst++)
+			tMIDIKeyboard* keyboard =  &MIDIKeyboard;
+		
+			for (int i = 0; i < 12; i++)
 			{
-				tMantaInstrument* instrument = &manta[inst];
-			
-				if (instrument->type == DirectInstrument) // DirectInstrument
+				if (keyboard->trigCount[i] > 0)
 				{
-					for (int i = 0; i < 48; i++)
+					if (--(keyboard->trigCount[i]) == 0)
 					{
-						DirectType type = instrument->direct.hexes[i].type;
-						int output = instrument->direct.hexes[i].output;
-						if (type == DirectTrigger)
+						sendDataToOutput(i, 0, 0x0);
+					}
+				}
+			}
+		}
+		else if (type_of_device_connected == MantaConnected)
+		{
+			if (!takeover) // Dual instrument, not takeover
+			{
+				for (int inst = 0; inst < 2; inst++)
+				{
+					tMantaInstrument* instrument = &manta[inst];
+			
+					if (instrument->type == DirectInstrument) // DirectInstrument
+					{
+						for (int i = 0; i < 48; i++)
 						{
-							if (instrument->direct.hexes[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							DirectType type = instrument->direct.hexes[i].type;
+							int output = instrument->direct.hexes[i].output;
+							if (type == DirectTrigger)
 							{
-								if (--(instrument->direct.hexes[i].trigCount) == 0)
+								if (instrument->direct.hexes[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 								{
-									sendDataToOutput(6*inst+output, 0, 0x0);
+									if (--(instrument->direct.hexes[i].trigCount) == 0)
+									{
+										sendDataToOutput(6*inst+output, 0, 0x0);
+									}
+								}
+							}
+							else if (type == DirectCV)
+							{
+								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
+							}
+						}
+					}
+					else if (instrument->type == KeyboardInstrument)
+					{
+						if (instrument->keyboard.playMode == ArpMode)
+						{
+							if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
 								}
 							}
 						}
-						else if (type == DirectCV)
+						else if (instrument->keyboard.numVoices == 1)
 						{
-							sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
+							if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->keyboard.trigCount[0]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+								}
+							}
 						}
 					}
-				}
-				else if (instrument->type == KeyboardInstrument)
-				{
-					if (instrument->keyboard.playMode == ArpMode)
+					else if (instrument->type == SequencerInstrument)
 					{
-						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						if (instrument->sequencer.pitchOrTrigger == PitchMode)
 						{
-							if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
+							if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 							{
-								tIRampSetDest(&out[inst][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
+								if (--(instrument->sequencer.trigCount[0]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVTRIGGER], 0);
+								}
+							}
+						}
+						else //otherwise we're in trigger mode
+						{
+							if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->sequencer.trigCount[1]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVTRIG1], 0);
+								}
+							}
+							if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->sequencer.trigCount[2]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVTRIG2], 0);
+								}
+							}
+							if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->sequencer.trigCount[3]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVTRIG3], 0);
+								}
+							}
+							if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							{
+								if (--(instrument->sequencer.trigCount[4]) == 0)
+								{
+									tIRampSetDest(&out[inst][CVTRIG4], 0);
+								}
 							}
 						}
 					}
-					else if (instrument->keyboard.numVoices == 1)
-					{
-						if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->keyboard.trigCount[0]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVKTRIGGER], 0);
-							}
-						}
-					}
-				}
-				else if (instrument->type == SequencerInstrument)
-				{
-					if (instrument->sequencer.pitchOrTrigger == PitchMode)
-					{
-						if (instrument->sequencer.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->sequencer.trigCount[0]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVTRIGGER], 0);
-							}
-						}
-					}
-					else //otherwise we're in trigger mode
-					{
-						if (instrument->sequencer.trigCount[1] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->sequencer.trigCount[1]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVTRIG1], 0);
-							}
-						}
-						if (instrument->sequencer.trigCount[2] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->sequencer.trigCount[2]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVTRIG2], 0);
-							}
-						}
-						if (instrument->sequencer.trigCount[3] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->sequencer.trigCount[3]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVTRIG3], 0);
-							}
-						}
-						if (instrument->sequencer.trigCount[4] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-						{
-							if (--(instrument->sequencer.trigCount[4]) == 0)
-							{
-								tIRampSetDest(&out[inst][CVTRIG4], 0);
-							}
-						}
-					}
-				}
 			
-			}
-		}
-		else if (takeoverType == KeyboardInstrument)
-		{
-			if (fullKeyboard.playMode == ArpMode)
-			{
-				if (fullKeyboard.trigCount[fullKeyboard.currentVoice] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
-				{
-					if (--(fullKeyboard.trigCount[fullKeyboard.currentVoice]) == 0)
-					{
-						tIRampSetDest(&out[0][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
-					}
 				}
 			}
-		}
-		else if (takeoverType == DirectInstrument)
-		{
-			for (int i = 0; i < 48; i++)
+			else if (takeoverType == KeyboardInstrument)
 			{
-				DirectType type = fullDirect.hexes[i].type;
-				int output = fullDirect.hexes[i].output;
-				if (type == DirectTrigger)
+				if (fullKeyboard.playMode == ArpMode)
 				{
-					if (fullDirect.hexes[i].trigCount > 0)
+					if (fullKeyboard.trigCount[fullKeyboard.currentVoice] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 					{
-						if (--(fullDirect.hexes[i].trigCount) == 0)
+						if (--(fullKeyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 						{
-							sendDataToOutput(output, 0, 0x0);
+							tIRampSetDest(&out[0][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
 						}
 					}
 				}
-				else if (type == DirectCV)
+			}
+			else if (takeoverType == DirectInstrument)
+			{
+				for (int i = 0; i < 48; i++)
 				{
-					sendDataToOutput(output, globalCVGlide, butt_states[i] << 8);
+					DirectType type = fullDirect.hexes[i].type;
+					int output = fullDirect.hexes[i].output;
+					if (type == DirectTrigger)
+					{
+						if (fullDirect.hexes[i].trigCount > 0)
+						{
+							if (--(fullDirect.hexes[i].trigCount) == 0)
+							{
+								sendDataToOutput(output, 0, 0x0);
+							}
+						}
+					}
+					else if (type == DirectCV)
+					{
+						sendDataToOutput(output, globalCVGlide, butt_states[i] << 8);
+					}
 				}
-			}	
+			}
 		}
-	
 	}
 }
 
@@ -728,86 +745,159 @@ static void tc3_irq(void)
 
 	tc_read_sr(TC3, TC3_CHANNEL);
 
-	if (type_of_device_connected == MantaConnected)
+	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
-		if (!takeover) // Dual instrument, not takeover
-		{
-			for (int inst = 0; inst < 2; inst++)
-			{
-				tMantaInstrument* instrument = &manta[inst];
 	
-				if (instrument->type == KeyboardInstrument) // KeyboardInstrument
+	
+		if (type_of_device_connected == MantaConnected)
+		{
+			if (!takeover) // Dual instrument, not takeover
+			{
+				for (int inst = 0; inst < 2; inst++)
 				{
-					if (instrument->keyboard.playMode == ArpMode)
+					tMantaInstrument* instrument = &manta[inst];
+	
+					if (instrument->type == KeyboardInstrument) // KeyboardInstrument
 					{
-						tIRampSetTime    (&out[inst][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
-						tIRampSetDest    (&out[inst][CV1+3*fullKeyboard.currentVoice],  butt_states[instrument->keyboard.currentNote] << 4);
-					}
-					else
-					{
-						for (int i = 0; i < instrument->keyboard.numVoices; i++)
+						if (instrument->keyboard.playMode == ArpMode)
 						{
-							tIRampSetTime    (&out[inst][i*3 + CV1], globalCVGlide);
-							tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4);
+							tIRampSetTime    (&out[inst][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
+							tIRampSetDest    (&out[inst][CV1+3*fullKeyboard.currentVoice],  butt_states[instrument->keyboard.currentNote] << 4);
 						}
-					}
+						else
+						{
+							for (int i = 0; i < instrument->keyboard.numVoices; i++)
+							{
+								tIRampSetTime    (&out[inst][i*3 + CV1], globalCVGlide);
+								tIRampSetDest    (&out[inst][i*3 + CV1],  butt_states[instrument->keyboard.voices[i]] << 4);
+							}
+						}
 					
-				}
+					}
 		
-			}
-		}
-		else if (takeoverType == KeyboardInstrument) // Takeover mode
-		{
-			if (fullKeyboard.playMode == ArpMode)
-			{
-				tIRampSetTime    (&out[0][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
-				tIRampSetDest    (&out[0][CV1+3*fullKeyboard.currentVoice],  butt_states[fullKeyboard.currentNote] << 4);
-			}
-			else
-			{
-				for (int i = 0; i < fullKeyboard.numVoices; i++)
-				{
-					int inst = (i / 2);
-					tIRampSetTime (&out[inst][((i*3) % 6) + CV1], globalCVGlide);
-					tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
 				}
 			}
-			
-		}
-	}
-	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
-	{
-		for (int n = 0; n < 12; n++)
-		{
-			int cc = MIDIKeyboard.learnedCCsAndNotes[n][0];
-			int note = MIDIKeyboard.learnedCCsAndNotes[n][1];
-			
-			if (cc < 255) //255 is the mark for "unused" == the mark of the BEAST
+			else if (takeoverType == KeyboardInstrument) // Takeover mode
 			{
-				sendDataToOutput((n + MIDIKeyboard.firstFreeOutput), globalCVGlide, MIDIKeyboard.CCs[cc]); 
-			}
-			else if (note < 255)
-			{
-				if (MIDIKeyboard.notes[note][0] > 0)
+				if (fullKeyboard.playMode == ArpMode)
 				{
-					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 65535);
+					tIRampSetTime    (&out[0][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
+					tIRampSetDest    (&out[0][CV1+3*fullKeyboard.currentVoice],  butt_states[fullKeyboard.currentNote] << 4);
 				}
 				else
 				{
-					sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 0);
+					for (int i = 0; i < fullKeyboard.numVoices; i++)
+					{
+						int inst = (i / 2);
+						tIRampSetTime (&out[inst][((i*3) % 6) + CV1], globalCVGlide);
+						tIRampSetDest    (&out[inst][((i*3) % 6) + CV1],  butt_states[fullKeyboard.voices[i]] << 4);
+					}
 				}
-			}
 			
+			}
 		}
-	}
-	
-	//now tick those RAMPs and send the data to the DACs
-	if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
-	{
-		int32_t tempPitchBend = tIRampTick(&pitchBendRamp);
-		if (MIDIKeyboard.numVoices == 1)
+		else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 		{
-			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+			for (int n = 0; n < 12; n++)
+			{
+				int cc = MIDIKeyboard.learnedCCsAndNotes[n][0];
+				int note = MIDIKeyboard.learnedCCsAndNotes[n][1];
+			
+				if (cc < 255) //255 is the mark for "unused" == the mark of the BEAST : HAIL SATAN!
+				{
+					sendDataToOutput((n + MIDIKeyboard.firstFreeOutput), globalCVGlide, MIDIKeyboard.CCs[cc]); 
+				}
+				else if (note < 255)
+				{
+					BOOL tempOutputState = MIDIKeyboard.outputStates[n];
+					
+					if ((MIDIKeyboard.notes[note][0] > 0) && (tempOutputState == FALSE))
+					{
+						sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 65535);
+						MIDIKeyboard.outputStates[n] = TRUE;
+						if (MIDIKeyboard.gatesOrTriggers == TRIGGERS)
+						{
+							MIDIKeyboard.trigCount[n + MIDIKeyboard.firstFreeOutput] = TRIGGER_TIMING;
+						}
+					}
+					else if ((MIDIKeyboard.notes[note][0] == 0) && (tempOutputState == TRUE))
+					{
+						sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 0);
+						MIDIKeyboard.outputStates[n] = FALSE;
+					}
+				}
+			
+			}
+		}
+	
+		//now tick those RAMPs and send the data to the DACs
+		if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+		{
+			int32_t tempPitchBend = tIRampTick(&pitchBendRamp);
+			if (MIDIKeyboard.numVoices == 1)
+			{
+				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
+				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+			}
+			else if (MIDIKeyboard.numVoices == 2)
+			{
+				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+			}
+			else if (MIDIKeyboard.numVoices == 3)
+			{
+				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
+				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+			}
+			else if (MIDIKeyboard.numVoices == 4)
+			{
+				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
+				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
+				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
+				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				DAC16Send	(3, (uint16_t)(tIRampTick(&out[1][3]) + tempPitchBend));
+				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+			}
+		}
+		else
+		{
+			DAC16Send	(0, (uint16_t)tIRampTick(&out[0][0]));
 			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
 			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
 			DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
@@ -820,69 +910,7 @@ static void tc3_irq(void)
 			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
 			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
 		}
-		else if (MIDIKeyboard.numVoices == 2)
-		{
-			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
-			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
-			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-			DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
-			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-			DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
-			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
-		}
-		else if (MIDIKeyboard.numVoices == 3)
-		{
-			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
-			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
-			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-			DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
-			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-			DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
-			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
-		}
-		else if (MIDIKeyboard.numVoices == 4)
-		{
-			DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
-			dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-			dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-			DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
-			dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-			dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-			DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
-			dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-			dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-			DAC16Send	(3, (uint16_t)(tIRampTick(&out[1][3]) + tempPitchBend));
-			dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-			dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
-		}
 	}
-	else
-	{
-		DAC16Send	(0, (uint16_t)tIRampTick(&out[0][0]));
-		dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-		dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-		DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
-		dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-		dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-		DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
-		dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-		dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-		DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
-		dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-		dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
-	}
-
-	
 }
 
 static void tc2_init(volatile avr32_tc_t *tc)
@@ -1062,7 +1090,10 @@ __attribute__((__interrupt__))
 static void eic_int_handler1(void)
 {
 	eic_clear_interrupt_line(&AVR32_EIC, EXT_INT_EXAMPLE_LINE1);
-	clockHappened();
+	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
+	{
+		clockHappened();
+	}
 }
 
 
@@ -1935,7 +1966,7 @@ void dacwait2(void)
 
 void memoryWait(void)
 {
-	cpu_delay_us(20,64000000); // what should this be? needs testing
+	cpu_delay_us(1,64000000); // what should this be? needs testing   was 20
 }
 
 
@@ -2195,6 +2226,7 @@ void loadMantaPreset(void)
 	{
 		initiateLoadingMantaPresetFromExternalMemory();
 	}
+	//clearDACoutputs();
 }
 
 void initMantaLEDState(void)
@@ -2220,6 +2252,7 @@ void loadJoystickPreset(void)
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
 	}
+	clearDACoutputs();
 }
 
 void loadMIDIPreset(void)
@@ -2256,11 +2289,21 @@ void loadMIDIPreset(void)
 	{
 		initiateLoadingMidiPresetFromExternalMemory();
 	}
+	//clearDACoutputs();
 }
 
 void loadNoDevicePreset(void)
 {
-	; //presets are handled internally by no_device_gate_in
+	//presets are handled internally by no_device_gate_in
+	clearDACoutputs();
+}
+
+void clearDACoutputs(void)
+{
+	for (int i = 0; i < 12; i++)
+	{
+		sendDataToOutput(i,0,0);		
+	}
 }
 
 void mantaPreset_encode(uint8_t* buffer)
@@ -2325,17 +2368,6 @@ void mantaPreset_encode(uint8_t* buffer)
 	indexCounter += NUM_BYTES_PER_SEQUENCER;
 	tSequencer_encode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 	indexCounter += NUM_BYTES_PER_SEQUENCER;
-	
-	//the 14*2 compositions!  14 per sequencer
-	//this is not as efficient as it could be because it's copying data we already have
-	for (int inst = 0; inst < NUM_INST; inst++)
-	{
-		for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
-		{
-			buffer[indexCounter++] = memoryInternalCompositionBuffer[inst][i];
-		}
-	}
-	
 }
 
 void mantaPreset_decode(uint8_t* buffer)
@@ -2405,16 +2437,6 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
-		
-		//the 14*2 compositions!  14 per sequencer
-		//this is not as efficient as it could be because it's copying data we already have
-		for (int inst = 0; inst < NUM_INST; inst++)
-		{
-			for (int i = 0; i < NUM_BYTES_PER_COMPOSITION_BANK; i++)
-			{
-				memoryInternalCompositionBuffer[inst][i] = buffer[indexCounter++];
-			}
-		}
 	}
 }
 

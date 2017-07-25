@@ -146,9 +146,15 @@ int currentTuningHex;
 
 int subtleInterval;
 
-#define NUM_BYTES_PER_MANTA_PRESET (76*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER) + (2*NUM_BYTES_PER_COMPOSITION_BANK))
-#define NUM_PAGES_PER_MANTA_PRESET 76//((NUM_BYTES_PER_PRESET / 256) + 1) 
-#define NUM_SECTORS_PER_MANTA_PRESET 5//((NUM_PAGES_PER_PRESET / 16) + 1)
+int mantaCompositionSavePending;
+int mantaCompositionLoadPending;
+
+#define NUM_BYTES_PER_MANTA_PRESET (10*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER))
+#define NUM_PAGES_PER_MANTA_PRESET 10//((NUM_BYTES_PER_PRESET / 256) + 1) 
+#define NUM_SECTORS_PER_MANTA_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
+#define NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP (34*256) //there are now 14 possible sequence slots in composition mode, each one is 615 bytes and there are two sets of 14
+#define NUM_PAGES_PER_COMPOSITION_BANK 34
+#define NUM_SECTORS_PER_COMPOSITION_BANK 3
 #define NUM_SECTORS_BETWEEN_MANTA_PRESETS 16 // leave a bunch of space for manta presets by aligning the presets to block edges
 
 #define NUM_BYTES_PER_MIDI_PRESET (3*256) // 263(num bytes per midi preset besides midikeyboard) + 263(num bytes per midikeyboard) rounded up to multiple of 256 bytes
@@ -166,11 +172,11 @@ int subtleInterval;
 #define MANTA_PRESET_STARTING_SECTOR 0
 #define TUNING_STARTING_SECTOR 1600
 #define HEXMAP_STARTING_SECTOR 1700
-#define STARTUP_STATE_SECTOR 2000
-#define MIDI_PRESET_STARTING_SECTOR 3000
-#define NODEVICE_PRESET_STARTING_SECTOR 2001
+#define STARTUP_STATE_SECTOR 1800
+#define MIDI_PRESET_STARTING_SECTOR 2000
+#define NODEVICE_PRESET_STARTING_SECTOR 1900
 
-uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //this is currently 19456
+uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 19456 //now 2560
 
 #define GLOBALS_BYTE_ADDRESS 0
 
@@ -196,7 +202,7 @@ uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //this is 
 
 extern uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
 extern uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
-extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK];
+extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP];
 
 
 tMantaInstrument manta[NUM_INST];
@@ -242,8 +248,9 @@ uint8_t readData;
 uint8_t* readDataArray[256];
 
 
+uint32_t currentMantaPresetBufferPosition;
 
-
+BOOL busyWithUSB;
 
 void blink(void);
 
@@ -251,6 +258,8 @@ void blink(void);
 volatile avr32_tc_t *tc1;
 volatile avr32_tc_t *tc2;
 volatile avr32_tc_t *tc3;
+
+#define TRIGGER_TIMING 4
 
 #define CVPITCH 0
 #define CVTRIGGER 1
@@ -388,7 +397,7 @@ void loadNoDevicePreset(void);
 void loadMIDIPreset(void);
 void loadJoystickPreset(void);
 void loadMantaPreset(void);
-
+void clearDACoutputs(void);
 
 uint8_t upSwitch(void);
 uint8_t downSwitch(void);

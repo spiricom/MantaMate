@@ -300,7 +300,7 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 
 uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER]; 
 uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
-uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK]; //8610 is 615 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
+uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP]; //8610 is 615 (number of bytes per sequence) * 14 (number of sequences that can be stored for each sequencer channel)
 
 TriggerPanel currentPanel[2] = 
 {
@@ -550,7 +550,8 @@ void touchDirectHex(int hex)
 		else if (type == DirectTrigger)
 		{
 			// set output high then start timer
-			direct->hexes[hex].trigCount = 2;
+			direct->hexes[hex].trigCount = TRIGGER_TIMING;
+
 			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
 		}
 	}
@@ -568,7 +569,8 @@ void touchDirectHex(int hex)
 		else if (type == DirectTrigger)
 		{
 			// set output high then start timer
-			direct->hexes[hex].trigCount = 2;
+			direct->hexes[hex].trigCount = TRIGGER_TIMING;
+			
 			sendDataToOutput(output, 0, 0xffff);
 		}
 	}
@@ -3302,9 +3304,9 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		tIRampSetDest(&out[inst][CV4P], sequencer->step[step].cv4);
 		
 		// Send Trigger
-		tIRampSetTime(&out[inst][CV4P],0);
+		tIRampSetTime(&out[inst][CVTRIGGER],0);
 		tIRampSetDest(&out[inst][CVTRIGGER], 4095);
-		sequencer->trigCount[0] = 3; //start counting down for the trigger to turn off
+		sequencer->trigCount[0] = TRIGGER_TIMING; //start counting down for the trigger to turn off
 	}
 }
 
@@ -3325,13 +3327,13 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
 	tIRampSetDest(&out[inst][CVTRIG1],sequencer[inst].step[step].on[0] * 4095);
-	sequencer[inst].trigCount[1] = sequencer[inst].step[step].on[0] * 3;
+	sequencer[inst].trigCount[1] = sequencer[inst].step[step].on[0] * TRIGGER_TIMING;
 	tIRampSetDest(&out[inst][CVTRIG2],sequencer[inst].step[step].on[1] * 4095);
-	sequencer[inst].trigCount[2] = sequencer[inst].step[step].on[1] * 3;
+	sequencer[inst].trigCount[2] = sequencer[inst].step[step].on[1] * TRIGGER_TIMING;
 	tIRampSetDest(&out[inst][CVTRIG3],sequencer[inst].step[step].on[2] * 4095);
-	sequencer[inst].trigCount[3] = sequencer[inst].step[step].on[2] * 3;
+	sequencer[inst].trigCount[3] = sequencer[inst].step[step].on[2] * TRIGGER_TIMING;
 	tIRampSetDest(&out[inst][CVTRIG4],sequencer[inst].step[step].on[3] * 4095);
-	sequencer[inst].trigCount[4] = sequencer[inst].step[step].on[3] * 3;
+	sequencer[inst].trigCount[4] = sequencer[inst].step[step].on[3] * TRIGGER_TIMING;
 }
 
 // UTILITIES

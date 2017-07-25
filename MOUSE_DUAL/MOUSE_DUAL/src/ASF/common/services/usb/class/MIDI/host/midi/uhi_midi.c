@@ -205,6 +205,7 @@ void uhi_midi_enable(uhc_device_t* dev)
 
 	uhi_midi_dev.b_enabled = true;
 	type_of_device_connected = MIDIKeyboardConnected;
+	updatePreset();
 	// Init value
 	//initNoteStack();
 	manta_mapper = 0; // make sure there is no weird MIDI note mapping going on if the manta was previously being communicated with.
