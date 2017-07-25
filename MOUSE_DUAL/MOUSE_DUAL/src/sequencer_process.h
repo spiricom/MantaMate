@@ -22,6 +22,10 @@ void processHexTouch(void);
 void touchHexmapEdit(int hex, uint8_t weight);
 void releaseHexmapEdit(int hex);
 
+
+void touchDirectEdit(int hex);
+void releaseDirectEdit(int hex);
+
 void processSliderSequencer(uint8_t sliderNum, uint16_t val);
 void setTuningLEDs(void);
 void initMantaSequencer(void);

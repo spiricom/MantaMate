@@ -352,7 +352,7 @@ void blink(void)
 {
 	blinkToggle = (blinkToggle == true) ? false : true;		   
 	
-	if (shiftOption1 && shiftOption1SubShift == SubShiftTopRight)
+	if (shiftOption1 && shiftOption1SubShift == SubShiftTopLeft)
 	{
 		for (int inst = 0; inst < 2; inst++)
 		{
@@ -513,9 +513,9 @@ void releaseDirectHex(int hex)
 	{
 		tDirect* direct = &manta[currentInstrument].direct;
 		
-		int output = tDirect_getOutputForHex(direct, hex);
+		int output = tDirect_getOutput(direct, hex);
 		
-		if (direct->outs[output].type == DirectGate)
+		if (direct->hexes[hex].type == DirectGate)
 		{
 			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
 		}
@@ -524,9 +524,9 @@ void releaseDirectHex(int hex)
 	{
 		tDirect* direct = &fullDirect;
 			
-		int output = tDirect_getOutputForHex(direct, hex);
+		int output = tDirect_getOutput(direct, hex);
 			
-		if (direct->outs[output].type == DirectGate)
+		if (direct->hexes[hex].type == DirectGate)
 		{
 			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
 		}
@@ -539,9 +539,9 @@ void touchDirectHex(int hex)
 	if (!takeover)
 	{
 		tDirect* direct = &manta[currentInstrument].direct;
-		int output = tDirect_getOutputForHex(direct, hex);
 		
-		DirectType type = direct->outs[output].type;
+		DirectType type = direct->hexes[hex].type;
+		int output = direct->hexes[hex].output;
 		
 		if (type == DirectGate)
 		{
@@ -550,16 +550,16 @@ void touchDirectHex(int hex)
 		else if (type == DirectTrigger)
 		{
 			// set output high then start timer
-			direct->outs[output].trigCount = 2;
+			direct->hexes[hex].trigCount = 2;
 			sendDataToOutput(6*currentInstrument + output, 0, 0xffff);
 		}
 	}
 	else
 	{
 		tDirect* direct = &fullDirect;
-		int output = tDirect_getOutputForHex(direct, hex);
 		
-		DirectType type = direct->outs[output].type;
+		DirectType type = direct->hexes[hex].type;
+		int output = direct->hexes[hex].output;
 		
 		if (type == DirectGate)
 		{
@@ -568,7 +568,7 @@ void touchDirectHex(int hex)
 		else if (type == DirectTrigger)
 		{
 			// set output high then start timer
-			direct->outs[output].trigCount = 5;
+			direct->hexes[hex].trigCount = 2;
 			sendDataToOutput(output, 0, 0xffff);
 		}
 	}
@@ -591,6 +591,11 @@ void processHexTouch(void)
 			if (hexmapEditMode)
 			{
 				releaseHexmapEdit(i);
+			}
+			else if (directEditMode)
+			{
+				releaseDirectEdit(i);
+				releaseDirectHex(i);
 			}
 			else if (shiftOption1 || shiftOption2) 
 			{
@@ -641,6 +646,11 @@ void processHexTouch(void)
 			if (hexmapEditMode)
 			{
 				touchHexmapEdit(i, butt_states[i]);
+			}
+			else if (directEditMode)
+			{
+				touchDirectEdit(i);
+				touchDirectHex(i);
 			}
 			else if (shiftOption1 || shiftOption2) 
 			{
@@ -696,7 +706,7 @@ void processHexTouch(void)
 			buttonTouched = TRUE;
 			
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
-			else if (!hexmapEditMode)
+			else if (!(hexmapEditMode || directEditMode))
 			{
 				if (i == ButtonTopRight)			
 				{
@@ -717,7 +727,7 @@ void processHexTouch(void)
 		{		
 			buttonTouched = TRUE;
 			
-			if (!hexmapEditMode)
+			if (!(hexmapEditMode || directEditMode))
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
 				else if (i == ButtonTopRight)		releaseTopRightButton();
@@ -726,35 +736,33 @@ void processHexTouch(void)
 			}
 		}
 		
-		if (buttonTouched && !hexmapEditMode)
+		if (buttonTouched && !(hexmapEditMode || directEditMode))
 		{
 			if (manta[currentInstrument].type == SequencerInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, shiftOption2 ? (topLon ? Amber : Off) :
+				manta_set_LED_button(ButtonTopLeft, (shiftOption1 || shiftOption2) ? (topLon ? Amber : Off) :
 				(currentMantaSliderMode == SliderModeOne) ? Off :
 				(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
-				manta_set_LED_button(ButtonTopRight, shiftOption2 ? (topRon ? Amber : Off) :
+				manta_set_LED_button(ButtonTopRight, (shiftOption1 || shiftOption2) ? (topRon ? Amber : Off) :
 				(edit_vs_play == EditMode) ? Red : Amber);
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 			}
 			else if (manta[currentInstrument].type == KeyboardInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, (topLon  ? (shiftOption2 ? Amber : Red) : Off) );
-				manta_set_LED_button(ButtonTopRight, (topRon  ? (shiftOption2 ? Amber : Red) : Off));
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+				manta_set_LED_button(ButtonTopLeft, (topLon  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off) );
+				manta_set_LED_button(ButtonTopRight, (topRon  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off));
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 			}
 			else if (manta[currentInstrument].type == DirectInstrument)
 			{
 				manta_set_LED_button(ButtonTopLeft, Off);
 				manta_set_LED_button(ButtonTopRight, Off);
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : Off));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : Off));
+				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 			}
 		}
-		
-		
 		
 		past_func_button_states[i] = func_button_states[i];
 	}		
@@ -865,7 +873,7 @@ void setCompositionLEDs(void)
 					if (compositionMap[inst][comp])
 					{
 						if (shiftOption1SubShift == SubShiftNil)				manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
-						else if (shiftOption1SubShift == SubShiftBottomRight)	manta_set_LED_hex(inst * 16 + comp, Red);
+						else if (shiftOption1SubShift == SubShiftTopRight)	manta_set_LED_hex(inst * 16 + comp, Red);
 					}
 				}
 				
@@ -891,23 +899,46 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		
 		if (type == DirectInstrument)
 		{	
+			// DIRECT EDIT MODE
+			editDirect = takeover ? &fullDirect : &manta[whichInst].direct;
+			editDirectInstrument = takeover ? InstrumentNil : whichInst;
 			
-			tDirect* direct = takeover ? &fullDirect : &manta[whichInst].direct;
-			
-			int output = tDirect_getOutputForHex(direct, whichHex);
-			DirectType type = direct->outs[output].type;
-			
-			type =  (type == DirectCV) ? DirectGate :
-				   (type == DirectGate) ? DirectTrigger :
-				   (type == DirectTrigger) ? DirectCV :
-				   DirectCV;
-			
-			tDirect_setOutputType(direct, output, type);
-			
-			setDirectOptionLEDs();
+			if (whichHex == 8)
+			{
+				// Save
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 9)
+			{
+				// Load
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 11)
+			{
+				// Edit
+				directEditMode = TRUE;
+				lastDirectEditHex = -1;
+				displayState = UpDownSwitchBlock;
+				
+				setDirectLEDs();
+			}
+			else if (whichHex <= 5)
+			{
+				tDirect_setConfiguration(editDirect, whichHex);
+				
+				manta_set_LED_hex(hexagon, Red);
+			}
+			else if (whichHex == 7)
+			{
+				// Blank
+				tDirect_blank(editDirect);
+				
+				manta_set_LED_hex(hexagon, Amber);
+			}
 		}
 		else if (type == KeyboardInstrument)
 		{
+			// HEXMAP EDIT MODE
 			hexmapEditKeyboard = takeover ? &fullKeyboard : &manta[whichInst].keyboard;
 			hexmapEditInstrument = takeover ? InstrumentNil : whichInst;
 			
@@ -925,6 +956,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			{
 				// Edit 
 				hexmapEditMode = TRUE;
+				lastHexmapEditHex = -1;
 				displayState = UpDownSwitchBlock;
 				
 				manta_set_LED_slider(SliderOne, 0);
@@ -1004,15 +1036,17 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 					}
 
 				}
-				else if (shiftOption1SubShift == SubShiftBottomRight) // CompositionWrite
+				else if (shiftOption1SubShift == SubShiftTopRight) // CompositionWrite
 				{
 					manta_set_LED_hex(hexagon, Amber);
 					
 					compositionMap[whichInst][whichHex] = true;
 					tSequencer_encode(sequencer, encodeBuffer[whichInst]);
 					memoryInternalWriteSequencer(whichInst, whichHex,encodeBuffer[whichInst]);
+					
+					setCompositionLEDs();
 				}
-				else if (shiftOption1SubShift == SubShiftTopRight)
+				else if (shiftOption1SubShift == SubShiftTopLeft) //CompositionCopy
 				{
 					if (copyStage == 0)
 					{
@@ -1076,6 +1110,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 {
     if (shiftOption1)
     {
+		
         setCompositionLEDs();
 		setHexmapConfigureLEDs();
 		setDirectOptionLEDs();
@@ -1669,6 +1704,15 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		takeoverType = DirectInstrument;
 		
 		tDirect_init(&fullDirect, 12);
+		
+		for (int inst = 0; inst < 2; inst++)
+		{
+			for (int i = 0; i < 6; i++)
+			{
+				tIRampSetTime(&out[inst][i], 0);
+			}
+		}
+		
 	}
 	else if (whichOptionType == OptionToggle)
 	{
@@ -2053,18 +2097,38 @@ void setDirectLEDs			(void)
 		{
 			tDirect* direct = &manta[currentInstrument].direct;
 			
-			for (int i = 0; i < direct->numOuts; i++)
+			MantaLEDColor color = Off;
+			DirectType type = DirectTypeNil;			
+			for (int i = 0; i < 48; i++)
 			{
-				manta_set_LED_hex(direct->outs[i].hex, direct->outs[i].color);
+				type = direct->hexes[i].type;
+				
+				color = (type == DirectCV) ? Amber :
+				(type == DirectGate) ? Red :
+				(type == DirectTrigger) ? BothOn :
+				Off;
+				
+				manta_set_LED_hex(i, color);
 			}
 		}
 	}
 	else if (takeoverType == DirectInstrument)
 	{
 		manta_clear_all_LEDs();
-		for (int i = 0; i < fullDirect.numOuts; i++)
+		
+		MantaLEDColor color = Off;
+		DirectType type = DirectTypeNil;
+		
+		for (int i = 0; i < 48; i++)
 		{
-			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
+			type = fullDirect.hexes[i].type;
+			
+			color = (type == DirectCV) ? Amber :
+			(type == DirectGate) ? Red :
+			(type == DirectTrigger) ? BothOn :
+			Off;
+			
+			manta_set_LED_hex(i, color);
 		}
 	}
 	roll_LEDs = 1;
@@ -2081,14 +2145,19 @@ void setDirectOptionLEDs			(void)
 		{
 			if (manta[inst].type == DirectInstrument)
 			{
-				tDirect* direct = &manta[inst].direct;
-				
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
+
+				//manta_set_LED_hex(16*inst + 8, Amber); // SAVE maybe do this for direct too?
+				//manta_set_LED_hex(16*inst + 9, Amber); // LOAD maybe do this for direct too?
+				manta_set_LED_hex(16*inst + 11, Red); // EDIT
 				
-				for (int i = 0; i < direct->numOuts; i++)
-				{
-					manta_set_LED_hex(16*inst + direct->outs[i].hex, direct->outs[i].color);
-				}
+				manta_set_LED_hex(16*inst + 0, Amber); // Default
+				manta_set_LED_hex(16*inst + 1, Amber); // All Triggers
+				manta_set_LED_hex(16*inst + 2, Amber); // All Gates
+				manta_set_LED_hex(16*inst + 3, Amber); // All CVs
+				manta_set_LED_hex(16*inst + 4, Amber); // Trigger/CV
+				manta_set_LED_hex(16*inst + 5, Amber); // Gate/CV
+				manta_set_LED_hex(16*inst + 7, Red); // BLANK
 			}
 			
 		}
@@ -2097,10 +2166,17 @@ void setDirectOptionLEDs			(void)
 	{
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i,Off);
 		
-		for (int i = 0; i < fullDirect.numOuts; i++)
-		{
-			manta_set_LED_hex(fullDirect.outs[i].hex, fullDirect.outs[i].color);
-		}
+		//manta_set_LED_hex(8, Amber); // SAVE maybe do this for direct too?
+		//manta_set_LED_hex(9, Amber); // LOAD maybe do this for direct too?
+		manta_set_LED_hex(11, Red); // EDIT
+		
+		manta_set_LED_hex(0, Amber); // Default
+		manta_set_LED_hex(1, Amber); // All Triggers
+		manta_set_LED_hex(2, Amber); // All Gates
+		manta_set_LED_hex(3, Amber); // All CVs
+		manta_set_LED_hex(4, Amber); // Trigger/CV
+		manta_set_LED_hex(5, Amber); // Gate/CV
+		manta_set_LED_hex(7, Red); // BLANK
 	}
 	
 	roll_LEDs = 1;
@@ -2119,7 +2195,7 @@ void touchTopLeftButton(void)
 	{
 		if (shiftOption1)
 		{
-			return;
+			shiftOption1SubShift = SubShiftTopLeft;
 		}
 		else if (shiftOption2)
 		{
@@ -2186,8 +2262,7 @@ void touchTopLeftButton(void)
 
 void releaseTopLeftButton(void)
 {
-	if (shiftOption1) return;
-	
+	shiftOption1SubShift = SubShiftNil;	
 }
 
 // ~ ~ ~ ~ TOP RIGHT BUTTON ~ ~ ~ ~ //
@@ -2268,9 +2343,10 @@ void releaseTopRightButton(void)
 // ~ ~ ~ ~ BOTTOM LEFT BUTTON ~ ~ ~ ~ //
 void touchBottomLeftButton(void)
 {
-	if (hexmapEditMode)
+	if (hexmapEditMode || directEditMode)
 	{
 		hexmapEditMode = FALSE;
+		directEditMode = FALSE;
 		Write7Seg(preset_num);
 		displayState = GlobalDisplayStateNil;
 		
@@ -2280,22 +2356,21 @@ void touchBottomLeftButton(void)
 	}
 	else
 	{
-		
 		if (shiftOption2)
 		{
 			if (!shiftOption2Lock) 
 			{
 				shiftOption2Lock = TRUE;
+				displayState = UpDownSwitchBlock;
 				manta_set_LED_button(ButtonBottomLeft, Red);
-				manta_set_LED_button(ButtonBottomRight, Red);
+				manta_set_LED_button(ButtonBottomRight, Amber);
 			}
 			else
 			{
 				shiftOption2Lock = FALSE;
+				displayState = GlobalDisplayStateNil;
 			
 				shiftOption2 = FALSE;
-			
-				displayState = GlobalDisplayStateNil;
 			
 				Write7Seg(normal_7seg_number);
 				transpose_indication_active = 0;
@@ -2308,13 +2383,19 @@ void touchBottomLeftButton(void)
 				manta_set_LED_button(ButtonBottomLeft, Off);
 				manta_set_LED_button(ButtonBottomRight, Off);
 			
-				if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
-				else if (manta[currentInstrument].type == KeyboardInstrument)	setKeyboardLEDs();
-				else if (manta[currentInstrument].type == DirectInstrument)		setDirectLEDs();
+				setSequencerLEDs();
+				setKeyboardLEDs();
+				setDirectLEDs();
 			}
 		}
 		else //normal
 		{
+			if (shiftOption1Lock)
+			{
+				shiftOption1Lock = FALSE;
+				displayState = GlobalDisplayStateNil;
+			}
+			
 			shiftOption1 = TRUE;
 		
 			setOptionLEDs();
@@ -2329,8 +2410,12 @@ void touchBottomLeftButton(void)
 			{
 				setHexmapConfigureLEDs();
 			}
+			else if (takeoverType == DirectInstrument)
+			{
+				setDirectOptionLEDs();
+			}
 
-			manta_set_LED_button(ButtonBottomLeft, Red);
+			manta_set_LED_button(ButtonBottomLeft, Amber);
 		}
 	}
 	
@@ -2339,19 +2424,23 @@ void touchBottomLeftButton(void)
 
 void releaseBottomLeftButton(void)
 {	
-	if (!shiftOption2)
+	if (!shiftOption2 && !shiftOption1Lock)
 	{
 		shiftOption1 = FALSE;
 		
-		uiOff();
+		displayState = GlobalDisplayStateNil;
+		
+		Write7Seg(normal_7seg_number);
+		transpose_indication_active = 0;
+		if (!savingActive)
+		{
+			LED_Off(PRESET_SAVE_LED);
+		}
+		setCurrentInstrument(currentInstrument);
 		
 		setSequencerLEDs();
-
 		setKeyboardLEDs();
-
 		setDirectLEDs();
-		
-		manta_set_LED_button(ButtonBottomLeft, Off);
 	}
 	
 }
@@ -2381,8 +2470,37 @@ void touchBottomRightButton(void)
 
 	if (shiftOption1)
 	{
-		shiftOption1SubShift = SubShiftBottomRight;
-		setCompositionLEDs();
+		if (!shiftOption1Lock)
+		{
+			shiftOption1Lock = TRUE;
+			lastDirectEditHex = -1;
+			displayState = UpDownSwitchBlock;
+			manta_set_LED_button(ButtonBottomLeft, Amber);
+			manta_set_LED_button(ButtonBottomRight, Red);
+		}
+		else
+		{
+			shiftOption1Lock = FALSE;
+			displayState = GlobalDisplayStateNil;
+			
+			shiftOption1 = FALSE;
+			
+			
+			Write7Seg(normal_7seg_number);
+			transpose_indication_active = 0;
+			if (!savingActive)
+			{
+				LED_Off(PRESET_SAVE_LED);
+			}
+			setCurrentInstrument(currentInstrument);
+			
+			manta_set_LED_button(ButtonBottomLeft, Off);
+			manta_set_LED_button(ButtonBottomRight, Off);
+			
+			setSequencerLEDs();
+			setKeyboardLEDs();
+			setDirectLEDs();
+		}
 	}
 	else
 	{
@@ -2403,8 +2521,9 @@ void touchBottomRightButton(void)
 		else
 		{
 			shiftOption2Lock = FALSE;
+			displayState = GlobalDisplayStateNil;
 			
-			shiftOption2 = FALSE;
+			shiftOption2 = TRUE;
 			
 			displayState = GlobalDisplayStateNil;
 			
@@ -2416,24 +2535,17 @@ void touchBottomRightButton(void)
 			}
 			setCurrentInstrument(currentInstrument);
 			
-			manta_set_LED_button(ButtonBottomLeft, Off);
-			manta_set_LED_button(ButtonBottomRight, Off);
-			
-			if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
-			else if (manta[currentInstrument].type == KeyboardInstrument)	setKeyboardLEDs();
-			else if (manta[currentInstrument].type == DirectInstrument)		setDirectLEDs();
+			setTuningLEDs();
 		}
 	}
 
 }
 
 void releaseBottomRightButton(void)
-{
-	shiftOption1SubShift = SubShiftNil;
-	
+{	
 	if (shiftOption1)	
 	{
-		if (manta[currentInstrument].type == SequencerInstrument) setCompositionLEDs();
+		setCompositionLEDs();
 	}	
 	else if (!shiftOption2Lock)
 	{	
@@ -2449,9 +2561,9 @@ void releaseBottomRightButton(void)
 		}
 		setCurrentInstrument(currentInstrument);
 		
-		if (manta[currentInstrument].type == SequencerInstrument)		setSequencerLEDs();
-		else if (manta[currentInstrument].type == KeyboardInstrument)	setKeyboardLEDs();
-		else if (manta[currentInstrument].type == DirectInstrument)		setDirectLEDs();
+		setSequencerLEDs();
+		setKeyboardLEDs();
+		setDirectLEDs();
 	}
 
 }
@@ -2872,7 +2984,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 		}		
 	}
 	
-	//manta_set_LED_button(ButtonTopLeft, (currentMantaSliderMode == SliderModeOne) ? Off : (currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
 	freeze_LED_update = 0;
 }
 

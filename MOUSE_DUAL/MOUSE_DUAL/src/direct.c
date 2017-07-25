@@ -13,73 +13,111 @@ void tDirect_init(tDirect* const direct, int numOuts)
 	direct->numOuts = numOuts;
 	direct->numActive = numOuts;
 	
-	for (int i = 0; i < 48; i++) direct->map[i] = -1;
-	
-	for (int i = 0; i < numOuts; i++)
+	for (int i = 0; i < 48; i++)
 	{
-		direct->map[i] = i;
-		direct->outs[i].hex = i;
-
-		if (i < 3) tDirect_setOutputType(direct, i, DirectGate);
-		else
-		{
-				tDirect_setOutputType(direct, i, DirectTrigger);
-		}
-
-		direct->outs[i].trigCount = 0;
+		direct->hexes[i].output = -1;
+		
+		direct->hexes[i].type = DirectTypeNil;
+		
+		direct->hexes[i].trigCount = 0;
 	}
 	
+	tDirect_setConfiguration(direct, 0);
+		
 }
 
-void tDirect_assignHexToOutput(tDirect* const direct, int hex, int output)
+void tDirect_setOutput(tDirect* const direct, int hex, int output)
 {
-	// Deactivate last hex mapped to output.
-	int lastHex = direct->outs[output].hex;
-	direct->map[lastHex] = -1;
-	
 	// Assign hex to output.
-	direct->outs[output].hex = hex;
+	direct->hexes[hex].output = output;
+}
+
+
+int tDirect_getOutput(tDirect* const direct, int hex)
+{
+	return direct->hexes[hex].output;
+}
+
+
+DirectType tDirect_getType(tDirect* const direct, int hex)
+{
+	return direct->hexes[hex].type;
+}
+
+void tDirect_setConfiguration(tDirect* const direct, int which)
+{
+	if (which == 0)
+	{
+		// DEFAULT DIRECT SET HERE FOR NOW
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			if ((i%6) < 2)		direct->hexes[i].type = DirectTrigger;
+			else if ((i%6) < 4) direct->hexes[i].type = DirectGate;
+			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+		}
+	}
+	else if (which == 1)
+	{
+		
+		
+	}
+	else if (which == 2)
+	{
+		
+		
+	}
+	else if (which == 3)
+	{
+		
+		
+	}
+	else if (which == 4)
+	{
+		
+		
+	}
+	else if (which == 5)
+	{
+		
+		
+	}
+}
+
+void tDirect_blank(tDirect* const direct)
+{
+	for (int i = 0; i < 48; i++)
+	{
+		direct->hexes[i].output = -1;
+		direct->hexes[i].type = DirectTypeNil;
+	}
+	direct->numActive = 0;
+}
+
+void tDirect_setType(tDirect* const direct, int hex, DirectType newType)
+{
+	DirectType oldType = direct->hexes[hex].type;
 	
-	// Activate new hex assigned to output.
-	direct->map[hex] = output;
-}
-
-
-DirectType tDirect_getOutputTypeForHex(tDirect* const direct, int hex)
-{
-	int output =  direct->map[hex];
+	if (oldType == DirectTypeNil && newType != DirectTypeNil)		
+	{
+		if (++direct->numActive > direct->numOuts) 
+		{
+			direct->numActive = direct->numOuts;
+			return;
+		}
+	}
+	else if (oldType != DirectTypeNil && newType == DirectTypeNil)	
+	{
+		if (--direct->numActive < 0)
+		{
+			direct->numActive = 0;
+		}
+	}
 	
-	if (output < 0)		return DirectTypeNil;
-	else				return direct->outs[output].type;
-}
-
-int tDirect_getOutputForHex(tDirect* const direct, int hex)
-{
-	return direct->map[hex];
-}
-
-void tDirect_setOutputType(tDirect* const direct, int output, DirectType type)
-{
-	direct->outs[output].type = type;
-	direct->outs[output].color =	(type == DirectCV) ? Amber :
-									(type == DirectGate) ? Red :
-									(type == DirectTrigger) ? BothOn :
-									Off;
-									
-	if (type == DirectTypeNil) 
-	{
-		direct->numActive--;
-		direct->map[direct->outs[output].hex] = -1;
-	}
-	else if (type == DirectCV)
-	{
-		tIRampSetTime(&out[currentInstrument][output], 10);
-	}
-	else 
-	{
-		tIRampSetTime(&out[currentInstrument][output], 0);
-	}
-									
+	direct->hexes[hex].type = newType;
+	
+										
 }
 
 
@@ -91,10 +129,8 @@ void initMantaAllCV(void)
 	fullDirect.numOuts = 12;
 	for (int i = 0; i < 12; i++)
 	{
-		fullDirect.map[i] = i;
-		fullDirect.outs[i].hex = i;
-		tDirect_setOutputType(&fullDirect, i, DirectCV);
-		fullDirect.outs[i].color =	Amber;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectCV;
 	}
 
 }
@@ -107,10 +143,8 @@ void initMantaAllGates(void)
 	fullDirect.numOuts = 12;
 	for (int i = 0; i < 12; i++)
 	{
-		fullDirect.map[i] = i;
-		fullDirect.outs[i].hex = i;
-		tDirect_setOutputType(&fullDirect, i, DirectGate);
-		fullDirect.outs[i].color = Red;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectGate;
 	}
 
 }
@@ -123,10 +157,8 @@ void initMantaAllTriggers(void)
 	fullDirect.numOuts = 12;
 	for (int i = 0; i < 12; i++)
 	{
-		fullDirect.map[i] = i;
-		fullDirect.outs[i].hex = i;
-		tDirect_setOutputType(&fullDirect, i, DirectTrigger);
-		fullDirect.outs[i].color =	BothOn;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectTrigger;
 	}	
 }
 
@@ -138,17 +170,13 @@ void initMantaCVAndGates(void)
 	fullDirect.numOuts = 12;
 	for (int i = 0; i < 6; i++)
 	{
-		fullDirect.map[i] = i;
-		fullDirect.outs[i].hex = i;
-		tDirect_setOutputType(&fullDirect, i, DirectCV);
-		fullDirect.outs[i].color =	Amber;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectCV;
 	}	
 	for (int i = 0; i < 6; i++)
 	{
-		fullDirect.map[i+6] = i+6;
-		fullDirect.outs[i+6].hex = i+6;
-		tDirect_setOutputType(&fullDirect, i+6, DirectGate);
-		fullDirect.outs[i+6].color =	Red;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectGate;
 	}
 
 }
@@ -161,17 +189,13 @@ void initMantaCVAndTriggers(void)
 	fullDirect.numOuts = 12;
 	for (int i = 0; i < 6; i++)
 	{
-		fullDirect.map[i] = i;
-		fullDirect.outs[i].hex = i;
-		tDirect_setOutputType(&fullDirect, i, DirectCV);
-		fullDirect.outs[i].color =	Amber;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectCV;
 	}	
 	for (int i = 0; i < 6; i++)
 	{
-		fullDirect.map[i+6] = i+6;
-		fullDirect.outs[i+6].hex = i+6;
-		tDirect_setOutputType(&fullDirect, i+6, DirectTrigger);
-		fullDirect.outs[i+6].color =	BothOn;
+		fullDirect.hexes[i].output = i;
+		fullDirect.hexes[i].type = DirectTrigger;
 	}
 
 }
@@ -180,13 +204,13 @@ void initMantaCVAndTriggers(void)
 void tDirect_encode(tDirect* const direct, uint8_t* buffer)
 {
 
-	for (int i = 0; i < 12; i++)
+	for (int i = 0; i < 48; i++)
 	{
-		buffer[i*2] = direct->outs[i].hex;
-		buffer[(i*2) + 1] = direct->outs[i].type;
+		buffer[i*2] = direct->hexes[i].output;
+		buffer[(i*2) + 1] = direct->hexes[i].type;
 	}
 	
-	buffer[24] = direct->numOuts;
+	buffer[48] = direct->numOuts;
 }
 
 // 24 bytes
@@ -195,13 +219,9 @@ void tDirect_decode(tDirect* const direct, uint8_t* buffer)
 	DirectType type = DirectTypeNil;
 	for (int i = 0; i < 12; i++)
 	{
-		direct->outs[i].hex = buffer[i*2];	
+		direct->hexes[i].output = buffer[i*2];	
 		type = buffer[(i*2) + 1];
-		direct->outs[i].type = type;	
-		direct->outs[i].color =	(type == DirectCV) ? Amber :
-								(type == DirectGate) ? Red :
-								(type == DirectTrigger) ? BothOn :
-								Off;
+		direct->hexes[i].type = type;	
 	}
-	direct->numOuts = buffer[24];
+	direct->numOuts = buffer[48];
 }
