@@ -128,7 +128,9 @@ uint8_t pastbutt_states[48];
 uint8_t func_button_states[4] = {0,0,0,0};
 uint8_t past_func_button_states[4] = {0,0,0,0};
 uint8_t sliders[4] = {0,0,0,0};
-uint8_t pastsliders[4] = {0,0,0,0};
+uint8_t pastSliders[4] = {0,0,0,0};
+BOOL slidersTouched[2] = {0,0};
+BOOL pastSlidersTouched[2] = {0,0};
 BOOL firstEdition = FALSE;
 uint8_t which_led_buffer_currently_sending = 0;
 uint8_t which_led_buffer_needs_sending = 0;
@@ -373,23 +375,73 @@ static void uhi_hid_manta_report_reception(
 		func_button_states[i] = uhi_hid_manta_dev.report[i+49] + 0x80;
 	}
 	
-	if(((sliders[0] != pastsliders[0]) && (sliders[0] != 255)) || ((sliders[1] != pastsliders[1]) && (sliders[1] != 255)))
+
+	
+	if (sliders[0] == 255) && (sliders[1] == 255)
 	{
-		val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
-		processSliders(0, val);
+		slidersTouched[0] = FALSE;
+	}
+	else
+	{
+		slidersTouched[0] = TRUE;
+		if((sliders[0] != pastSliders[0]) || (sliders[1] != pastSliders[1]))
+		{
+			val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
+			processSliders(0, val);
+		}
 	}
 
-	if(((sliders[2] != pastsliders[2]) && (sliders[2] != 255)) || ((sliders[3] != pastsliders[3]) && (sliders[3] != 255)))
+	
+	
+	if (sliders[2] == 255) && (sliders[3] == 255)
 	{
-		val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
-		processSliders(1, val);
+		slidersTouched[1] = FALSE;
+	}
+	else
+	{
+		slidersTouched[1] = TRUE;
+		if((sliders[2] != pastSliders[2])  || (sliders[3] != pastSliders[3]))
+		{
+			val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
+			processSliders(1, val);
+		}
 	}
 	
+	for (int i = 0; i < 4; i++)
+	{
+		pastSliders[i] = sliders[i];
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		if (slidersTouched[i] != pastSlidersTouched[i])
+		{
+			if (slidersTouched[i])
+			{
+				mantaSliderTouchAction(i);
+			}
+			else
+			{
+				mantaSliderReleaseAction(i);
+			}
+		}
+		
+		pastSlidersTouched[i] = slidersTouched[i];
+	}
+
 	processHexTouch();
 
 	uhi_hid_manta_start_trans_report(add);
 }
 
+void mantaSliderTouchAction(int whichSlider)
+{
+	
+}
+
+void mantaSliderReleaseAction(int whichSlider)
+{
+	
+}
 
 //happens every USB frame
 int blinkCount = 0;
