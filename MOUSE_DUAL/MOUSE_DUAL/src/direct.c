@@ -46,9 +46,11 @@ DirectType tDirect_getType(tDirect* const direct, int hex)
 
 void tDirect_setConfiguration(tDirect* const direct, int which)
 {
+	tDirect_blank(direct);
+	
 	if (which == 0)
 	{
-		// DEFAULT DIRECT SET HERE FOR NOW
+		// DEFAULT DIRECT FOR NOW
 		for (int i = 0; i < direct->numOuts; i++)
 		{
 			direct->hexes[i].output = i;
@@ -60,28 +62,50 @@ void tDirect_setConfiguration(tDirect* const direct, int which)
 	}
 	else if (which == 1)
 	{
-		
-		
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			direct->hexes[i].type = DirectTrigger;
+		}
 	}
 	else if (which == 2)
 	{
-		
-		
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			direct->hexes[i].type = DirectGate;
+		}
 	}
 	else if (which == 3)
 	{
-		
-		
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			direct->hexes[i].type = DirectCV;
+		}
 	}
 	else if (which == 4)
 	{
-		
-		
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			if ((i%6) < 3)		direct->hexes[i].type = DirectTrigger;
+			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+		}
 	}
 	else if (which == 5)
 	{
-		
-		
+		for (int i = 0; i < direct->numOuts; i++)
+		{
+			direct->hexes[i].output = i;
+			
+			if ((i%6) < 3)		direct->hexes[i].type = DirectGate;
+			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+		}
 	}
 }
 

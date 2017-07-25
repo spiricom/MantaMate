@@ -260,7 +260,7 @@ OptionType directOptionMode[16] = {
 	OptionKeyboard,
 	OptionDirect,
 	OptionNil,
-	OptionFullSplit,
+	OptionNil,
 	OptionNil,
 	OptionLeft,
 	OptionRight
@@ -838,7 +838,7 @@ void setHexmapConfigureLEDs	(void)
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
-		for (int i = 0; i < 16; i++) manta_set_LED_hex(i, Off);
+		for (int i = 0; i < 32; i++) manta_set_LED_hex(i, Off);
 		
 		manta_set_LED_hex(8, Amber); // SAVE
 		manta_set_LED_hex(9, Amber); // LOAD
@@ -2164,7 +2164,7 @@ void setDirectOptionLEDs			(void)
 	}
 	else if (takeoverType == DirectInstrument)
 	{
-		for (int i = 0; i < 16; i++) manta_set_LED_hex(i,Off);
+		for (int i = 0; i < 32; i++) manta_set_LED_hex(i,Off);
 		
 		//manta_set_LED_hex(8, Amber); // SAVE maybe do this for direct too?
 		//manta_set_LED_hex(9, Amber); // LOAD maybe do this for direct too?
