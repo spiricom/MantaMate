@@ -377,7 +377,7 @@ static void uhi_hid_manta_report_reception(
 	
 
 	
-	if (sliders[0] == 255) && (sliders[1] == 255)
+	if ((sliders[0] == 255) && (sliders[1] == 255))
 	{
 		slidersTouched[0] = FALSE;
 	}
@@ -393,7 +393,7 @@ static void uhi_hid_manta_report_reception(
 
 	
 	
-	if (sliders[2] == 255) && (sliders[3] == 255)
+	if ((sliders[2] == 255) && (sliders[3] == 255))
 	{
 		slidersTouched[1] = FALSE;
 	}
