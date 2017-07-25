@@ -129,7 +129,7 @@ uint8_t func_button_states[4] = {0,0,0,0};
 uint8_t past_func_button_states[4] = {0,0,0,0};
 uint8_t sliders[4] = {0,0,0,0};
 uint8_t pastsliders[4] = {0,0,0,0};
-uint8_t firstEdition = false;
+BOOL firstEdition = FALSE;
 uint8_t which_led_buffer_currently_sending = 0;
 uint8_t which_led_buffer_needs_sending = 0;
 	
@@ -185,11 +185,11 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					//set version number based on serial number
 					if (dev->dev_desc.iSerialNumber < 70)
 					{
-						firstEdition = true;
+						firstEdition = TRUE;
 					}
 					else
 					{
-						firstEdition = false;
+						firstEdition = FALSE;
 					}
 					
 					for(i=0; i<48; i++)

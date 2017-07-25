@@ -807,17 +807,21 @@ static void tc3_irq(void)
 				}
 				else if (note < 255)
 				{
-					if (MIDIKeyboard.notes[note][0] > 0)
+					BOOL tempOutputState = MIDIKeyboard.outputStates[n];
+					
+					if ((MIDIKeyboard.notes[note][0] > 0) && (tempOutputState == FALSE))
 					{
 						sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 65535);
+						MIDIKeyboard.outputStates[n] = TRUE;
 						if (MIDIKeyboard.gatesOrTriggers == TRIGGERS)
 						{
 							MIDIKeyboard.trigCount[n + MIDIKeyboard.firstFreeOutput] = TRIGGER_TIMING;
 						}
 					}
-					else
+					else if ((MIDIKeyboard.notes[note][0] == 0) && (tempOutputState == TRUE))
 					{
 						sendDataToOutput(n + MIDIKeyboard.firstFreeOutput, 0, 0);
+						MIDIKeyboard.outputStates[n] = FALSE;
 					}
 				}
 			

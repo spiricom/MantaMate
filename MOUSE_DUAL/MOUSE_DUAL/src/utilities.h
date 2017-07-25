@@ -46,8 +46,8 @@ typedef enum ArpModeType
 
 typedef enum MantaMap
 {
-	DefaultMap,
 	PianoMap,
+	DefaultMap,
 	HarmonicMap,
 	WickiHaydenMap,
 	IsomorphicMap,

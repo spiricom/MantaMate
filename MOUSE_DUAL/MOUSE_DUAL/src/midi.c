@@ -750,64 +750,73 @@ void tMIDIKeyboard_nextNote(tMIDIKeyboard* const keyboard)
 	
 	tNoteStack* ns = ((type >= ArpModeUp && type <= ArpModeUpDown) || type == ArpModeRandomWalk) ? &keyboard->orderStack :  &keyboard->stack;
 
-	if (ns->size == 1)
+
+	if (ns->size == 0)
 	{
-		keyboard->phasor = 0;
+		keyboard->currentNote = -1; //don't output anything if there are no pitches
 	}
-	else if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
+	else //otherwise step that thing a ding
 	{
-		if (++keyboard->phasor >= ns->size) keyboard->phasor = 0;
-	}
-	else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
-	{
-		if (--keyboard->phasor < 0) keyboard->phasor = (ns->size-1);
-	}
-	else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
-	{
-		if (keyboard->up)
+		if (ns->size == 1)
 		{
-			if (++keyboard->phasor >= ns->size)
+			keyboard->phasor = 0;
+		}
+		else if (type == ArpModeUp || type == ArpModeOrderTouchBackward)
+		{
+			if (++keyboard->phasor >= ns->size) keyboard->phasor = 0;
+		}
+		else if (type == ArpModeDown || type == ArpModeOrderTouchForward)
+		{
+			if (--keyboard->phasor < 0) keyboard->phasor = (ns->size-1);
+		}
+		else if (type == ArpModeUpDown || type == ArpModeOrderTouchForwardBackward)
+		{
+			if (keyboard->up)
 			{
-				keyboard->phasor = ns->size-2;
-				keyboard->up = FALSE;
+				if (++keyboard->phasor >= ns->size)
+				{
+					keyboard->phasor = ns->size-2;
+					keyboard->up = FALSE;
+				}
+			}
+			else // down
+			{
+				if (--keyboard->phasor < 0)
+				{
+					keyboard->phasor = 1;
+					keyboard->up = TRUE;
+				}
 			}
 		}
-		else // down
+		else if (type == ArpModeRandomWalk)
 		{
-			if (--keyboard->phasor < 0)
+			random = (rand() >> 15) & 1;
+			if (random > 0)
+			{
+				keyboard->phasor++;
+			}
+			else
+			{
+				keyboard->phasor--;
+			}
+			
+			if (keyboard->phasor >= ns->size)
+			{
+				keyboard->phasor = ns->size - 2;
+			}
+			else if (keyboard->phasor < 0)
 			{
 				keyboard->phasor = 1;
-				keyboard->up = TRUE;
 			}
 		}
-	}
-	else if (type == ArpModeRandomWalk)
-	{
-		random = (rand() >> 15) & 1;
-		if (random > 0)
+		else if (type == ArpModeRandom)
 		{
-			keyboard->phasor++;
-		}
-		else
-		{
-			keyboard->phasor--;
+			keyboard->phasor = ((rand() >> 15) % (ns->size ? ns->size : 1));
 		}
 		
-		if (keyboard->phasor >= ns->size)
-		{
-			keyboard->phasor = ns->size - 2;
-		}
-		else if (keyboard->phasor < 0)
-		{
-			keyboard->phasor = 1;
-		}
+		keyboard->currentNote =  tNoteStack_get(ns, keyboard->phasor);
 	}
-	else if (type == ArpModeRandom)
-	{
-		keyboard->phasor = ((rand() >> 15) % (ns->size ? ns->size : 1));
-	}
-		
-	keyboard->currentNote =  tNoteStack_get(ns, keyboard->phasor);
+	
 }
 
 void tMIDIKeyboard_orderedAddToStack(tMIDIKeyboard* thisKeyboard, uint8_t noteVal)
@@ -855,10 +864,11 @@ void MIDIKeyboardStep(void)
 	if (keyboard->playMode != ArpMode) return;
 	
 	tMIDIKeyboard_nextNote(keyboard);
-	
-	if (++keyboard->currentVoice == keyboard->numVoices) keyboard->currentVoice = 0;
-	
 	dacSendMIDIKeyboard();
+	
+	if (++keyboard->currentVoice >= keyboard->numVoices) keyboard->currentVoice = 0;
+	
+
 }
 
 void dacSendMIDIKeyboard(void)
@@ -871,17 +881,17 @@ void dacSendMIDIKeyboard(void)
 		if (keyboard->playMode == ArpMode)
 		{
 			int newNote = keyboard->currentNote;
-			if (newNote >= 0)
+			if ((newNote >= 0) && (keyboard->stack.size > 0))
 			{
-				tIRampSetDest(&out[0][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
-		
-				tIRampSetDest(&out[0][CVKTRIGGER-2+(3*keyboard->currentVoice)], 65535);
+				sendDataToOutput(CVKPITCH+3*keyboard->currentVoice, globalPitchGlide, lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
+				sendDataToOutput(CVKTRIGGER-2+(3*keyboard->currentVoice), 0, 65535);
 				
-				if (keyboard->numVoices < 2)
+				if (keyboard->numVoices < 2) //then it's mono with the extra trigger output
 				{
 					sendDataToOutput(3, 0, 65535);
 					keyboard->trigCount[3] = TRIGGER_TIMING;
 				}
+				
 				if (keyboard->gatesOrTriggers == TRIGGERS)
 				{				
 					keyboard->trigCount[CVKTRIGGER-2+(3*keyboard->currentVoice)] = TRIGGER_TIMING;
@@ -890,7 +900,7 @@ void dacSendMIDIKeyboard(void)
 			
 			if (keyboard->stack.size <= 0)
 			{
-				tIRampSetDest(&out[0][CVKTRIGGER-2+(3*keyboard->currentVoice)], 0);
+				sendDataToOutput(CVKTRIGGER-2+(3*keyboard->currentVoice), 0, 0);
 			}
 		}
 		else
@@ -903,16 +913,13 @@ void dacSendMIDIKeyboard(void)
 				if (note >= 0)
 				{
 					int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
-					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], globalPitchGlide);
-					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKPITCH], tempDACPitch);
-					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
-					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 4095 );
-					tIRampSetTime(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 3);
-					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL],velocity << 5);
+					sendDataToOutput((i*3)+CVKPITCH, globalPitchGlide, tempDACPitch);
+					sendDataToOutput((i*3)+CVKGATE, 0, 65535);
+					sendDataToOutput((i*3)+CVKVEL, 3, velocity << 9);
 					//if we are in mono mode, then we have room for a trigger output, too
 					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 					{
-						tIRampSetDest(&out[0][CVKTRIGGER], 65535);
+						sendDataToOutput(3, 0, 65535);
 						keyboard->trigCount[3] = TRIGGER_TIMING;
 					}
 					//this is to avoid retriggers on the same note when other notes are released in monophonic mode
@@ -920,8 +927,7 @@ void dacSendMIDIKeyboard(void)
 				}
 				else
 				{
-					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKGATE], 0);
-					tIRampSetDest(&out[(int)(i/2)][((i*3) % 6)+CVKVEL], 0);
+					sendDataToOutput((i*3)+CVKGATE, 0, 0);
 					//let the monophonic trigger handling know there has been a note-off event
 					prevSentPitch = -1;
 				}
@@ -952,7 +958,6 @@ void tMIDIKeyboard_encode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 		}
 }
 
-// 128*2 + 7 = 263
 void tMIDIKeyboard_decode(tMIDIKeyboard* const keyboard, uint8_t* buffer)
 {
 	keyboard->numVoices = buffer[0];
