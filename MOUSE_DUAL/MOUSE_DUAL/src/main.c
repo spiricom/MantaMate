@@ -1244,21 +1244,23 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (upSwitch())
 				{
-					if (++currentDirectEditOutput > (takeover ? 12 : 6)) currentDirectEditOutput = (takeover ? 12 : 6);
+					if (++currentDirectEditOutput > (takeover ? 11 : 5)) currentDirectEditOutput = (takeover ? 11 : 5);
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (--currentDirectEditOutput < 0) currentDirectEditOutput = 0;
+					if (currentDirectEditOutput > 0) currentDirectEditOutput--;
 				}
 			}
 			
 			tDirect_setOutput(editDirect, currentDirectEditHex, currentDirectEditOutput);
 			
-			Write7Seg(currentDirectEditOutput);
-			normal_7seg_number = currentDirectEditOutput;
+			setDirectLEDs();
+			
+			Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
+			normal_7seg_number = (currentDirectEditOutput+1);
 		}	
 		else if (displayState == HexmapPitchSelect)
 		{

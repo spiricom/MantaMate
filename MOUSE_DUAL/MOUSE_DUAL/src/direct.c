@@ -29,6 +29,7 @@ void tDirect_init(tDirect* const direct, int numOuts)
 void tDirect_setOutput(tDirect* const direct, int hex, int output)
 {
 	// Assign hex to output.
+	if (output < 0) direct->hexes[hex].type = DirectTypeNil;
 	direct->hexes[hex].output = output;
 }
 

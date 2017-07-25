@@ -2918,7 +2918,11 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
-					manta_set_LED_hex(j+MAX_STEPS, Off);
+					manta_set_LED_hex(j+MAX_STEPS, (glideNoteOn >= 0) ? Red : Off);
+				}
+				else if ((keyboard_pattern[j] == KeyboardPanelOctaveUp) || (keyboard_pattern[j] == KeyboardPanelOctaveDown))
+				{
+					
 				}
 				else
 				{

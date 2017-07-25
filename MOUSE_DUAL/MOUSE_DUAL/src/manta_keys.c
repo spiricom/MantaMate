@@ -93,7 +93,7 @@ void touchDirectEdit(int hex)
 	
 	currentDirectEditOutput =  tDirect_getOutput(editDirect, currentDirectEditHex);
 	
-	Write7Seg(currentDirectEditOutput);
+	Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
 	
 	DirectType type = editDirect->hexes[currentDirectEditHex].type;
 	
