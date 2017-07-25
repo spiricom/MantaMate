@@ -323,6 +323,7 @@ int main(void){
 	tIRampSetDest(&pitchBendRamp, 0);
 	takeover = FALSE;
 	hexmapEditMode = FALSE;
+	directEditMode = FALSE;
 	
 	//start off on preset 0;
 	
@@ -606,22 +607,23 @@ static void tc2_irq(void)
 			
 					if (instrument->type == DirectInstrument) // DirectInstrument
 					{
-						for (int i = 0; i < instrument->direct.numOuts; i++)
+						for (int i = 0; i < 48; i++)
 						{
-							DirectType type = instrument->direct.outs[i].type;
+							DirectType type = instrument->direct.hexes[i].type;
+							int output = instrument->direct.hexes[i].output;
 							if (type == DirectTrigger)
 							{
-								if (instrument->direct.outs[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+								if (instrument->direct.hexes[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 								{
-									if (--(instrument->direct.outs[i].trigCount) == 0)
+									if (--(instrument->direct.hexes[i].trigCount) == 0)
 									{
-										sendDataToOutput(6*inst+i, 0, 0x0);
+										sendDataToOutput(6*inst+output, 0, 0x0);
 									}
 								}
 							}
 							else if (type == DirectCV)
 							{
-								sendDataToOutput(6*inst+i, globalCVGlide, butt_states[instrument->direct.outs[i].hex] << 8);
+								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
 							}
 						}
 					}
@@ -710,26 +712,26 @@ static void tc2_irq(void)
 			}
 			else if (takeoverType == DirectInstrument)
 			{
-				for (int i = 0; i < fullDirect.numOuts; i++)
+				for (int i = 0; i < 48; i++)
 				{
-					DirectType type = fullDirect.outs[i].type;
+					DirectType type = fullDirect.hexes[i].type;
+					int output = fullDirect.hexes[i].output;
 					if (type == DirectTrigger)
 					{
-						if (fullDirect.outs[i].trigCount > 0)
+						if (fullDirect.hexes[i].trigCount > 0)
 						{
-							if (--(fullDirect.outs[i].trigCount) == 0)
+							if (--(fullDirect.hexes[i].trigCount) == 0)
 							{
-								sendDataToOutput(i, 0, 0x0);
+								sendDataToOutput(output, 0, 0x0);
 							}
 						}
 					}
 					else if (type == DirectCV)
 					{
-						sendDataToOutput(i, globalCVGlide, butt_states[fullDirect.outs[i].hex] << 8);
+						sendDataToOutput(output, globalCVGlide, butt_states[i] << 8);
 					}
-				}	
+				}
 			}
-	
 		}
 	}
 }
@@ -1236,8 +1238,29 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	
 	else
 	{
+		if (displayState == DirectOutputSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentDirectEditOutput > (takeover ? 12 : 6)) currentDirectEditOutput = (takeover ? 12 : 6);
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (--currentDirectEditOutput < 0) currentDirectEditOutput = 0;
+				}
+			}
 			
-		if (displayState == HexmapPitchSelect)
+			tDirect_setOutput(editDirect, currentDirectEditHex, currentDirectEditOutput);
+			
+			Write7Seg(currentDirectEditOutput);
+			normal_7seg_number = currentDirectEditOutput;
+		}	
+		else if (displayState == HexmapPitchSelect)
 		{
 			if (whichSwitch)
 			{
@@ -2215,6 +2238,8 @@ void initMantaLEDState(void)
 	shiftOption1 = FALSE;
 	shiftOption2 = FALSE;
 	hexmapEditMode = FALSE;
+	directEditMode = FALSE;
+	
 	displayState = GlobalDisplayStateNil;
 }
 

@@ -24,41 +24,39 @@ typedef enum DirectType
 } DirectType;
 
 
-typedef struct _tDirectOutput
+typedef struct _tDirectHex
 {
-	int hex;
-	
 	DirectType type;
-	
-	MantaLEDColor color;
+	int output;
 	
 	int trigCount;
 	
-} tDirectOutput;
+} tDirectHex;
 
 typedef struct _tDirect
 {
 	// Encode this in preset
-	tDirectOutput outs[12];
+	tDirectHex hexes[48];
 	int numOuts;
-	// - - - - - - - - - - 
+	// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 	
 	int numActive;
-	
-	int map[48];
 	
 } tDirect;
 
 void tDirect_init(tDirect* const direct, int numVoices);
 
-DirectType tDirect_getOutputTypeForHex(tDirect* const direct, int hex);
 
-int tDirect_getOutputForHex(tDirect* const direct, int hex);
+void tDirect_setType(tDirect* const direct, int output, DirectType type);
+DirectType tDirect_getType(tDirect* const direct, int hex);
 
-void tDirect_assignHexToOutput(tDirect* const direct, int hex, int output);
+void tDirect_setOutput(tDirect* const direct, int hex, int output);
+int tDirect_getOutput(tDirect* const direct, int hex);
 
-void tDirect_setOutputType(tDirect* const direct, int output, DirectType type);
 
+void tDirect_setConfiguration(tDirect* const direct, int which);
+
+void tDirect_blank(tDirect* const direct);
 
 void initMantaAllCV(void);
 

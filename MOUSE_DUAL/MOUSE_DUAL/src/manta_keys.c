@@ -85,6 +85,41 @@ void initMantaKeys(int numVoices)
 }
 
 
+void touchDirectEdit(int hex)
+{
+	displayState = DirectOutputSelect;
+	
+	currentDirectEditHex = hex;
+	
+	currentDirectEditOutput =  tDirect_getOutput(editDirect, currentDirectEditHex);
+	
+	Write7Seg(currentDirectEditOutput);
+	
+	DirectType type = editDirect->hexes[currentDirectEditHex].type;
+	
+	if ((type == DirectTypeNil) || (currentDirectEditHex == lastDirectEditHex))
+	{
+		type =  (type == DirectTrigger) ? DirectGate :
+		(type == DirectGate) ? DirectCV :
+		(type == DirectCV) ? DirectTypeNil :
+		(type == DirectTypeNil) ? DirectTrigger :
+		DirectTypeNil;
+		
+		tDirect_setType(editDirect, currentDirectEditHex, type);
+	}
+	setDirectLEDs();
+}
+
+void releaseDirectEdit(int hex)
+{
+	if (hex == currentDirectEditHex)
+	{
+		lastDirectEditHex = currentDirectEditHex;
+		currentDirectEditHex = -1;
+		Write7Seg(preset_num);
+		displayState = UpDownSwitchBlock;
+	}
+}
 
 void touchHexmapEdit(int hex, uint8_t weight)
 {

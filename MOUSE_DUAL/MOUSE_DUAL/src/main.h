@@ -101,12 +101,22 @@ typedef struct _tMantaInstrument
 } tMantaInstrument;
 
 GlobalDisplayState displayState;
+
 tKeyboard* hexmapEditKeyboard;
 MantaInstrument hexmapEditInstrument;
 int currentHexmapEditPitch;
 int currentHexmapEditHex;
 int lastHexmapEditHex;
 BOOL hexmapEditMode;
+
+tDirect* editDirect;
+MantaInstrument editDirectInstrument;
+BOOL directEditMode;
+int lastDirectEditHex;
+int currentDirectEditHex;
+int currentDirectEditOutput;
+
+
 
 // Encode this in preset
 MantaInstrument currentInstrument;

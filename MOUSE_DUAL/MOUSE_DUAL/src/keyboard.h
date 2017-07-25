@@ -29,7 +29,7 @@ signed int freemap[48];
 
 signed int isomap[48];
 
-#define NUM_BYTES_PER_HEXMAP 288 // was 1152 = 144 * 8 which was always wrong...
+#define NUM_BYTES_PER_HEXMAP 240 // was 1152 = 144 * 8 which was always wrong... now 
 
 uint8_t hexmapBuffer[NUM_BYTES_PER_HEXMAP];
 	
