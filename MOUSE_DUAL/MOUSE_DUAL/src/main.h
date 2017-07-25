@@ -239,6 +239,9 @@ void setSequencerLEDsFor	(MantaInstrument);
 void setTriggerPanelLEDsFor	(MantaInstrument, TriggerPanel panel);
 void resetSliderMode		(void);
 
+void mantaSliderTouchAction(int whichSlider);
+void mantaSliderReleaseAction(int whichSlider);
+
 tIRamp out[2][6];
 
 tIRamp pitchBendRamp;

@@ -433,15 +433,6 @@ static void uhi_hid_manta_report_reception(
 	uhi_hid_manta_start_trans_report(add);
 }
 
-void mantaSliderTouchAction(int whichSlider)
-{
-	
-}
-
-void mantaSliderReleaseAction(int whichSlider)
-{
-	
-}
 
 //happens every USB frame
 int blinkCount = 0;
@@ -453,6 +444,11 @@ void uhi_hid_manta_sof(bool b_micro)
 	{
 		blinkCount = 0;
 		blink();
+	}
+	
+	if (firstEdition)
+	{
+		dimLEDsForFirstEdition();
 	}
 	if (!freeze_LED_update)
 	{
@@ -694,13 +690,20 @@ void manta_send_LED(void)
 			uhi_manta_report[1][i] = uhi_manta_report[0][i];
 		}
 	}
-	
-	
-	//now should have just flipped a single bit
+
 	uhi_manta_send_report();
 	
 	cpu_irq_restore(flags);
 	return;
+}
+
+
+void dimLEDsForFirstEdition(void)
+{
+	for (int i = 0; i< 6; i++)
+	{
+		
+	}
 }
 
 
