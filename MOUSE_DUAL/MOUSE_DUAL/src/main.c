@@ -2529,3 +2529,14 @@ void noDevicePreset_decode(uint8_t* buffer)
 	}
 
 }
+
+
+void mantaSliderTouchAction(int whichSlider)
+{
+	//MIKEY LIKES IT
+}
+
+void mantaSliderReleaseAction(int whichSlider)
+{
+	//HEY MIKEY, HE LIKES IT
+}

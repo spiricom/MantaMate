@@ -66,6 +66,7 @@ extern "C" {
  *
  * @{
  */
+#define UHI_MANTA_1ST_ED_EP_OUT_SIZE 10
 #define UHI_MANTA_EP_OUT_SIZE 16
 #define HEX_BYTES 6
 #define SLIDER_BYTES 2
@@ -110,6 +111,7 @@ extern void manta_set_LED_slider_bitmask(uint8_t whichSlider, uint8_t value);
 extern void manta_set_LED_button(uint8_t button, uint8_t color);
 extern void manta_clear_all_LEDs(void);
 extern void manta_send_LED(void);
+void dimLEDsForFirstEdition(void);
 
 extern BOOL firstEdition;
 extern uint8_t butt_states[48];
