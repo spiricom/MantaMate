@@ -300,6 +300,8 @@ int main(void){
 	currentTuningHex = -1;
 	currentHexmapEditHex = -1;
 	currentHexmapHex = -1;
+	currentDirectSelect = 0;
+	currentHexmapSelect = 0;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -389,6 +391,13 @@ int main(void){
 				continueStoringHexmapToExternalMemory();
 			}
 		}
+		else if (directSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringDirectToExternalMemory();
+			}
+		}
 		else if (startupStateSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -436,6 +445,13 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingHexmapFromExternalMemory();
+			}
+		}
+		else if (directLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingDirectFromExternalMemory();
 			}
 		}
 		else if (startupStateLoadPending)
@@ -1240,7 +1256,47 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	
 	else
 	{
-		if (displayState == DirectOutputSelect)
+		if (displayState == HexmapSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentHexmapSelect > 99) currentHexmapSelect = 0;
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (--currentHexmapSelect < 0) currentHexmapSelect = 99;
+				}
+			}
+			
+			Write7Seg(currentHexmapSelect);
+			normal_7seg_number = currentHexmapSelect;
+		}
+		else if (displayState == DirectSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentDirectSelect > 99) currentDirectSelect = 0;
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (--currentDirectSelect < 0) currentDirectSelect = 99;
+				}
+			}
+			
+			Write7Seg(currentDirectSelect);
+			normal_7seg_number = currentDirectSelect;
+		}
+		else if (displayState == DirectOutputSelect)
 		{
 			if (whichSwitch)
 			{

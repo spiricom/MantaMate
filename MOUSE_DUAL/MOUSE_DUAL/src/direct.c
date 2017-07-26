@@ -77,35 +77,6 @@ void tDirect_setConfiguration(tDirect* const direct, DirectConfiguration which)
 			direct->hexes[34+i].output = i;
 		}
 		
-		for (int i = 0; i < 3; i++)
-		{
-			direct->hexes[18+i].type = DirectCV;
-			direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
-		}
-		
-		if (direct->numOuts == 12)
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				direct->hexes[26+i].type = DirectTrigger;
-				direct->hexes[26+i].output = i+3;
-			}
-			
-			for (int i = 0; i < 3; i++)
-			{
-				direct->hexes[10+i].type = DirectCV;
-				direct->hexes[10+i].output = i+9;
-			}
-		}
-	}
-	else if (which == DirectMixedTwo)
-	{
-		for (int i = 0; i < 3; i++)
-		{
-			direct->hexes[34+i].type = DirectGate;
-			direct->hexes[34+i].output = i;
-		}
-		
 		if (direct->numOuts == 6)
 		{
 			direct->hexes[18].type = DirectCV;
@@ -140,7 +111,35 @@ void tDirect_setConfiguration(tDirect* const direct, DirectConfiguration which)
 			direct->sliders[SliderTwo].type = DirectCV;
 			direct->sliders[SliderTwo].output = 11;
 		}
+	}
+	else if (which == DirectMixedTwo)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			direct->hexes[0+16*i].type = DirectGate;
+			direct->hexes[0+16*i].output = i;
+		}
 		
+		for (int i = 0; i < 3; i++)
+		{
+			direct->hexes[2+16*i].type = DirectCV;
+			direct->hexes[2+16*i].output = 3+i;
+		}
+		
+		if (direct->numOuts == 12)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[4+16*i].type = DirectTrigger;
+				direct->hexes[4+16*i].output = i+3;
+			}
+			
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[6+16*i].type = DirectCV;
+				direct->hexes[6+16*i].output = i+9;
+			}
+		}
 	}
 	else 
 	{
@@ -155,25 +154,39 @@ void tDirect_setConfiguration(tDirect* const direct, DirectConfiguration which)
 			direct->hexes[34+i].output = i;
 		}
 		
-		for (int i = 0; i < 3; i++)
+		if (direct->numOuts == 6)
 		{
-			direct->hexes[18+i].type = type;
-			direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
+			direct->hexes[18].type = type;
+			direct->hexes[18].output = 3;
+			
+			direct->sliders[SliderOne].type = DirectCV;
+			direct->sliders[SliderOne].output = 4;
+			
+			direct->sliders[SliderTwo].type = DirectCV;
+			direct->sliders[SliderTwo].output = 5;
 		}
-		
-		if (direct->numOuts == 12)
+		else if (direct->numOuts == 12)
 		{
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[18+i].type = type;
+				direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
+			}
+			
 			for (int i = 0; i < 3; i++)
 			{
 				direct->hexes[26+i].type = type;
 				direct->hexes[26+i].output = i+3;
 			}
 			
-			for (int i = 0; i < 3; i++)
-			{
-				direct->hexes[10+i].type = type;
-				direct->hexes[10+i].output = i+9;
-			}
+			direct->hexes[10].type = type;
+			direct->hexes[10].output = 9;
+			
+			direct->sliders[SliderOne].type = DirectCV;
+			direct->sliders[SliderOne].output = 10;
+			
+			direct->sliders[SliderTwo].type = DirectCV;
+			direct->sliders[SliderTwo].output = 11;
 		}
 	}
 }
@@ -233,10 +246,13 @@ void initDirectMixedOne(void)
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
 	
+	manta[InstrumentOne].type = DirectInstrument;
+	
 	tDirect_init(&fullDirect, 12);
 	
 	tDirect_setConfiguration(&fullDirect, DirectMixedOne);
-
+	
+	for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
 }
 
 void initDirectMixedTwo(void)
@@ -244,10 +260,13 @@ void initDirectMixedTwo(void)
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
 	
+	manta[InstrumentOne].type = DirectInstrument;
+	
 	tDirect_init(&fullDirect, 12);
 	
 	tDirect_setConfiguration(&fullDirect, DirectMixedTwo);
-
+	
+	for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
 }
 
 
@@ -256,10 +275,13 @@ void initDirectAllTriggers(void)
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
 	
+	manta[InstrumentOne].type = DirectInstrument;
+	
 	tDirect_init(&fullDirect, 12);
 	
 	tDirect_setConfiguration(&fullDirect, DirectAllTriggers);
 	
+	for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
 }
 
 void initDirectAllGates(void)
@@ -267,10 +289,13 @@ void initDirectAllGates(void)
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
 	
+	manta[InstrumentOne].type = DirectInstrument;
+	
 	tDirect_init(&fullDirect, 12);
 	
 	tDirect_setConfiguration(&fullDirect, DirectAllGates);
 	
+	for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
 }
 
 void initDirectAllCVs(void)
@@ -278,33 +303,58 @@ void initDirectAllCVs(void)
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
 	
+	manta[InstrumentOne].type = DirectInstrument;
+	
 	tDirect_init(&fullDirect, 12);
 	
 	tDirect_setConfiguration(&fullDirect, DirectAllCVs);
 	
+	for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
 }
 
 void tDirect_encode(tDirect* const direct, uint8_t* buffer)
 {
-
+	int idx = 0;
 	for (int i = 0; i < 48; i++)
 	{
-		buffer[i*2] = direct->hexes[i].output;
-		buffer[(i*2) + 1] = direct->hexes[i].type;
+		buffer[idx++] = direct->hexes[i].output;
+		buffer[idx++] = direct->hexes[i].type;
 	}
 	
-	buffer[48] = direct->numOuts;
+	for (int i = 0; i < 2; i++)
+	{
+		buffer[idx++] = direct->sliders[i].output;
+		buffer[idx++] = direct->sliders[i].type;
+		buffer[idx++] = direct->sliders[i].value >> 8;
+		buffer[idx++] = direct->sliders[i].value & 0xff;
+	}
+	
+	buffer[idx++] = direct->numActive;
+	buffer[idx++] = direct->numOuts;
 }
 
 // 24 bytes
 void tDirect_decode(tDirect* const direct, uint8_t* buffer)
 {
-	DirectType type = DirectTypeNil;
-	for (int i = 0; i < 12; i++)
+	uint16_t highByte,lowByte;
+	
+	int idx = 0;
+	for (int i = 0; i < 48; i++)
 	{
-		direct->hexes[i].output = buffer[i*2];	
-		type = buffer[(i*2) + 1];
-		direct->hexes[i].type = type;	
+		direct->hexes[i].output = buffer[idx++];
+		direct->hexes[i].type = buffer[idx++];
 	}
-	direct->numOuts = buffer[48];
+	
+	for (int i = 0; i < 2; i++)
+	{
+		direct->sliders[i].output = buffer[idx++];
+		direct->sliders[i].type = buffer[idx++];
+		
+		highByte = (buffer[idx++] << 8);
+		lowByte = buffer[idx++];
+		direct->sliders[i].value = highByte + lowByte;
+	}
+	
+	direct->numActive = buffer[idx++];
+	direct->numOuts = buffer[idx++];
 }

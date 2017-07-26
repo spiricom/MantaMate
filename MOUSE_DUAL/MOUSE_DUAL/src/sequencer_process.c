@@ -586,7 +586,7 @@ void touchDirectHex(int hex)
 	}
 	
 	
-	manta_set_LED_hex(hex, Off);
+	if (!directEditMode) manta_set_LED_hex(hex, Off);
 	
 }
 
@@ -859,8 +859,8 @@ void setHexmapConfigureLEDs	(void)
 			if (manta[inst].type == KeyboardInstrument)
 			{
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst + i, Off);
-				manta_set_LED_hex(16*inst + 8, Amber); // SAVE
-				manta_set_LED_hex(16*inst + 9, Amber); // LOAD
+				manta_set_LED_hex(16*inst + 8, Red); // SAVE
+				manta_set_LED_hex(16*inst + 9, Red); // LOAD
 				manta_set_LED_hex(16*inst + 11, Red); // EDIT
 				
 				manta_set_LED_hex(16*inst + 0, Amber); // Default
@@ -943,12 +943,20 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			if (whichHex == 8)
 			{
 				// Save
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentDirectSelect);
+				
+				displayState = DirectSelect;
 			}
 			else if (whichHex == 9)
 			{
 				// Load
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentDirectSelect);
+				
+				displayState = DirectSelect;
 			}
 			else if (whichHex == 11)
 			{
@@ -962,6 +970,15 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			else if (whichHex <= 4)
 			{
 				tDirect_setConfiguration(editDirect, whichHex);
+				
+				if (takeover)
+				{
+					for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
+				}
+				else
+				{
+					for (int i = 0; i < 6; i++) sendDataToOutput(i+whichInst*6, globalCVGlide, 0);
+				}
 				
 				manta_set_LED_hex(hexagon, Red);
 			}
@@ -982,12 +999,20 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			if (whichHex == 8)
 			{
 				// Save
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentHexmapSelect);
+				
+				displayState = HexmapSelect;
 			}
 			else if (whichHex == 9)
 			{
 				// Load
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentHexmapSelect);
+				
+				displayState = HexmapSelect;
 			}
 			else if (whichHex == 11)
 			{
@@ -1147,6 +1172,56 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 {
     if (shiftOption1)
     {
+		MantaInstrument whichInst = takeover ? InstrumentNil : ((hexagon < 16) ? InstrumentOne : InstrumentTwo);
+		MantaInstrumentType type = takeover ? takeoverType : manta[whichInst].type;
+		int whichHex = (takeover || (hexagon < 16)) ? hexagon : (hexagon - 16);
+		
+		if (type == KeyboardInstrument)
+		{
+			if (whichHex == 8)
+			{
+				// Save
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				tKeyboard_hexmapEncode(hexmapEditKeyboard, hexmapBuffer);
+				
+				initiateStoringHexmapToExternalMemory(currentHexmapSelect);
+			}
+			else if (whichHex == 9)
+			{
+				// Load
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				initiateLoadingHexmapFromExternalMemory(currentHexmapSelect);
+			}
+		}
+		else if (type == DirectInstrument)
+		{
+			if (whichHex == 8)
+			{
+				// Save
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				tDirect_encode(editDirect, directBuffer);
+				
+				initiateStoringDirectToExternalMemory(currentDirectSelect);
+			}
+			else if (whichHex == 9)
+			{
+				// Load
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				initiateLoadingDirectFromExternalMemory(currentDirectSelect);
+			}
+		}
 		
         setCompositionLEDs();
 		setHexmapConfigureLEDs();
@@ -2211,8 +2286,8 @@ void setDirectOptionLEDs			(void)
 			{
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
 
-				//manta_set_LED_hex(16*inst + 8, Amber); // SAVE maybe do this for direct too?
-				//manta_set_LED_hex(16*inst + 9, Amber); // LOAD maybe do this for direct too?
+				manta_set_LED_hex(16*inst + 8, Red); // SAVE maybe do this for direct too?
+				manta_set_LED_hex(16*inst + 9, Red); // LOAD maybe do this for direct too?
 				manta_set_LED_hex(16*inst + 11, Red); // EDIT
 				
 				manta_set_LED_hex(16*inst + 0, Amber); // Default

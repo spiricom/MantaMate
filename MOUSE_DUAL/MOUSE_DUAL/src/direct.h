@@ -52,17 +52,22 @@ typedef struct _tDirectSlider
 	
 } tDirectSlider;
 
+// 106
 typedef struct _tDirect
 {
 	// Encode this in preset
-	tDirectHex hexes[48];
-	tDirectSlider sliders[2];
-	int numOuts;
+	tDirectHex hexes[48]; // 2*48
+	tDirectSlider sliders[2]; //4*2
+	int numOuts; // 1
+	int numActive; // 1
 	// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 	
-	int numActive;
 	
 } tDirect;
+
+#define NUM_BYTES_PER_DIRECT 106
+
+uint8_t directBuffer[NUM_BYTES_PER_DIRECT];
 
 void tDirect_init(tDirect* const direct, int numVoices);
 

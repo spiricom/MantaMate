@@ -39,8 +39,13 @@ unsigned char startupStateSavePending = 0;
 unsigned char startupStateLoadPending = 0;
 unsigned char hexmapSavePending = 0;
 unsigned char hexmapLoadPending = 0;
+unsigned char directSavePending = 0;
+unsigned char directLoadPending = 0;
 uint16_t numHexmapBytesRemaining_toSend = 0;
 uint16_t numHexmapBytesRemaining_toGet = 0;
+
+uint16_t numDirectBytesRemaining_toSend = 0;
+uint16_t numDirectBytesRemaining_toGet = 0;
 
 uint8_t tempPreset[8] = {0, 125, 126, 127, 128, 129, 130, 131};
 
@@ -781,7 +786,7 @@ void continueLoadingHexmapFromExternalMemory(void)
 			numHexmapBytesToGetNow = numHexmapBytesRemaining_toGet;
 		}
 		
-		memorySPIRead(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], numHexmapBytesToGetNow);
+		memorySPIRead(currentSector, currentPage, &hexmapBuffer[currentPage*256], numHexmapBytesToGetNow);
 		
 		//update variables for next round
 		currentPage++;
@@ -793,9 +798,98 @@ void continueLoadingHexmapFromExternalMemory(void)
 		//mark the load procedure as finished
 		hexmapLoadPending = 0;
 		
-		//copy the data into current keyboard hexmapppppp
+		tKeyboard_hexmapDecode(hexmapEditKeyboard, hexmapBuffer);
+	}
+}
+
+// Direct saving and loading
+void initiateStoringDirectToExternalMemory(uint8_t direct_num_to_save)
+{
+	currentSector = direct_num_to_save + DIRECT_STARTING_SECTOR;  // user direct 1-99 are sectors 1701-1799
+	currentPage = 0; //start on the first page
+	
+	//start by erasing the memory in the location we want to store
+	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the hemxap data
+	pages_left_to_transfer = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
+	numDirectBytesRemaining_toSend =  NUM_BYTES_PER_DIRECT;
+	memorySPIEraseSector(currentSector); //we only need to erase one sector per direct
+	directSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+}
+
+void continueStoringDirectToExternalMemory(void)
+{
+	//if there are bytes to store, write those bytes!
+	if (pages_left_to_transfer > 0)
+	{
+		uint16_t numDirectBytesToSend;
 		
-		////!!!!!!!!!!!!!! whooooo
+		if (numDirectBytesRemaining_toSend > 256)
+		{
+			numDirectBytesToSend = 256;
+		}
+		else
+		{
+			numDirectBytesToSend = numDirectBytesRemaining_toSend;
+		}
+		
+		
+		memorySPIWrite(currentSector, currentPage, &directBuffer[currentPage*256], numDirectBytesToSend);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		numDirectBytesRemaining_toSend -= numDirectBytesToSend;
+	}
+	else //otherwise save is done!
+	{
+		//mark the save procedure as finished
+		directSavePending = 0;
+		LED_Off(PRESET_SAVE_LED);
+	}
+}
+
+void initiateLoadingDirectFromExternalMemory(uint8_t direct_to_load)
+{
+	currentSector = direct_to_load + DIRECT_STARTING_SECTOR;  // set sector to the location of the direct we want to load
+	currentPage = 0; //start on the first page
+	numDirectBytesRemaining_toGet = NUM_BYTES_PER_DIRECT;
+	pages_left_to_transfer = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
+	continueLoadingDirectFromExternalMemory();
+	directLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+}
+
+
+void continueLoadingDirectFromExternalMemory(void)
+{
+	if (pages_left_to_transfer > 0)
+	{
+		
+		uint16_t numDirectBytesToGetNow = 0;
+		if (numDirectBytesRemaining_toGet > 256)
+		{
+			numDirectBytesToGetNow = 256;
+		}
+		else
+		{
+			numDirectBytesToGetNow = numDirectBytesRemaining_toGet;
+		}
+		
+		memorySPIRead(currentSector, currentPage, &directBuffer[currentPage*256], numDirectBytesToGetNow);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		numDirectBytesRemaining_toGet -= numDirectBytesToGetNow;
+	}
+	else //otherwise load is done!
+	{
+		//mark the load procedure as finished
+		directLoadPending = 0;
+		
+		tDirect_decode(editDirect, directBuffer);
+		
+		takeover = (editDirect->numOuts == 12) ? TRUE : FALSE;
+		if (takeover) takeoverType = DirectInstrument;
 		
 	}
 }
