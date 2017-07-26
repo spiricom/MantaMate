@@ -134,6 +134,8 @@ typedef enum GlobalDisplayState
 	TuningHexSelect,
 	HexmapPitchSelect,
 	DirectOutputSelect,
+	HexmapSelect,
+	DirectSelect,
 	UpDownSwitchBlock,
 	GlobalDisplayStateNil
 } GlobalDisplayState;

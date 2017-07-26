@@ -84,7 +84,7 @@ typedef struct {
 	uint8_t report_size;
 	uint8_t *report;
 	uint8_t report_btn_prev;
-}uhi_hid_manta_dev_t;
+} uhi_hid_manta_dev_t;
 
 static uhi_hid_manta_dev_t uhi_hid_manta_dev = {
 	.dev = NULL,

@@ -509,13 +509,16 @@ MantaButton lastFunctionButton;
 
 void releaseDirectHex(int hex)
 {
+	DirectType type;
 	if (!takeover)
 	{
 		tDirect* direct = &manta[currentInstrument].direct;
 		
+		type = direct->hexes[hex].type;
+		
 		int output = tDirect_getOutput(direct, hex);
 		
-		if (direct->hexes[hex].type == DirectGate)
+		if (type == DirectGate)
 		{
 			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
 		}
@@ -524,13 +527,20 @@ void releaseDirectHex(int hex)
 	{
 		tDirect* direct = &fullDirect;
 			
+		type = direct->hexes[hex].type;
+		
 		int output = tDirect_getOutput(direct, hex);
 			
-		if (direct->hexes[hex].type == DirectGate)
+		if (type == DirectGate)
 		{
-			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+			sendDataToOutput(output, 0, 0x0);
 		}
 	}
+	
+	manta_set_LED_hex(hex,	(type == DirectCV) ? Amber :
+							(type == DirectTrigger) ? BothOn :
+							(type == DirectGate) ? Red : Off);
+	
 	
 }
 
@@ -574,6 +584,9 @@ void touchDirectHex(int hex)
 			sendDataToOutput(output, 0, 0xffff);
 		}
 	}
+	
+	
+	if (!directEditMode) manta_set_LED_hex(hex, Off);
 	
 }
 
@@ -708,17 +721,30 @@ void processHexTouch(void)
 			buttonTouched = TRUE;
 			
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
-			else if (!(hexmapEditMode || directEditMode))
+			else if (directEditMode)
 			{
-				if (i == ButtonTopRight)			
+				if (i == ButtonTopLeft)
+				{
+					topLon = TRUE;
+					touchDirectEdit(48); // SliderOne
+				}
+				else if (i == ButtonTopRight)
 				{
 					topRon = TRUE;
-					touchTopRightButton();
+					touchDirectEdit(49); // SliderTwo
 				}
-				else if (i == ButtonTopLeft)		
+			}
+			else if (!(hexmapEditMode || directEditMode))
+			{
+				if (i == ButtonTopLeft)
 				{
 					topLon = TRUE;
 					touchTopLeftButton();
+				}
+				else if (i == ButtonTopRight)			
+				{
+					topRon = TRUE;
+					touchTopRightButton();
 				}
 				else if (i == ButtonBottomRight)	touchBottomRightButton();
 			}	
@@ -729,7 +755,18 @@ void processHexTouch(void)
 		{		
 			buttonTouched = TRUE;
 			
-			if (!(hexmapEditMode || directEditMode))
+			if (directEditMode)
+			{
+				if (i == ButtonTopLeft)
+				{
+					releaseDirectEdit(48); // SliderOne
+				}
+				else if (i == ButtonTopRight)
+				{
+					releaseDirectEdit(49); // SliderTwo
+				}
+			}
+			else if (!(hexmapEditMode || directEditMode))
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
 				else if (i == ButtonTopRight)		releaseTopRightButton();
@@ -759,8 +796,6 @@ void processHexTouch(void)
 			}
 			else if (manta[currentInstrument].type == DirectInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, Off);
-				manta_set_LED_button(ButtonTopRight, Off);
 				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
 				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 			}
@@ -824,8 +859,8 @@ void setHexmapConfigureLEDs	(void)
 			if (manta[inst].type == KeyboardInstrument)
 			{
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst + i, Off);
-				manta_set_LED_hex(16*inst + 8, Amber); // SAVE
-				manta_set_LED_hex(16*inst + 9, Amber); // LOAD
+				manta_set_LED_hex(16*inst + 8, Red); // SAVE
+				manta_set_LED_hex(16*inst + 9, Red); // LOAD
 				manta_set_LED_hex(16*inst + 11, Red); // EDIT
 				
 				manta_set_LED_hex(16*inst + 0, Amber); // Default
@@ -908,12 +943,20 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			if (whichHex == 8)
 			{
 				// Save
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentDirectSelect);
+				
+				displayState = DirectSelect;
 			}
 			else if (whichHex == 9)
 			{
 				// Load
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentDirectSelect);
+				
+				displayState = DirectSelect;
 			}
 			else if (whichHex == 11)
 			{
@@ -924,9 +967,18 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				
 				setDirectLEDs();
 			}
-			else if (whichHex <= 5)
+			else if (whichHex <= 4)
 			{
 				tDirect_setConfiguration(editDirect, whichHex);
+				
+				if (takeover)
+				{
+					for (int i = 0; i < 12; i++) sendDataToOutput(i, globalCVGlide, 0);
+				}
+				else
+				{
+					for (int i = 0; i < 6; i++) sendDataToOutput(i+whichInst*6, globalCVGlide, 0);
+				}
 				
 				manta_set_LED_hex(hexagon, Red);
 			}
@@ -947,12 +999,20 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			if (whichHex == 8)
 			{
 				// Save
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentHexmapSelect);
+				
+				displayState = HexmapSelect;
 			}
 			else if (whichHex == 9)
 			{
 				// Load
-				manta_set_LED_hex(hexagon, Red);
+				manta_set_LED_hex(hexagon, Amber);
+				
+				Write7Seg(currentHexmapSelect);
+				
+				displayState = HexmapSelect;
 			}
 			else if (whichHex == 11)
 			{
@@ -1112,6 +1172,56 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 {
     if (shiftOption1)
     {
+		MantaInstrument whichInst = takeover ? InstrumentNil : ((hexagon < 16) ? InstrumentOne : InstrumentTwo);
+		MantaInstrumentType type = takeover ? takeoverType : manta[whichInst].type;
+		int whichHex = (takeover || (hexagon < 16)) ? hexagon : (hexagon - 16);
+		
+		if (type == KeyboardInstrument)
+		{
+			if (whichHex == 8)
+			{
+				// Save
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				tKeyboard_hexmapEncode(hexmapEditKeyboard, hexmapBuffer);
+				
+				initiateStoringHexmapToExternalMemory(currentHexmapSelect);
+			}
+			else if (whichHex == 9)
+			{
+				// Load
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				initiateLoadingHexmapFromExternalMemory(currentHexmapSelect);
+			}
+		}
+		else if (type == DirectInstrument)
+		{
+			if (whichHex == 8)
+			{
+				// Save
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				tDirect_encode(editDirect, directBuffer);
+				
+				initiateStoringDirectToExternalMemory(currentDirectSelect);
+			}
+			else if (whichHex == 9)
+			{
+				// Load
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				initiateLoadingDirectFromExternalMemory(currentDirectSelect);
+			}
+		}
 		
         setCompositionLEDs();
 		setHexmapConfigureLEDs();
@@ -2112,6 +2222,23 @@ void setDirectLEDs			(void)
 				
 				manta_set_LED_hex(i, color);
 			}
+			
+			for (int i = 0; i < 2; i++)
+			{
+				type = direct->sliders[i].type;
+				
+				if (type == DirectCV)
+				{
+					manta_set_LED_slider(i, ((direct->sliders[i].value >> 9) + 1));
+					manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, Red);
+				}
+				else
+				{
+					manta_set_LED_slider(i, 0);
+					manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, Off);
+				}
+			}
+
 		}
 	}
 	else if (takeoverType == DirectInstrument)
@@ -2132,6 +2259,16 @@ void setDirectLEDs			(void)
 			
 			manta_set_LED_hex(i, color);
 		}
+		
+		for (int i = 0; i < 2; i++)
+		{
+			type = fullDirect.sliders[i].type;
+			
+			if (type == DirectCV)
+			{
+				manta_set_LED_slider(i, ((fullDirect.sliders[i].value >> 9) + 1));
+			}
+		}
 	}
 	roll_LEDs = 1;
 	freeze_LED_update = 0;
@@ -2149,8 +2286,8 @@ void setDirectOptionLEDs			(void)
 			{
 				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
 
-				//manta_set_LED_hex(16*inst + 8, Amber); // SAVE maybe do this for direct too?
-				//manta_set_LED_hex(16*inst + 9, Amber); // LOAD maybe do this for direct too?
+				manta_set_LED_hex(16*inst + 8, Red); // SAVE maybe do this for direct too?
+				manta_set_LED_hex(16*inst + 9, Red); // LOAD maybe do this for direct too?
 				manta_set_LED_hex(16*inst + 11, Red); // EDIT
 				
 				manta_set_LED_hex(16*inst + 0, Amber); // Default
@@ -2158,7 +2295,6 @@ void setDirectOptionLEDs			(void)
 				manta_set_LED_hex(16*inst + 2, Amber); // All Gates
 				manta_set_LED_hex(16*inst + 3, Amber); // All CVs
 				manta_set_LED_hex(16*inst + 4, Amber); // Trigger/CV
-				manta_set_LED_hex(16*inst + 5, Amber); // Gate/CV
 				manta_set_LED_hex(16*inst + 7, Red); // BLANK
 			}
 			
@@ -2168,8 +2304,8 @@ void setDirectOptionLEDs			(void)
 	{
 		for (int i = 0; i < 32; i++) manta_set_LED_hex(i,Off);
 		
-		//manta_set_LED_hex(8, Amber); // SAVE maybe do this for direct too?
-		//manta_set_LED_hex(9, Amber); // LOAD maybe do this for direct too?
+		manta_set_LED_hex(8, Red); // SAVE maybe do this for direct too?
+		manta_set_LED_hex(9, Red); // LOAD maybe do this for direct too?
 		manta_set_LED_hex(11, Red); // EDIT
 		
 		manta_set_LED_hex(0, Amber); // Default
@@ -2177,7 +2313,6 @@ void setDirectOptionLEDs			(void)
 		manta_set_LED_hex(2, Amber); // All Gates
 		manta_set_LED_hex(3, Amber); // All CVs
 		manta_set_LED_hex(4, Amber); // Trigger/CV
-		manta_set_LED_hex(5, Amber); // Gate/CV
 		manta_set_LED_hex(7, Red); // BLANK
 	}
 	
@@ -2918,7 +3053,7 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
-					manta_set_LED_hex(j+MAX_STEPS, Off);
+					manta_set_LED_hex(j+MAX_STEPS, (glideNoteOn >= 0) ? Red : Off);
 				}
 				else
 				{
@@ -2967,7 +3102,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 			{
 				manta_set_LED_hex(i + MAX_STEPS, Off);
 			}
-			
 		}
 
 		int hexUIOffset = MAX_STEPS;

@@ -93,20 +93,33 @@ void touchDirectEdit(int hex)
 	
 	currentDirectEditOutput =  tDirect_getOutput(editDirect, currentDirectEditHex);
 	
-	Write7Seg(currentDirectEditOutput);
+	Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
 	
-	DirectType type = editDirect->hexes[currentDirectEditHex].type;
+	DirectType type = tDirect_getType(editDirect, currentDirectEditHex);
 	
-	if ((type == DirectTypeNil) || (currentDirectEditHex == lastDirectEditHex))
+	if (hex < 48)
 	{
-		type =  (type == DirectTrigger) ? DirectGate :
-		(type == DirectGate) ? DirectCV :
-		(type == DirectCV) ? DirectTypeNil :
-		(type == DirectTypeNil) ? DirectTrigger :
-		DirectTypeNil;
+		if ((type == DirectTypeNil) || (currentDirectEditHex == lastDirectEditHex))
+		{
+			type =  (type == DirectTrigger) ? DirectGate :
+			(type == DirectGate) ? DirectCV :
+			(type == DirectCV) ? DirectTypeNil :
+			(type == DirectTypeNil) ? DirectTrigger :
+			DirectTypeNil;
+			
+			tDirect_setType(editDirect, currentDirectEditHex, type);
+		}
 		
+	}
+	else if (hex < 50)
+	{
+		type =  (type == DirectTypeNil) ? DirectCV :
+		(type == DirectCV) ? DirectTypeNil :
+		DirectTypeNil;
+			
 		tDirect_setType(editDirect, currentDirectEditHex, type);
 	}
+	
 	setDirectLEDs();
 }
 
@@ -116,7 +129,7 @@ void releaseDirectEdit(int hex)
 	{
 		lastDirectEditHex = currentDirectEditHex;
 		currentDirectEditHex = -1;
-		Write7Seg(preset_num);
+		Write7Seg(-1);
 		displayState = UpDownSwitchBlock;
 	}
 }
@@ -307,23 +320,70 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 	}
 	else
 	{
-		if (manta[currentInstrument].type != KeyboardInstrument) return;
-		
-		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
-		
-		if (takeover || (currentInstrument == InstrumentNil))	keyboard = &fullKeyboard;
-		
-		if (keyboard->numVoices < 4)
+		if (!takeover)
 		{
-			int whichGroup = (keyboard->numVoices * 3) / 6;
-			int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+			if (manta[currentInstrument].type == KeyboardInstrument)
+			{
+				tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+				
+				if (keyboard->numVoices < 4)
+				{
+					int whichGroup = (keyboard->numVoices * 3) / 6;
+					int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+					
+					tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+					tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+					
+					manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+				}
+			}
+			else if (manta[currentInstrument].type == DirectInstrument)
+			{
+				tDirect* direct = &manta[currentInstrument].direct;
+				
+				int output = tDirect_getOutput(direct, (48+sliderNum));
+				
+				if (direct->sliders[sliderNum].type == DirectCV)
+				{
+					direct->sliders[sliderNum].value = val;
+					manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+					
+					sendDataToOutput(6*currentInstrument+output, globalCVGlide, (direct->sliders[sliderNum].value << 4));
+				}
+			}
+		}
+		else if (takeoverType == KeyboardInstrument)
+		{
+			tKeyboard* keyboard = &fullKeyboard;
 			
-			tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
-			tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+			if (keyboard->numVoices < 4)
+			{
+				int whichGroup = (keyboard->numVoices * 3) / 6;
+				int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
+				
+				tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+				tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
+				
+				manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+			}
 			
-			manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+		}
+		else if (takeoverType == DirectInstrument)
+		{
+			fullDirect.sliders[sliderNum].value = val;
+			
+			int output = tDirect_getOutput(&fullDirect, (48+sliderNum));
+			
+			if (fullDirect.sliders[sliderNum].type == DirectCV)
+			{
+				fullDirect.sliders[sliderNum].value = val;
+				manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+				
+				sendDataToOutput(output, globalCVGlide, (fullDirect.sliders[sliderNum].value << 4));
+			}
 		}
 		
+
 	}
 	
 	

@@ -300,6 +300,8 @@ int main(void){
 	currentTuningHex = -1;
 	currentHexmapEditHex = -1;
 	currentHexmapHex = -1;
+	currentDirectSelect = 0;
+	currentHexmapSelect = 0;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -389,6 +391,13 @@ int main(void){
 				continueStoringHexmapToExternalMemory();
 			}
 		}
+		else if (directSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringDirectToExternalMemory();
+			}
+		}
 		else if (startupStateSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -436,6 +445,13 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingHexmapFromExternalMemory();
+			}
+		}
+		else if (directLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingDirectFromExternalMemory();
 			}
 		}
 		else if (startupStateLoadPending)
@@ -625,7 +641,8 @@ static void tc2_irq(void)
 							{
 								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
 							}
-						}
+						}	
+						
 					}
 					else if (instrument->type == KeyboardInstrument)
 					{
@@ -731,6 +748,7 @@ static void tc2_irq(void)
 						sendDataToOutput(output, globalCVGlide, butt_states[i] << 8);
 					}
 				}
+			
 			}
 		}
 	}
@@ -1238,27 +1256,69 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	
 	else
 	{
-		if (displayState == DirectOutputSelect)
+		if (displayState == HexmapSelect)
 		{
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					if (++currentDirectEditOutput > (takeover ? 12 : 6)) currentDirectEditOutput = (takeover ? 12 : 6);
+					if (++currentHexmapSelect > 99) currentHexmapSelect = 0;
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (--currentDirectEditOutput < 0) currentDirectEditOutput = 0;
+					if (--currentHexmapSelect < 0) currentHexmapSelect = 99;
+				}
+			}
+			
+			Write7Seg(currentHexmapSelect);
+			normal_7seg_number = currentHexmapSelect;
+		}
+		else if (displayState == DirectSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentDirectSelect > 99) currentDirectSelect = 0;
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (--currentDirectSelect < 0) currentDirectSelect = 99;
+				}
+			}
+			
+			Write7Seg(currentDirectSelect);
+			normal_7seg_number = currentDirectSelect;
+		}
+		else if (displayState == DirectOutputSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentDirectEditOutput > (takeover ? 11 : 5)) currentDirectEditOutput = (takeover ? 11 : 5);
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (currentDirectEditOutput > 0) currentDirectEditOutput--;
 				}
 			}
 			
 			tDirect_setOutput(editDirect, currentDirectEditHex, currentDirectEditOutput);
 			
-			Write7Seg(currentDirectEditOutput);
-			normal_7seg_number = currentDirectEditOutput;
+			setDirectLEDs();
+			
+			Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
+			normal_7seg_number = (currentDirectEditOutput+1);
 		}	
 		else if (displayState == HexmapPitchSelect)
 		{
@@ -2199,27 +2259,27 @@ void loadMantaPreset(void)
 	}
 	else if (preset_num == 5)
 	{
-		initMantaAllCV();
+		initDirectAllCVs();
 		initMantaLEDState();
 	}
 	else if (preset_num == 6)
 	{
-		initMantaAllGates();
+		initDirectAllTriggers();
 		initMantaLEDState();
 	}
 	else if (preset_num == 7)
 	{
-		initMantaAllTriggers();
+		initDirectAllGates();
 		initMantaLEDState();
 	}
 	else if (preset_num == 8)
 	{
-		initMantaCVAndGates();
+		initDirectMixedOne();
 		initMantaLEDState();
 	}
 	else if (preset_num == 9)
 	{
-		initMantaCVAndTriggers();
+		initDirectMixedTwo();
 		initMantaLEDState();
 	}
 	else
@@ -2532,9 +2592,15 @@ void noDevicePreset_decode(uint8_t* buffer)
 void mantaSliderTouchAction(int whichSlider)
 {
 	//MIKEY LIKES IT
+	// yessss he does :)
+	
+
 }
 
 void mantaSliderReleaseAction(int whichSlider)
 {
 	//HEY MIKEY, HE LIKES IT
+	// finally saw that commercial btw haha. dad educated me
+
 }
+
