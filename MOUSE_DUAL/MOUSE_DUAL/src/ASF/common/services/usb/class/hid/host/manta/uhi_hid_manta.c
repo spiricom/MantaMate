@@ -61,7 +61,7 @@
 
 
 #define RED_JUST_OFF FALSE
-#define TESTING_FIRST_EDITION_BEHAVIOR TRUE
+#define TESTING_FIRST_EDITION_BEHAVIOR FALSE
 
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
