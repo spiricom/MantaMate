@@ -464,12 +464,11 @@ int main(void){
 		
 		if (new_manta_attached)
 		{
-			delay_ms(500); //seems to help it get through the attachment process before it gets connected
+			delay_ms(10); //seems to help it get through the attachment process before it gets connected
 			manta_LED_set_mode(HOST_CONTROL_FULL);
-			manta_clear_all_LEDs();
-			manta_send_LED();
 			type_of_device_connected = MantaConnected;
 			freeze_LED_update = FALSE;
+			manta_clear_all_LEDs();
 			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
 			new_manta_attached = false;
 			busyWithUSB = FALSE;
@@ -2295,6 +2294,8 @@ void initMantaLEDState(void)
 	setDirectLEDs();
 	setSequencerLEDs();
 	setCurrentInstrument(InstrumentOne);
+	shiftOption1Lock = FALSE;
+	shiftOption2Lock = FALSE;
 	shiftOption1 = FALSE;
 	shiftOption2 = FALSE;
 	hexmapEditMode = FALSE;

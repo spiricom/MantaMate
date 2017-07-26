@@ -671,9 +671,6 @@ void manta_set_LED_button(uint8_t button, uint8_t color)
 		// ROXXXANNEE  YOU DON"T HAVE TO turn on the red light
 		uhi_manta_report[0][6] &= ~(1 << (whichbit+4));
 	}
-
-	//
-	//call manta_send_LED() after you have all your lights properly set.
 }
 
 void manta_clear_all_LEDs(void)

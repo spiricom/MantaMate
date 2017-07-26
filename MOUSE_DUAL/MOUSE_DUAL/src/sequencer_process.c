@@ -381,6 +381,7 @@ void initMantaSequencer(void)
 	currentFunctionButton =		ButtonTopLeft;
 	shiftOption1 =				FALSE;
 	shiftOption2 =				FALSE;
+	shiftOption1Lock =			FALSE;
 	shiftOption2Lock =			FALSE;
 	
 	
