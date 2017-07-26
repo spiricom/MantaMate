@@ -554,6 +554,7 @@ static void uhc_enumeration_step12(
 				UHC_ENUM_DISCONNECT:UHC_ENUM_FAIL);
 		return;
 	}
+	
 	// Choose USB device configuration
 	if (uhc_dev_enum->dev_desc.bNumConfigurations > 1) {
 		conf_num = UHC_DEVICE_CONF(uhc_dev_enum);
@@ -726,6 +727,8 @@ static void uhc_enumeration_step14(
 		uhc_enumeration_suspend();
 		return;
 	}
+	
+	
 	// Enable device configuration
 	req.bmRequestType = USB_REQ_RECIP_DEVICE
 			| USB_REQ_TYPE_STANDARD | USB_REQ_DIR_OUT;
@@ -990,6 +993,8 @@ static void uhc_remotewakeup(bool b_enable)
 	}
 }
 
+int statusCounter = 0;
+int statuses[64];
 /**
  * \brief Callback used to signal the end of a setup request
  *
@@ -1005,6 +1010,7 @@ static void uhc_setup_request_callback(
 	UNUSED(add);
 	UNUSED(payload_trans);
 	uhc_setup_request_finish_status = (status == UHD_TRANS_NOERROR);
+	statuses[statusCounter++] = status;
 	uhc_setup_request_finish = true;
 }
 
@@ -1187,7 +1193,7 @@ char *uhc_dev_get_string_serial(uhc_device_t * dev)
 	}
 	return uhc_dev_get_string(dev, dev->dev_desc.iSerialNumber);
 }
-
+int myAddress = 0;
 char *uhc_dev_get_string(uhc_device_t * dev, uint8_t str_id)
 {
 	usb_setup_req_t req;
@@ -1201,11 +1207,12 @@ char *uhc_dev_get_string(uhc_device_t * dev, uint8_t str_id)
 	req.bRequest = USB_REQ_GET_DESCRIPTOR;
 	req.wValue = (USB_DT_STRING << 8) | str_id;
 	req.wIndex = 0;
-	req.wLength = sizeof(usb_str_desc_t);
-
+	//req.wLength = sizeof(usb_str_desc_t);
+	req.wLength = 0x08;
 	// Get the size of string
 	uhc_setup_request_finish = false;
-	if (!uhd_setup_request(0,
+	myAddress = dev->address;
+	if (!uhd_setup_request(dev->address,
 			&req,
 			(uint8_t*)&str_header,
 			sizeof(usb_str_desc_t),
@@ -1214,9 +1221,11 @@ char *uhc_dev_get_string(uhc_device_t * dev, uint8_t str_id)
 		return NULL;
 	}
 	while (!uhc_setup_request_finish);
+	
 	if (!uhc_setup_request_finish_status) {
 		return NULL;
 	}
+	
 	// Get the size of string
 	str_desc = malloc(str_header.bLength);
 	if (str_desc == NULL) {
@@ -1232,11 +1241,13 @@ char *uhc_dev_get_string(uhc_device_t * dev, uint8_t str_id)
 			uhc_setup_request_callback)) {
 		return NULL;
 	}
+	
 	while (!uhc_setup_request_finish);
 	if (!uhc_setup_request_finish_status) {
 		free(str_desc);
 		return NULL;
 	}
+	
 	// The USB strings are "always" in ASCII format, then translate it.
 	str_header.bLength = (str_header.bLength - 2) / 2; // Number of character
 	string = malloc(str_header.bLength + 1); // +1 for NULL terminal

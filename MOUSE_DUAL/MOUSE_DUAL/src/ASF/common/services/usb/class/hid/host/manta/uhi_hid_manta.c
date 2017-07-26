@@ -60,8 +60,7 @@
 #endif
 
 
-#define RED_JUST_OFF FALSE
-#define TESTING_FIRST_EDITION_BEHAVIOR FALSE
+#define RED_JUST_OFF TRUE
 
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
@@ -163,6 +162,8 @@ static uint8_t uhi_manta_1st_ed_report_trans[UHI_MANTA_1ST_ED_EP_OUT_SIZE];
  * @{
  */
 
+
+
 uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 {
 	bool b_iface_supported;
@@ -191,20 +192,6 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					// initialize button states to 0
 					
 					busyWithUSB = TRUE;
-					//set version number based on serial number
-					if (dev->dev_desc.iSerialNumber < 70)
-					{
-						if (TESTING_FIRST_EDITION_BEHAVIOR)
-						{
-							firstEdition = TRUE;
-						}
-					}
-					else
-					{
-						//firstEdition = TRUE;  //just to check functionality
-						firstEdition = FALSE;
-					}
-					
 					for(i=0; i<48; i++)
 					{
 						butt_states[i]=0;
@@ -269,7 +256,7 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	// Init value
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	freeze_LED_update = TRUE;
-
+	
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 16; j++)
@@ -280,6 +267,7 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 
 	uhi_hid_manta_start_trans_report(dev->address);
 	UHI_HID_MANTA_CHANGE(dev, true);
+	get_manta_serial_number();
 	new_manta_attached = true;
 }
 
@@ -325,8 +313,55 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	//initNoteStack();
 }
 
+uint16_t mySerialNumber = 0;
+void testSerialNumber(void)
+{
+	uint8_t tempString[8];
+
+	int i = 0;
+	
+	for (i = 1; i <8; i++) 
+	{
+		tempString[i-1] = le16_to_cpu(mySerialString[i]) & 0xFF;
+	}
+	tempString[i] = 0;
+	mySerialNumber = atoi(tempString);
+	if (mySerialNumber < 70)
+	{
+		firstEdition = TRUE;
+	}
+	else
+	{
+		//firstEdition = TRUE;  //just to check functionality
+		firstEdition = FALSE;
+	}
+}
+
+
+// this appears to step through the report, allocating space in hid_report_parser.reportDesc
+static void get_manta_serial_number(void)
+{
+	usb_setup_req_t req;
+	int i;
+	
+	req.bmRequestType = USB_REQ_RECIP_DEVICE|USB_REQ_TYPE_STANDARD|USB_REQ_DIR_IN;
+	req.bRequest = USB_REQ_GET_DESCRIPTOR;
+	req.wValue = (USB_DT_STRING << 8) | 0x03;
+	req.wIndex = 0;
+	//req.wLength = sizeof(usb_str_desc_t);
+	req.wLength = 0x08;
+	
+	// After a USB reset, the reallocation is required
+	if (!uhd_setup_request(1, &req, (uint8_t *) mySerialString, 
+		8, NULL, testSerialNumber)) 
+	{
+		//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
+		//MEMORY_printf_string("ERROR");
+		return;
+	}
+}
 /**
- * \brief Starts the reception of the HID mouse report
+
  *
  * \param add   USB address to use
  */
@@ -443,6 +478,7 @@ static void uhi_hid_manta_report_reception(
 
 	uhi_hid_manta_start_trans_report(add);
 }
+
 
 
 //happens every USB frame
@@ -793,12 +829,12 @@ void dimLEDsForFirstEdition(void)
 		//if RED is on
 		if ((uhi_manta_report[1][6] >> (j+4)) & 1)
 		{
-			if (RED_JUST_OFF)
+			//if (RED_JUST_OFF)
 			{
 				uhi_manta_report_firstEdition[6]  &= ~(1 << j);
 			}
 			
-			else
+			//else
 			{
 				//if both RED and AMBER are on - dim it darker
 				if ((uhi_manta_report[1][6] >> j) & 1)
@@ -846,13 +882,13 @@ void dimLEDsForFirstEdition(void)
 		uhi_manta_report_firstEdition[i+7] = uhi_manta_report[1][i+7];
 	}
 	counterForRedDimming++;
-	if (counterForRedDimming > 3)
+	if (counterForRedDimming > 50)
 	{
 		counterForRedDimming = 0;
 		dimOnRED = !dimOnRED;
 	}
 	counterForBothDimming++;
-	if (counterForBothDimming > 9)
+	if (counterForBothDimming > 100)
 	{
 		counterForBothDimming = 0;
 		dimOnBOTH = !dimOnBOTH;

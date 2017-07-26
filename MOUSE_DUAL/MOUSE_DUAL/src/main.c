@@ -448,7 +448,7 @@ int main(void){
 		
 		if (new_manta_attached)
 		{
-			delay_ms(5); //seems to help it get through the attachment process before it gets connected
+			delay_ms(500); //seems to help it get through the attachment process before it gets connected
 			manta_LED_set_mode(HOST_CONTROL_FULL);
 			manta_clear_all_LEDs();
 			manta_send_LED();

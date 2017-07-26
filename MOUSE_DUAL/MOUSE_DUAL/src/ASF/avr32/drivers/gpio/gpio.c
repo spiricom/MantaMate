@@ -276,7 +276,8 @@ void gpio_disable_pin_buskeeper(uint32_t pin)
 /** \brief Configuration functionality on a pin.
  *
  * \param pin The pin number.
- * \param flags The configuration.
+ * \param flags The 
+ .
  */
 void gpio_configure_pin(uint32_t pin, uint32_t flags)
 {

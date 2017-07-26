@@ -250,6 +250,7 @@ uint8_t readData;
 
 uint8_t* readDataArray[256];
 
+uint16_t mySerialString[8];
 
 uint32_t currentMantaPresetBufferPosition;
 
