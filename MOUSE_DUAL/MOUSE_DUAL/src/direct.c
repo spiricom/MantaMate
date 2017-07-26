@@ -31,7 +31,7 @@ void tDirect_init(tDirect* const direct, int numOuts)
 		direct->sliders[i].value = 0;
 	}
 	
-	tDirect_setConfiguration(direct, 0);
+	tDirect_setConfiguration(direct, DirectMixedOne);
 		
 }
 
@@ -63,69 +63,117 @@ DirectType tDirect_getType(tDirect* const direct, int hex)
 	return ((hex < 48) ? direct->hexes[hex].type : direct->sliders[(hex-48)].type);
 }
 
-void tDirect_setConfiguration(tDirect* const direct, int which)
+void tDirect_setConfiguration(tDirect* const direct, DirectConfiguration which)
 {
 	tDirect_blank(direct);
 	
 	direct->numActive = direct->numOuts;
 	
-	if (which == 0)
+	if (which == DirectMixedOne)
 	{
-		// DEFAULT DIRECT FOR NOW
-		for (int i = 0; i < direct->numOuts; i++)
+		for (int i = 0; i < 3; i++)
 		{
-			direct->hexes[i].output = i;
+			direct->hexes[34+i].type = DirectGate;
+			direct->hexes[34+i].output = i;
+		}
+		
+		for (int i = 0; i < 3; i++)
+		{
+			direct->hexes[18+i].type = DirectCV;
+			direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
+		}
+		
+		if (direct->numOuts == 12)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[26+i].type = DirectTrigger;
+				direct->hexes[26+i].output = i+3;
+			}
 			
-			if ((i%6) < 2)		direct->hexes[i].type = DirectTrigger;
-			else if ((i%6) < 4) direct->hexes[i].type = DirectGate;
-			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[10+i].type = DirectCV;
+				direct->hexes[10+i].output = i+9;
+			}
 		}
 	}
-	else if (which == 1)
+	else if (which == DirectMixedTwo)
 	{
-		for (int i = 0; i < direct->numOuts; i++)
+		for (int i = 0; i < 3; i++)
 		{
-			direct->hexes[i].output = i;
-			
-			direct->hexes[i].type = DirectTrigger;
+			direct->hexes[34+i].type = DirectGate;
+			direct->hexes[34+i].output = i;
 		}
-	}
-	else if (which == 2)
-	{
-		for (int i = 0; i < direct->numOuts; i++)
+		
+		if (direct->numOuts == 6)
 		{
-			direct->hexes[i].output = i;
+			direct->hexes[18].type = DirectCV;
+			direct->hexes[18].output = 3;
 			
-			direct->hexes[i].type = DirectGate;
+			direct->sliders[SliderOne].type = DirectCV;
+			direct->sliders[SliderOne].output = 4;
+			
+			direct->sliders[SliderTwo].type = DirectCV;
+			direct->sliders[SliderTwo].output = 5;
 		}
-	}
-	else if (which == 3)
-	{
-		for (int i = 0; i < direct->numOuts; i++)
+		else if (direct->numOuts == 12)
 		{
-			direct->hexes[i].output = i;
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[18+i].type = DirectCV;
+				direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
+			}
 			
-			direct->hexes[i].type = DirectCV;
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[26+i].type = DirectTrigger;
+				direct->hexes[26+i].output = i+3;
+			}
+			
+			direct->hexes[10].type = DirectCV;
+			direct->hexes[10].output = 9;
+			
+			direct->sliders[SliderOne].type = DirectCV;
+			direct->sliders[SliderOne].output = 10;
+			
+			direct->sliders[SliderTwo].type = DirectCV;
+			direct->sliders[SliderTwo].output = 11;
 		}
+		
 	}
-	else if (which == 4)
+	else 
 	{
-		for (int i = 0; i < direct->numOuts; i++)
+		DirectType type =	(which == DirectAllCVs) ? DirectCV :
+							(which == DirectAllGates) ? DirectGate :
+							(which == DirectAllTriggers) ? DirectTrigger :
+							DirectTypeNil;
+							
+		for (int i = 0; i < 3; i++)
 		{
-			direct->hexes[i].output = i;
-			
-			if ((i%6) < 3)		direct->hexes[i].type = DirectTrigger;
-			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+			direct->hexes[34+i].type = type;
+			direct->hexes[34+i].output = i;
 		}
-	}
-	else if (which == 5)
-	{
-		for (int i = 0; i < direct->numOuts; i++)
+		
+		for (int i = 0; i < 3; i++)
 		{
-			direct->hexes[i].output = i;
+			direct->hexes[18+i].type = type;
+			direct->hexes[18+i].output = i + ((direct->numOuts == 12) ? 6 : 3);
+		}
+		
+		if (direct->numOuts == 12)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[26+i].type = type;
+				direct->hexes[26+i].output = i+3;
+			}
 			
-			if ((i%6) < 3)		direct->hexes[i].type = DirectGate;
-			else if ((i%6) < 6) direct->hexes[i].type = DirectCV;
+			for (int i = 0; i < 3; i++)
+			{
+				direct->hexes[10+i].type = type;
+				direct->hexes[10+i].output = i+9;
+			}
 		}
 	}
 }
@@ -180,85 +228,61 @@ void tDirect_setType(tDirect* const direct, int hex, DirectType newType)
 }
 
 
-void initMantaAllCV(void)
+void initDirectMixedOne(void)
 {
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
-	manta[InstrumentOne].type = DirectInstrument;
-	fullDirect.numOuts = 12;
-	for (int i = 0; i < 12; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectCV;
-	}
+	
+	tDirect_init(&fullDirect, 12);
+	
+	tDirect_setConfiguration(&fullDirect, DirectMixedOne);
 
 }
 
-void initMantaAllGates(void)
+void initDirectMixedTwo(void)
 {
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
-	manta[InstrumentOne].type = DirectInstrument;
-	fullDirect.numOuts = 12;
-	for (int i = 0; i < 12; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectGate;
-	}
+	
+	tDirect_init(&fullDirect, 12);
+	
+	tDirect_setConfiguration(&fullDirect, DirectMixedTwo);
 
 }
 
-void initMantaAllTriggers(void)
+
+void initDirectAllTriggers(void)
 {
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
-	manta[InstrumentOne].type = DirectInstrument;
-	fullDirect.numOuts = 12;
-	for (int i = 0; i < 12; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectTrigger;
-	}	
+	
+	tDirect_init(&fullDirect, 12);
+	
+	tDirect_setConfiguration(&fullDirect, DirectAllTriggers);
+	
 }
 
-void initMantaCVAndGates(void)
+void initDirectAllGates(void)
 {
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
-	manta[InstrumentOne].type = DirectInstrument;
-	fullDirect.numOuts = 12;
-	for (int i = 0; i < 6; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectCV;
-	}	
-	for (int i = 0; i < 6; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectGate;
-	}
-
+	
+	tDirect_init(&fullDirect, 12);
+	
+	tDirect_setConfiguration(&fullDirect, DirectAllGates);
+	
 }
 
-void initMantaCVAndTriggers(void)
+void initDirectAllCVs(void)
 {
 	takeover = TRUE;
 	takeoverType = DirectInstrument;
-	manta[InstrumentOne].type = DirectInstrument;
-	fullDirect.numOuts = 12;
-	for (int i = 0; i < 6; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectCV;
-	}	
-	for (int i = 0; i < 6; i++)
-	{
-		fullDirect.hexes[i].output = i;
-		fullDirect.hexes[i].type = DirectTrigger;
-	}
-
+	
+	tDirect_init(&fullDirect, 12);
+	
+	tDirect_setConfiguration(&fullDirect, DirectAllCVs);
+	
 }
-
 
 void tDirect_encode(tDirect* const direct, uint8_t* buffer)
 {

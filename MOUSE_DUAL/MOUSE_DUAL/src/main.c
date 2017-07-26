@@ -2203,27 +2203,27 @@ void loadMantaPreset(void)
 	}
 	else if (preset_num == 5)
 	{
-		initMantaAllCV();
+		initDirectAllCVs();
 		initMantaLEDState();
 	}
 	else if (preset_num == 6)
 	{
-		initMantaAllGates();
+		initDirectAllTriggers();
 		initMantaLEDState();
 	}
 	else if (preset_num == 7)
 	{
-		initMantaAllTriggers();
+		initDirectAllGates();
 		initMantaLEDState();
 	}
 	else if (preset_num == 8)
 	{
-		initMantaCVAndGates();
+		initDirectMixedOne();
 		initMantaLEDState();
 	}
 	else if (preset_num == 9)
 	{
-		initMantaCVAndTriggers();
+		initDirectMixedTwo();
 		initMantaLEDState();
 	}
 	else

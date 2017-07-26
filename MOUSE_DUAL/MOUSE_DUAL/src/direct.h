@@ -23,6 +23,17 @@ typedef enum DirectType
 	
 } DirectType;
 
+typedef enum DirectConfiguration
+{
+	DirectAllCVs = 0,
+	DirectAllTriggers,
+	DirectAllGates,
+	DirectMixedOne,
+	DirectMixedTwo,
+	DirectSnyderphonics,
+	DirectConfigurationNil
+		
+} DirectConfiguration;
 
 typedef struct _tDirectHex
 {
@@ -61,19 +72,15 @@ DirectType tDirect_getType(tDirect* const direct, int hex);
 void tDirect_setOutput(tDirect* const direct, int hex, int output);
 int tDirect_getOutput(tDirect* const direct, int hex);
 
-void tDirect_setConfiguration(tDirect* const direct, int which);
+void tDirect_setConfiguration(tDirect* const direct, DirectConfiguration which);
 
 void tDirect_blank(tDirect* const direct);
 
-void initMantaAllCV(void);
-
-void initMantaAllGates(void);
-
-void initMantaAllTriggers(void);
-
-void initMantaCVAndGates(void);
-
-void initMantaCVAndTriggers(void);
+void initDirectAllTriggers(void);
+void initDirectAllGates(void);
+void initDirectAllCVs(void);
+void initDirectMixedOne(void);
+void initDirectMixedTwo(void);
 
 
 void tDirect_encode(tDirect* const direct, uint8_t* buffer);

@@ -509,13 +509,16 @@ MantaButton lastFunctionButton;
 
 void releaseDirectHex(int hex)
 {
+	DirectType type;
 	if (!takeover)
 	{
 		tDirect* direct = &manta[currentInstrument].direct;
 		
+		type = direct->hexes[hex].type;
+		
 		int output = tDirect_getOutput(direct, hex);
 		
-		if (direct->hexes[hex].type == DirectGate)
+		if (type == DirectGate)
 		{
 			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
 		}
@@ -524,15 +527,21 @@ void releaseDirectHex(int hex)
 	{
 		tDirect* direct = &fullDirect;
 			
+		type = direct->hexes[hex].type;
+		
 		int output = tDirect_getOutput(direct, hex);
 			
-		if (direct->hexes[hex].type == DirectGate)
+		if (type == DirectGate)
 		{
 			sendDataToOutput(output, 0, 0x0);
 		}
 	}
 	
-	setDirectLEDs();
+	manta_set_LED_hex(hex,	(type == DirectCV) ? Amber :
+							(type == DirectTrigger) ? BothOn :
+							(type == DirectGate) ? Red : Off);
+	
+	
 }
 
 void touchDirectHex(int hex)
@@ -950,7 +959,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 				
 				setDirectLEDs();
 			}
-			else if (whichHex <= 5)
+			else if (whichHex <= 4)
 			{
 				tDirect_setConfiguration(editDirect, whichHex);
 				
@@ -2211,7 +2220,6 @@ void setDirectOptionLEDs			(void)
 				manta_set_LED_hex(16*inst + 2, Amber); // All Gates
 				manta_set_LED_hex(16*inst + 3, Amber); // All CVs
 				manta_set_LED_hex(16*inst + 4, Amber); // Trigger/CV
-				manta_set_LED_hex(16*inst + 5, Amber); // Gate/CV
 				manta_set_LED_hex(16*inst + 7, Red); // BLANK
 			}
 			
@@ -2230,7 +2238,6 @@ void setDirectOptionLEDs			(void)
 		manta_set_LED_hex(2, Amber); // All Gates
 		manta_set_LED_hex(3, Amber); // All CVs
 		manta_set_LED_hex(4, Amber); // Trigger/CV
-		manta_set_LED_hex(5, Amber); // Gate/CV
 		manta_set_LED_hex(7, Red); // BLANK
 	}
 	
