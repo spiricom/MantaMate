@@ -1,0 +1,94 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Contents: Input/Output
+% $Id: typeset.tex 537 2015-07-18 09:43:10Z oetiker $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\chaptername}{Section}
+\chapter{Input/Output}
+
+\begin{intro}
+  The \emph{MantaMate} features four 16-bit DACs and eight 12-bit DACs. As such, if
+  you are using a \emph{Manta} host, the IO varies depending on the
+  \texttt{Mode} the \emph{Manta} is in. Throughout this chapter, the nine \nicefrac{1}{8}
+  inch outputs
+  of the \emph{MantaMate} will be referenced naturally as \texttt{OUT 1} through
+  \texttt{OUT 12}:
+
+  \begin{center}
+  \begin{tabular}{ | m{1.5cm} | m{1.5cm}| m{1.5cm} | }
+    \hline
+    \texttt{OUT 1} & \texttt{OUT 2} & \texttt{OUT 3} \\
+    \hline
+    \texttt{OUT 4} & \texttt{OUT 5} & \texttt{OUT 6} \\
+    \hline
+    \texttt{OUT 7} & \texttt{OUT 8} & \texttt{OUT 9} \\
+    \hline
+    \texttt{OUT 10} & \texttt{OUT 11} & \texttt{OUT 12} \\
+    \hline
+  \end{tabular}
+  \end{center}
+
+  Note that the rightmost DAC outputs are 16-bit and the remainder are 12-bit,
+  therefore more precise outputs (such as 1V/O) will be output from  \texttt{OUT 3},
+   \texttt{OUT 6},  \texttt{OUT 9}, and \texttt{OUT 12}.
+
+  The one \nicefrac{1}{8} inch input will always be a \texttt{CLOCK IN}, although
+  some devices will not make use of a clock.
+\end{intro}
+
+\section{Non-Manta Host Devices}
+  Using a non-Manta device is generally straightforward. In most cases,
+  USB-MIDI devices and HID devices will work in a 'plug-and-play' fashion.
+
+  \begin{center}
+  \begin{tabular}{ | m{1.5cm} | m{1.5cm}| m{1.5cm} | }
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+  \end{tabular}
+  \end{center}
+
+\section{Manta Host Device}
+\subsection{Pitch Mode}
+  Need to fill this stuff in :)
+  \begin{center}
+  \begin{tabular}{ | m{1.5cm} | m{1.5cm}| m{1.5cm} | }
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+  \end{tabular}
+  \end{center}
+
+\subsection{Trigger Mode}
+  Need to fill this stuff in :)
+  \begin{center}
+  \begin{tabular}{ | m{1.5cm} | m{1.5cm}| m{1.5cm} | }
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+    \texttt{???} & \texttt{???} & \texttt{???} \\
+    \hline
+  \end{tabular}
+  \end{center}
+
+
+% Local Variables:
+% TeX-master: "lshort2e"
+% mode: latex
+% mode: flyspell
+% End:

@@ -1,0 +1,112 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Contents: No Input Device
+% $Id: typeset.tex 537 2015-07-18 09:43:10Z oetiker $
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\chaptername}{Section}
+\chapter{No Input Device}
+
+\begin{intro}
+  This section outlines \emph{MantaMate} presets when using no HOST device.
+\end{intro}
+
+NO DEVICE ATTACHED
+(all presets include a clock out trigger on output A1)
+
+\section{Presets}
+
+  Each of the \emph{MantaMate} presets has a clock output on the A1 output.
+  The remainder of the outputs vary as follows:
+
+  \textbf{0}
+  11 Random voltages on each clock
+
+  \textbf{1}
+  11 Random Gates on each clock
+
+  \textbf{2}
+  11 Random Triggers on each clock
+
+  \textbf{3}
+  Consecutive integer dividers -- random voltages
+
+  \textbf{4}
+  Consecutive integer dividers -- gates
+
+  \textbf{5}
+  Consecutive integer dividers -- triggers
+
+  \textbf{6}
+  Consecutive integer dividers -- toggles
+
+  \textbf{7}
+  Power of 2 dividers -- random voltages
+
+  \textbf{8}
+  Power of 2 dividers -- gates
+
+  \textbf{9}
+  Power of 2 dividers -- triggers
+
+  \textbf{10}
+  Power of 2 dividers -- toggles
+
+  \textbf{Presets 11-18 use randomly generated patterns that repeat}
+
+  \textbf{11}
+  All patterns same length -- random voltages
+
+  \textbf{12}
+  All patterns same length -- gates
+
+  \textbf{13}
+  All patterns same length -- triggers
+
+  \textbf{14}
+  All patterns same length -- toggles
+
+  \textbf{15}
+  Each pattern has its own random length -- random voltages
+
+  \textbf{16}
+  Each pattern has its own random length -- gates
+
+  \textbf{17}
+  Each pattern has its own random length -- triggers
+
+  \textbf{18}
+  Each pattern has its own random length -- toggles
+
+  \textbf{19-99}
+  User storable presets (save the randomly generated patterns)
+
+
+  The No Device functionality is activated by pressing the up or down button
+  while no device is plugged into the MantaMate.
+  It will then continue until power is turned off or a device is plugged in.
+
+  The repeating random patterns are generated on power-up.
+  Each of the 11 available outputs has its own pattern that is 32 steps long.
+
+  You can generate new ones by holding down the Preferences button and then
+  pressing the up or down buttons.
+
+  Pressing up results in a compeletely new random pattern.
+  Pressing down subtly changes the current patterns.
+
+  There is a Pattern Length parameter that is set by going into the first
+  preference menu (tuning) and pressing S to get to the sub-menu.
+  You can then alter the length parameter.
+  In the case of the "all patterns same length" presets,
+  this Pattern Length enforces the reset of all patterns,
+  so that they all cycle at the same time.
+  In the case of "each pattern has its own random length"
+  presets, the Pattern Length is treated as a "maximum pattern length"
+  and will reset any patterns that are not already repeating in a shorter
+  time period. The value defaults to 16, and valid values are 1-32.
+
+
+% Local Variables:
+% TeX-master: "lshort2e"
+% mode: latex
+% mode: flyspell
+% End:

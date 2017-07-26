@@ -1,0 +1,36 @@
+\select@language {greek}
+\select@language {greek}
+\select@language {english}
+\contentsline {chapter}{Preface}{\textlatin {v}}{chapter*.2}
+\contentsline {chapter}{\numberline {1}Manta Input Device}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Quickstart}{1}{section.1.1}
+\contentsline {section}{\numberline {1.2}Manta Presets}{1}{section.1.2}
+\contentsline {section}{\numberline {1.3}Composition Preset}{2}{section.1.3}
+\contentsline {subsection}{\numberline {1.3.1}Getting Started/Basic Use}{2}{subsection.1.3.1}
+\contentsline {subsection}{\numberline {1.3.2}Left Option Menu}{4}{subsection.1.3.2}
+\contentsline {subsection}{\numberline {1.3.3}Right Option Menu}{4}{subsection.1.3.3}
+\contentsline {subsection}{\numberline {1.3.4}Sequencer Outputs}{4}{subsection.1.3.4}
+\contentsline {subsubsection}{Pitched Mode Outputs}{4}{section*.3}
+\contentsline {subsubsection}{Trigger Mode Outputs}{4}{section*.4}
+\contentsline {subsection}{\numberline {1.3.5}Saving a Sequencer Pattern}{5}{subsection.1.3.5}
+\contentsline {subsection}{\numberline {1.3.6}Saving a Preset}{5}{subsection.1.3.6}
+\contentsline {section}{\numberline {1.4}Preferences}{5}{section.1.4}
+\contentsline {subsection}{\numberline {1.4.1}Tuning and MIDI Learn}{5}{subsection.1.4.1}
+\contentsline {subsection}{\numberline {1.4.2}Glide}{5}{subsection.1.4.2}
+\contentsline {subsection}{\numberline {1.4.3}Internal Clock}{5}{subsection.1.4.3}
+\contentsline {section}{\numberline {1.5}Monophonic Contoller Preset}{5}{section.1.5}
+\contentsline {section}{\numberline {1.6}Duophonic Contoller Preset}{6}{section.1.6}
+\contentsline {section}{\numberline {1.7}Triophonic Contoller Preset}{6}{section.1.7}
+\contentsline {section}{\numberline {1.8}Tetraphonic Controller Preset}{6}{section.1.8}
+\contentsline {section}{\numberline {1.9}CV Contoller Preset}{7}{section.1.9}
+\contentsline {section}{\numberline {1.10}Gate Contoller Preset}{7}{section.1.10}
+\contentsline {section}{\numberline {1.11}Trigger Contoller Preset}{7}{section.1.11}
+\contentsline {chapter}{\numberline {2}Other Input Devices}{9}{chapter.2}
+\contentsline {section}{\numberline {2.1}Computer/DAW}{9}{section.2.1}
+\contentsline {section}{\numberline {2.2}USB-MIDI Keyboard Controller}{9}{section.2.2}
+\contentsline {section}{\numberline {2.3}USB Game Controller}{9}{section.2.3}
+\contentsline {section}{\numberline {2.4}Guitar Hero Controller}{9}{section.2.4}
+\contentsline {section}{\numberline {2.5}DDR Dance Pad}{9}{section.2.5}
+\contentsline {chapter}{\numberline {3}No Input Device}{11}{chapter.3}
+\contentsline {section}{\numberline {3.1}Presets}{11}{section.3.1}
+\contentsline {chapter}{\numberline {4}REMOVE THIS LATER}{13}{chapter.4}
