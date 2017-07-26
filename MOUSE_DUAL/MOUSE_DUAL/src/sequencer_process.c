@@ -708,17 +708,30 @@ void processHexTouch(void)
 			buttonTouched = TRUE;
 			
 			if (i == ButtonBottomLeft)				touchBottomLeftButton();
-			else if (!(hexmapEditMode || directEditMode))
+			else if (directEditMode)
 			{
-				if (i == ButtonTopRight)			
+				if (i == ButtonTopLeft)
+				{
+					topLon = TRUE;
+					touchDirectEdit(48); // SliderOne
+				}
+				else if (i == ButtonTopRight)
 				{
 					topRon = TRUE;
-					touchTopRightButton();
+					touchDirectEdit(49); // SliderTwo
 				}
-				else if (i == ButtonTopLeft)		
+			}
+			else if (!(hexmapEditMode || directEditMode))
+			{
+				if (i == ButtonTopLeft)
 				{
 					topLon = TRUE;
 					touchTopLeftButton();
+				}
+				else if (i == ButtonTopRight)			
+				{
+					topRon = TRUE;
+					touchTopRightButton();
 				}
 				else if (i == ButtonBottomRight)	touchBottomRightButton();
 			}	
@@ -729,7 +742,18 @@ void processHexTouch(void)
 		{		
 			buttonTouched = TRUE;
 			
-			if (!(hexmapEditMode || directEditMode))
+			if (directEditMode)
+			{
+				if (i == ButtonTopLeft)
+				{
+					releaseDirectEdit(48); // SliderOne
+				}
+				else if (i == ButtonTopRight)
+				{
+					releaseDirectEdit(49); // SliderTwo
+				}
+			}
+			else if (!(hexmapEditMode || directEditMode))
 			{
 				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
 				else if (i == ButtonTopRight)		releaseTopRightButton();
@@ -759,8 +783,6 @@ void processHexTouch(void)
 			}
 			else if (manta[currentInstrument].type == DirectInstrument)
 			{
-				manta_set_LED_button(ButtonTopLeft, Off);
-				manta_set_LED_button(ButtonTopRight, Off);
 				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
 				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 			}
@@ -2119,11 +2141,13 @@ void setDirectLEDs			(void)
 				
 				if (type == DirectCV)
 				{
-					manta_set_LED_slider(i, (direct->sliders[i].value >> 9 + 1));
+					manta_set_LED_slider(i, ((direct->sliders[i].value >> 9) + 1));
+					manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, Red);
 				}
 				else
 				{
 					manta_set_LED_slider(i, 0);
+					manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, Off);
 				}
 			}
 
@@ -2154,7 +2178,7 @@ void setDirectLEDs			(void)
 			
 			if (type == DirectCV)
 			{
-				manta_set_LED_slider(i, (fullDirect.sliders[i].value >> 9 + 1));
+				manta_set_LED_slider(i, ((fullDirect.sliders[i].value >> 9) + 1));
 			}
 		}
 	}

@@ -341,10 +341,14 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 			{
 				tDirect* direct = &manta[currentInstrument].direct;
 				
+				int output = tDirect_getOutput(direct, (48+sliderNum));
+				
 				if (direct->sliders[sliderNum].type == DirectCV)
 				{
 					direct->sliders[sliderNum].value = val;
 					manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+					
+					sendDataToOutput(6*currentInstrument+output, globalCVGlide, (direct->sliders[sliderNum].value << 4));
 				}
 			}
 		}
@@ -368,10 +372,14 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 		{
 			fullDirect.sliders[sliderNum].value = val;
 			
+			int output = tDirect_getOutput(&fullDirect, (48+sliderNum));
+			
 			if (fullDirect.sliders[sliderNum].type == DirectCV)
 			{
 				fullDirect.sliders[sliderNum].value = val;
 				manta_set_LED_slider(sliderNum, (val >> 9) + 1);
+				
+				sendDataToOutput(output, globalCVGlide, (fullDirect.sliders[sliderNum].value << 4));
 			}
 		}
 		
