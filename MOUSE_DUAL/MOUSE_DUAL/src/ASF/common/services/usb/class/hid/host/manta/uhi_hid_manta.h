@@ -66,6 +66,7 @@ extern "C" {
  *
  * @{
  */
+#define UHI_MANTA_1ST_ED_EP_OUT_SIZE 10
 #define UHI_MANTA_EP_OUT_SIZE 16
 #define HEX_BYTES 6
 #define SLIDER_BYTES 2

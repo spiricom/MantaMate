@@ -142,14 +142,17 @@ uint8_t sof_count = 0;
 static bool uhi_manta_b_report_valid;
 //! Report ready to send
 
-static uint8_t uhi_manta_report[8][UHI_MANTA_EP_OUT_SIZE];
+static uint8_t uhi_manta_report[2][UHI_MANTA_EP_OUT_SIZE];
+static uint8_t uhi_manta_report_firstEdition[UHI_MANTA_1ST_ED_EP_OUT_SIZE];
 
 uint8_t LEDsChangedSoFar = 0;
 
 //! Signal if a report transfer is on going
 static bool uhi_manta_report_trans_ongoing;
+
 //! Buffer used to send report
 static uint8_t uhi_manta_report_trans[UHI_MANTA_EP_OUT_SIZE];
+static uint8_t uhi_manta_1st_ed_report_trans[UHI_MANTA_1ST_ED_EP_OUT_SIZE];
 
 /**
  * \name Functions required by UHC
@@ -191,6 +194,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					}
 					else
 					{
+						//firstEdition = TRUE;  //just to check functionality
 						firstEdition = FALSE;
 					}
 					
@@ -463,13 +467,24 @@ static bool uhi_manta_send_report(void)
 	if (uhi_manta_report_trans_ongoing)
 	return false;	// Transfer on going then send this one after transfer complete
 
-	// Copy report on other array used only for transfer
-	memcpy(uhi_manta_report_trans, uhi_manta_report[1], UHI_MANTA_EP_OUT_SIZE);
-	uhi_manta_b_report_valid = false;
-	
-	// Send report
-	return uhi_manta_report_trans_ongoing =
-	uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_manta_report_sent);
+	if (!firstEdition) //any latter-day Manta
+	{
+		// Copy report on other array used only for transfer
+		memcpy(uhi_manta_report_trans, uhi_manta_report[0], UHI_MANTA_EP_OUT_SIZE);
+		uhi_manta_b_report_valid = false;
+		// Send report
+		return uhi_manta_report_trans_ongoing =
+		uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_report_trans,UHI_MANTA_EP_OUT_SIZE,0,uhi_manta_report_sent);
+	}
+	else //send 10-byte reports for 1st edition mantas without red LEDs
+	{
+		// Copy report on other array used only for transfer
+		memcpy(uhi_manta_1st_ed_report_trans, uhi_manta_report_firstEdition, UHI_MANTA_1ST_ED_EP_OUT_SIZE);
+		uhi_manta_b_report_valid = false;
+		// Send report
+		return uhi_manta_report_trans_ongoing =
+		uhd_ep_run(uhi_hid_manta_dev.dev->address,uhi_hid_manta_dev.ep_out,false,uhi_manta_1st_ed_report_trans,UHI_MANTA_1ST_ED_EP_OUT_SIZE,0,uhi_manta_report_sent);
+	}
 }
 
 static void uhi_manta_report_sent(usb_add_t add, usb_ep_t ep,
@@ -697,12 +712,123 @@ void manta_send_LED(void)
 	return;
 }
 
-
+uint8_t counterForRedDimming = 0;
+uint8_t counterForBothDimming = 0;
+uint8_t dimOnRED = 0;
+uint8_t dimOnBOTH = 0;
 void dimLEDsForFirstEdition(void)
 {
+	// if RED is on with the hexagons
 	for (int i = 0; i< 6; i++)
 	{
-		
+		for (int j = 0; j < 8; j++)
+		{
+			if ((uhi_manta_report[1][i+10] >> j) & 1)
+			{
+				//if both RED and AMBER are on - dim it darker
+				if ((uhi_manta_report[1][i] >> j) & 1)
+				{
+					if (dimOnBOTH == 1) //turn it on, baby
+					{
+						uhi_manta_report_firstEdition[i]  |= 1 << j;
+					}
+					else  //turn it off, baby
+					{
+						uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+					}
+				}
+
+				
+				else
+				{
+					if (dimOnRED == 1) //turn it on, baby
+					{
+						uhi_manta_report_firstEdition[i]  |= 1 << j;
+					}
+					else  //turn it off, baby
+					{
+						uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+					}
+				}
+
+			}
+			else
+			{
+				if ((uhi_manta_report[1][i] >> j) & 1) //turn it on, baby
+				{
+					uhi_manta_report_firstEdition[i]  |= 1 << j;
+				}
+				else  //turn it off, baby
+				{
+					uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+				}
+			}
+		}
+	}
+	
+	//function buttons
+	// if RED is on with the buttons
+	for (int j = 0; j < 4; j++)
+	{
+		//if RED is on
+		if ((uhi_manta_report[1][6] >> (j+4)) & 1)
+		{
+			//if both RED and AMBER are on - dim it darker
+			if ((uhi_manta_report[1][6] >> j) & 1)
+			{
+				if (dimOnBOTH == 1) //turn it on, baby
+				{
+					uhi_manta_report_firstEdition[6]  |= 1 << j;
+				}
+				else  //turn it off, baby
+				{
+					uhi_manta_report_firstEdition[6]  &= ~(1 << j);
+				}
+			}
+
+				
+			else
+			{
+				if (dimOnRED == 1) //turn it on, baby
+				{
+					uhi_manta_report_firstEdition[6]  |= 1 << j;
+				}
+				else  //turn it off, baby
+				{
+					uhi_manta_report_firstEdition[6]  &= ~(1 << j);
+				}
+			}
+			
+			uhi_manta_report[1][6]  &= ~(1 << (j + 4));  //clear the red bits in the 6th byte
+
+		}
+		else
+		{
+			if ((uhi_manta_report[1][6] >> j) & 1) //turn it on, baby
+			{
+				uhi_manta_report_firstEdition[6]  |= 1 << j;
+			}
+			else  //turn it off, baby
+			{
+				uhi_manta_report_firstEdition[6]  &= ~(1 << j);
+			}
+		}
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		uhi_manta_report_firstEdition[i+7] = uhi_manta_report[1][i+7];
+	}
+	counterForRedDimming++;
+	if (counterForRedDimming > 1)
+	{
+		counterForRedDimming = 0;
+		dimOnRED = !dimOnRED;
+	}
+	counterForBothDimming++;
+	if (counterForBothDimming > 3)
+	{
+		counterForBothDimming = 0;
+		dimOnBOTH = !dimOnBOTH;
 	}
 }
 
