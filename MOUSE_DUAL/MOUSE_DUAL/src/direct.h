@@ -16,7 +16,7 @@
 
 typedef enum DirectType
 {
-	DirectCV,
+	DirectCV = 0,
 	DirectTrigger,
 	DirectGate,
 	DirectTypeNil
@@ -54,7 +54,6 @@ typedef struct _tDirect
 } tDirect;
 
 void tDirect_init(tDirect* const direct, int numVoices);
-
 
 void tDirect_setType(tDirect* const direct, int output, DirectType type);
 DirectType tDirect_getType(tDirect* const direct, int hex);

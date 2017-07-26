@@ -528,10 +528,11 @@ void releaseDirectHex(int hex)
 			
 		if (direct->hexes[hex].type == DirectGate)
 		{
-			sendDataToOutput(6*currentInstrument + output, 0, 0x0);
+			sendDataToOutput(output, 0, 0x0);
 		}
 	}
 	
+	setDirectLEDs();
 }
 
 void touchDirectHex(int hex)
@@ -574,6 +575,9 @@ void touchDirectHex(int hex)
 			sendDataToOutput(output, 0, 0xffff);
 		}
 	}
+	
+	
+	manta_set_LED_hex(hex, Off);
 	
 }
 
