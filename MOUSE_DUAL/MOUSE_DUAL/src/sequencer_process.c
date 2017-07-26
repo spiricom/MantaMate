@@ -2304,8 +2304,8 @@ void setDirectOptionLEDs			(void)
 	{
 		for (int i = 0; i < 32; i++) manta_set_LED_hex(i,Off);
 		
-		//manta_set_LED_hex(8, Amber); // SAVE maybe do this for direct too?
-		//manta_set_LED_hex(9, Amber); // LOAD maybe do this for direct too?
+		manta_set_LED_hex(8, Red); // SAVE maybe do this for direct too?
+		manta_set_LED_hex(9, Red); // LOAD maybe do this for direct too?
 		manta_set_LED_hex(11, Red); // EDIT
 		
 		manta_set_LED_hex(0, Amber); // Default

@@ -889,7 +889,13 @@ void continueLoadingDirectFromExternalMemory(void)
 		tDirect_decode(editDirect, directBuffer);
 		
 		takeover = (editDirect->numOuts == 12) ? TRUE : FALSE;
-		if (takeover) takeoverType = DirectInstrument;
+		if (takeover) 
+		{
+			takeoverType = DirectInstrument;
+			
+			setOptionLEDs();
+			setDirectOptionLEDs();
+		}
 		
 	}
 }
