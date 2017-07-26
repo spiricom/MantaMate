@@ -59,6 +59,10 @@
 # error USB HUB support is not implemented on UHI mouse
 #endif
 
+
+#define RED_JUST_OFF FALSE
+#define TESTING_FIRST_EDITION_BEHAVIOR TRUE
+
 static void processSliders(uint8_t sliderNum, uint16_t val);
 
 /**
@@ -190,7 +194,10 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					//set version number based on serial number
 					if (dev->dev_desc.iSerialNumber < 70)
 					{
-						firstEdition = TRUE;
+						if (TESTING_FIRST_EDITION_BEHAVIOR)
+						{
+							firstEdition = TRUE;
+						}
 					}
 					else
 					{
@@ -723,33 +730,45 @@ void dimLEDsForFirstEdition(void)
 	{
 		for (int j = 0; j < 8; j++)
 		{
+			
+
 			if ((uhi_manta_report[1][i+10] >> j) & 1)
 			{
-				//if both RED and AMBER are on - dim it darker
-				if ((uhi_manta_report[1][i] >> j) & 1)
-				{
-					if (dimOnBOTH == 1) //turn it on, baby
-					{
-						uhi_manta_report_firstEdition[i]  |= 1 << j;
-					}
-					else  //turn it off, baby
-					{
-						uhi_manta_report_firstEdition[i]  &= ~(1 << j);
-					}
-				}
-
 				
+				if (RED_JUST_OFF)
+				{
+					uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+				}
 				else
 				{
-					if (dimOnRED == 1) //turn it on, baby
+					//if both RED and AMBER are on - dim it darker
+					if ((uhi_manta_report[1][i] >> j) & 1)
 					{
-						uhi_manta_report_firstEdition[i]  |= 1 << j;
+						if (dimOnBOTH == 1) //turn it on, baby
+						{
+							uhi_manta_report_firstEdition[i]  |= 1 << j;
+						}
+						else  //turn it off, baby
+						{
+							uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+						}
 					}
-					else  //turn it off, baby
+
+					
+					else
 					{
-						uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+						if (dimOnRED == 1) //turn it on, baby
+						{
+							uhi_manta_report_firstEdition[i]  |= 1 << j;
+						}
+						else  //turn it off, baby
+						{
+							uhi_manta_report_firstEdition[i]  &= ~(1 << j);
+						}
 					}
 				}
+				
+				
 
 			}
 			else
@@ -770,37 +789,45 @@ void dimLEDsForFirstEdition(void)
 	// if RED is on with the buttons
 	for (int j = 0; j < 4; j++)
 	{
+		
 		//if RED is on
 		if ((uhi_manta_report[1][6] >> (j+4)) & 1)
 		{
-			//if both RED and AMBER are on - dim it darker
-			if ((uhi_manta_report[1][6] >> j) & 1)
+			if (RED_JUST_OFF)
 			{
-				if (dimOnBOTH == 1) //turn it on, baby
-				{
-					uhi_manta_report_firstEdition[6]  |= 1 << j;
-				}
-				else  //turn it off, baby
-				{
-					uhi_manta_report_firstEdition[6]  &= ~(1 << j);
-				}
-			}
-
-				
-			else
-			{
-				if (dimOnRED == 1) //turn it on, baby
-				{
-					uhi_manta_report_firstEdition[6]  |= 1 << j;
-				}
-				else  //turn it off, baby
-				{
-					uhi_manta_report_firstEdition[6]  &= ~(1 << j);
-				}
+				uhi_manta_report_firstEdition[6]  &= ~(1 << j);
 			}
 			
-			uhi_manta_report[1][6]  &= ~(1 << (j + 4));  //clear the red bits in the 6th byte
+			else
+			{
+				//if both RED and AMBER are on - dim it darker
+				if ((uhi_manta_report[1][6] >> j) & 1)
+				{
+					if (dimOnBOTH == 1) //turn it on, baby
+					{
+						uhi_manta_report_firstEdition[6]  |= 1 << j;
+					}
+					else  //turn it off, baby
+					{
+						uhi_manta_report_firstEdition[6]  &= ~(1 << j);
+					}
+				}
 
+				
+				else
+				{
+					if (dimOnRED == 1) //turn it on, baby
+					{
+						uhi_manta_report_firstEdition[6]  |= 1 << j;
+					}
+					else  //turn it off, baby
+					{
+						uhi_manta_report_firstEdition[6]  &= ~(1 << j);
+					}
+				}
+			}
+			uhi_manta_report[1][6]  &= ~(1 << (j + 4));  //clear the red bits in the 6th byte
+			
 		}
 		else
 		{
@@ -819,13 +846,13 @@ void dimLEDsForFirstEdition(void)
 		uhi_manta_report_firstEdition[i+7] = uhi_manta_report[1][i+7];
 	}
 	counterForRedDimming++;
-	if (counterForRedDimming > 1)
+	if (counterForRedDimming > 3)
 	{
 		counterForRedDimming = 0;
 		dimOnRED = !dimOnRED;
 	}
 	counterForBothDimming++;
-	if (counterForBothDimming > 3)
+	if (counterForBothDimming > 9)
 	{
 		counterForBothDimming = 0;
 		dimOnBOTH = !dimOnBOTH;
