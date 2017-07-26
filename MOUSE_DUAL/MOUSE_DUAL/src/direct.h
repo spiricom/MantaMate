@@ -33,10 +33,19 @@ typedef struct _tDirectHex
 	
 } tDirectHex;
 
+typedef struct _tDirectSlider
+{
+	int output;
+	DirectType type;
+	uint16_t value;
+	
+} tDirectSlider;
+
 typedef struct _tDirect
 {
 	// Encode this in preset
 	tDirectHex hexes[48];
+	tDirectSlider sliders[2];
 	int numOuts;
 	// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 	
@@ -52,7 +61,6 @@ DirectType tDirect_getType(tDirect* const direct, int hex);
 
 void tDirect_setOutput(tDirect* const direct, int hex, int output);
 int tDirect_getOutput(tDirect* const direct, int hex);
-
 
 void tDirect_setConfiguration(tDirect* const direct, int which);
 

@@ -2112,6 +2112,21 @@ void setDirectLEDs			(void)
 				
 				manta_set_LED_hex(i, color);
 			}
+			
+			for (int i = 0; i < 2; i++)
+			{
+				type = direct->sliders[i].type;
+				
+				if (type == DirectCV)
+				{
+					manta_set_LED_slider(i, (direct->sliders[i].value >> 9 + 1));
+				}
+				else
+				{
+					manta_set_LED_slider(i, 0);
+				}
+			}
+
 		}
 	}
 	else if (takeoverType == DirectInstrument)
@@ -2131,6 +2146,16 @@ void setDirectLEDs			(void)
 			Off;
 			
 			manta_set_LED_hex(i, color);
+		}
+		
+		for (int i = 0; i < 2; i++)
+		{
+			type = fullDirect.sliders[i].type;
+			
+			if (type == DirectCV)
+			{
+				manta_set_LED_slider(i, (fullDirect.sliders[i].value >> 9 + 1));
+			}
 		}
 	}
 	roll_LEDs = 1;
@@ -2920,10 +2945,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 				{
 					manta_set_LED_hex(j+MAX_STEPS, (glideNoteOn >= 0) ? Red : Off);
 				}
-				else if ((keyboard_pattern[j] == KeyboardPanelOctaveUp) || (keyboard_pattern[j] == KeyboardPanelOctaveDown))
-				{
-					
-				}
 				else
 				{
 					manta_set_LED_hex(j+MAX_STEPS, Off);
@@ -2971,7 +2992,6 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 			{
 				manta_set_LED_hex(i + MAX_STEPS, Off);
 			}
-			
 		}
 
 		int hexUIOffset = MAX_STEPS;

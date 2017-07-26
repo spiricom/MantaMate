@@ -22,6 +22,15 @@ void tDirect_init(tDirect* const direct, int numOuts)
 		direct->hexes[i].trigCount = 0;
 	}
 	
+	for (int i = 0; i < 2; i++)
+	{
+		direct->sliders[i].output = -1;
+		
+		direct->sliders[i].type = DirectTypeNil;
+		
+		direct->sliders[i].value = 0;
+	}
+	
 	tDirect_setConfiguration(direct, 0);
 		
 }
@@ -29,20 +38,29 @@ void tDirect_init(tDirect* const direct, int numOuts)
 void tDirect_setOutput(tDirect* const direct, int hex, int output)
 {
 	// Assign hex to output.
-	if (output < 0) direct->hexes[hex].type = DirectTypeNil;
-	direct->hexes[hex].output = output;
+	if (hex < 48)
+	{
+		if (output < 0) direct->hexes[hex].type = DirectTypeNil;
+		direct->hexes[hex].output = output;
+	}
+	else if (hex < 50)
+	{
+		int whichSlider = (hex-48);
+		if (output < 0) direct->sliders[whichSlider].type = DirectTypeNil;
+		direct->sliders[whichSlider].output = output;
+	}
 }
 
 
 int tDirect_getOutput(tDirect* const direct, int hex)
 {
-	return direct->hexes[hex].output;
+	return ((hex < 48) ? direct->hexes[hex].output : direct->sliders[(hex-48)].output);
 }
 
 
 DirectType tDirect_getType(tDirect* const direct, int hex)
 {
-	return direct->hexes[hex].type;
+	return ((hex < 48) ? direct->hexes[hex].type : direct->sliders[(hex-48)].type);
 }
 
 void tDirect_setConfiguration(tDirect* const direct, int which)
@@ -117,6 +135,14 @@ void tDirect_blank(tDirect* const direct)
 		direct->hexes[i].output = -1;
 		direct->hexes[i].type = DirectTypeNil;
 	}
+	
+	for (int i = 0; i < 2; i++)
+	{
+		direct->sliders[i].output = -1;
+		direct->sliders[i].type = DirectTypeNil;
+		direct->sliders[i].value = 0;
+	}
+	
 	direct->numActive = 0;
 }
 
@@ -140,8 +166,14 @@ void tDirect_setType(tDirect* const direct, int hex, DirectType newType)
 		}
 	}
 	
-	direct->hexes[hex].type = newType;
-	
+	if (hex < 48)
+	{
+		direct->hexes[hex].type = newType;
+	}
+	else if (hex < 50)
+	{
+		direct->sliders[(hex-48)].type = newType;
+	}
 										
 }
 

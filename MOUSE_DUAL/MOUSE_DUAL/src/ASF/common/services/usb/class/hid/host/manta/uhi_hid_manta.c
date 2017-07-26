@@ -190,7 +190,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					//set version number based on serial number
 					if (dev->dev_desc.iSerialNumber < 70)
 					{
-						firstEdition = TRUE;
+						//firstEdition = TRUE;
 					}
 					else
 					{
@@ -819,13 +819,13 @@ void dimLEDsForFirstEdition(void)
 		uhi_manta_report_firstEdition[i+7] = uhi_manta_report[1][i+7];
 	}
 	counterForRedDimming++;
-	if (counterForRedDimming > 1)
+	if (counterForRedDimming > 3)
 	{
 		counterForRedDimming = 0;
 		dimOnRED = !dimOnRED;
 	}
 	counterForBothDimming++;
-	if (counterForBothDimming > 3)
+	if (counterForBothDimming > 9)
 	{
 		counterForBothDimming = 0;
 		dimOnBOTH = !dimOnBOTH;

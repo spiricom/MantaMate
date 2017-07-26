@@ -626,6 +626,19 @@ static void tc2_irq(void)
 								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
 							}
 						}
+						
+						for (int i = 0; i < 2; i++)
+						{
+							DirectType type = instrument->direct.sliders[i].type;
+							int output = instrument->direct.sliders[i].output;
+							if (type == DirectCV)
+							{
+								sendDataToOutput(6*inst+output, globalCVGlide, (instrument->direct.sliders[i].value << 4));
+							}
+							
+						}
+						
+						
 					}
 					else if (instrument->type == KeyboardInstrument)
 					{
@@ -730,6 +743,17 @@ static void tc2_irq(void)
 					{
 						sendDataToOutput(output, globalCVGlide, butt_states[i] << 8);
 					}
+				}
+				
+				for (int i = 0; i < 2; i++)
+				{
+					DirectType type = fullDirect.sliders[i].type;
+					int output = fullDirect.sliders[i].output;
+					if (type == DirectCV)
+					{
+						sendDataToOutput(output, globalCVGlide, fullDirect.sliders[i].value);
+					}
+					
 				}
 			}
 		}
@@ -2534,9 +2558,17 @@ void noDevicePreset_decode(uint8_t* buffer)
 void mantaSliderTouchAction(int whichSlider)
 {
 	//MIKEY LIKES IT
+	// yessss he does :)
+	
+	int whichHex = whichSlider + 48;
+	if (directEditMode) touchDirectEdit(whichHex);
 }
 
 void mantaSliderReleaseAction(int whichSlider)
 {
 	//HEY MIKEY, HE LIKES IT
+	// finally saw that commercial btw haha. dad educated me
+	int whichHex = whichSlider + 48;
+	if (directEditMode) releaseDirectEdit(whichHex);
 }
+
