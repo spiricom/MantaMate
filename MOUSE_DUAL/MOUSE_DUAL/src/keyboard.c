@@ -6,6 +6,7 @@
  */ 
 
 #include "keyboard.h"
+#include "main.h"
 #include "tuning.h"
 #include "stdlib.h"
 
@@ -65,28 +66,30 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			MantaLEDColor color = Off;
 			
+			MantaLEDColor blackKeyColor = (firstEdition ? Amber : Red);
+			
 			if (pitch >= 0)
 			{
 				switch (pitch%12)
 				{
 					case 1:
-					color = Red;
+					color = blackKeyColor;
 					break;
 					
 					case 3:
-					color = Red;
+					color = blackKeyColor;
 					break;
 					
 					case 6:
-					color = Red;
+					color = blackKeyColor;
 					break;
 					
 					case 8:
-					color = Red;
+					color = blackKeyColor;
 					break;
 					
 					case 10:
-					color = Red;
+					color = blackKeyColor;
 					break;
 					
 					default:
@@ -112,7 +115,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 
 			if (pitchMod12 == 7)		color = Amber;
-			else if (pitchMod12 == 0)	color = Red;
+			else if (pitchMod12 == 0)	color = (firstEdition ? Amber : Red);
 			
 			keyboard->hexes[i].color = color;
 		}
@@ -128,7 +131,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			MantaLEDColor color = Off;
 			
-			if ((pitchMod12 == 9) || (pitchMod12 == 0))			color = Red;
+			if ((pitchMod12 == 9) || (pitchMod12 == 0))			color = (firstEdition ? Amber : Red);
 			else if ((pitchMod12 == 4) || (pitchMod12 == 3))	color = Amber;
 			
 			keyboard->hexes[i].color = color;
@@ -196,11 +199,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 		keyboard->trigCount[i] = 0;
 	}
 	
-	for (int i = 0; i < 48; i++)
-	{
-		tHex_init(&keyboard->hexes[i], i);
-	}
-	
+	tKeyboard_setToDefault(keyboard, PianoMap);
 	tNoteStack_init(&keyboard->stack, 48);
 	tNoteStack_init(&keyboard->orderStack, 48);
 }

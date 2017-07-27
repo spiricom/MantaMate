@@ -149,10 +149,18 @@ void touchHexmapEdit(int hex, uint8_t weight)
 		{
 			MantaLEDColor color = hexmapEditKeyboard->hexes[currentHexmapEditHex].color;
 			
-			if (color == Off)        color = Amber;
-			else if (color == Amber) color = Red;
-			else if (color == Red)   color = Off;
-			else					 color = Amber;
+			if (!firstEdition)
+			{
+				if (color == Off)        color = Amber;
+				else if (color == Amber) color = Red;
+				else if (color == Red)   color = Off;
+				else					 color = Amber;
+			}
+			else
+			{
+				if (color == Off)        color = Amber;
+				else if (color == Amber) color = Off;
+			}
 			
 			hexmapEditKeyboard->hexes[currentHexmapEditHex].color = color;
 			

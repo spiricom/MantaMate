@@ -1304,7 +1304,7 @@ void touchLowerHex(uint8_t hexagon)
 				if (tNoteStack_contains(&editStack, hexagon) < 0)
 				{
 					tNoteStack_add(&editStack, hexagon);
-					manta_set_LED_hex(hexagon, Red);
+					manta_set_LED_hex(hexagon, firstEdition ? Amber : Red);
 				}
 				else
 				{
@@ -1320,7 +1320,7 @@ void touchLowerHex(uint8_t hexagon)
 				setSequencerLEDsFor(instrumentToSet);
 				
 				editNoteOn = hexagon;
-				manta_set_LED_hex(editNoteOn, Red);
+				manta_set_LED_hex(editNoteOn, firstEdition ? Amber : Red);
 			}
 
 		}
@@ -1342,7 +1342,7 @@ void touchLowerHex(uint8_t hexagon)
 					amberHexes[currentInstrument][hexagon] = 0;
 					if (hexagon == uiHexCurrentStep)
 					{
-						manta_set_LED_hex(hexagon, RedOff);
+						manta_set_LED_hex(hexagon, firstEdition ? Off : RedOff);
 					}
 				}
 			}
@@ -1358,23 +1358,18 @@ void touchLowerHex(uint8_t hexagon)
 			tNoteStack_add(&editStack,currentHexUI);
 			
 			int currPanel = currentPanel[currentInstrument];
-			
-			int cont = 1;
-			
-			if (cont)
+
+			if (sequencer->step[step].on[currPanel])
 			{
-				if (sequencer->step[step].on[currPanel])
-				{
-					sequencer->step[step].on[currPanel] = 0;
-					manta_set_LED_hex(currentHexUI, RedOff);
-				}
-				else
-				{
-					sequencer->step[step].on[currPanel] = 1;
-					manta_set_LED_hex(currentHexUI, RedOn);
-				}
-				
+				sequencer->step[step].on[currPanel] = 0;
+				manta_set_LED_hex(currentHexUI, RedOff);
 			}
+			else
+			{
+				sequencer->step[step].on[currPanel] = 1;
+				manta_set_LED_hex(currentHexUI, RedOn);
+			}
+
 		}
 
 		if (!shiftOption1)
@@ -1870,8 +1865,7 @@ void touchUpperHex(uint8_t hexagon)
 				// handle case when more than one note in editStack (check if they all have same parameter value
 				// need to be able to set multiple notes to rest too
 				int step = hexUIToStep(tNoteStack_first(&editStack));
-				
-
+			
 				if (!(getParameterFromStep(currentInstrument, step, Note)))	setParameterForEditStackSteps(currentInstrument,Note,1);
 				else														setParameterForEditStackSteps(currentInstrument,Note,0);
 	
@@ -2897,53 +2891,53 @@ void uiStep(MantaInstrument inst)
 		{
 			if (tNoteStack_contains(&editStack, uiHexCurrentStep) >= 0)
 			{
-				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
+				manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Off : AmberOn);
 			}
 			else
 			{
-				manta_set_LED_hex(uiHexCurrentStep, RedOn);
+				manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Amber : RedOn);
 			}
 			
 			if (tNoteStack_contains(&editStack,uiHexPrevStep) >= 0)
 			{
-				manta_set_LED_hex(uiHexPrevStep, AmberOff);
+				manta_set_LED_hex(uiHexPrevStep, firstEdition ? Amber : AmberOff);
 			}
 			else
 			{
-				manta_set_LED_hex(uiHexPrevStep, RedOff);
+				manta_set_LED_hex(uiHexPrevStep, firstEdition ? Off : RedOff);
 			}
 		}
 		else // TriggerMode
 		{
 			if (tNoteStack_contains(&editStack,uiHexCurrentStep) >= 0)
 			{
-				manta_set_LED_hex(uiHexCurrentStep, AmberOn);
+				manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Off : AmberOn);
 			}
 			else
 			{
 				if (sequencer->step[cStep].on[currentPanel[currentInstrument]])
 				{
-					manta_set_LED_hex(uiHexCurrentStep, Red);
+					manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Off : Red);
 				}
 				else
 				{
-					manta_set_LED_hex(uiHexCurrentStep, RedOn);
+					manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Off : RedOn);
 				}
 			}
 			
 			if (tNoteStack_contains(&editStack,uiHexPrevStep) >= 0)
 			{
-				manta_set_LED_hex(uiHexPrevStep, AmberOff);
+				manta_set_LED_hex(uiHexPrevStep, firstEdition ? Amber : AmberOff);
 			}
 			else
 			{
 				if (sequencer->step[pStep].on[currentPanel[currentInstrument]])
 				{
-					manta_set_LED_hex(uiHexPrevStep, Amber);
+					manta_set_LED_hex(uiHexPrevStep, firstEdition ? Off : Amber);
 				}
 				else
 				{
-					manta_set_LED_hex(uiHexPrevStep, RedOff);
+					manta_set_LED_hex(uiHexPrevStep,firstEdition ? Off : RedOff);
 				}
 			}
 		}	
@@ -2972,8 +2966,8 @@ void uiStep(MantaInstrument inst)
 		}
 		else
 		{
-			manta_set_LED_hex(uiHexPrevStep, RedOff);
-			if (sequencer->notestack.size > 0) manta_set_LED_hex(uiHexCurrentStep, RedOn);
+			manta_set_LED_hex(uiHexPrevStep, firstEdition ? Amber : RedOff);
+			if (sequencer->notestack.size > 0) manta_set_LED_hex(uiHexCurrentStep, firstEdition ? Off : RedOn);
 		}
 		
 	}
@@ -3034,11 +3028,11 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelRest)
 				{
-					manta_set_LED_hex(j+MAX_STEPS,Red);
+					manta_set_LED_hex(j+MAX_STEPS, (firstEdition ? Off : Red));
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
-					manta_set_LED_hex(j+MAX_STEPS, (glideNoteOn >= 0) ? Red : Off);
+					manta_set_LED_hex(j+MAX_STEPS, (glideNoteOn >= 0) ? (firstEdition ? Amber : Red) : Off);
 				}
 				else
 				{
@@ -3057,11 +3051,11 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 			{
 				if (keyboard_pattern[j] < KeyboardEndOctave)
 				{
-					manta_set_LED_hex(j+MAX_STEPS, Red);
+					manta_set_LED_hex(j+MAX_STEPS, firstEdition ? Off : Red);
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelRest)
 				{
-					manta_set_LED_hex(j+MAX_STEPS,Amber);
+					manta_set_LED_hex(j+MAX_STEPS, Amber);
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
@@ -3224,7 +3218,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	{
 		hexUI = stepToHexUI(inst, i);
 
-		manta_set_LED_hex(hexUI, sequencer->step[i].toggled ?  (i == sequencer->currentStep ? BothOn : Amber) : Off);
+		manta_set_LED_hex(hexUI, firstEdition ? Off : (sequencer->step[i].toggled ?  (i == sequencer->currentStep ? BothOn : Amber) : Off));
 	}
 	
 	int size = editStack.size;
@@ -3233,7 +3227,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	{
 		for (int i = 0; i < size; i++)
 		{
-			manta_set_LED_hex(editStack.notestack[i], Red);
+			manta_set_LED_hex(editStack.notestack[i], firstEdition ? Amber : Red);
 		}
 	}
 	roll_LEDs = 1;
