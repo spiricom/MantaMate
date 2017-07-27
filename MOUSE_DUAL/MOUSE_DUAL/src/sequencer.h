@@ -45,7 +45,6 @@ typedef struct _tStep
 	uint16_t fine;   
 	uint16_t octave;
 	uint16_t pglide;
-	;
 	
 	// Trigger only
 	uint8_t on[4];
@@ -87,6 +86,8 @@ typedef struct _tSequencer
 	uint8_t lengthCounter;
 	
 	uint8_t trigCount[5]; //doesn't need to be saved in a preset or composition, just for temporary handling of trigger off times
+	
+	BOOL mute[4];
 	
 	int maxLength;
 	
