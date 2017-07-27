@@ -2290,17 +2290,16 @@ void loadMantaPreset(void)
 
 void initMantaLEDState(void)
 {
-	setKeyboardLEDs();
-	setDirectLEDs();
-	setSequencerLEDs();
-	setCurrentInstrument(InstrumentOne);
 	shiftOption1Lock = FALSE;
 	shiftOption2Lock = FALSE;
 	shiftOption1 = FALSE;
 	shiftOption2 = FALSE;
 	hexmapEditMode = FALSE;
 	directEditMode = FALSE;
-	
+	setKeyboardLEDs();
+	setDirectLEDs();
+	setSequencerLEDs();
+	setCurrentInstrument(InstrumentOne);
 	displayState = GlobalDisplayStateNil;
 }
 

@@ -339,24 +339,19 @@ void testSerialNumber(void)
 
 
 // this appears to step through the report, allocating space in hid_report_parser.reportDesc
-static void get_manta_serial_number(void)
+void get_manta_serial_number(void)
 {
 	usb_setup_req_t req;
-	int i;
-	
 	req.bmRequestType = USB_REQ_RECIP_DEVICE|USB_REQ_TYPE_STANDARD|USB_REQ_DIR_IN;
 	req.bRequest = USB_REQ_GET_DESCRIPTOR;
 	req.wValue = (USB_DT_STRING << 8) | 0x03;
 	req.wIndex = 0;
-	//req.wLength = sizeof(usb_str_desc_t);
 	req.wLength = 0x08;
 	
 	// After a USB reset, the reallocation is required
 	if (!uhd_setup_request(1, &req, (uint8_t *) mySerialString, 
 		8, NULL, testSerialNumber)) 
 	{
-		//uhc_enumeration_error(UHC_ENUM_MEMORY_LIMIT);
-		//MEMORY_printf_string("ERROR");
 		return;
 	}
 }

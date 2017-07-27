@@ -378,8 +378,7 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 	}
 }
 
-int otherNote = 0;
-
+int otherNote = -1;
 void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 {
 	// if not in keymap, return. else remove that note.
@@ -429,6 +428,7 @@ void tKeyboard_noteOff(tKeyboard* const keyboard, uint8_t note)
 						
 						keyboard->lastVoiceToChange = deactivatedVoice;
 						keyboard->hexes[otherNote].active = TRUE;
+						break;
 					}
 				}
 			}

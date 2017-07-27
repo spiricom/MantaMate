@@ -629,6 +629,9 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 	}
 }
 
+
+int16_t noteToTest = -1;
+
 void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 {
 
@@ -665,15 +668,16 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 		
 		while (1)
 		{
-			int otherNote = tNoteStack_get(&keyboard->stack, i++);
-			if (otherNote < 0 ) break;
+			noteToTest = tNoteStack_get(&keyboard->stack, i++);
+			if (noteToTest < 0 ) break;
 				
-			if (keyboard->notes[otherNote][1] == 0) //if there is a stolen note waiting (marked inactive but on the stack)
+			if (keyboard->notes[noteToTest][1] == 0) //if there is a stolen note waiting (marked inactive but on the stack)
 			{
-				keyboard->voices[deactivatedVoice][0] = otherNote; //set the newly free voice to use the old stolen note
-				keyboard->voices[deactivatedVoice][1] = keyboard->notes[otherNote][0]; // set the velocity of the voice to be the velocity of that note
-				keyboard->notes[otherNote][1] = 1; //mark that it is no longer stolen and is now active
+				keyboard->voices[deactivatedVoice][0] = noteToTest; //set the newly free voice to use the old stolen note
+				keyboard->voices[deactivatedVoice][1] = keyboard->notes[noteToTest][0]; // set the velocity of the voice to be the velocity of that note
+				keyboard->notes[noteToTest][1] = 1; //mark that it is no longer stolen and is now active
 				keyboard->lastVoiceToChange = deactivatedVoice; // mark the voice that was just changed as the last voice to change
+				break;
 			}
 		}
 	}
