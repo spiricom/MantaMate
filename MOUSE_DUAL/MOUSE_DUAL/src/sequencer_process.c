@@ -1065,7 +1065,12 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 		else if (type == SequencerInstrument)
 		{
 			tSequencer* sequencer = &manta[whichInst].sequencer;
-			if (whichHex == 14)
+			
+			if (whichHex == 13)
+			{
+				manta_set_LED_hex(whichInst * 16 + 13, Red);
+			}
+			else if (whichHex == 14)
 			{
 				manta_set_LED_hex(whichInst * 16 + 14, Red);
 			}
@@ -1079,6 +1084,11 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			{
 				if (shiftOption1SubShift == SubShiftNil)
 				{
+					displayState = SequencerSelect;
+					
+					currentSequencerSelect = -1;
+					Write7Seg(currentSequencerSelect);
+					
 					if (compositionMap[whichInst][whichHex])
 					{
 						memoryInternalReadSequencer(whichInst, whichHex,decodeBuffer[whichInst]);
@@ -1088,6 +1098,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 						
 						setCurrentInstrument(whichInst);
 					}
+					
 
 				}
 				else if (shiftOption1SubShift == SubShiftTopRight) // CompositionWrite
@@ -1212,6 +1223,24 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 				displayState = GlobalDisplayStateNil;
 				
 				initiateLoadingDirectFromExternalMemory(currentDirectSelect);
+			}
+		}
+		else if (type == SequencerInstrument)
+		{
+			if (whichHex < 13)
+			{
+				// Load Sequencer 
+				Write7Seg(preset_num);
+				
+				displayState = GlobalDisplayStateNil;
+				
+				whichCompositionInstrument = whichInst;
+				whichCompositionHex = whichHex;
+				
+				if (currentSequencerSelect >= 0)
+				{
+					initiateLoadingSequencerFromExternalMemory(currentSequencerSelect);
+				}
 			}
 		}
 		
@@ -2389,6 +2418,11 @@ void touchTopRightButton(void)
 		if (shiftOption1)
 		{
 			shiftOption1SubShift = SubShiftTopRight;
+			
+			displayState = SequencerSelect;
+			
+			currentSequencerSelect = -1;
+			Write7Seg(currentSequencerSelect);
 		}
 		else if (shiftOption2)
 		{
@@ -2441,8 +2475,23 @@ void touchTopRightButton(void)
 
 void releaseTopRightButton(void)
 {
-	if (manta[currentInstrument].type == SequencerInstrument)
+	if (!takeover && (manta[currentInstrument].type == SequencerInstrument))
 	{
+		if (shiftOption1SubShift == SubShiftTopRight)
+		{
+			// Save Sequencer
+			Write7Seg(preset_num);
+			
+			displayState = GlobalDisplayStateNil;
+			
+			if (currentSequencerSelect >= 0)
+			{
+				tSequencer_encode(&manta[InstrumentOne].sequencer, sequencerBuffer);
+				tSequencer_encode(&manta[InstrumentTwo].sequencer, &sequencerBuffer[NUM_BYTES_PER_SEQUENCER]);
+				
+				initiateStoringSequencerToExternalMemory(currentSequencerSelect);
+			}
+		}
 		shiftOption1SubShift = SubShiftNil;
 		copyStage = 0;
 		copyWhichInst = InstrumentNil;

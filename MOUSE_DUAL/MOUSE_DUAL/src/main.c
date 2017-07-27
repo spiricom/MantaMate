@@ -303,6 +303,7 @@ int main(void){
 	currentHexmapEditHex = -1;
 	currentHexmapHex = -1;
 	currentDirectSelect = 0;
+	currentSequencerSelect = -1;
 	currentHexmapSelect = 0;
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
@@ -400,6 +401,13 @@ int main(void){
 				continueStoringDirectToExternalMemory();
 			}
 		}
+		else if (sequencerSavePending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueStoringSequencerToExternalMemory();
+			}
+		}
 		else if (startupStateSavePending)
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
@@ -454,6 +462,13 @@ int main(void){
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingDirectFromExternalMemory();
+			}
+		}
+		else if (sequencerLoadPending)
+		{
+			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
+			{
+				continueLoadingSequencerFromExternalMemory();
 			}
 		}
 		else if (startupStateLoadPending)
@@ -1309,6 +1324,26 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			
 			Write7Seg(currentDirectSelect);
 			normal_7seg_number = currentDirectSelect;
+		}
+		else if (displayState == SequencerSelect)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					if (++currentSequencerSelect > 99) currentSequencerSelect = 0;
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (--currentSequencerSelect < 0) currentSequencerSelect = 99;
+				}
+			}
+			
+			Write7Seg(currentSequencerSelect);
+			normal_7seg_number = currentSequencerSelect;
 		}
 		else if (displayState == DirectOutputSelect)
 		{

@@ -34,6 +34,8 @@ extern unsigned char hexmapSavePending;
 extern unsigned char hexmapLoadPending;
 extern unsigned char directSavePending;
 extern unsigned char directLoadPending;
+extern unsigned char sequencerSavePending;
+extern unsigned char sequencerLoadPending;
 // Memory SPI
 
 int memorySPICheckIfBusy(void);
@@ -81,5 +83,10 @@ void initiateStoringDirectToExternalMemory(uint8_t direct_num_to_save);
 void continueStoringDirectToExternalMemory(void);
 void initiateLoadingDirectFromExternalMemory(uint8_t direct_to_load);
 void continueLoadingDirectFromExternalMemory(void);
+
+void initiateStoringSequencerToExternalMemory(uint8_t direct_num_to_save);
+void continueStoringSequencerToExternalMemory(void);
+void initiateLoadingSequencerFromExternalMemory(uint8_t direct_to_load);
+void continueLoadingSequencerFromExternalMemory(void);
 
 #endif /* MEMORY_SPI_H_ */
