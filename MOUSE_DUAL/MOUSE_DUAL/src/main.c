@@ -328,12 +328,12 @@ int main(void){
 	directEditMode = FALSE;
 	
 	//start off on preset 0;
+	//preset_num = 0;
 	
 	
 	
-	
-	preset_num = 0;
-	//loadStartupStateFromExternalMemory();
+
+	loadStartupStateFromExternalMemory();
 	
 	
 	
@@ -2296,10 +2296,10 @@ void initMantaLEDState(void)
 	shiftOption2 = FALSE;
 	hexmapEditMode = FALSE;
 	directEditMode = FALSE;
+	setCurrentInstrument(InstrumentOne);
+	setSequencerLEDs();
 	setKeyboardLEDs();
 	setDirectLEDs();
-	setSequencerLEDs();
-	setCurrentInstrument(InstrumentOne);
 	displayState = GlobalDisplayStateNil;
 }
 

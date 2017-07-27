@@ -331,7 +331,7 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 					int whichGroup = (keyboard->numVoices * 3) / 6;
 					int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
 					
-					tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+					tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], globalCVGlide);
 					tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
 					
 					manta_set_LED_slider(sliderNum, (val >> 9) + 1);
@@ -361,7 +361,7 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 				int whichGroup = (keyboard->numVoices * 3) / 6;
 				int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
 				
-				tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], 10);
+				tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], globalCVGlide);
 				tIRampSetDest(&out[whichGroup][sliderStartPos + sliderNum], val);
 				
 				manta_set_LED_slider(sliderNum, (val >> 9) + 1);
@@ -409,8 +409,9 @@ void dacSendKeyboard(MantaInstrument which)
 		int newNote = keyboard->currentNote;
 		if (newNote >= 0)
 		{
+			tIRampSetTime(&out[which][CVKPITCH+3*keyboard->currentVoice], globalPitchGlide);
 			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
-
+			tIRampSetTime(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
 			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
 			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
 		}
@@ -427,12 +428,14 @@ void dacSendKeyboard(MantaInstrument which)
 			int note = keyboard->voices[i];
 			if (note >= 0)
 			{
+				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], globalPitchGlide);
 				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose) + ((keyboard->hexes[note].fine >> 2) - 512));
-
+				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
 				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
 				//if we are in mono mode, then we have room for a trigger output, too
 				if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
 				{
+					tIRampSetTime(&out[which][CVKTRIGGER], 0);
 					tIRampSetDest(&out[which][CVKTRIGGER], 65535);
 					keyboard->trigCount[0] = TRIGGER_TIMING;
 				}
