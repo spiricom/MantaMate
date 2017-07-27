@@ -442,6 +442,7 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		for (int j = 0; j < 4; j++)
 		{
 			seq->step[i].on[j] = 0;
+			seq->mute[i] = FALSE;
 		}
 	}
 	

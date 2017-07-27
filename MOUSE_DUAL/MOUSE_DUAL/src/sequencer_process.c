@@ -456,7 +456,6 @@ void sequencerStep(MantaInstrument inst)
 	
 	int offset,cstep,curr;
 	
-		
 	offset = inst * 2;
 		
 	cstep = sequencer->currentStep;
@@ -1422,8 +1421,8 @@ void switchToMode(MantaEditPlayMode mode)
 	{
 		if (full_vs_split == SplitMode)
 		{
-			if (trigSelectOn >= 0 && trigSelectOn < 4)	setTriggerPanelLEDsFor(InstrumentOne,currentPanel[InstrumentOne]);
-			else										setTriggerPanelLEDsFor(InstrumentTwo,currentPanel[InstrumentTwo]);
+			if (trigSelectOn < 4)	setTriggerPanelLEDsFor(InstrumentOne,currentPanel[InstrumentOne]);
+			else					setTriggerPanelLEDsFor(InstrumentTwo,currentPanel[InstrumentTwo]);
 			
 			manta_set_LED_hex(stepToHexUI(InstrumentOne, manta[InstrumentOne].sequencer.currentStep), Amber);
 			manta_set_LED_hex(stepToHexUI(InstrumentTwo, manta[InstrumentTwo].sequencer.currentStep), Amber);
@@ -1726,7 +1725,6 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionTrigger)
 	{
 		resetEditStack();
-		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
@@ -2002,46 +2000,31 @@ void touchUpperHex(uint8_t hexagon)
 		else // TriggerMode
 		{
 			int whichUpperHex = currentUpperHexUI - MAX_STEPS;
+			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
+
+			if (manta[whichInst].type != SequencerInstrument) return;
+			
+			sequencer = &manta[whichInst].sequencer;
+			
 			int whichTrigPanel = trigger_pattern[whichUpperHex];
-			
-			MantaInstrument whichInst = currentInstrument;
-			int whichPanel = 0;
-			int cont = 0;
-			
-			if (manta[InstrumentOne].type == SequencerInstrument && whichTrigPanel == S1TrigPanelSelect)
+			int whichMute = (whichUpperHex%4);
+			int whichPanel = (whichUpperHex%4);
+
+			if (whichTrigPanel != SXTrigPanelNil)
 			{
-				if (manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode)
+				// InstrumentOne Trig
+				if (edit_vs_play == PlayToggleMode) 
 				{
-					whichInst = InstrumentOne;
-					whichPanel = whichUpperHex;
-					
-					if (edit_vs_play == PlayToggleMode)
-					{
-						trigSelectOn = whichUpperHex;
-						switchToMode(TrigToggleMode);
-					}
-					
-					cont= 1;
-				}
-			}
-			else if (manta[InstrumentTwo].type == SequencerInstrument && whichTrigPanel == S2TrigPanelSelect)
-			{
-				if (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode)
-				{
-					whichInst = InstrumentTwo;
-					whichPanel = whichUpperHex - 12;
-					
-					if (edit_vs_play == PlayToggleMode)
-					{
-						trigSelectOn = whichUpperHex;
-						switchToMode(TrigToggleMode);
-					}
-					
-					cont= 1;
+					trigSelectOn = whichUpperHex;
+					switchToMode(TrigToggleMode);
 				}
 			}
 			else
 			{
+				sequencer->mute[whichMute] = (sequencer->mute[whichMute] ? FALSE : TRUE);
+			}
+			
+/* //MOVE GLIDE STUFF
 				if (glideNoteOn == -1)
 				{
 					glideNoteOn = hexagon;
@@ -2061,64 +2044,58 @@ void touchUpperHex(uint8_t hexagon)
 						setSliderLEDsFor(currentInstrument, -1);
 					}
 				}
-			}
+*/
 			
-			if (cont) //dumb method
+
+			if (whichInst != currentInstrument)
 			{
-				if (whichInst != currentInstrument)
+				setCurrentInstrument(whichInst);
+				
+				if (edit_vs_play != TrigToggleMode)
 				{
-					setCurrentInstrument(whichInst);
-				
-					if (edit_vs_play != TrigToggleMode)
-					{
-						setKeyboardLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
-						setSequencerLEDsFor(currentInstrument);
-					}
-				}
-			
-				int uiOffset = MAX_STEPS;
-			
-				if (whichInst == InstrumentTwo) uiOffset += 12;
-			
-				if (edit_vs_play == EditMode)
-				{
-					if (whichTrigPanel != SXTrigPanelNil)
-					{
-						int step = hexUIToStep(tNoteStack_first(&editStack));
-					
-						if (!getParameterFromStep(currentInstrument, step, On1 + whichPanel))
-						{
-							setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 1);
-						
-							manta_set_LED_hex(whichPanel + uiOffset, Red);
-						}
-						else
-						{
-							setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 0);
-						
-							manta_set_LED_hex(whichPanel + uiOffset, Amber);
-						}
-					}
-				
-				
-				}
-				else if (edit_vs_play == TrigToggleMode)
-				{
-				
-					int prevPanel = currentPanel[currentInstrument];
-					currentPanel[currentInstrument] = whichPanel;
-				
-					setTriggerPanelLEDsFor(currentInstrument, currentPanel[currentInstrument]);
-					
-					allUIStepsOff((currentInstrument+1)%2);
-				
-					manta_set_LED_hex(currentUpperHexUI, Red);
-				}
-				else //PlayToggleMode
-				{
-				
+					setKeyboardLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
+					setSequencerLEDsFor(currentInstrument);
 				}
 			}
+			
+			int uiOffset = MAX_STEPS;
+			
+			if (whichInst == InstrumentTwo) uiOffset += 12;
+			
+			if (edit_vs_play == EditMode)
+			{
+				if (whichTrigPanel != SXTrigPanelNil)
+				{
+					int step = hexUIToStep(tNoteStack_first(&editStack));
+					
+					if (!getParameterFromStep(currentInstrument, step, On1 + whichPanel))
+					{
+						setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 1);
+						
+						manta_set_LED_hex(whichPanel + uiOffset, Red);
+					}
+					else
+					{
+						setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 0);
+						
+						manta_set_LED_hex(whichPanel + uiOffset, Amber);
+					}
+				}
+				
+			}
+			else if (edit_vs_play == TrigToggleMode)
+			{
+				
+				int prevPanel = currentPanel[currentInstrument];
+				currentPanel[currentInstrument] = whichPanel;
+				
+				setTriggerPanelLEDsFor(currentInstrument, currentPanel[currentInstrument]);
+					
+				allUIStepsOff((currentInstrument+1)%2);
+				
+				manta_set_LED_hex(currentUpperHexUI, Red);
+			}
+			
 			
 		}
 			
@@ -3092,16 +3069,26 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 	}
 	else // TriggerMode
 	{
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
+		
+		for (int i = 0; i < 16; i++) 
 		{
+			int hex = i+MAX_STEPS;
 			int which = trigger_pattern[i];
-			if ((which == S1TrigPanelSelect) || (which == S2TrigPanelSelect))
+			int whichMute = i % 4;
+			
+			if ((inst == InstrumentOne && which == S1TrigPanelSelect) || (inst == InstrumentTwo && which == S2TrigPanelSelect))
 			{
-				manta_set_LED_hex(i + MAX_STEPS, Amber);
-			}
-			else // SXTrigPanelNil
-			{
-				manta_set_LED_hex(i + MAX_STEPS, Off);
+				if (sequencer->mute[whichMute]) 
+				{
+					manta_set_LED_hex(hex, Red);
+					manta_set_LED_hex(hex+8,Amber);
+				}
+				else
+				{
+					manta_set_LED_hex(hex, Amber);
+					manta_set_LED_hex(hex+8,Off);
+				}
 			}
 		}
 
@@ -3455,20 +3442,35 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	if (glideTime < 5) glideTime = 5;
 
 	tIRampSetTime(&out[inst][CV1T], glideTime);
-	tIRampSetDest(&out[inst][CV1T], sequencer[inst].step[step].cv1 << 4);
+	tIRampSetDest(&out[inst][CV1T], sequencer->step[step].cv1 << 4);
 		
 	tIRampSetTime(&out[inst][CV2T], glideTime);
-	tIRampSetDest(&out[inst][CV2T], sequencer[inst].step[step].cv2 << 4);
+	tIRampSetDest(&out[inst][CV2T], sequencer->step[step].cv2 << 4);
 
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
-	tIRampSetDest(&out[inst][CVTRIG1],sequencer[inst].step[step].on[0] * 4095);
-	sequencer[inst].trigCount[1] = sequencer[inst].step[step].on[0] * TRIGGER_TIMING;
-	tIRampSetDest(&out[inst][CVTRIG2],sequencer[inst].step[step].on[1] * 4095);
-	sequencer[inst].trigCount[2] = sequencer[inst].step[step].on[1] * TRIGGER_TIMING;
-	tIRampSetDest(&out[inst][CVTRIG3],sequencer[inst].step[step].on[2] * 4095);
-	sequencer[inst].trigCount[3] = sequencer[inst].step[step].on[2] * TRIGGER_TIMING;
-	tIRampSetDest(&out[inst][CVTRIG4],sequencer[inst].step[step].on[3] * 4095);
-	sequencer[inst].trigCount[4] = sequencer[inst].step[step].on[3] * TRIGGER_TIMING;
+	if (!sequencer->mute[0]) 
+	{
+		tIRampSetDest(&out[inst][CVTRIG1],sequencer->step[step].on[0] * 4095);
+		sequencer->trigCount[1] = sequencer->step[step].on[0] * TRIGGER_TIMING;
+	}
+	
+	if (!sequencer->mute[1])
+	{
+		tIRampSetDest(&out[inst][CVTRIG2],sequencer->step[step].on[1] * 4095);
+		sequencer->trigCount[2] = sequencer->step[step].on[1] * TRIGGER_TIMING;
+	}
+	
+	if (!sequencer->mute[2])
+	{
+		tIRampSetDest(&out[inst][CVTRIG3],sequencer->step[step].on[2] * 4095);
+		sequencer->trigCount[3] = sequencer->step[step].on[2] * TRIGGER_TIMING;
+	}
+	
+	if (!sequencer->mute[3])
+	{
+		tIRampSetDest(&out[inst][CVTRIG4],sequencer->step[step].on[3] * 4095);
+		sequencer->trigCount[4] = sequencer->step[step].on[3] * TRIGGER_TIMING;
+	}
 }
 
 // UTILITIES
