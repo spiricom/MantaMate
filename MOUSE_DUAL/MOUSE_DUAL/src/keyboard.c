@@ -66,30 +66,28 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			MantaLEDColor color = Off;
 			
-			MantaLEDColor blackKeyColor = (firstEdition ? Amber : Red);
-			
 			if (pitch >= 0)
 			{
 				switch (pitch%12)
 				{
 					case 1:
-					color = blackKeyColor;
+					color = keyboard->blackKeyColor;
 					break;
 					
 					case 3:
-					color = blackKeyColor;
+					color = keyboard->blackKeyColor;
 					break;
 					
 					case 6:
-					color = blackKeyColor;
+					color = keyboard->blackKeyColor;
 					break;
 					
 					case 8:
-					color = blackKeyColor;
+					color = keyboard->blackKeyColor;
 					break;
 					
 					case 10:
-					color = blackKeyColor;
+					color = keyboard->blackKeyColor;
 					break;
 					
 					default:
@@ -115,7 +113,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 
 			if (pitchMod12 == 7)		color = Amber;
-			else if (pitchMod12 == 0)	color = (firstEdition ? Amber : Red);
+			else if (pitchMod12 == 0)	color = keyboard->blackKeyColor;
 			
 			keyboard->hexes[i].color = color;
 		}
@@ -131,7 +129,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			MantaLEDColor color = Off;
 			
-			if ((pitchMod12 == 9) || (pitchMod12 == 0))			color = (firstEdition ? Amber : Red);
+			if ((pitchMod12 == 9) || (pitchMod12 == 0))			color = keyboard->blackKeyColor;
 			else if ((pitchMod12 == 4) || (pitchMod12 == 3))	color = Amber;
 			
 			keyboard->hexes[i].color = color;
@@ -175,7 +173,7 @@ void tKeyboard_setArpModeType(tKeyboard* const keyboard, ArpModeType type)
 }
 
 
-void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
+void tKeyboard_init(tKeyboard* const keyboard, int numVoices, MantaLEDColor bkc)
 {
 	// Arp mode stuff
 	keyboard->currentVoice = 0;
@@ -185,6 +183,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices)
 	keyboard->playMode = TouchMode;
 	keyboard->currentNote = -1;
 	keyboard->up = TRUE;
+	keyboard->blackKeyColor = bkc;
 	
 	// Normal stuff
 	keyboard->numVoices = numVoices;
