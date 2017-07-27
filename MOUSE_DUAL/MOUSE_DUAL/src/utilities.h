@@ -269,11 +269,11 @@ typedef enum SequencerPatternType {
 }SequencerPatternType;
 
 typedef enum TriggerPanel {
-	PanelNil = -1,
 	PanelOne = 0,
 	PanelTwo,
 	PanelThree,
 	PanelFour,
+	PanelNil
 } TriggerPanel;
 
 typedef enum TuningLoadLocation {

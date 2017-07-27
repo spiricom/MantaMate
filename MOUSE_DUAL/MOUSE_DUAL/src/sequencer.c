@@ -420,6 +420,8 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	seq->pitchOrTrigger = type;
 	seq->playMode = ToggleMode;
 	
+	for (int i = 0; i < 4; i++) seq->mute[i] = FALSE;
+	
 	for (int i = 0; i < 32; i++)
 	{
 		// Pitch and Trigger parameters
@@ -442,7 +444,6 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 		for (int j = 0; j < 4; j++)
 		{
 			seq->step[i].on[j] = 0;
-			seq->mute[i] = FALSE;
 		}
 	}
 	

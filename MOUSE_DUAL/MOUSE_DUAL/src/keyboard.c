@@ -110,6 +110,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			MantaLEDColor color = Off;
 			
+
 			if (pitchMod12 == 7)		color = Amber;
 			else if (pitchMod12 == 0)	color = Red;
 			
