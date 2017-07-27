@@ -2117,6 +2117,7 @@ void setSequencerLEDs(void)
 		}
 		else
 		{
+			
 			setSequencerLEDsFor(InstrumentOne);
 			setSequencerLEDsFor(InstrumentTwo);
 		}
@@ -2156,9 +2157,9 @@ void setKeyboardLEDs(void)
 		}
 		
 	}
-	
-	freeze_LED_update = 0;
 	roll_LEDs = 1;
+	freeze_LED_update = 0;
+
 }
 
 void setDirectLEDs			(void)

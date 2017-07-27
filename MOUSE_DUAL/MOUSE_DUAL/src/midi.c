@@ -634,7 +634,6 @@ int16_t noteToTest = -1;
 
 void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 {
-
 	tNoteStack_remove(&keyboard->stack, note);
 	tNoteStack_remove(&keyboard->orderStack, note);
 	keyboard->notes[note][0] = 0;
