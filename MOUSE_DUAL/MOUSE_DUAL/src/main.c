@@ -168,6 +168,8 @@ static uint32_t blinkSpeed7Seg = 500;
 int mantaCompositionSavePending = 0;
 int mantaCompositionLoadPending = 0;
 
+DPadStyleType dPadStyle = asButtons;
+
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
 #define EXT_INT_EXAMPLE_PIN_LINE1               AVR32_EIC_EXTINT_7_PIN
@@ -582,9 +584,7 @@ static void tc2_irq(void)
 			}
 		}
 	
-		if (type_of_device_connected == JoystickConnected) return;
-	
-		else if (type_of_device_connected == NoDeviceConnected)
+		if (type_of_device_connected == NoDeviceConnected)
 		{
 			for (int i = 0; i < 12; i++)
 			{
@@ -612,6 +612,21 @@ static void tc2_irq(void)
 				}
 			}
 		}
+		
+		else if (type_of_device_connected == JoystickConnected)
+		{
+			for (int i = 0; i < 12; i++)
+			{
+				if (myJoystick.trigCount[i] > 0)
+				{
+					if (--(myJoystick.trigCount[i]) == 0)
+					{
+						sendDataToOutput(i, 0, 0x0);
+					}
+				}
+			}
+		}
+		
 		else if (type_of_device_connected == MantaConnected)
 		{
 			if (!takeover) // Dual instrument, not takeover
@@ -2305,10 +2320,40 @@ void initMantaLEDState(void)
 
 void loadJoystickPreset(void)
 {
-	//joystick only has preset 0
-	if (preset_num != 0)
+	if (preset_num == 0)
 	{
-		preset_num = 0;
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = asAxes;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 1)
+	{
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = asButtons;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 2)
+	{
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = ignored;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 3)
+	{
+		joystickIgnoreAxes = TRUE;
+		dPadStyle = ignored;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 4)
+	{
+		joystickIgnoreAxes = TRUE;
+		dPadStyle = ignored;
+		joystickTriggers = TRUE;
+	}
+	
+	if (preset_num > 4)
+	{
+		preset_num = 4;
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
 	}

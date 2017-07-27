@@ -170,7 +170,7 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 				// USB HID Joystick interface found
 				// Start allocation endpoint(s)
 				b_iface_supported = true;
-				clearJoystick(myJoystick);
+				uhi_hid_joystick_clear_struct();
 			}
 			else {
 				// Stop allocation endpoint(s)
@@ -328,20 +328,34 @@ static void findDataOffset(void)
 			switch(hid_report_parser.data.path.node[hid_report_parser.data.path.size-1].usage)
 			{
 				case USAGE_X: case USAGE_Y: case USAGE_Z: case USAGE_RX: case USAGE_RY: case USAGE_RZ: case USAGE_HAT_SWITCH: case USAGE_SLIDER: case USAGE_DIAL: case USAGE_WHEEL:
-					myJoystick.joyAxes[myJoystick.numJoyAxis].offset = offset;
-					if (hid_report_parser.data.size == 1)
+					if (find_highest_bit(hid_report_parser.data.log_max) == 3)
 					{
-						myJoystick.joyAxes[myJoystick.numJoyAxis].size = 8;
-						myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = 8;
+						//then it's a DPAD, not a joystick - store it as such
+						myJoystick.dPads[myJoystick.numDPads].offset = offset;
+						myJoystick.dPads[myJoystick.numDPads].size = hid_report_parser.data.size;
+						myJoystick.dPads[myJoystick.numDPads].logical_max_bits = 3;
+						
+						myJoystick.numDPads++;
+						break;
 					}
 					else
 					{
-						myJoystick.joyAxes[myJoystick.numJoyAxis].size = hid_report_parser.data.size;
-						myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = find_highest_bit(hid_report_parser.data.log_max);
-					}
+						myJoystick.joyAxes[myJoystick.numJoyAxis].offset = offset;
+						if (hid_report_parser.data.size == 1)
+						{
+							myJoystick.joyAxes[myJoystick.numJoyAxis].size = 8;
+							myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = 8;
+						}
+						else
+						{
+							myJoystick.joyAxes[myJoystick.numJoyAxis].size = hid_report_parser.data.size;
+							myJoystick.joyAxes[myJoystick.numJoyAxis].logical_max_bits = find_highest_bit(hid_report_parser.data.log_max);
+						}
 					
-					myJoystick.numJoyAxis++;
-					break;
+						myJoystick.numJoyAxis++;
+						break;
+					}
+
 				
 					/*   this is the code to default to 8 bits if it doesn't actually report the size
 					UHI_HID_JOY_SLIDER = offset;
@@ -596,16 +610,39 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	}
 	get_report_descriptor();
 	// Init value
-	uhi_hid_joy_dev.report_butt_prev = 0;
-	uhi_hid_joy_dev.report_y_prev = 0;
-	uhi_hid_joy_dev.report_x_prev = 0;
-	uhi_hid_joy_dev.report_slider_prev = 0;
-	uhi_hid_joy_dev.report_Rz_prev = 0;
-	uhi_hid_joy_dev.report_hat_prev = 0;
 	uhi_hid_joy_start_trans_report(dev->address);
 	type_of_device_connected = JoystickConnected;
 	UHI_HID_JOY_CHANGE(dev, true);
-	globalCVGlide = 10;
+	updatePreset();
+}
+
+
+void uhi_hid_joystick_clear_struct(void)
+{
+	for (int i = 0; i < MAX_AXES; i++)
+	{
+		myJoystick.joyAxes[i].logical_max_bits = 0;
+		myJoystick.joyAxes[i].previous_value = 0;
+		myJoystick.joyAxes[i].offset = 0;
+		myJoystick.joyAxes[i].size = 0;
+	}
+	for (int i = 0; i < MAX_DPADS; i++)
+	{
+		myJoystick.dPads[i].logical_max_bits = 0;
+		myJoystick.dPads[i].previous_value = 0;
+		myJoystick.dPads[i].offset = 0;
+		myJoystick.dPads[i].size = 0;
+	}
+	for (int i = 0; i < MAX_BUTTONS; i++)
+	{
+		myJoystick.joyButtons[i].count = 0;
+		myJoystick.joyButtons[i].previous_value = 0;
+		myJoystick.joyButtons[i].offset = 0;
+		myJoystick.joyButtons[i].size = 0;
+	}
+	myJoystick.numJoyAxis = 0;
+	myJoystick.numDPads = 0;
+	myJoystick.numJoyButton = 0;
 }
 
 void uhi_hid_joy_uninstall(uhc_device_t* dev)
@@ -619,7 +656,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	free(uhi_hid_joy_dev.DescType);
 	free(uhi_hid_joy_dev.DescSize);
 	free(hid_report_parser.reportDesc);
-	clearJoystick(myJoystick);
+	uhi_hid_joystick_clear_struct();
 	UHI_HID_JOY_CHANGE(dev, false);
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
@@ -731,7 +768,6 @@ static void uhi_hid_joy_report_reception(
 		uhd_trans_status_t status,
 		iram_size_t nb_transfered)
 {
-
 	
 	UNUSED(ep);
 
@@ -751,49 +787,84 @@ static void uhi_hid_joy_report_reception(
 	else
 	{
 		uint16_t tempValue = 0;
-		for (int i = 0; i < myJoystick.numJoyAxis; i++)
-		{
-
-			if (myJoystick.joyAxes[i].logical_max_bits <= 16)
+		
+		if (!joystickIgnoreAxes)
+		{		
+			axesOffset = myJoystick.numJoyAxis;
+			for (int i = 0; i < myJoystick.numJoyAxis; i++)
 			{
-				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (16-myJoystick.joyAxes[i].logical_max_bits));
+
+				if (myJoystick.joyAxes[i].logical_max_bits <= 16)
+				{
+					tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) << (16-myJoystick.joyAxes[i].logical_max_bits));
+				}
+				else
+				{
+					tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) >> (myJoystick.joyAxes[i].logical_max_bits - 16));
+				}
+
+				sendDataToOutput(i, globalCVGlide, tempValue);
+			}
+		}
+		else
+		{
+			axesOffset = 0;
+		}
+		
+		if (dPadStyle == asButtons)
+		{
+			uint8_t tempDPad = findDataInReport(myJoystick.dPads[0].size, myJoystick.dPads[0].offset);
+			for (int i = 0; i < 8; i++)
+			{
+				uint16_t tempOutput = 0;
+				if (i == tempDPad)
+				{
+					tempOutput = 65535;
+				}
+				sendDataToOutput(i + axesOffset, 0, tempOutput);
+			}
+		}
+		else if (dPadStyle == asAxes)
+		{
+			tempValue = ((findDataInReport(myJoystick.dPads[0].size, myJoystick.dPads[0].offset)) << (16-myJoystick.dPads[0].logical_max_bits));
+			sendDataToOutput(axesOffset, globalCVGlide, tempValue);
+		}
+		//otherwise DPad is ignored and skipped in the output
+		if (myJoystick.numDPads > 0)
+		{
+			if (dPadStyle == asButtons)
+			{
+				dPadOffset = 8;
+			}
+			else if (dPadStyle == asAxes)
+			{
+				dPadOffset = 1;
 			}
 			else
 			{
-				tempValue = ((findDataInReport(myJoystick.joyAxes[i].size, myJoystick.joyAxes[i].offset)) >> (myJoystick.joyAxes[i].logical_max_bits - 16));
+				dPadOffset = 0;
 			}
-
-			sendDataToOutput(i, globalCVGlide, tempValue);
 		}
 		for (int i = 0; i < myJoystick.numJoyButton; i++)
 		{
 			tempValue = ((findDataInReport(myJoystick.joyButtons[i].size, myJoystick.joyButtons[i].offset)) << (16-myJoystick.joyButtons[i].size));
-			sendDataToOutput(i + myJoystick.numJoyAxis, 0, tempValue);
+			if (tempValue != myJoystick.joyButtons[i].previous_value)
+			{
+				sendDataToOutput(i +  axesOffset + dPadOffset, 0, tempValue);
+			}
+			
+			if ((joystickTriggers) && (tempValue > 0))
+			{
+				myJoystick.trigCount[(i + axesOffset + dPadOffset)] = TRIGGER_TIMING;
+			}
+			myJoystick.joyButtons[i].previous_value = tempValue;
+			
 		}
 
 	}
 	uhi_hid_joy_start_trans_report(add);
 }
 
-
-
-void clearJoystick(tJoystick theJoystick)
-{
-	for (int i = 0; i < MAX_BUTTONS; i++)
-	{
-		 theJoystick.joyButtons[i].count = 0;
-		 theJoystick.joyButtons[i].offset = 0;
-		 theJoystick.joyButtons[i].size = 0;
-	}
-	for (int i = 0; i < MAX_AXES; i++)
-	{
-		theJoystick.joyAxes[i].offset = 0;
-		theJoystick.joyAxes[i].size = 0;
-		theJoystick.joyAxes[i].logical_max_bits = 0;
-	}
-	theJoystick.numJoyButton = 0;
-	theJoystick.numJoyAxis = 0;
-}
 
 //@}
 //@}

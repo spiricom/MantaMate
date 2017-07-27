@@ -118,7 +118,11 @@ int currentDirectEditOutput;
 int currentHexmapSelect;
 int currentDirectSelect;
 
-
+DPadStyleType dPadStyle;
+uint8_t axesOffset;
+uint8_t dPadOffset;
+BOOL joystickTriggers;
+BOOL joystickIgnoreAxes;
 
 // Encode this in preset
 MantaInstrument currentInstrument;
