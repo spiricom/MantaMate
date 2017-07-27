@@ -60,7 +60,7 @@
 #endif
 
 
-#define RED_JUST_OFF TRUE
+#define RED_JUST_OFF FALSE
 
 static void processSliders(uint8_t sliderNum, uint16_t val);
 

@@ -93,6 +93,7 @@ iram_size_t uhi_midi_read_buf(void* buf, iram_size_t size);
  * \name Functions required by UHC
  * @{
  */
+uint16_t buf_size = 0;
 
 uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 {
@@ -146,9 +147,41 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 					ptr_line->buf_sel = 0;
 					
 					// Allocate and initialize buffers
-					uint16_t buf_size = Max( le16_to_cpu(
+					buf_size = Max( le16_to_cpu(
 							((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize),
 							UHI_MIDI_BUFFER_SIZE );
+					ptr_line->buffer_size = buf_size;
+					ptr_line->buffer[0].pos = 0;
+					ptr_line->buffer[0].nb = 0;
+					ptr_line->buffer[0].ptr = calloc(buf_size,sizeof(uint8_t));
+					if (ptr_line->buffer[0].ptr == NULL) {
+						Assert(false);
+						uhi_midi_free_device();
+						return UHC_ENUM_SOFTWARE_LIMIT;
+					}
+					ptr_line->buffer[1].pos = 0;
+					ptr_line->buffer[1].nb = 0;
+					ptr_line->buffer[1].ptr = calloc(buf_size,sizeof(uint8_t));
+					if (ptr_line->buffer[1].ptr == NULL) {
+						Assert(false);
+						uhi_midi_free_device();
+						return UHC_ENUM_SOFTWARE_LIMIT;
+					}
+					break;
+					
+				case USB_EP_TYPE_INTERRUPT:
+					if(((usb_ep_desc_t*)ptr_iface)->bEndpointAddress & USB_EP_DIR_IN)
+					ptr_line = &uhi_midi_dev.line_rx;
+					else
+					ptr_line = &uhi_midi_dev.line_tx;
+					ptr_line->ep_data = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
+					ptr_line->b_trans_ongoing = false;
+					ptr_line->buf_sel = 0;
+					
+					// Allocate and initialize buffers
+					buf_size = Max( le16_to_cpu(
+					((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize),
+					UHI_MIDI_BUFFER_SIZE );
 					ptr_line->buffer_size = buf_size;
 					ptr_line->buffer[0].pos = 0;
 					ptr_line->buffer[0].nb = 0;
