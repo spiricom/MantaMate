@@ -27,6 +27,9 @@ uint8_t SH_pattern_diag_reverse[MAX_STEPS];
 
 uint8_t patterns[5][MAX_STEPS];
 
+#define NUM_BYTES_PER_SEQUENCER  615 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
+
+uint8_t sequencerBuffer[NUM_BYTES_PER_SEQUENCER*2];
 
 typedef struct _tStep
 {

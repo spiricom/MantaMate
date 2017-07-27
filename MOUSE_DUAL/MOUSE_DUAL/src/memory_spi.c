@@ -41,11 +41,18 @@ unsigned char hexmapSavePending = 0;
 unsigned char hexmapLoadPending = 0;
 unsigned char directSavePending = 0;
 unsigned char directLoadPending = 0;
+
+unsigned char sequencerSavePending = 0;
+unsigned char sequencerLoadPending = 0;
+
 uint16_t numHexmapBytesRemaining_toSend = 0;
 uint16_t numHexmapBytesRemaining_toGet = 0;
 
 uint16_t numDirectBytesRemaining_toSend = 0;
 uint16_t numDirectBytesRemaining_toGet = 0;
+
+uint16_t numSequencerBytesRemaining_toSend = 0;
+uint16_t numSequencerBytesRemaining_toGet = 0;
 
 uint8_t tempPreset[8] = {0, 125, 126, 127, 128, 129, 130, 131};
 
@@ -336,8 +343,8 @@ void continueStoringMantaCompositionsToExternalMemory(void)
 		//if you just finished the first set, start the second set
 		if (whichInstCompositions == 0)
 		{
-				whichInstCompositions = 1;
-				initiateStoringMantaCompositionsToExternalMemory();
+			whichInstCompositions = 1;
+			initiateStoringMantaCompositionsToExternalMemory();
 		}
 		//otherwise, you're all done!
 		else
@@ -897,5 +904,107 @@ void continueLoadingDirectFromExternalMemory(void)
 			setDirectOptionLEDs();
 		}
 		
+	}
+}
+
+// Sequencer saving and loading
+void initiateStoringSequencerToExternalMemory(uint8_t sequencer_num_to_save)
+{
+	currentSector = sequencer_num_to_save + SEQUENCER_STARTING_SECTOR;  // user sequencer 1-99 are sectors 1701-1799
+	currentPage = 0; //start on the first page
+	
+	//start by erasing the memory in the location we want to store
+	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the hemxap data
+	pages_left_to_transfer = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
+	numSequencerBytesRemaining_toSend =  NUM_BYTES_PER_SEQUENCER*2;
+	memorySPIEraseSector(currentSector); //we only need to erase one sector per sequencer
+	sequencerSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+}
+
+void continueStoringSequencerToExternalMemory(void)
+{
+	//if there are bytes to store, write those bytes!
+	if (pages_left_to_transfer > 0)
+	{
+		uint16_t numSequencerBytesToSend;
+		
+		if (numSequencerBytesRemaining_toSend > 256)
+		{
+			numSequencerBytesToSend = 256;
+		}
+		else
+		{
+			numSequencerBytesToSend = numSequencerBytesRemaining_toSend;
+		}
+		
+		
+		memorySPIWrite(currentSector, currentPage, &sequencerBuffer[currentPage*256], numSequencerBytesToSend);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		numSequencerBytesRemaining_toSend -= numSequencerBytesToSend;
+	}
+	else //otherwise save is done!
+	{
+		//mark the save procedure as finished
+		sequencerSavePending = 0;
+		LED_Off(PRESET_SAVE_LED);
+	}
+}
+
+void initiateLoadingSequencerFromExternalMemory(uint8_t sequencer_to_load)
+{
+	currentSector = sequencer_to_load + SEQUENCER_STARTING_SECTOR;  // set sector to the location of the sequencer we want to load
+	currentPage = 0; //start on the first page
+	numSequencerBytesRemaining_toGet = NUM_BYTES_PER_SEQUENCER*2;
+	pages_left_to_transfer = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
+	LED_On(PRESET_SAVE_LED); 
+	continueLoadingSequencerFromExternalMemory();
+	sequencerLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+}
+
+
+void continueLoadingSequencerFromExternalMemory(void)
+{
+	if (pages_left_to_transfer > 0)
+	{
+		
+		uint16_t numSequencerBytesToGetNow = 0;
+		if (numSequencerBytesRemaining_toGet > 256)
+		{
+			numSequencerBytesToGetNow = 256;
+		}
+		else
+		{
+			numSequencerBytesToGetNow = numSequencerBytesRemaining_toGet;
+		}
+		
+		memorySPIRead(currentSector, currentPage, &sequencerBuffer[currentPage*256], numSequencerBytesToGetNow);
+		
+		//update variables for next round
+		currentPage++;
+		pages_left_to_transfer--;
+		numSequencerBytesRemaining_toGet -= numSequencerBytesToGetNow;
+	}
+	else //otherwise load is done!
+	{
+		//mark the load procedure as finished
+		sequencerLoadPending = 0;
+		LED_Off(PRESET_SAVE_LED); 
+		
+		tSequencer_decode(&manta[whichCompositionInstrument].sequencer, &sequencerBuffer[whichCompositionInstrument*NUM_BYTES_PER_SEQUENCER]);
+		
+		memoryInternalWriteSequencer(whichCompositionInstrument, whichCompositionHex, &sequencerBuffer[whichCompositionInstrument*NUM_BYTES_PER_SEQUENCER]);
+		
+		
+		compositionMap[whichCompositionInstrument][whichCompositionHex] = TRUE;
+		
+		currentComp[whichCompositionInstrument] = whichCompositionHex;
+		
+		setCurrentInstrument(whichCompositionInstrument);
+		
+		setOptionLEDs();
+		setCompositionLEDs();
 	}
 }

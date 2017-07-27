@@ -66,7 +66,6 @@
 
 #define NUM_BYTES_PER_KEYBOARD (NUM_BYTES_PER_HEXMAP+5)
 #define NUM_BYTES_PER_MIDIKEYBOARD 263
-#define NUM_BYTES_PER_SEQUENCER  615 // increase this if the size of the serialized data gets larger (I set them to just slightly above the needed 611)
 #define NUM_BYTES_PER_COMPOSITION_BANK  (NUM_BYTES_PER_SEQUENCER*14) //there are now 14 possible sequence slots in composition mode
 #define NUM_BYTES_PER_NODEVICE_PATTERN ((32 * 2) * 12)
 
@@ -115,8 +114,19 @@ int lastDirectEditHex;
 int currentDirectEditHex;
 int currentDirectEditOutput;
 
+tSequencer* compositionSequencer;
+MantaInstrument compositionSequencerInstrument;
+BOOL compositionMode;
+int lastCompositionHex;
+int currentCompositionHex;
+int currentCompositionNumber;
+
 int currentHexmapSelect;
 int currentDirectSelect;
+int currentSequencerSelect;
+
+MantaInstrument whichCompositionInstrument;
+int whichCompositionHex;
 
 
 
@@ -170,15 +180,17 @@ int mantaCompositionLoadPending;
 #define NUM_PAGES_PER_TUNING 3
 #define NUM_PAGES_PER_HEXMAP 1
 #define NUM_PAGES_PER_DIRECT 1
+#define NUM_PAGES_PER_SEQUENCER 3
 #define NUM_PAGES_PER_STARTUP_STATE 1
 
 #define MANTA_PRESET_STARTING_SECTOR 0
 #define TUNING_STARTING_SECTOR 1600
 #define HEXMAP_STARTING_SECTOR 1700
 #define DIRECT_STARTING_SECTOR 1800
-#define STARTUP_STATE_SECTOR 1900
-#define NODEVICE_PRESET_STARTING_SECTOR 2000
-#define MIDI_PRESET_STARTING_SECTOR 2100
+#define SEQUENCER_STARTING_SECTOR 1900
+#define STARTUP_STATE_SECTOR 2000
+#define NODEVICE_PRESET_STARTING_SECTOR 2100
+#define MIDI_PRESET_STARTING_SECTOR 2200
 
 uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 19456 //now 2560
 
