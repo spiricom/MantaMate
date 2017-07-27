@@ -1530,29 +1530,7 @@ void releaseUpperHex(uint8_t hexagon)
 		int whichMute = (whichUpperHex%4);
 		int whichPanel = (whichUpperHex%4);
 
-		if (whichTrigPanel == SXTrigPanelNil)
-		{
-			
-			/* // MOVE THIS
-			if (glideNoteOn == hexagon)
-			{
-				glideNoteOn = -1;
-				
-				currentMantaSliderMode = prevMantaSliderMode;
-				if (editStack.size <= 1)
-				{
-					setSliderLEDsFor(currentInstrument, tNoteStack_first(&editStack));
-				}
-				else
-				{
-					setSliderLEDsFor(currentInstrument, -1);
-				}
-				
-				manta_set_LED_hex(hexagon, Off);
-			}
-			*/
-		}
-		else 
+		if (whichTrigPanel != SXTrigPanelNil)
 		{
 			if ((trigSelectOn+MAX_STEPS) == hexagon)
 			{
@@ -2041,30 +2019,7 @@ void touchUpperHex(uint8_t hexagon)
 					manta_set_LED_hex(currentUpperHexUI + ((whichInst == InstrumentOne) ? -8 : 8), Amber);
 				}
 			}
-			
-/* //MOVE GLIDE STUFF
-				if (glideNoteOn == -1)
-				{
-					glideNoteOn = hexagon;
-					
-					// Enter SliderModeGlide
-					prevMantaSliderMode = currentMantaSliderMode;
-					currentMantaSliderMode = SliderModeGlide;
-					
-					manta_set_LED_hex(hexagon, Red);
-					
-					if (editStack.size <= 1)
-					{
-						setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
-					}
-					else
-					{
-						setSliderLEDsFor(currentInstrument, -1);
-					}
-				}
-*/
-			
-
+		
 			if (whichInst != currentInstrument)
 			{
 				setCurrentInstrument(whichInst);
@@ -2352,6 +2307,26 @@ void touchTopLeftButton(void)
 					setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
 				}
 			}
+			else 
+			{
+				if (glideNoteOn == -1)
+				{
+					glideNoteOn = 1;
+					
+					// Enter SliderModeGlide
+					prevMantaSliderMode = currentMantaSliderMode;
+					currentMantaSliderMode = SliderModeGlide;
+					
+					if (editStack.size <= 1)
+					{
+						setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
+					}
+					else
+					{
+						setSliderLEDsFor(currentInstrument, -1);
+					}
+				}
+			}
 	
 		}
 		
@@ -2383,6 +2358,29 @@ void touchTopLeftButton(void)
 void releaseTopLeftButton(void)
 {
 	shiftOption1SubShift = SubShiftNil;	
+	
+	if (manta[currentInstrument].type == SequencerInstrument)
+	{
+		if (manta[currentInstrument].sequencer.pitchOrTrigger == TriggerMode)
+		{
+			if (glideNoteOn == 1)
+			{
+				glideNoteOn = -1;
+				
+				currentMantaSliderMode = prevMantaSliderMode;
+				if (editStack.size <= 1)
+				{
+					setSliderLEDsFor(currentInstrument, tNoteStack_first(&editStack));
+				}
+				else
+				{
+					setSliderLEDsFor(currentInstrument, -1);
+				}
+			}
+		}
+		
+	}
+	
 }
 
 // ~ ~ ~ ~ TOP RIGHT BUTTON ~ ~ ~ ~ //
