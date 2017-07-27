@@ -335,6 +335,10 @@ void testSerialNumber(void)
 		//firstEdition = TRUE;  //just to check functionality
 		firstEdition = FALSE;
 	}
+	
+	tKeyboard_init(&manta[InstrumentOne].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&fullKeyboard, 2, (firstEdition ? Amber : Red));
 }
 
 

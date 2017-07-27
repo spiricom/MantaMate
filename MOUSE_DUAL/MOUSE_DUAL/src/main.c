@@ -305,10 +305,6 @@ int main(void){
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
-	tKeyboard_init(&manta[InstrumentOne].keyboard, 1);
-	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1);
-	tKeyboard_init(&fullKeyboard, 2);
-	
 	currentComp[InstrumentOne]=  -1;
 	currentComp[InstrumentTwo]=  -1;
 	
@@ -345,6 +341,10 @@ int main(void){
 	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
 	// As a consequence, the user application only has to play with the power modes.
+	
+	tKeyboard_init(&manta[InstrumentOne].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&fullKeyboard, 2, (firstEdition ? Amber : Red));
 	
 	while (true) {	
 

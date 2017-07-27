@@ -43,6 +43,7 @@ typedef struct _tKeyboard
 	ArpModeType arpModeType;
 	// - - - - - - - - - - -
 	
+	MantaLEDColor blackKeyColor;
 	int numVoicesActive;
 	int voices[MAX_VOICES];
 	int lastVoiceToChange;
@@ -59,7 +60,7 @@ typedef struct _tKeyboard
 	
 } tKeyboard;
 
-void tKeyboard_init(tKeyboard* const keyboard, int numVoices);
+void tKeyboard_init(tKeyboard* const keyboard, int numVoices, MantaLEDColor blackKeyColor);
 
 //ADDING A NOTE
 void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel);
