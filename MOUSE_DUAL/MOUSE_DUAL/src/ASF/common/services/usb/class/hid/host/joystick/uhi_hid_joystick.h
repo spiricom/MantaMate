@@ -59,6 +59,7 @@ extern "C" {
 
 #define MAX_BUTTONS		64
 #define MAX_AXES		12
+#define	MAX_DPADS		8
 
 #define GENERIC_DESKTOP		1
 #define SIMULATION			2
@@ -200,6 +201,14 @@ typedef struct _tJoystickAxis
 	uint16_t previous_value;
 } tJoystickAxis;
 
+typedef struct _tDPad 
+{
+	uint8_t offset;
+	uint8_t size;
+	uint8_t logical_max_bits;
+	uint16_t previous_value;
+} tDPad;
+
 typedef struct _tJoystickButton
 {
 	uint8_t offset;
@@ -211,14 +220,25 @@ typedef struct _tJoystickButton
 typedef struct _tJoystick
 {
 	tJoystickAxis joyAxes[MAX_AXES];
+	tDPad dPads[MAX_DPADS];
 	tJoystickButton joyButtons[MAX_BUTTONS];
 	uint8_t numJoyAxis;
+	uint8_t numDPads;
 	uint8_t numJoyButton;
+	uint8_t trigCount[12];
 }  tJoystick;
 
 tJoystick myJoystick;
 
 uint8_t possible_keys[3][12];
+
+typedef enum DPadStyleType
+{
+	asButtons = 0,
+	asAxes,
+	ignored
+}DPadStyleType;
+
 
 
 //! Global define which contains standard UHI API for UHC
@@ -241,6 +261,7 @@ uint8_t* GetReportOffset(const uint8_t ireport, const uint8_t ReportType);
 void clearJoystick(tJoystick theJoystick);
 uint32_t findDataInReport(uint8_t size, uint8_t offset);
 void keyboard_hack_grab(void);
+void uhi_hid_joystick_clear_struct(void);
 
 #ifdef __cplusplus
 }

@@ -128,7 +128,11 @@ int currentSequencerSelect;
 MantaInstrument whichCompositionInstrument;
 int whichCompositionHex;
 
-
+DPadStyleType dPadStyle;
+uint8_t axesOffset;
+uint8_t dPadOffset;
+BOOL joystickTriggers;
+BOOL joystickIgnoreAxes;
 
 // Encode this in preset
 MantaInstrument currentInstrument;

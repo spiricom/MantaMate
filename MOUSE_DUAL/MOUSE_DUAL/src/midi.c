@@ -626,6 +626,11 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 				keyboard->notes[note][1] = TRUE;
 			}
 		}
+		else
+		{
+			keyboard->notes[note][0] = vel;
+			keyboard->notes[note][1] = FALSE;
+		}
 	}
 }
 
@@ -818,6 +823,7 @@ void tMIDIKeyboard_nextNote(tMIDIKeyboard* const keyboard)
 		}
 		
 		keyboard->currentNote =  tNoteStack_get(ns, keyboard->phasor);
+		keyboard->currentVelocity = keyboard->notes[keyboard->currentNote][0];
 	}
 	
 }
@@ -888,6 +894,7 @@ void dacSendMIDIKeyboard(void)
 			{
 				sendDataToOutput(CVKPITCH+3*keyboard->currentVoice, globalPitchGlide, lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
 				sendDataToOutput(CVKTRIGGER-2+(3*keyboard->currentVoice), 0, 65535);
+				sendDataToOutput(CVKVEL+(3*keyboard->currentVoice), 0, (keyboard->currentVelocity << 9));
 				
 				if (keyboard->numVoices < 2) //then it's mono with the extra trigger output
 				{

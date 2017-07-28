@@ -152,8 +152,11 @@ uint8_t new_manta_attached = false;
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
+BOOL clock_speed_randomize = FALSE;
+uint32_t clock_random_mod = 1000;
+uint32_t clock_random_mods[10] = {10000, 5000, 2500, 1500, 1100, 900, 500, 300, 150, 70, 25};
 uint32_t tempoDivider = 4 ;
-uint32_t tempoDividerMax = 9;
+uint32_t tempoDividerMax = 19;
 
 uint8_t SevSegArpMode = 0;
 uint32_t upHeld = 0;
@@ -167,6 +170,8 @@ static uint32_t blinkSpeed7Seg = 500;
 
 int mantaCompositionSavePending = 0;
 int mantaCompositionLoadPending = 0;
+
+DPadStyleType dPadStyle = asButtons;
 
 uint32_t myUSBMode = UNCONFIGUREDMODE;
 
@@ -514,12 +519,22 @@ static void tc2_irq(void)
 		//step the internal clock
 		if (clock_speed != 0)
 		{
+
+			
+			
 			if (clockFrameCounter >= clock_speed)
 			{
 				clockHappened();
 				clockFrameCounter = 0;
+				if (clock_speed_randomize == TRUE)
+				{
+					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;			
+				}
 			}
-			clockFrameCounter++;
+			else
+			{
+				clockFrameCounter++;
+			}
 		}
 
 
@@ -597,9 +612,7 @@ static void tc2_irq(void)
 			}
 		}
 	
-		if (type_of_device_connected == JoystickConnected) return;
-	
-		else if (type_of_device_connected == NoDeviceConnected)
+		if (type_of_device_connected == NoDeviceConnected)
 		{
 			for (int i = 0; i < 12; i++)
 			{
@@ -627,6 +640,21 @@ static void tc2_irq(void)
 				}
 			}
 		}
+		
+		else if (type_of_device_connected == JoystickConnected)
+		{
+			for (int i = 0; i < 12; i++)
+			{
+				if (myJoystick.trigCount[i] > 0)
+				{
+					if (--(myJoystick.trigCount[i]) == 0)
+					{
+						sendDataToOutput(i, 0, 0x0);
+					}
+				}
+			}
+		}
+		
 		else if (type_of_device_connected == MantaConnected)
 		{
 			if (!takeover) // Dual instrument, not takeover
@@ -1746,7 +1774,17 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			if (clock_speed_displayed > 0)
 			{
-				clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
+				if (tempoDivider < 10)
+				{
+					clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
+					clock_speed_randomize = FALSE;
+				}
+				else
+				{
+					clock_speed_randomize = TRUE;
+					clock_random_mod = clock_random_mods[tempoDivider-10];
+					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;
+				}
 			}
 			else
 			{
@@ -2340,10 +2378,40 @@ void initMantaLEDState(void)
 
 void loadJoystickPreset(void)
 {
-	//joystick only has preset 0
-	if (preset_num != 0)
+	if (preset_num == 0)
 	{
-		preset_num = 0;
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = asAxes;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 1)
+	{
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = asButtons;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 2)
+	{
+		joystickIgnoreAxes = FALSE;
+		dPadStyle = ignored;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 3)
+	{
+		joystickIgnoreAxes = TRUE;
+		dPadStyle = ignored;
+		joystickTriggers = FALSE;
+	}
+	if (preset_num == 4)
+	{
+		joystickIgnoreAxes = TRUE;
+		dPadStyle = ignored;
+		joystickTriggers = TRUE;
+	}
+	
+	if (preset_num > 4)
+	{
+		preset_num = 4;
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
 	}

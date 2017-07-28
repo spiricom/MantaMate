@@ -74,6 +74,52 @@ void Write7Seg(uint8_t value)
 			}
 		}
 		
+		//send a value from 200 to 209 to have the first digit active (0-9) and the second one blank
+		else if ((value >=210) && (value <= 219))
+		{
+			//first blank the left digit
+			gpio_set_gpio_pin(SEG5_GPIO);
+			gpio_set_gpio_pin(SEG6_GPIO);
+			gpio_set_gpio_pin(SEG7_GPIO);
+			gpio_set_gpio_pin(SEG8_GPIO);
+			
+
+			uint8_t Digit = value % 10;
+			
+			if (Digit & 1)
+			{
+				gpio_set_gpio_pin(SEG1_GPIO);
+			}
+			else
+			{
+				gpio_clr_gpio_pin(SEG1_GPIO);
+			}
+			if (Digit & 2)
+			{
+				gpio_set_gpio_pin(SEG2_GPIO);
+			}
+			else
+			{
+				gpio_clr_gpio_pin(SEG2_GPIO);
+			}
+			if (Digit & 4)
+			{
+				gpio_set_gpio_pin(SEG3_GPIO);
+			}
+			else
+			{
+				gpio_clr_gpio_pin(SEG3_GPIO);
+			}
+			if (Digit & 8)
+			{
+				gpio_set_gpio_pin(SEG4_GPIO);
+			}
+			else
+			{
+				gpio_clr_gpio_pin(SEG4_GPIO);
+			}
+		}
+		
 		else
 		{
 			uint8_t Digits[2];
