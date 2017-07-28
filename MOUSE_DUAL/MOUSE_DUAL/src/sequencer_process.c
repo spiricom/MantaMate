@@ -1300,7 +1300,16 @@ void touchLowerHex(uint8_t hexagon)
 			else				setCurrentInstrument(InstrumentTwo);
 			
 			for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-			setKeyboardLEDsFor(currentInstrument, hexagon);
+			if ((manta[InstrumentOne].type == SequencerInstrument) && (manta[InstrumentTwo].type == SequencerInstrument) &&
+			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
+			{
+				setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+				setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			}
+			else
+			{
+				setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			}
 			
 			if (instrumentToSet != currentInstrument)
 			{
@@ -2030,7 +2039,7 @@ void touchUpperHex(uint8_t hexagon)
 			int whichUpperHex = currentUpperHexUI - MAX_STEPS;
 			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
 
-			if (manta[whichInst].type != SequencerInstrument) return;
+			if (manta[whichInst].type != SequencerInstrument || (manta[whichInst].sequencer.pitchOrTrigger != TriggerMode)) return;
 			
 			sequencer = &manta[whichInst].sequencer;
 			
@@ -2064,7 +2073,7 @@ void touchUpperHex(uint8_t hexagon)
 				else 
 				{
 					manta_set_LED_hex(currentUpperHexUI, Off);
-					manta_set_LED_hex(currentUpperHexUI + ((whichInst == InstrumentOne) ? -8 : 8), Amber);
+					manta_set_LED_hex(currentUpperHexUI + ((whichInst == InstrumentOne) ? -8 : 8), ((editStack.size == 1) && sequencer[whichInst].step[editStack.notestack[0]].on[whichMute]) ? Red : Amber);
 				}
 			}
 		
@@ -2142,13 +2151,22 @@ void setSequencerLEDs(void)
 		}
 		else
 		{
-			
 			setSequencerLEDsFor(InstrumentOne);
 			setSequencerLEDsFor(InstrumentTwo);
 		}
 		
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-		setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		
+		if ((manta[InstrumentOne].type == SequencerInstrument) && (manta[InstrumentTwo].type == SequencerInstrument) &&
+			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
+		{
+			setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		}
+		else 
+		{
+			setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		}
 
 		roll_LEDs = 1;
 		freeze_LED_update = 0;
