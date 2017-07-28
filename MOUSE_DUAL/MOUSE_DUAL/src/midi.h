@@ -73,6 +73,7 @@ typedef struct _tMIDIKeyboard
 	int trigCount[12];
 	int currentNote;
 	int currentVoice;
+	int currentVelocity;
 	int maxLength;
 	int phasor;
 	BOOL up;

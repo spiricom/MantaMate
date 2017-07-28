@@ -851,12 +851,12 @@ static void uhi_hid_joy_report_reception(
 			if (tempValue != myJoystick.joyButtons[i].previous_value)
 			{
 				sendDataToOutput(i +  axesOffset + dPadOffset, 0, tempValue);
+				if ((joystickTriggers) && (tempValue > 0))
+				{
+					myJoystick.trigCount[(i + axesOffset + dPadOffset)] = TRIGGER_TIMING;
+				}
 			}
-			
-			if ((joystickTriggers) && (tempValue > 0))
-			{
-				myJoystick.trigCount[(i + axesOffset + dPadOffset)] = TRIGGER_TIMING;
-			}
+
 			myJoystick.joyButtons[i].previous_value = tempValue;
 			
 		}
