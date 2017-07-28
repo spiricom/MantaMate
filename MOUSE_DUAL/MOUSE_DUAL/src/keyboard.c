@@ -135,6 +135,10 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			keyboard->hexes[i].color = color;
 		}
 	}
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].fine = 2048;
+	}
 }
 
 
