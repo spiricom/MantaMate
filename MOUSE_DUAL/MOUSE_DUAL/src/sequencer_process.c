@@ -1142,6 +1142,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
     {
 		if (hexagon == 0) // load global tuning
 		{
+			if (currentTuningHex > 0) manta_set_LED_hex(currentTuningHex, Off);
 			currentTuningHex = -1;
 			manta_set_LED_hex(0, Amber);
 			loadTuning(globalTuning);
@@ -3266,7 +3267,18 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	{
 		hexUI = stepToHexUI(inst, i);
 
-		manta_set_LED_hex(hexUI, firstEdition ? Off : (sequencer->step[i].toggled ?  (i == sequencer->currentStep ? BothOn : Amber) : Off));
+		if(edit_vs_play == PlayToggleMode)
+		{
+			manta_set_LED_hex(hexUI, sequencer->step[i].toggled ? 
+			(firstEdition ? (i == sequencer->currentStep ? Off : Amber) : 
+			(i == sequencer->currentStep ? BothOn : Amber)) : Off);
+		}
+		else
+		{
+			manta_set_LED_hex(hexUI, sequencer->step[i].toggled ?
+			(firstEdition ? (i == sequencer->currentStep ? Amber : Off) :
+			(i == sequencer->currentStep ? BothOn : Amber)) : Off);
+		}
 	}
 	
 	int size = editStack.size;

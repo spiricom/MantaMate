@@ -997,7 +997,6 @@ void continueLoadingSequencerFromExternalMemory(void)
 		
 		memoryInternalWriteSequencer(whichCompositionInstrument, whichCompositionHex, &sequencerBuffer[whichCompositionInstrument*NUM_BYTES_PER_SEQUENCER]);
 		
-		
 		compositionMap[whichCompositionInstrument][whichCompositionHex] = TRUE;
 		
 		currentComp[whichCompositionInstrument] = whichCompositionHex;
