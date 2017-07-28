@@ -43,7 +43,12 @@ void no_device_gate_in(void)
 		//stream of random gates
 		triggerOnFirstDACOutput();
 		
-		for (int i = 1; i < 16; i++)
+		for (int i = 1; i < 3; i++)
+		{
+			myRandom = (rand() / SIXTEEN_BIT_DIV);
+			sendDataToOutput(i, globalCVGlide, myRandom);
+		}
+		for (int i = 3; i < 16; i++)
 		{
 			myRandom = ((rand() / SIXTEEN_BIT_DIV) & 1);
 			sendDataToOutput(i, 0, myRandom * 65535);
@@ -55,7 +60,12 @@ void no_device_gate_in(void)
 		noDevicePatterns.readType = TriggerPulse;	
 		//stream of random triggers
 		triggerOnFirstDACOutput();
-		for (int i = 1; i < 16; i++)
+		for (int i = 1; i < 3; i++)
+		{
+			myRandom = (rand() / SIXTEEN_BIT_DIV);
+			sendDataToOutput(i, globalCVGlide, myRandom);
+		}
+		for (int i = 3; i < 16; i++)
 		{
 			myRandom = ((rand() / SIXTEEN_BIT_DIV) & 1);
 			sendDataToOutput(i, 0, myRandom * 65535);
@@ -72,6 +82,7 @@ void no_device_gate_in(void)
 		noDevicePatterns.readType = RandomVoltage;			
 		triggerOnFirstDACOutput();
 		dividerCount++;
+		
 		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (i+1)) == 0)
@@ -93,6 +104,8 @@ void no_device_gate_in(void)
 		
 		triggerOnFirstDACOutput();
 		dividerCount++;
+		
+		
 		for (int i = 1; i < 12; i++)
 		{
 			if ((dividerCount % (i+1)) == 0)
@@ -341,7 +354,16 @@ void noDeviceGateOutPattern(BOOL sameLength)
 				noDevicePatterns.patternCounter[i] = 0;
 			}
 		}
-		sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
+		
+		if (i < 3)
+		{
+			sendDataToOutput(i, globalCVGlide, noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1]);
+		}
+		else
+		{
+			sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
+		}
+
 	}
 }
 
@@ -372,7 +394,16 @@ void noDeviceGateTogglePattern(BOOL sameLength)
 		{
 			noDevicePatterns.outputState[i] = !noDevicePatterns.outputState[i];
 		}
-		sendDataToOutput(i, 0, noDevicePatterns.outputState[i]*65535);
+	
+		if (i < 3)
+		{
+			sendDataToOutput(i, globalCVGlide, noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1]);
+		}
+		else
+		{
+			sendDataToOutput(i, 0, noDevicePatterns.outputState[i]*65535);
+		}
+
 	}
 }
 
@@ -399,17 +430,22 @@ void noDeviceTrigOutPattern(BOOL sameLength)
 				noDevicePatterns.patternCounter[i] = 0;
 			}
 		}
-		
-		int tempNewValue = (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX);
-		
-		if ((tempNewValue > 0) && (noDevicePatterns.outputState[i] == 0))//if the value is TRUE and is was previously FALSE, send a trigger
+				
+		if (i < 3)
 		{
-			
-			sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
-			noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
+			sendDataToOutput(i, globalCVGlide, noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1]);
 		}
-		noDevicePatterns.outputState[i] = tempNewValue;
-
+		else
+		{
+			int tempNewValue = (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX);
+			if ((tempNewValue > 0) && (noDevicePatterns.outputState[i] == 0))//if the value is TRUE and is was previously FALSE, send a trigger
+			{	
+				sendDataToOutput(i, 0, (noDevicePatterns.patterns[i][noDevicePatterns.patternCounter[i] + 1] > ELEVEN_BIT_MAX)*65535);
+				noDevicePatterns.trigCount[i] = TRIGGER_TIMING;
+			}
+			noDevicePatterns.outputState[i] = tempNewValue;
+		}
+	
 	}
 }
 
