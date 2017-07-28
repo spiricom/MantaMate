@@ -354,6 +354,13 @@ int main(void){
 	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
 	tKeyboard_init(&fullKeyboard, 2, (firstEdition ? Amber : Red));
 	
+	tDirect_init(&manta[InstrumentOne].direct, 6);
+	tDirect_init(&manta[InstrumentTwo].direct, 6);
+	tDirect_init(&fullDirect, 12);
+	
+	tSequencer_init(&manta[InstrumentOne].sequencer, PitchMode, MAX_STEPS);
+	tSequencer_init(&manta[InstrumentTwo].sequencer, PitchMode, MAX_STEPS);
+
 	while (true) {	
 
 		//currently putting low priority things like this in the main loop, as it should be the most background processes

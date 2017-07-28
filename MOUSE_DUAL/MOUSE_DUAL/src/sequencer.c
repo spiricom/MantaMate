@@ -393,6 +393,52 @@ void tSequencer_randomizeAll(tSequencer* const seq)
 	
 }
 
+int tSequencer_clear(tSequencer* const seq)
+{
+	seq->reverse = FALSE;
+	seq->lastTouch = 0;
+	seq->transpose = 0;
+	seq->currentStep = 0;
+	seq->prevStep = 0;
+	seq->lengthCounter = 0;
+	seq->phasor = 0;
+	seq->pattern = LeftRightRowUp;
+	seq->octave = 3;
+	seq->playMode = ToggleMode;
+	
+	for (int i = 0; i < 4; i++) seq->mute[i] = FALSE;
+
+	for (int i = 0; i < 32; i++)
+	{
+		// Pitch and Trigger parameters
+		seq->step[i].toggled = 0;  // not toggled on
+		seq->step[i].length = 1;  // step_length = 1
+		seq->step[i].cv1 = 0;  // cv1 zero
+		seq->step[i].cv2 = 0;  // cv2 zero
+		
+
+		seq->step[i].cv3 = 0;  // cv3 zero
+		seq->step[i].cv4 = 0;  // cv4 zero
+		seq->step[i].note = 1;  // note, not rest
+		seq->step[i].pitch = 0;  // keyboard pitch zero
+		seq->step[i].fine = 2048; // 2048 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
+		seq->step[i].octave = 3;  // octave
+		seq->step[i].pglide = 5;
+		seq->step[i].cvglide = 5;
+
+
+		for (int j = 0; j < 4; j++)
+		{
+			seq->step[i].on[j] = 0;
+		}
+	}
+	
+	tNoteStack_init(&seq->notestack, 32);
+
+
+	return 0;
+}
+
 int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLength) 
 {
 	if (maxLength < 1)

@@ -1076,7 +1076,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			}
 			else if (whichHex == 15)
 			{
-				tSequencer_init(sequencer, sequencer->pitchOrTrigger, 32);
+				tSequencer_clear(sequencer); // EFFECTIVELY BLANK
 				
 				manta_set_LED_hex(whichInst * 16 + 15, Amber);
 			}
@@ -1142,6 +1142,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
     {
 		if (hexagon == 0) // load global tuning
 		{
+			if (currentTuningHex > 0) manta_set_LED_hex(currentTuningHex, Off);
 			currentTuningHex = -1;
 			manta_set_LED_hex(0, Amber);
 			loadTuning(globalTuning);
@@ -1299,7 +1300,16 @@ void touchLowerHex(uint8_t hexagon)
 			else				setCurrentInstrument(InstrumentTwo);
 			
 			for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-			setKeyboardLEDsFor(currentInstrument, hexagon);
+			if ((manta[InstrumentOne].type == SequencerInstrument) && (manta[InstrumentTwo].type == SequencerInstrument) &&
+			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
+			{
+				setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+				setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			}
+			else
+			{
+				setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			}
 			
 			if (instrumentToSet != currentInstrument)
 			{
@@ -1645,6 +1655,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionSequencer)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1658,13 +1669,16 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		if (type != SequencerInstrument)
 		{
 			manta[currentInstrument].type = SequencerInstrument;
-			tSequencer_init(sequencer, PitchMode, MAX_STEPS);
+			manta[currentInstrument].sequencer.pitchOrTrigger = PitchMode;
 			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 	}
 	else if (whichOptionType == OptionKeyboard)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
+		
+		full_vs_split = FALSE;
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1686,6 +1700,9 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionDirect)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
+		
+		full_vs_split = FALSE;
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1696,19 +1713,21 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		
 		if (type != DirectInstrument)
 		{
+			takeover = FALSE;
 			manta[currentInstrument].type = DirectInstrument;
+			
 			tIRampSetTime(&out[currentInstrument][0], 0);
 			tIRampSetTime(&out[currentInstrument][1], 0);
 			tIRampSetTime(&out[currentInstrument][2], 0);
 			tIRampSetTime(&out[currentInstrument][3], 0);
 			tIRampSetTime(&out[currentInstrument][4], 0);
 			tIRampSetTime(&out[currentInstrument][5], 0);
-			tDirect_init(direct, 6);
 		}
 	}
 	else if (whichOptionType == OptionPitch)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1721,7 +1740,10 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 
 		if (sequencer->pitchOrTrigger != PitchMode)
 		{
-			tSequencer_init(sequencer, PitchMode, MAX_STEPS);
+			sequencer->pitchOrTrigger = PitchMode;
+			tNoteStack_init(&sequencer->notestack, 32);
+			for (int i = 0; i < 32; i++) sequencer->step[i].toggled = 0;
+			
 			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
 		}
 		
@@ -1729,6 +1751,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionTrigger)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
+		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
@@ -1740,7 +1764,10 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 
 		if (sequencer->pitchOrTrigger != TriggerMode)
 		{
-			tSequencer_init(sequencer, TriggerMode, MAX_STEPS);
+			sequencer->pitchOrTrigger = TriggerMode;
+			tNoteStack_init(&sequencer->notestack, 32);
+			for (int i = 0; i < 32; i++) sequencer->step[i].toggled = 0;
+
 			//now set the ramps for the trigger outputs to be time zero so they are fast
 			tIRampSetTime(&out[currentInstrument][CV1T], 0);
 			tIRampSetTime(&out[currentInstrument][CV2T], 0);
@@ -1782,32 +1809,41 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionMono)
 	{
-		takeover = FALSE;
-		
-		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
-		
-		keyboard->numVoices = 1;
-		tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
-		tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
+		if (takeover)
+		{
+			for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+			
+			takeover = FALSE;
+			
+			tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+			
+			keyboard->numVoices = 1;
+			tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
+			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
+		}
 	}
 	else if (whichOptionType == OptionDuo)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(4);		
 	}
 	else if (whichOptionType == OptionSixOut)
 	{
 		takeover = FALSE;
 		
-		tDirect_init(&manta[currentInstrument].direct, 6);
-	
 		for (int i = 0; i < 6; i++)
 		{
 			tIRampSetTime(&out[currentInstrument][i], 0);
@@ -1817,9 +1853,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		takeover = TRUE;
 		takeoverType = DirectInstrument;
-		
-		tDirect_init(&fullDirect, 12);
-		
+
 		for (int inst = 0; inst < 2; inst++)
 		{
 			for (int i = 0; i < 6; i++)
@@ -2005,7 +2039,7 @@ void touchUpperHex(uint8_t hexagon)
 			int whichUpperHex = currentUpperHexUI - MAX_STEPS;
 			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
 
-			if (manta[whichInst].type != SequencerInstrument) return;
+			if (manta[whichInst].type != SequencerInstrument || (manta[whichInst].sequencer.pitchOrTrigger != TriggerMode)) return;
 			
 			sequencer = &manta[whichInst].sequencer;
 			
@@ -2039,7 +2073,7 @@ void touchUpperHex(uint8_t hexagon)
 				else 
 				{
 					manta_set_LED_hex(currentUpperHexUI, Off);
-					manta_set_LED_hex(currentUpperHexUI + ((whichInst == InstrumentOne) ? -8 : 8), Amber);
+					manta_set_LED_hex(currentUpperHexUI + ((whichInst == InstrumentOne) ? -8 : 8), ((editStack.size == 1) && sequencer[whichInst].step[editStack.notestack[0]].on[whichMute]) ? Red : Amber);
 				}
 			}
 		
@@ -2117,13 +2151,22 @@ void setSequencerLEDs(void)
 		}
 		else
 		{
-			
 			setSequencerLEDsFor(InstrumentOne);
 			setSequencerLEDsFor(InstrumentTwo);
 		}
 		
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-		setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		
+		if ((manta[InstrumentOne].type == SequencerInstrument) && (manta[InstrumentTwo].type == SequencerInstrument) &&
+			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
+		{
+			setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+			setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		}
+		else 
+		{
+			setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
+		}
 
 		roll_LEDs = 1;
 		freeze_LED_update = 0;
@@ -2229,6 +2272,12 @@ void setDirectLEDs			(void)
 			if (type == DirectCV)
 			{
 				manta_set_LED_slider(i, ((fullDirect.sliders[i].value >> 9) + 1));
+				manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, (firstEdition ? Amber : Red));
+			}
+			else
+			{
+				manta_set_LED_slider(i, 0);
+				manta_set_LED_button(i ? ButtonTopRight : ButtonTopLeft, Off);
 			}
 		}
 	}
@@ -3266,7 +3315,18 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	{
 		hexUI = stepToHexUI(inst, i);
 
-		manta_set_LED_hex(hexUI, firstEdition ? Off : (sequencer->step[i].toggled ?  (i == sequencer->currentStep ? BothOn : Amber) : Off));
+		if(edit_vs_play == PlayToggleMode)
+		{
+			manta_set_LED_hex(hexUI, sequencer->step[i].toggled ? 
+			(firstEdition ? (i == sequencer->currentStep ? Off : Amber) : 
+			(i == sequencer->currentStep ? BothOn : Amber)) : Off);
+		}
+		else
+		{
+			manta_set_LED_hex(hexUI, sequencer->step[i].toggled ?
+			(firstEdition ? (i == sequencer->currentStep ? Amber : Off) :
+			(i == sequencer->currentStep ? BothOn : Amber)) : Off);
+		}
 	}
 	
 	int size = editStack.size;
@@ -3681,6 +3741,8 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 					value;
 			
 			sequencer->step[hexUIToStep(editStack.notestack[i])].pitch = value;
+			
+			setParameterForEditStackSteps(inst, Note, 1);
 		}
 	}
 	else if (param == Fine)	

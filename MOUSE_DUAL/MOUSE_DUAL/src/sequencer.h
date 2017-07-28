@@ -99,6 +99,7 @@ typedef struct _tSequencer
 } tSequencer;
 
 int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
+int			tSequencer_clear(tSequencer* const seq);
 void		tSequencer_next				(tSequencer* const);
 int			tSequencer_toggleStep		(tSequencer* const, uint8_t step);
 int			tSequencer_addStep			(tSequencer* const, uint8_t step);
