@@ -152,8 +152,11 @@ uint8_t new_manta_attached = false;
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
 uint32_t clock_speed_displayed = 0;
+BOOL clock_speed_randomize = FALSE;
+uint32_t clock_random_mod = 1000;
+uint32_t clock_random_mods[10] = {10000, 5000, 2500, 1500, 1100, 900, 500, 300, 150, 70, 25};
 uint32_t tempoDivider = 4 ;
-uint32_t tempoDividerMax = 9;
+uint32_t tempoDividerMax = 19;
 
 uint8_t SevSegArpMode = 0;
 uint32_t upHeld = 0;
@@ -516,12 +519,22 @@ static void tc2_irq(void)
 		//step the internal clock
 		if (clock_speed != 0)
 		{
+
+			
+			
 			if (clockFrameCounter >= clock_speed)
 			{
 				clockHappened();
 				clockFrameCounter = 0;
+				if (clock_speed_randomize == TRUE)
+				{
+					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;			
+				}
 			}
-			clockFrameCounter++;
+			else
+			{
+				clockFrameCounter++;
+			}
 		}
 
 
@@ -1761,7 +1774,16 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 			if (clock_speed_displayed > 0)
 			{
-				clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
+				if (tempoDivider < 10)
+				{
+					clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
+					clock_speed_randomize = FALSE;
+				}
+				else
+				{
+					clock_speed_randomize = TRUE;
+					clock_random_mod = clock_random_mods[tempoDivider-10];
+				}
 			}
 			else
 			{
