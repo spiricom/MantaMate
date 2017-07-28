@@ -1783,6 +1783,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				{
 					clock_speed_randomize = TRUE;
 					clock_random_mod = clock_random_mods[tempoDivider-10];
+					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;
 				}
 			}
 			else
