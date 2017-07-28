@@ -1646,6 +1646,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionSequencer)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1666,6 +1667,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionKeyboard)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1687,6 +1689,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionDirect)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1710,6 +1713,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionPitch)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1730,6 +1734,8 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionTrigger)
 	{
 		resetEditStack();
+		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
+		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
@@ -1783,24 +1789,35 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionMono)
 	{
-		takeover = FALSE;
-		
-		tKeyboard* keyboard = &manta[currentInstrument].keyboard;
-		
-		keyboard->numVoices = 1;
-		tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
-		tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
+		if (takeover)
+		{
+			for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+			
+			takeover = FALSE;
+			
+			tKeyboard* keyboard = &manta[currentInstrument].keyboard;
+			
+			keyboard->numVoices = 1;
+			tIRampSetTime(&out[currentInstrument][CVPITCH], globalPitchGlide);
+			tIRampSetTime(&out[currentInstrument][CVTRIGGER], 0);
+		}
 	}
 	else if (whichOptionType == OptionDuo)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
+		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		
 		initMantaKeys(4);		
 	}
 	else if (whichOptionType == OptionSixOut)
@@ -3693,6 +3710,8 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 					value;
 			
 			sequencer->step[hexUIToStep(editStack.notestack[i])].pitch = value;
+			
+			setParameterForEditStackSteps(inst, Note, 1);
 		}
 	}
 	else if (param == Fine)	
