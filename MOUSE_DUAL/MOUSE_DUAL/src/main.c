@@ -334,10 +334,6 @@ int main(void){
 	
 	//start off on preset 0;
 	//preset_num = 0;
-	
-	
-	
-
 	loadStartupStateFromExternalMemory();
 	
 	
