@@ -1072,6 +1072,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			}
 			else if (whichHex == 14)
 			{
+				tSequencer_randomizeAll(sequencer);
 				manta_set_LED_hex(whichInst * 16 + 14, Red);
 			}
 			else if (whichHex == 15)

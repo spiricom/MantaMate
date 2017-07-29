@@ -1300,14 +1300,14 @@ void USB_Mode_Switch_Check(void)
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
-	
-	if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
+		
+	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{
 		no_device_mode_active = TRUE;
 		return;
 	}
-
-	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
+	
+	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
 	{
 		if (type_of_device_connected == NoDeviceConnected)
 		{

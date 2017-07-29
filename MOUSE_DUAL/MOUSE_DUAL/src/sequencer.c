@@ -391,6 +391,44 @@ void tSequencer_randomizeTrigger(tSequencer* const seq)
 void tSequencer_randomizeAll(tSequencer* const seq)
 {
 	
+	seq->reverse = (rand() >> 15) & 1;
+	seq->transpose = 0;
+	seq->pattern = (rand() >> 15) % 8;
+	seq->octave = (rand() >> 15) % 8;
+		
+	for (int i = 0; i < 4; i++) seq->mute[i] = FALSE;
+	tNoteStack_init(&seq->notestack, 32);
+	
+	for (int i = 0; i < 32; i++)
+	{
+		// Pitch and Trigger parameters
+		BOOL tempToggle = ((rand() >> 15) & 1);
+		if (tempToggle)
+		{
+			tNoteStack_add(&seq->notestack, i);
+		}
+		seq->step[i].toggled = tempToggle;
+		
+		seq->step[i].length = 1;  // step_length = 1
+		seq->step[i].cv1 = ((rand() >> 15) % 4096); 
+		seq->step[i].cv2 = ((rand() >> 15) % 4096); 	
+		seq->step[i].cv3 = ((rand() >> 15) % 4096); 
+		seq->step[i].cv4 = ((rand() >> 15) % 4096); 
+		seq->step[i].note = ((rand() >> 15) & 1); 
+		seq->step[i].pitch =  ((rand() >> 15) % 12); 
+		seq->step[i].fine = ((rand() >> 15) % 4096); 
+		seq->step[i].octave = ((rand() >> 15) % 8); 
+		seq->step[i].pglide = 1;
+		seq->step[i].cvglide = 5;
+
+
+		for (int j = 0; j < 4; j++)
+		{
+			seq->step[i].on[j] = ((rand() >> 15) & 1);
+		}
+	}
+	setSequencerLEDs();
+	
 }
 
 int tSequencer_clear(tSequencer* const seq)
@@ -423,7 +461,7 @@ int tSequencer_clear(tSequencer* const seq)
 		seq->step[i].pitch = 0;  // keyboard pitch zero
 		seq->step[i].fine = 2048; // 2048 is no fine tune offset. 0-2047 is negative, 2048-4095 is positive
 		seq->step[i].octave = 3;  // octave
-		seq->step[i].pglide = 5;
+		seq->step[i].pglide = 1;
 		seq->step[i].cvglide = 5;
 
 
