@@ -7,6 +7,7 @@
 
 #include "utilities.h"
 
+
 #define ICOMPUTE_INC_LARGE() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) / 1000) * r->inv_sr_us)) : (r->inc = distance_to_travel)
 #define ICOMPUTE_INC_SMALL() (r->time>0) ? (r->inc = (((distance_to_travel/r->time) * r->inv_sr_us) / 1000)) : (r->inc = distance_to_travel)
 #define ICOMPUTE_INC_VERY_SMALL() (r->time>0) ? (r->inc = ((((distance_to_travel * 1000) / r->time) * r->inv_sr_us) / 1000000)) : (r->inc = distance_to_travel)
@@ -89,4 +90,10 @@ int tIRampSetDest(tIRamp *r, int32_t dest)
 	}
 	
 	return 0;
+}
+
+
+BOOL coinToss(int probability)
+{
+	return (((rand() >> 15) % 100) < probability);
 }

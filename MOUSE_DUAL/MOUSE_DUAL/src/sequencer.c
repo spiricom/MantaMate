@@ -389,8 +389,7 @@ void tSequencer_randomizeTrigger(tSequencer* const seq)
 }
 
 void tSequencer_randomizeAll(tSequencer* const seq)
-{
-	
+{	
 	seq->reverse = (rand() >> 15) & 1;
 	seq->transpose = 0;
 	seq->pattern = (rand() >> 15) % 8;
@@ -414,17 +413,154 @@ void tSequencer_randomizeAll(tSequencer* const seq)
 		seq->step[i].cv2 = ((rand() >> 15) % 4096); 	
 		seq->step[i].cv3 = ((rand() >> 15) % 4096); 
 		seq->step[i].cv4 = ((rand() >> 15) % 4096); 
-		seq->step[i].note = ((rand() >> 15) & 1); 
+		if (coinToss(80))
+		{
+			seq->step[i].note = 1; 
+		}
+		else
+		{
+			seq->step[i].note = 0; 
+		}
 		seq->step[i].pitch =  ((rand() >> 15) % 12); 
 		seq->step[i].fine = ((rand() >> 15) % 4096); 
 		seq->step[i].octave = ((rand() >> 15) % 8); 
-		seq->step[i].pglide = 1;
-		seq->step[i].cvglide = 5;
-
-
+		
+		if (coinToss(8))
+		{
+			seq->step[i].pglide = ((rand() >> 15) & 512);
+		}
+		else
+		{
+			seq->step[i].pglide = 0;
+		}
+		if (coinToss(8))
+		{
+			seq->step[i].cvglide = ((rand() >> 15) & 1) * ((rand() >> 15) & 512);
+		}
+		else
+		{
+			seq->step[i].pglide = 7;
+		}
 		for (int j = 0; j < 4; j++)
 		{
 			seq->step[i].on[j] = ((rand() >> 15) & 1);
+		}
+	}
+	setSequencerLEDs();
+}
+
+
+
+void tSequencer_deviate(tSequencer* const seq)
+{	
+	
+	int CVProb = 8;
+	
+	if (coinToss(20))
+	{
+		seq->reverse = (rand() >> 15) & 1;
+	}
+	if (coinToss(8))
+	{
+		seq->pattern = (rand() >> 15) % 8;;
+	}
+	
+	for (int i = 0; i < 32; i++)
+	{
+	
+		if (coinToss(5))
+		{
+			if (coinToss(50))
+			{
+				seq->step[i].length = (seq->step[i].length+1) % 9;  // step_length = 1
+			}
+			else
+			{
+				if (seq->step[i].length > 1)
+				{
+					seq->step[i].length--;
+				}
+			}
+		}
+		
+		if (coinToss(CVProb))
+		{
+			if (coinToss(50))
+			{
+				seq->step[i].cv1 = (seq->step[i].cv1 + ((rand() >> 15) % 1024)) % 4096; 
+			}
+			else
+			{
+				seq->step[i].cv1  = (seq->step[i].cv1 - (rand() >> 15) % 1024) % 4096;
+			}
+			
+		}
+		if (coinToss(CVProb))
+		{
+			if (coinToss(50))
+			{
+				seq->step[i].cv2 = (seq->step[i].cv2 + ((rand() >> 15) % 1024)) % 4096; 
+			}
+			else
+			{
+				seq->step[i].cv2 = (seq->step[i].cv2 - (rand() >> 15) % 1024) % 4096;
+			}
+			
+		}
+		if (coinToss(CVProb))
+		{
+			if (coinToss(50))
+			{
+				seq->step[i].cv3 = (seq->step[i].cv3 + ((rand() >> 15) % 1024)) % 4096; 
+			}
+			else
+			{
+				seq->step[i].cv3 = (seq->step[i].cv3 - (rand() >> 15) % 1024) % 4096;
+			}
+			
+		}
+		if (coinToss(CVProb))
+		{
+			if (coinToss(50))
+			{
+				seq->step[i].cv3 = (seq->step[i].cv3 + ((rand() >> 15) % 1024)) % 4096; 
+			}
+			else
+			{
+				seq->step[i].cv3 = (seq->step[i].cv3 - (rand() >> 15) % 1024) % 4096;
+			}
+			
+		}
+		if (coinToss(8))
+		{
+			seq->step[i].note = ((rand() >> 15) & 1); 
+		}
+		if (coinToss(10))
+		{
+			seq->step[i].pitch =  ((rand() >> 15) % 12); 
+		}
+		if (coinToss(5))
+		{
+			seq->step[i].fine = ((rand() >> 15) % 4096); 
+		}
+		if (coinToss(10))
+		{
+			seq->step[i].octave = ((rand() >> 15) % 8);
+		}
+		if (coinToss(5))
+		{
+			seq->step[i].pglide = ((rand() >> 15) & 1) * 127;
+		}
+		if (coinToss(5))
+		{
+			seq->step[i].cvglide = ((rand() >> 15) & 1) * 127;
+		}
+		for (int j = 0; j < 4; j++)
+		{
+			if (coinToss(5))
+			{
+				seq->step[i].on[j] = !(seq->step[i].on[j]);
+			}
 		}
 	}
 	setSequencerLEDs();
