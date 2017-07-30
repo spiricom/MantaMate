@@ -306,6 +306,7 @@ int main(void){
 	loadTuning(globalTuning);
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
+	currentHexUI = -1;
 	currentHexmapEditHex = -1;
 	currentHexmapHex = -1;
 	currentDirectSelect = 0;
@@ -334,6 +335,13 @@ int main(void){
 	
 	//start off on preset 0;
 	//preset_num = 0;
+	
+	currentHexUI = -1;
+	resetEditStack();
+	
+	// Initialize the noteOnStack. :D !!!
+	tNoteStack_init(&noteOnStack, 32);
+	
 	loadStartupStateFromExternalMemory();
 	
 	
@@ -2366,6 +2374,12 @@ uint8_t preferencesSwitch(void)
 
 void loadMantaPreset(void)
 {
+	currentHexUI = -1;
+	resetEditStack();
+	
+	// Initialize the noteOnStack. :D !!!
+	tNoteStack_init(&noteOnStack, 32);
+	
 	if (preset_num == 0)
 	{
 		initMantaSequencer();
@@ -2417,6 +2431,8 @@ void initMantaLEDState(void)
 	hexmapEditMode = FALSE;
 	directEditMode = FALSE;
 	setCurrentInstrument(InstrumentOne);
+	
+	if (!takeover && manta[InstrumentOne].type ==SequencerInstrument) manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? (firstEdition ? Amber : Red) : (firstEdition ? Off : Amber));
 	setSequencerLEDs();
 	setKeyboardLEDs();
 	setDirectLEDs();

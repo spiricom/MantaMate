@@ -72,6 +72,13 @@
 #define NUM_INST 2
 #define NUM_COMP 14
 
+tNoteStack editStack;
+tNoteStack noteOnStack; // all notes on at any point during runtime
+
+uint8_t currentHexUI;
+
+void resetEditStack(void);
+
 typedef enum MantaMateDeviceType
 {
 	DeviceManta,

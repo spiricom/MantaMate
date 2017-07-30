@@ -294,8 +294,7 @@ int keyNoteOn;
 int glideNoteOn;
 int trigSelectOn;
 
-tNoteStack editStack;
-tNoteStack noteOnStack; // all notes on at any point during runtime
+
 
 
 uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER]; 
@@ -325,7 +324,6 @@ uint8_t current_option_hex = 0;
 
 uint8_t currentHexUIOff = 0;
 
-uint8_t currentHexUI = 0;
 uint8_t prevHexUI = 0;
 
 uint8_t currentUpperHexUI = 0, prevUpperHexUI = 0;
@@ -385,7 +383,7 @@ void initMantaSequencer(void)
 	shiftOption2Lock =			FALSE;
 	
 	
-	currentHexUI = -1;
+	currentHexUI = 0;
 	resetEditStack();
 	
 	// Initialize the noteOnStack. :D !!!
@@ -3942,7 +3940,10 @@ void resetEditStack(void)
 	tNoteStack_clear(&editStack);
 	editNoteOn = -1;
 	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	tNoteStack_add(&editStack,currentHexUI);
-	else												tNoteStack_add(&editStack,0);
+	else												
+	{
+		tNoteStack_add(&editStack,0);
+	}
 }
 
 void seqwait(void)
