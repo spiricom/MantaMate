@@ -3749,7 +3749,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 			
 			sequencer->step[hexUIToStep(editStack.notestack[i])].pitch = value;
 			
-			setParameterForEditStackSteps(inst, Note, 1);
+			sequencer->step[hexUIToStep(editStack.notestack[i])].note = 1;
 		}
 	}
 	else if (param == Fine)	
