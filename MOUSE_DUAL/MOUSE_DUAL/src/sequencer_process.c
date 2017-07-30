@@ -1264,7 +1264,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 int lastTouch = 0;
 
 void touchLowerHex(uint8_t hexagon)
-{
+{	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	
 	if (manta[currentInstrument].type == SequencerInstrument)
@@ -1567,17 +1567,21 @@ void releaseUpperHex(uint8_t hexagon)
 		int whichMute = (whichUpperHex%4);
 		int whichPanel = (whichUpperHex%4);
 
-		if (whichTrigPanel != SXTrigPanelNil)
+		if (edit_vs_play == TrigToggleMode)
 		{
-			if ((trigSelectOn+MAX_STEPS) == hexagon)
+			if (whichTrigPanel != SXTrigPanelNil)
 			{
-				 trigSelectOn = -1;
-				 
-				 manta_set_LED_hex(hexagon, (sequencer->mute[whichMute] ? (firstEdition ? Off : BothOn) : Amber));
-				 
-				 switchToMode(PlayToggleMode);
+				if ((trigSelectOn+MAX_STEPS) == hexagon)
+				{
+					trigSelectOn = -1;
+					
+					manta_set_LED_hex(hexagon, (sequencer->mute[whichMute] ? (firstEdition ? Off : BothOn) : Amber));
+					
+					switchToMode(PlayToggleMode);
+				}
 			}
 		}
+		
 		
 	}
 	
@@ -3351,7 +3355,7 @@ void setOptionLEDs(void)
 	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
-	currentOptionMode =	(shiftOption2) ? (type ? DirectOptionMode : RightOptionMode) :
+	currentOptionMode =	(shiftOption2) ? ((type == DirectInstrument) ? DirectOptionMode : RightOptionMode) :
 	(type == SequencerInstrument) ? SequencerOptionMode :
 	(type == KeyboardOptionMode) ? KeyboardOptionMode :
 	(type == DirectInstrument) ? DirectOptionMode :

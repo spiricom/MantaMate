@@ -446,7 +446,6 @@ void tSequencer_randomizeAll(tSequencer* const seq)
 			seq->step[i].on[j] = ((rand() >> 15) & 1);
 		}
 	}
-	setSequencerLEDs();
 }
 
 
@@ -563,7 +562,6 @@ void tSequencer_deviate(tSequencer* const seq)
 			}
 		}
 	}
-	setSequencerLEDs();
 	
 }
 
