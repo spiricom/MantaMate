@@ -906,8 +906,9 @@ void setCompositionLEDs(void)
 					}
 				}
 				
-				manta_set_LED_hex(14 + 16*inst, Amber);
-				manta_set_LED_hex(15 + 16*inst, firstEdition ? Amber : Red);
+				manta_set_LED_hex(13 + 16*inst, Amber); // Deviate
+				manta_set_LED_hex(14 + 16*inst, Amber); // Random
+				manta_set_LED_hex(15 + 16*inst, firstEdition ? Amber : Red); // Blank
 			}
 			
 		}
