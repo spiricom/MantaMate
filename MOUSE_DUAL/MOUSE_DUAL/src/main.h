@@ -308,19 +308,23 @@ volatile avr32_tc_t *tc3;
 #define CVTRIG3 4
 #define CVTRIG4 5
 
-#define TIMERS 1
+#define TC1                 (&AVR32_TC)
+#define TC1_CHANNEL         0
+#define TC1_IRQ             AVR32_TC_IRQ0
+#define TC1_IRQ_GROUP       AVR32_TC_IRQ_GROUP
+#define TC1_IRQ_PRIORITY    AVR32_INTC_INT0
 
 #define TC2                 (&AVR32_TC)
 #define TC2_CHANNEL         1
 #define TC2_IRQ             AVR32_TC_IRQ1
 #define TC2_IRQ_GROUP       AVR32_TC_IRQ_GROUP
-#define TC2_IRQ_PRIORITY    AVR32_INTC_INT0
+#define TC2_IRQ_PRIORITY    AVR32_INTC_INT2
 
 #define TC3                 (&AVR32_TC)
 #define TC3_CHANNEL         2
 #define TC3_IRQ             AVR32_TC_IRQ2
 #define TC3_IRQ_GROUP       AVR32_TC_IRQ_GROUP
-#define TC3_IRQ_PRIORITY    AVR32_INTC_INT0
+#define TC3_IRQ_PRIORITY    AVR32_INTC_INT1
 
 void initTimers (void);
 

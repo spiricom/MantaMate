@@ -10,6 +10,7 @@
 #define UTILITIES_H_
 
 #include "stdint.h"
+#include "stdlib.h"
 // Sequencer patterns to be used in the program
 #define NUM_PATTERNS 8
 #define NUM_GLOBAL_OPTIONS 4
@@ -331,6 +332,6 @@ int32_t tIRampTick(tIRamp *r);
 int tIRampSetTime(tIRamp *r, int32_t time);
 int tIRampSetDest(tIRamp *r, int32_t dest);
 int tIRampInit(tIRamp *r, int32_t sr, int32_t time);
-
+BOOL coinToss(int probability);
 
 #endif /* UTILITIES_H_ */

@@ -390,12 +390,7 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 				sendDataToOutput(output, globalCVGlide, (fullDirect.sliders[sliderNum].value << 4));
 			}
 		}
-		
-
 	}
-	
-	
-	
 }
 
 void dacSendKeyboard(MantaInstrument which)

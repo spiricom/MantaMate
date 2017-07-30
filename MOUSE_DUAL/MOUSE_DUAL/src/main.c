@@ -154,7 +154,7 @@ uint32_t clock_speed_max = 99;
 uint32_t clock_speed_displayed = 0;
 BOOL clock_speed_randomize = FALSE;
 uint32_t clock_random_mod = 1000;
-uint32_t clock_random_mods[10] = {10000, 5000, 2500, 1500, 1100, 900, 500, 300, 150, 70, 25};
+uint32_t clock_random_mods[10] = {65000, 24000, 12000, 6000, 3000, 1500, 750, 350, 175, 50};
 uint32_t tempoDivider = 4 ;
 uint32_t tempoDividerMax = 19;
 
@@ -265,6 +265,9 @@ void sendDataToOutput(int which, int ramp, uint16_t data)
 }
 
 
+uint64_t pba_freq = 0;
+
+
 /*! \brief Main function. Execution starts here.
  */
 int main(void){
@@ -331,22 +334,17 @@ int main(void){
 	
 	//start off on preset 0;
 	//preset_num = 0;
-	
-	
-	
-
 	loadStartupStateFromExternalMemory();
 	
 	
-	
-	//delay_ms(600); // why is this necessary? taking it out makes the manta state not get initialized correctly, but it's weird that we need it
+	pba_freq = sysclk_get_pba_hz(); 
+
 	initTimers();
-	//updatePreset();
+
 	Write7Seg(0);
 	//I added this global variable - it's to allow minor functions to take over the 7-seg, then go back to whatever it is normally showing.
 	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
-	// As a consequence, the user application only has to play with the power modes.
 	
 	tKeyboard_init(&manta[InstrumentOne].keyboard, 1, (firstEdition ? Amber : Red));
 	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
@@ -508,8 +506,33 @@ int main(void){
 }
 
 
+// TC1 timer interrupt.
+__attribute__((__interrupt__))
+static void tc1_irq(void)
+{
+	// Clear the interrupt flag. This is a side effect of reading the TC SR.
+	tc_read_sr(TC1, TC1_CHANNEL);
+		
+	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
+	{
+		clockFrameCounter++;
+		//step the internal clock
+		if (clock_speed != 0)
+		{
+			if (clockFrameCounter >= clock_speed)
+			{
+				clockHappened();
+				clockFrameCounter = 0;
+				if (clock_speed_randomize == TRUE)
+				{
+					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;
+				}
+			}
+		}
+	}
+}
 
-// SequencerTwo timer interrupt.
+// TC2 timer interrupt.
 __attribute__((__interrupt__))
 static void tc2_irq(void)
 {
@@ -519,32 +542,8 @@ static void tc2_irq(void)
 	//TC2 is now also the internal metronome clock, the up/down button held sensing, and the 7seg blinker
 	// as well as the timer for turning off triggers on the outputs
 	
-
 	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
-		
-		//step the internal clock
-		if (clock_speed != 0)
-		{
-
-			
-			
-			if (clockFrameCounter >= clock_speed)
-			{
-				clockHappened();
-				clockFrameCounter = 0;
-				if (clock_speed_randomize == TRUE)
-				{
-					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;			
-				}
-			}
-			else
-			{
-				clockFrameCounter++;
-			}
-		}
-
-
 		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
 		if (upSwitch())
 		{
@@ -814,8 +813,6 @@ static void tc3_irq(void)
 
 	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
-	
-	
 		if (type_of_device_connected == MantaConnected)
 		{
 			if (!takeover) // Dual instrument, not takeover
@@ -980,6 +977,74 @@ static void tc3_irq(void)
 	}
 }
 
+
+static void tc1_init(volatile avr32_tc_t *tc)
+{
+	static const tc_waveform_opt_t waveform_opt = {
+		// Channel selection.
+		.channel  = TC1_CHANNEL,
+		// Software trigger effect on TIOB.
+		.bswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOB.
+		.beevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOB.
+		.bcpc     = TC_EVT_EFFECT_NOOP,
+		// RB compare effect on TIOB.
+		.bcpb     = TC_EVT_EFFECT_NOOP,
+		// Software trigger effect on TIOA.
+		.aswtrg   = TC_EVT_EFFECT_NOOP,
+		// External event effect on TIOA.
+		.aeevt    = TC_EVT_EFFECT_NOOP,
+		// RC compare effect on TIOA.
+		.acpc     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * RA compare effect on TIOA.
+		 * (other possibilities are none, set and clear).
+		 */
+		.acpa     = TC_EVT_EFFECT_NOOP,
+		/*
+		 * Waveform selection: Up mode with automatic trigger(reset)
+		 * on RC compare.
+		 */
+		.wavsel   = TC_WAVEFORM_SEL_UP_MODE_RC_TRIGGER,
+		// External event trigger enable.
+		.enetrg   = false,
+		// External event selection.
+		.eevt     = 0,
+		// External event edge selection.
+		.eevtedg  = TC_SEL_NO_EDGE,
+		// Counter disable when RC compare.
+		.cpcdis   = false,
+		// Counter clock stopped with RC compare.
+		.cpcstop  = false,
+		// Burst signal selection.
+		.burst    = false,
+		// Clock inversion.
+		.clki     = false,
+		// Internal source clock 3, connected to fPBA / 8.
+		.tcclks   = TC_CLOCK_SOURCE_TC2
+	};
+
+	// Options for enabling TC interrupts
+	static const tc_interrupt_t tc_interrupt = {
+		.etrgs = 0,
+		.ldrbs = 0,
+		.ldras = 0,
+		.cpcs  = 1, // Enable interrupt on RC compare alone
+		.cpbs  = 0,
+		.cpas  = 0,
+		.lovrs = 0,
+		.covfs = 0
+	};
+	
+	// Initialize the timer/counter.
+	tc_init_waveform(tc, &waveform_opt);
+	//initial timer clock is is 16,500,000 (33,000,000 / 2) (clock_source_TC2)
+	tc_write_rc( tc, TC1_CHANNEL, 1703); // 16,500,000 / 1650 = 10,000Hz = period of 0.01ms
+	// configure the timer interrupt
+	tc_configure_interrupts(tc, TC1_CHANNEL, &tc_interrupt);
+}
+
 static void tc2_init(volatile avr32_tc_t *tc)
 {
 
@@ -1042,18 +1107,14 @@ static void tc2_init(volatile avr32_tc_t *tc)
 	
 	// Initialize the timer/counter.
 	tc_init_waveform(tc, &waveform_opt);
-	/*
-		* Set the compare triggers.
-		* We configure it to count every 1 milliseconds.
-		* We want: (1 / (fPBA / 8)) * RC = 1 ms, hence RC = (fPBA / 8) / 1000
-		* to get an interrupt every 10 ms.
-		*/
-	tc_write_rc( tc, TC2_CHANNEL, 2000); // was 1000
+	//PBA is 4,000,000 (32,000,000 / 8)
+	tc_write_rc( tc, TC2_CHANNEL, 2000);  // 4,000,000 / 2000 = 2000Hz = period of .05ms
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC2_CHANNEL, &tc_interrupt);
 	
 }
-uint64_t pba_hz = 0;
+
+
 static void tc3_init(volatile avr32_tc_t *tc)
 {
 
@@ -1116,14 +1177,8 @@ static void tc3_init(volatile avr32_tc_t *tc)
 	
 	// Initialize the timer/counter.
 	tc_init_waveform(tc, &waveform_opt);
-	/*
-	* Set the compare triggers.
-	* We configure it to count every 1 milliseconds.
-	* We want: (1 / (fPBA / 8)) * RC = 1 ms,
-	hence RC = (fPBA / 8) / 1000
-	* to get an interrupt every 10 ms.
-	*/
-	tc_write_rc( tc, TC3_CHANNEL, 3000); // 2000 = approximately .5 ms   ///changed it to 3000 = .33ms to get MIDI to work better -- the fact that it was the same timing as the sof seemed to cause trouble.  4000 works with MIDI but breaks Manta
+	//PBA is 4,000,000 (32,000,000 / 8)
+	tc_write_rc( tc, TC3_CHANNEL, 3000);  // 4,000,000 / 3000 = 1333Hz = period of .075ms
 	
 	// configure the timer interrupt
 	tc_configure_interrupts(tc, TC3_CHANNEL, &tc_interrupt);
@@ -1132,20 +1187,20 @@ static void tc3_init(volatile avr32_tc_t *tc)
 void initTimers (void)
 {
 	
-	//tc1 = TC1;
+	tc1 = TC1;
 	tc2 = TC2;
 	tc3 = TC3;
 	
 	// Enable the clock to the selected example Timer/counter peripheral module.
-	//sysclk_enable_peripheral_clock(TC1);
+	sysclk_enable_peripheral_clock(TC1);
 	sysclk_enable_peripheral_clock(TC2);
 	sysclk_enable_peripheral_clock(TC3);
 	
-	//tc1_init(tc1);
+	tc1_init(tc1);
 	tc2_init(tc2);
 	tc3_init(tc3);
 	
-	//tc_start(tc1, TC1_CHANNEL);
+	tc_start(tc1, TC1_CHANNEL);
 	tc_start(tc2, TC2_CHANNEL);
 	tc_start(tc3, TC3_CHANNEL);
 
@@ -1240,23 +1295,20 @@ void USB_Mode_Switch_Check(void)
 			uhc_start();
 			myUSBMode = HOSTMODE;
 		}	
-		/// TODO just took this out - should it check?
-		//updatePreset();
 }
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
-	
-	if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
+		
+	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{
 		no_device_mode_active = TRUE;
 		return;
 	}
-
-	if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
+	
+	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
 	{
-		
 		if (type_of_device_connected == NoDeviceConnected)
 		{
 			if(upSwitch())
@@ -1282,7 +1334,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 				Write7Seg(MIDIKeyboard.arpModeType+1);
 			}
-			
 			else if(downSwitch())
 			{
 
@@ -1299,10 +1350,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				}
 			}
 		}
-		
-		
 	}
-	
 	else
 	{
 		if (displayState == HexmapSelect)
@@ -1341,7 +1389,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					if (--currentDirectSelect < 0) currentDirectSelect = 99;
 				}
 			}
-			
 			Write7Seg(currentDirectSelect);
 			normal_7seg_number = currentDirectSelect;
 		}
@@ -1361,7 +1408,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					if (--currentSequencerSelect < 0) currentSequencerSelect = 99;
 				}
 			}
-			
 			Write7Seg(currentSequencerSelect);
 			normal_7seg_number = currentSequencerSelect;
 		}
@@ -1440,7 +1486,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					}
 				}
 			}
-		
 			mantaUITunings[currentTuningHex] = currentMantaUITuning;
 		
 			if (suspendRetrieve != DontRetrieve)
@@ -1474,7 +1519,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 						Write7Seg(preset_num);
 						normal_7seg_number = preset_num;
 					}
-
 				}
 				else 
 				{
@@ -1504,7 +1548,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					suspendRetrieve = RetrieveWhenever;
 				}
 			}
-		
 			//otherwise we are currently navigating to save a preset into a slot
 			else
 			{
@@ -1538,7 +1581,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				normal_7seg_number = preset_to_save_num;
 			}
 		}
-	
 		else if (preference_num == TUNING_AND_LEARN)
 		{
 			if (tuningOrLearn == TUNING_SELECT)
@@ -1630,7 +1672,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		
 		}
-	
 		else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
 		{
 			if (whichSwitch)
@@ -1715,7 +1756,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 
 		}
-	
 		else if (preference_num == INTERNAL_CLOCK)
 		{
 
@@ -1783,7 +1823,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (tempoDivider < 10)
 				{
-					clock_speed = (960000 / (clock_speed_displayed + 61)) / (1 << tempoDivider); //seems like this should be + 60, but for some reason it's off by one if so (based on measuring the timing)
+					clock_speed = (2400000 / (clock_speed_displayed + 60)) / (1 << tempoDivider); //1,200,000 is the number of clocks per minute if the clock speed is 20,000Hz (which it currently is). multiply that by four to get the length of a measure (whole note), then divide that by the BPM you want to get the right value
 					clock_speed_randomize = FALSE;
 				}
 				else
@@ -1797,7 +1837,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				clock_speed = 0;
 			}
-
 		}
 	}
 }
@@ -2268,22 +2307,23 @@ void setupEIC(void)
 	eic_enable_interrupt_line(&AVR32_EIC, eic_options[0].eic_line);
 	
 	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT1);
 	  
 	gpio_enable_pin_interrupt(GPIO_PRESET_DOWN_SWITCH , GPIO_PIN_CHANGE);	// PB02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT1);
 	
 	gpio_enable_pin_interrupt(GPIO_PRESET_UP_SWITCH , GPIO_PIN_CHANGE);	// PA20
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT1);
 	
 	gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT1);
 	
 	gpio_enable_pin_interrupt(GPIO_PREFERENCES_SWITCH , GPIO_PIN_CHANGE);	//PX02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PREFERENCES_SWITCH/8), AVR32_INTC_INT0);
+	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PREFERENCES_SWITCH/8), AVR32_INTC_INT1);
 	
 	
 	// Register the RTC interrupt handler to the interrupt controller.
+	INTC_register_interrupt(&tc1_irq, TC1_IRQ, TC1_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc2_irq, TC2_IRQ, TC2_IRQ_PRIORITY);
 	INTC_register_interrupt(&tc3_irq, TC3_IRQ, TC3_IRQ_PRIORITY);
 	
@@ -2703,14 +2743,11 @@ void mantaSliderTouchAction(int whichSlider)
 {
 	//MIKEY LIKES IT
 	// yessss he does :)
-	
-
 }
 
 void mantaSliderReleaseAction(int whichSlider)
 {
 	//HEY MIKEY, HE LIKES IT
 	// finally saw that commercial btw haha. dad educated me
-
 }
 
