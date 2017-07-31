@@ -238,6 +238,10 @@ void uhi_midi_enable(uhc_device_t* dev)
 
 	uhi_midi_dev.b_enabled = true;
 	type_of_device_connected = MIDIKeyboardConnected;
+	
+	
+	clearDACoutputs();
+	
 	updatePreset();
 	// Init value
 	//initNoteStack();
@@ -253,6 +257,9 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 	uhi_midi_dev.dev = NULL;
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
+	
+	clearDACoutputs();
+	
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);
 	//initNoteStack();

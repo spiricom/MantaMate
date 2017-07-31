@@ -294,8 +294,7 @@ int keyNoteOn;
 int glideNoteOn;
 int trigSelectOn;
 
-tNoteStack editStack;
-tNoteStack noteOnStack; // all notes on at any point during runtime
+
 
 
 uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER]; 
@@ -325,7 +324,6 @@ uint8_t current_option_hex = 0;
 
 uint8_t currentHexUIOff = 0;
 
-uint8_t currentHexUI = 0;
 uint8_t prevHexUI = 0;
 
 uint8_t currentUpperHexUI = 0, prevUpperHexUI = 0;
@@ -385,7 +383,7 @@ void initMantaSequencer(void)
 	shiftOption2Lock =			FALSE;
 	
 	
-	currentHexUI = -1;
+	currentHexUI = 0;
 	resetEditStack();
 	
 	// Initialize the noteOnStack. :D !!!
@@ -906,8 +904,9 @@ void setCompositionLEDs(void)
 					}
 				}
 				
-				manta_set_LED_hex(14 + 16*inst, Amber);
-				manta_set_LED_hex(15 + 16*inst, firstEdition ? Amber : Red);
+				manta_set_LED_hex(13 + 16*inst, Amber); // Deviate
+				manta_set_LED_hex(14 + 16*inst, Amber); // Random
+				manta_set_LED_hex(15 + 16*inst, firstEdition ? Amber : Red); // Blank
 			}
 			
 		}
@@ -1263,7 +1262,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 int lastTouch = 0;
 
 void touchLowerHex(uint8_t hexagon)
-{
+{	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	
 	if (manta[currentInstrument].type == SequencerInstrument)
@@ -1566,17 +1565,21 @@ void releaseUpperHex(uint8_t hexagon)
 		int whichMute = (whichUpperHex%4);
 		int whichPanel = (whichUpperHex%4);
 
-		if (whichTrigPanel != SXTrigPanelNil)
+		if (edit_vs_play == TrigToggleMode)
 		{
-			if ((trigSelectOn+MAX_STEPS) == hexagon)
+			if (whichTrigPanel != SXTrigPanelNil)
 			{
-				 trigSelectOn = -1;
-				 
-				 manta_set_LED_hex(hexagon, (sequencer->mute[whichMute] ? (firstEdition ? Off : BothOn) : Amber));
-				 
-				 switchToMode(PlayToggleMode);
+				if ((trigSelectOn+MAX_STEPS) == hexagon)
+				{
+					trigSelectOn = -1;
+					
+					manta_set_LED_hex(hexagon, (sequencer->mute[whichMute] ? (firstEdition ? Off : BothOn) : Amber));
+					
+					switchToMode(PlayToggleMode);
+				}
 			}
 		}
+		
 		
 	}
 	
@@ -1813,7 +1816,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		if (takeover)
 		{
-			for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+			clearDACoutputs();
 			
 			takeover = FALSE;
 			
@@ -1826,19 +1829,19 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionDuo)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(4);		
 	}
@@ -2159,7 +2162,7 @@ void setSequencerLEDs(void)
 		
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
 		
-		if ((manta[InstrumentOne].type == SequencerInstrument) && (manta[InstrumentTwo].type == SequencerInstrument) &&
+		if ((full_vs_split == SplitMode) &&
 			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && (manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
 		{
 			setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
@@ -3350,7 +3353,7 @@ void setOptionLEDs(void)
 	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 	MantaInstrumentType type1 = manta[InstrumentOne].type; MantaInstrumentType type2 = manta[InstrumentTwo].type;
 	
-	currentOptionMode =	(shiftOption2) ? (type ? DirectOptionMode : RightOptionMode) :
+	currentOptionMode =	(shiftOption2) ? ((type == DirectInstrument) ? DirectOptionMode : RightOptionMode) :
 	(type == SequencerInstrument) ? SequencerOptionMode :
 	(type == KeyboardOptionMode) ? KeyboardOptionMode :
 	(type == DirectInstrument) ? DirectOptionMode :
@@ -3744,7 +3747,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 			
 			sequencer->step[hexUIToStep(editStack.notestack[i])].pitch = value;
 			
-			setParameterForEditStackSteps(inst, Note, 1);
+			sequencer->step[hexUIToStep(editStack.notestack[i])].note = 1;
 		}
 	}
 	else if (param == Fine)	
@@ -3937,7 +3940,10 @@ void resetEditStack(void)
 	tNoteStack_clear(&editStack);
 	editNoteOn = -1;
 	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	tNoteStack_add(&editStack,currentHexUI);
-	else												tNoteStack_add(&editStack,0);
+	else												
+	{
+		tNoteStack_add(&editStack,0);
+	}
 }
 
 void seqwait(void)

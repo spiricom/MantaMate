@@ -72,6 +72,13 @@
 #define NUM_INST 2
 #define NUM_COMP 14
 
+tNoteStack editStack;
+tNoteStack noteOnStack; // all notes on at any point during runtime
+
+uint8_t currentHexUI;
+
+void resetEditStack(void);
+
 typedef enum MantaMateDeviceType
 {
 	DeviceManta,
@@ -426,6 +433,7 @@ void loadMIDIPreset(void);
 void loadJoystickPreset(void);
 void loadMantaPreset(void);
 void clearDACoutputs(void);
+void clearInstrumentDACoutputs(MantaInstrument inst);
 
 uint8_t upSwitch(void);
 uint8_t downSwitch(void);

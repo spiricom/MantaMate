@@ -160,7 +160,7 @@
         <board id="board.evk1100" value="Add" config="" content-id="Atmel.ASF" />
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>com.atmel.avrdbg.tool.atmelice</avrtool>
+    <avrtool>com.atmel.avrdbg.tool.jtagice3plus</avrtool>
     <avrtoolinterface>JTAG</avrtoolinterface>
     <com_atmel_avrdbg_tool_jtagice3plus>
       <ToolOptions>
@@ -173,7 +173,7 @@
           <JtagInstrBitsAfter>0</JtagInstrBitsAfter>
           <JtagSelectedDeviceIndexInChain>
           </JtagSelectedDeviceIndexInChain>
-          <JtagDbgClock>0</JtagDbgClock>
+          <JtagDbgClock>7500000</JtagDbgClock>
           <JtagDaisyChainDevices>
           </JtagDaisyChainDevices>
         </InterfaceProperties>
@@ -195,13 +195,13 @@
       </ToolNumber>
       <ToolName>Simulator</ToolName>
     </com_atmel_avrdbg_tool_simulator>
-    <avrtoolserialnumber>J41800058526</avrtoolserialnumber>
+    <avrtoolserialnumber>J30200025218</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x0</avrdeviceexpectedsignature>
     <avrtoolinterfaceclock>7500000</avrtoolinterfaceclock>
     <com_atmel_avrdbg_tool_atmelice>
       <ToolOptions>
         <InterfaceProperties>
-          <JtagDbgClock>7500000</JtagDbgClock>
+          <JtagDbgClock>0</JtagDbgClock>
         </InterfaceProperties>
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
@@ -354,157 +354,157 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ToolchainSettings>
       <Avr32Gcc>
-  <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
-  <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
-  <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
-  <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
-  <avr32gcc.compiler.symbols.DefSymbols>
-    <ListValues>
-      <Value>DEBUG</Value>
-      <Value>BOARD=EVK1100</Value>
-      <Value>UDD_ENABLE</Value>
-      <Value>UHD_ENABLE</Value>
-    </ListValues>
-  </avr32gcc.compiler.symbols.DefSymbols>
-  <avr32gcc.compiler.directories.IncludePaths>
-    <ListValues>
-      <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
-      <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
-      <Value>../src/ASF/avr32/utils</Value>
-      <Value>../src/ASF/common/services/usb/uhc</Value>
-      <Value>../src/ASF/common/services/usb/udc</Value>
-      <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
-      <Value>../src/ASF/common/utils</Value>
-      <Value>../src/ASF/common/services/sleepmgr</Value>
-      <Value>../src/ASF/avr32/boards</Value>
-      <Value>../src/ASF/common/boards</Value>
-      <Value>../src/ASF/avr32/drivers/eic</Value>
-      <Value>../src/ASF/common/services/usb</Value>
-      <Value>../src/ASF/avr32/drivers/flashc</Value>
-      <Value>../src/config</Value>
-      <Value>../src/ASF/avr32/boards/evk1100</Value>
-      <Value>../src</Value>
-      <Value>../src/ASF/common/services/clock</Value>
-      <Value>../src/ASF/avr32/drivers/usbb</Value>
-      <Value>../src/ASF/avr32/drivers/gpio</Value>
-      <Value>../src/ASF/common/services/usb/class/hid</Value>
-      <Value>../src/ASF/avr32/utils/preprocessor</Value>
-      <Value>../src/ASF/avr32/drivers/intc</Value>
-      <Value>../src/ASF/avr32/drivers/pm</Value>
-      <Value>../src/ASF/avr32/components/display/dip204</Value>
-      <Value>../src/ASF/avr32/drivers/cpu/cycle_counter</Value>
-      <Value>../src/ASF/avr32/drivers/spi</Value>
-      <Value>../src/ASF/common/services/delay</Value>
-      <Value>../src/ASF/avr32</Value>
-      <Value>../src/ASF/common</Value>
-      <Value>../src/ASF/common/services/usb/class/MIDI</Value>
-      <Value>../src/ASF/common/services/usb/class/MIDI/host/midi</Value>
-      <Value>../src/ASF/common/services/usb/class/MIDI/device/midi</Value>
-      <Value>../src/ASF/common/services/usb/class/MIDI/device</Value>
-      <Value>../src/ASF/common/services/usb/class/MIDI/host</Value>
-      <Value>../src/ASF/common/services/usb/core</Value>
-      <Value>../src/ASF/avr32/drivers/pwm</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/host/manta</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/host/joystick</Value>
-      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
-      <Value>../src/ASF/avr32/drivers/twi</Value>
-      <Value>../src/ASF/common/services/twi</Value>
-      <Value>../src/ASF/avr32/drivers/wdt</Value>
-      <Value>../src/ASF/avr32/drivers/tc</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/host/keyboard</Value>
-    </ListValues>
-  </avr32gcc.compiler.directories.IncludePaths>
-  <avr32gcc.compiler.optimization.OtherFlags>-fdata-sections</avr32gcc.compiler.optimization.OtherFlags>
-  <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
-  <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>True</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
-  <avr32gcc.compiler.optimization.DebugLevel>Maximum (-g3)</avr32gcc.compiler.optimization.DebugLevel>
-  <avr32gcc.compiler.warnings.AllWarnings>True</avr32gcc.compiler.warnings.AllWarnings>
-  <avr32gcc.compiler.miscellaneous.OtherFlags>-std=gnu99 -fno-strict-aliasing -Wstrict-prototypes -Wmissing-prototypes -Werror-implicit-function-declaration -Wpointer-arith -mrelax -mno-cond-exec-before-reload</avr32gcc.compiler.miscellaneous.OtherFlags>
-  <avr32gcc.linker.general.DoNotUseStandardStartFiles>True</avr32gcc.linker.general.DoNotUseStandardStartFiles>
-  <avr32gcc.linker.libraries.Libraries>
-    <ListValues>
-      <Value>libm</Value>
-    </ListValues>
-  </avr32gcc.linker.libraries.Libraries>
-  <avr32gcc.linker.optimization.GarbageCollectUnusedSections>True</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
-  <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>True</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
-  <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>True</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
-  <avr32gcc.linker.miscellaneous.LinkerFlags>-Wl,-T../src/ASF/avr32/utils/linker_scripts/at32uc3a/0512/gcc/link_uc3a0512.lds -Wl,-e,_trampoline</avr32gcc.linker.miscellaneous.LinkerFlags>
-  <avr32gcc.assembler.general.AssemblerFlags>-mrelax</avr32gcc.assembler.general.AssemblerFlags>
-  <avr32gcc.assembler.general.IncludePaths>
-    <ListValues>
-      <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
-      <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
-      <Value>../src/ASF/avr32/utils</Value>
-      <Value>../src/ASF/common/services/usb/uhc</Value>
-      <Value>../src/ASF/common/services/usb/udc</Value>
-      <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
-      <Value>../src/ASF/common/utils</Value>
-      <Value>../src/ASF/common/services/sleepmgr</Value>
-      <Value>../src/ASF/avr32/boards</Value>
-      <Value>../src/ASF/common/boards</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/device/mouse</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/device</Value>
-      <Value>../src/ASF/avr32/drivers/eic</Value>
-      <Value>../src/ASF/common/services/usb</Value>
-      <Value>../src/ASF/avr32/drivers/flashc</Value>
-      <Value>../src/config</Value>
-      <Value>../src/ASF/avr32/boards/evk1100</Value>
-      <Value>../src</Value>
-      <Value>../src/ASF/common/services/clock</Value>
-      <Value>../src/ASF/avr32/drivers/usbb</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/host/mouse</Value>
-      <Value>../src/ASF/avr32/drivers/gpio</Value>
-      <Value>../src/ASF/common/services/usb/class/hid</Value>
-      <Value>../src/ASF/avr32/utils/preprocessor</Value>
-      <Value>../src/ASF/avr32/drivers/intc</Value>
-      <Value>../src/ASF/avr32/drivers/pm</Value>
-      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
-      <Value>../src/ASF/avr32/drivers/twi</Value>
-      <Value>../src/ASF/common/services/twi</Value>
-      <Value>../src/ASF/avr32/drivers/wdt</Value>
-      <Value>../src/ASF/avr32/drivers/tc</Value>
-    </ListValues>
-  </avr32gcc.assembler.general.IncludePaths>
-  <avr32gcc.assembler.debugging.DebugLevel>Default (-g)</avr32gcc.assembler.debugging.DebugLevel>
-  <avr32gcc.preprocessingassembler.general.AssemblerFlags>-mrelax -DBOARD=EVK1100 -DUDD_ENABLE -DUHD_ENABLE</avr32gcc.preprocessingassembler.general.AssemblerFlags>
-  <avr32gcc.preprocessingassembler.general.IncludePaths>
-    <ListValues>
-      <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
-      <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
-      <Value>../src/ASF/avr32/utils</Value>
-      <Value>../src/ASF/common/services/usb/uhc</Value>
-      <Value>../src/ASF/common/services/usb/udc</Value>
-      <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
-      <Value>../src/ASF/common/utils</Value>
-      <Value>../src/ASF/common/services/sleepmgr</Value>
-      <Value>../src/ASF/avr32/boards</Value>
-      <Value>../src/ASF/common/boards</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/device/mouse</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/device</Value>
-      <Value>../src/ASF/avr32/drivers/eic</Value>
-      <Value>../src/ASF/common/services/usb</Value>
-      <Value>../src/ASF/avr32/drivers/flashc</Value>
-      <Value>../src/config</Value>
-      <Value>../src/ASF/avr32/boards/evk1100</Value>
-      <Value>../src</Value>
-      <Value>../src/ASF/common/services/clock</Value>
-      <Value>../src/ASF/avr32/drivers/usbb</Value>
-      <Value>../src/ASF/common/services/usb/class/hid/host/mouse</Value>
-      <Value>../src/ASF/avr32/drivers/gpio</Value>
-      <Value>../src/ASF/common/services/usb/class/hid</Value>
-      <Value>../src/ASF/avr32/utils/preprocessor</Value>
-      <Value>../src/ASF/avr32/drivers/intc</Value>
-      <Value>../src/ASF/avr32/drivers/pm</Value>
-      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
-      <Value>../src/ASF/avr32/drivers/twi</Value>
-      <Value>../src/ASF/common/services/twi</Value>
-      <Value>../src/ASF/avr32/drivers/wdt</Value>
-      <Value>../src/ASF/avr32/drivers/tc</Value>
-    </ListValues>
-  </avr32gcc.preprocessingassembler.general.IncludePaths>
-  <avr32gcc.preprocessingassembler.debugging.DebugLevel>Default (-Wa,-g)</avr32gcc.preprocessingassembler.debugging.DebugLevel>
-</Avr32Gcc>
+        <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+        <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+        <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+        <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+        <avr32gcc.compiler.symbols.DefSymbols>
+          <ListValues>
+            <Value>DEBUG</Value>
+            <Value>BOARD=EVK1100</Value>
+            <Value>UDD_ENABLE</Value>
+            <Value>UHD_ENABLE</Value>
+          </ListValues>
+        </avr32gcc.compiler.symbols.DefSymbols>
+        <avr32gcc.compiler.directories.IncludePaths>
+          <ListValues>
+            <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
+            <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
+            <Value>../src/ASF/avr32/utils</Value>
+            <Value>../src/ASF/common/services/usb/uhc</Value>
+            <Value>../src/ASF/common/services/usb/udc</Value>
+            <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
+            <Value>../src/ASF/common/utils</Value>
+            <Value>../src/ASF/common/services/sleepmgr</Value>
+            <Value>../src/ASF/avr32/boards</Value>
+            <Value>../src/ASF/common/boards</Value>
+            <Value>../src/ASF/avr32/drivers/eic</Value>
+            <Value>../src/ASF/common/services/usb</Value>
+            <Value>../src/ASF/avr32/drivers/flashc</Value>
+            <Value>../src/config</Value>
+            <Value>../src/ASF/avr32/boards/evk1100</Value>
+            <Value>../src</Value>
+            <Value>../src/ASF/common/services/clock</Value>
+            <Value>../src/ASF/avr32/drivers/usbb</Value>
+            <Value>../src/ASF/avr32/drivers/gpio</Value>
+            <Value>../src/ASF/common/services/usb/class/hid</Value>
+            <Value>../src/ASF/avr32/utils/preprocessor</Value>
+            <Value>../src/ASF/avr32/drivers/intc</Value>
+            <Value>../src/ASF/avr32/drivers/pm</Value>
+            <Value>../src/ASF/avr32/components/display/dip204</Value>
+            <Value>../src/ASF/avr32/drivers/cpu/cycle_counter</Value>
+            <Value>../src/ASF/avr32/drivers/spi</Value>
+            <Value>../src/ASF/common/services/delay</Value>
+            <Value>../src/ASF/avr32</Value>
+            <Value>../src/ASF/common</Value>
+            <Value>../src/ASF/common/services/usb/class/MIDI</Value>
+            <Value>../src/ASF/common/services/usb/class/MIDI/host/midi</Value>
+            <Value>../src/ASF/common/services/usb/class/MIDI/device/midi</Value>
+            <Value>../src/ASF/common/services/usb/class/MIDI/device</Value>
+            <Value>../src/ASF/common/services/usb/class/MIDI/host</Value>
+            <Value>../src/ASF/common/services/usb/core</Value>
+            <Value>../src/ASF/avr32/drivers/pwm</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/host/manta</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/host/joystick</Value>
+            <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+            <Value>../src/ASF/avr32/drivers/twi</Value>
+            <Value>../src/ASF/common/services/twi</Value>
+            <Value>../src/ASF/avr32/drivers/wdt</Value>
+            <Value>../src/ASF/avr32/drivers/tc</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/host/keyboard</Value>
+          </ListValues>
+        </avr32gcc.compiler.directories.IncludePaths>
+        <avr32gcc.compiler.optimization.OtherFlags>-fdata-sections</avr32gcc.compiler.optimization.OtherFlags>
+        <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+        <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>True</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+        <avr32gcc.compiler.optimization.DebugLevel>Maximum (-g3)</avr32gcc.compiler.optimization.DebugLevel>
+        <avr32gcc.compiler.warnings.AllWarnings>True</avr32gcc.compiler.warnings.AllWarnings>
+        <avr32gcc.compiler.miscellaneous.OtherFlags>-std=gnu99 -fno-strict-aliasing -Wstrict-prototypes -Wmissing-prototypes -Werror-implicit-function-declaration -Wpointer-arith -mrelax -mno-cond-exec-before-reload</avr32gcc.compiler.miscellaneous.OtherFlags>
+        <avr32gcc.linker.general.DoNotUseStandardStartFiles>True</avr32gcc.linker.general.DoNotUseStandardStartFiles>
+        <avr32gcc.linker.libraries.Libraries>
+          <ListValues>
+            <Value>libm</Value>
+          </ListValues>
+        </avr32gcc.linker.libraries.Libraries>
+        <avr32gcc.linker.optimization.GarbageCollectUnusedSections>True</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+        <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>True</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+        <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>True</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+        <avr32gcc.linker.miscellaneous.LinkerFlags>-Wl,-T../src/ASF/avr32/utils/linker_scripts/at32uc3a/0512/gcc/link_uc3a0512.lds -Wl,-e,_trampoline</avr32gcc.linker.miscellaneous.LinkerFlags>
+        <avr32gcc.assembler.general.AssemblerFlags>-mrelax</avr32gcc.assembler.general.AssemblerFlags>
+        <avr32gcc.assembler.general.IncludePaths>
+          <ListValues>
+            <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
+            <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
+            <Value>../src/ASF/avr32/utils</Value>
+            <Value>../src/ASF/common/services/usb/uhc</Value>
+            <Value>../src/ASF/common/services/usb/udc</Value>
+            <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
+            <Value>../src/ASF/common/utils</Value>
+            <Value>../src/ASF/common/services/sleepmgr</Value>
+            <Value>../src/ASF/avr32/boards</Value>
+            <Value>../src/ASF/common/boards</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/device/mouse</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/device</Value>
+            <Value>../src/ASF/avr32/drivers/eic</Value>
+            <Value>../src/ASF/common/services/usb</Value>
+            <Value>../src/ASF/avr32/drivers/flashc</Value>
+            <Value>../src/config</Value>
+            <Value>../src/ASF/avr32/boards/evk1100</Value>
+            <Value>../src</Value>
+            <Value>../src/ASF/common/services/clock</Value>
+            <Value>../src/ASF/avr32/drivers/usbb</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/host/mouse</Value>
+            <Value>../src/ASF/avr32/drivers/gpio</Value>
+            <Value>../src/ASF/common/services/usb/class/hid</Value>
+            <Value>../src/ASF/avr32/utils/preprocessor</Value>
+            <Value>../src/ASF/avr32/drivers/intc</Value>
+            <Value>../src/ASF/avr32/drivers/pm</Value>
+            <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+            <Value>../src/ASF/avr32/drivers/twi</Value>
+            <Value>../src/ASF/common/services/twi</Value>
+            <Value>../src/ASF/avr32/drivers/wdt</Value>
+            <Value>../src/ASF/avr32/drivers/tc</Value>
+          </ListValues>
+        </avr32gcc.assembler.general.IncludePaths>
+        <avr32gcc.assembler.debugging.DebugLevel>Default (-g)</avr32gcc.assembler.debugging.DebugLevel>
+        <avr32gcc.preprocessingassembler.general.AssemblerFlags>-mrelax -DBOARD=EVK1100 -DUDD_ENABLE -DUHD_ENABLE</avr32gcc.preprocessingassembler.general.AssemblerFlags>
+        <avr32gcc.preprocessingassembler.general.IncludePaths>
+          <ListValues>
+            <Value>../common/services/usb/class/hid/dual/mouse/example</Value>
+            <Value>../common/services/usb/class/hid/dual/mouse/example/at32uc3a0512_evk1100</Value>
+            <Value>../src/ASF/avr32/utils</Value>
+            <Value>../src/ASF/common/services/usb/uhc</Value>
+            <Value>../src/ASF/common/services/usb/udc</Value>
+            <Value>../src/ASF/avr32/components/joystick/skrhabe010</Value>
+            <Value>../src/ASF/common/utils</Value>
+            <Value>../src/ASF/common/services/sleepmgr</Value>
+            <Value>../src/ASF/avr32/boards</Value>
+            <Value>../src/ASF/common/boards</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/device/mouse</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/device</Value>
+            <Value>../src/ASF/avr32/drivers/eic</Value>
+            <Value>../src/ASF/common/services/usb</Value>
+            <Value>../src/ASF/avr32/drivers/flashc</Value>
+            <Value>../src/config</Value>
+            <Value>../src/ASF/avr32/boards/evk1100</Value>
+            <Value>../src</Value>
+            <Value>../src/ASF/common/services/clock</Value>
+            <Value>../src/ASF/avr32/drivers/usbb</Value>
+            <Value>../src/ASF/common/services/usb/class/hid/host/mouse</Value>
+            <Value>../src/ASF/avr32/drivers/gpio</Value>
+            <Value>../src/ASF/common/services/usb/class/hid</Value>
+            <Value>../src/ASF/avr32/utils/preprocessor</Value>
+            <Value>../src/ASF/avr32/drivers/intc</Value>
+            <Value>../src/ASF/avr32/drivers/pm</Value>
+            <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+            <Value>../src/ASF/avr32/drivers/twi</Value>
+            <Value>../src/ASF/common/services/twi</Value>
+            <Value>../src/ASF/avr32/drivers/wdt</Value>
+            <Value>../src/ASF/avr32/drivers/tc</Value>
+          </ListValues>
+        </avr32gcc.preprocessingassembler.general.IncludePaths>
+        <avr32gcc.preprocessingassembler.debugging.DebugLevel>Default (-Wa,-g)</avr32gcc.preprocessingassembler.debugging.DebugLevel>
+      </Avr32Gcc>
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>

@@ -306,6 +306,7 @@ int main(void){
 	loadTuning(globalTuning);
 	displayState = GlobalDisplayStateNil;
 	currentTuningHex = -1;
+	currentHexUI = -1;
 	currentHexmapEditHex = -1;
 	currentHexmapHex = -1;
 	currentDirectSelect = 0;
@@ -334,6 +335,13 @@ int main(void){
 	
 	//start off on preset 0;
 	//preset_num = 0;
+	
+	currentHexUI = -1;
+	resetEditStack();
+	
+	// Initialize the noteOnStack. :D !!!
+	tNoteStack_init(&noteOnStack, 32);
+	
 	loadStartupStateFromExternalMemory();
 	
 	
@@ -492,6 +500,9 @@ int main(void){
 			delay_ms(10); //seems to help it get through the attachment process before it gets connected
 			manta_LED_set_mode(HOST_CONTROL_FULL);
 			type_of_device_connected = MantaConnected;
+			
+			clearDACoutputs();
+			
 			freeze_LED_update = FALSE;
 			manta_clear_all_LEDs();
 			updatePreset();		//this will make it reset if the manta is unplugged and plugged back in. Might not be the desired behavior in case of accidental unplug, but will be cleaner if unplugged on purpose.
@@ -1969,6 +1980,12 @@ void Save_Switch_Check(void)
 
 void updatePreset(void)
 {	
+	currentHexUI = -1;
+	resetEditStack();
+	
+	// Initialize the noteOnStack. :D !!!
+	tNoteStack_init(&noteOnStack, 32);
+	
 	if (type_of_device_connected == MantaConnected)
 	{
 		loadMantaPreset();
@@ -2366,6 +2383,8 @@ uint8_t preferencesSwitch(void)
 
 void loadMantaPreset(void)
 {
+	if (preset_num < 10) clearDACoutputs();
+	
 	if (preset_num == 0)
 	{
 		initMantaSequencer();
@@ -2417,6 +2436,8 @@ void initMantaLEDState(void)
 	hexmapEditMode = FALSE;
 	directEditMode = FALSE;
 	setCurrentInstrument(InstrumentOne);
+	
+	if (!takeover && manta[InstrumentOne].type ==SequencerInstrument) manta_set_LED_button(ButtonTopRight, (edit_vs_play == EditMode) ? (firstEdition ? Amber : Red) : (firstEdition ? Off : Amber));
 	setSequencerLEDs();
 	setKeyboardLEDs();
 	setDirectLEDs();
@@ -2425,6 +2446,8 @@ void initMantaLEDState(void)
 
 void loadJoystickPreset(void)
 {
+	clearDACoutputs();
+	
 	if (preset_num == 0)
 	{
 		joystickIgnoreAxes = FALSE;
@@ -2467,6 +2490,8 @@ void loadJoystickPreset(void)
 
 void loadMIDIPreset(void)
 {
+	clearDACoutputs();
+	
 	if (preset_num == 0)
 	{
 		initMIDIArpeggiator();
@@ -2512,7 +2537,15 @@ void clearDACoutputs(void)
 {
 	for (int i = 0; i < 12; i++)
 	{
-		sendDataToOutput(i,0,0);		
+		sendDataToOutput(i,5,0);		
+	}
+}
+
+void clearInstrumentDACoutputs(MantaInstrument inst)
+{
+	for (int i = 0; i < 6; i++)
+	{
+		sendDataToOutput(6*inst + i,5,0);
 	}
 }
 

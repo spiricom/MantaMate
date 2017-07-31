@@ -52,6 +52,15 @@ void initMantaKeys(int numVoices)
 {
 	if (numVoices < 2)
 	{
+		
+		if (takeover && (fullKeyboard.playMode == ArpMode))
+		{
+			manta[currentInstrument].keyboard.playMode = ArpMode;
+			manta[currentInstrument].keyboard.arpModeType = fullKeyboard.arpModeType;
+		}
+		
+		takeover = FALSE;
+		
 		for (int i = 0; i < NUM_INST; i++)
 		{
 			manta[i].type = KeyboardInstrument;
@@ -76,10 +85,7 @@ void initMantaKeys(int numVoices)
 		fullKeyboard.numVoices = numVoices;
 	}
 	
-	for(int i=0; i<12; i++)
-	{
-		sendDataToOutput(i, 5, 0);
-	}
+	clearDACoutputs();
 	
 	resetMantaUI();
 }
