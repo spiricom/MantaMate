@@ -549,11 +549,25 @@ void tSequencer_deviate(tSequencer* const seq)
 		}
 		if (coinToss(5))
 		{
-			seq->step[i].pglide = ((rand() >> 15) & 1) * 127;
+			if (coinToss(20))
+			{
+				seq->step[i].pglide = ((rand() >> 15) & 512);
+			}
+			else
+			{
+				seq->step[i].pglide = 0;
+			}
 		}
 		if (coinToss(5))
 		{
-			seq->step[i].cvglide = ((rand() >> 15) & 1) * 127;
+			if (coinToss(20))
+			{
+				seq->step[i].cvglide = ((rand() >> 15) & 512);
+			}
+			else
+			{
+				seq->step[i].cvglide = 7;
+			}
 		}
 		for (int j = 0; j < 4; j++)
 		{
