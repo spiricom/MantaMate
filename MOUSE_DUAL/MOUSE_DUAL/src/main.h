@@ -433,6 +433,7 @@ void loadMIDIPreset(void);
 void loadJoystickPreset(void);
 void loadMantaPreset(void);
 void clearDACoutputs(void);
+void clearInstrumentDACoutputs(MantaInstrument inst);
 
 uint8_t upSwitch(void);
 uint8_t downSwitch(void);

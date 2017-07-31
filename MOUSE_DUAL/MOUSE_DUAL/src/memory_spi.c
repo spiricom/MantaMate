@@ -274,7 +274,27 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 		mantaLoadPending = 0;
 		whichInstCompositions = 0;
 		initiateLoadingMantaCompositionsFromExternalMemory();
+		
+		MantaInstrumentType lastInst1Type = manta[InstrumentOne].type; MantaInstrumentType lastInst2Type = manta[InstrumentTwo].type;
+		MantaInstrumentType lastTakeoverType = takeoverType;
+		BOOL lastTakeover = takeover;
+		
 		mantaPreset_decode(mantamate_internal_preset_buffer);
+		
+		MantaInstrumentType inst1Type = manta[InstrumentOne].type; MantaInstrumentType inst2Type = manta[InstrumentTwo].type;
+		
+		if (takeover) clearDACoutputs();
+		else 
+		{
+			if (lastInst1Type == SequencerInstrument && inst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
+			
+			if (inst1Type == SequencerInstrument && lastInst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
+			
+			if (lastInst2Type == SequencerInstrument && inst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
+			
+			if (inst2Type == SequencerInstrument && lastInst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
+		}
+		
 		initMantaLEDState();
 	}
 }

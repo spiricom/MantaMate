@@ -293,10 +293,7 @@ void initMIDIKeys(int numVoices, BOOL pitchout)
 {
 	tMIDIKeyboard_init(&MIDIKeyboard, numVoices, pitchout);
 	
-	for(int i=0; i<12; i++)
-	{
-		sendDataToOutput(i, 5, 0);
-	}
+	clearDACoutputs();
 }
 
 void initMIDIAllCV(void)

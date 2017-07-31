@@ -1816,7 +1816,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		if (takeover)
 		{
-			for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+			clearDACoutputs();
 			
 			takeover = FALSE;
 			
@@ -1829,19 +1829,19 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	}
 	else if (whichOptionType == OptionDuo)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(2);
 	}
 	else if (whichOptionType == OptionTrio)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(3);
 	}
 	else if (whichOptionType == OptionQuad)
 	{
-		for (int i = 0; i < 12; i++) sendDataToOutput(i,5,0);
+		clearDACoutputs();
 		
 		initMantaKeys(4);		
 	}

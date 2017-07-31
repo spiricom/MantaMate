@@ -85,10 +85,7 @@ void initMantaKeys(int numVoices)
 		fullKeyboard.numVoices = numVoices;
 	}
 	
-	for(int i=0; i<12; i++)
-	{
-		sendDataToOutput(i, 5, 0);
-	}
+	clearDACoutputs();
 	
 	resetMantaUI();
 }

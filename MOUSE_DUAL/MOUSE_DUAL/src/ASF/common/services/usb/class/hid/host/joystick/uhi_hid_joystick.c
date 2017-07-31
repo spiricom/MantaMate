@@ -612,6 +612,9 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	// Init value
 	uhi_hid_joy_start_trans_report(dev->address);
 	type_of_device_connected = JoystickConnected;
+	
+	clearDACoutputs();
+	
 	UHI_HID_JOY_CHANGE(dev, true);
 	updatePreset();
 }
@@ -660,6 +663,8 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	UHI_HID_JOY_CHANGE(dev, false);
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
+	
+	clearDACoutputs();
 }
 //@}
 
