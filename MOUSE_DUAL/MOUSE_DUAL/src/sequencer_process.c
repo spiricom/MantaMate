@@ -3144,7 +3144,7 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 			
 			if (setRed)
 			{
-				manta_set_LED_hex(pitchToKbdHex(sequencer->step[nt].pitch) , Red);
+				manta_set_LED_hex( pitchToKbdHex(sequencer->step[nt].pitch) , Red);
 			}
 		}
 		else

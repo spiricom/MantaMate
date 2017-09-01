@@ -51,7 +51,7 @@ uint8_t sysexBuffer[1024];
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	uint8_t control = ctrlByte & 0xf0;
-	
+	//Write7SegDebug(control >> 4);
 	if (!inSysex)
 	{
 		switch(control)
@@ -99,6 +99,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			break;
 			
 			case 224:
+			//Write7SegDebug(40);
 			tMIDIKeyboard_pitchBend(&MIDIKeyboard, msgByte1, msgByte2);
 			//dacSendMIDIKeyboard();
 			break;
@@ -572,10 +573,11 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 }
 
 
-//instead of inmcluding in dacsend, should have a separate pitch bend ramp, that is added when the ramps are ticked and sent to DAC
+//instead of including in dacsend, should have a separate pitch bend ramp, that is added when the ramps are ticked and sent to DAC
 void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte)
 {
 	int32_t tempPitch = (highbyte << 7) +  lowbyte;
+	//Write7SegDebug(tempPitch / 165);
 	tempPitch = (tempPitch - 8192) * 1000;
 	keyboard->pitchBend = (tempPitch / wholeStepDACDivider);
 	tIRampSetDest(&pitchBendRamp, keyboard->pitchBend);

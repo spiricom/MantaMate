@@ -167,6 +167,7 @@ void my_callback_midi_rx_notify(void)
 	while (uhi_midi_is_rx_ready()) {
 		 //LED_On(LED1);
 		 bytesToRead = uhi_midi_read_buf(&my_buf, 64);
+		 //Write7SegDebug(bytesToRead);
 		 parseMIDI(bytesToRead);
 	}
 };

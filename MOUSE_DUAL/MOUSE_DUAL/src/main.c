@@ -1310,6 +1310,9 @@ void USB_Mode_Switch_Check(void)
 
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
+	
+	//Write7SegDebug(99);
+	
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 		
 	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
@@ -1317,6 +1320,8 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		no_device_mode_active = TRUE;
 		return;
 	}
+	
+
 	
 	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
 	{
@@ -2053,6 +2058,8 @@ void updateSave(void)
 	{
 		LED_On(PRESET_SAVE_LED);
 		//jump to the first available user preset slot if you are on the default factory presets
+		preset_to_save_num = preset_num;
+		
 		if (preset_to_save_num <= 10)
 		{
 			preset_to_save_num = 10;
@@ -2074,6 +2081,7 @@ void updateSave(void)
 		{
 			initiateStoringNoDevicePresetToExternalMemory();
 		}		
+		
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;

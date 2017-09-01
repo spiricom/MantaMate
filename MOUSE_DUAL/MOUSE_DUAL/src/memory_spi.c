@@ -193,9 +193,9 @@ void initiateStoringMantaPresetToExternalMemory(void)
 	
 	mantaPreset_encode(mantamate_internal_preset_buffer);
 	
-	//start by erasing the memory in the location we want to store
-	sectors_left_to_erase = NUM_SECTORS_PER_MANTA_PRESET; //erase 5 sectors because that will give us enough room for a whole preset
-	pages_left_to_transfer = NUM_PAGES_PER_MANTA_PRESET; //set the variable for the total number of pages to count down from while we store them
+	// start by erasing the memory in the location we want to store
+	sectors_left_to_erase = NUM_SECTORS_PER_MANTA_PRESET; // erase 5 sectors because that will give us enough room for a whole preset
+	pages_left_to_transfer = NUM_PAGES_PER_MANTA_PRESET; // set the variable for the total number of pages to count down from while we store them
 	bytes_left_to_transfer = NUM_BYTES_PER_MANTA_PRESET;
 	memorySPIEraseSector(currentSector); 
 	sectors_left_to_erase--;
@@ -210,7 +210,7 @@ void continueStoringMantaPresetToExternalMemory(void)
 	if (sectors_left_to_erase > 0)
 	{
 		currentSector++;
-		memorySPIEraseSector(currentSector); //erase 5 sectors because that will give us enough room for a whole preset
+		memorySPIEraseSector(currentSector); 
 		sectors_left_to_erase--;
 	}
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!

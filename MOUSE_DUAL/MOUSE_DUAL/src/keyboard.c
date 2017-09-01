@@ -341,39 +341,15 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 			
 			if (!found) //steal
 			{
-				//if (keyboard->numVoices == 1)
+				int whichVoice = keyboard->lastVoiceToChange;
 				
-				{
-					int whichVoice = keyboard->lastVoiceToChange;
-					
-					int oldNote = keyboard->voices[whichVoice];
-					keyboard->hexes[oldNote].active = FALSE;
-					
-					keyboard->voices[whichVoice] = note;
-					keyboard->hexes[note].active = TRUE;
-					
-					keyboard->lastVoiceToChange = whichVoice;
-				}
+				int oldNote = keyboard->voices[whichVoice];
+				keyboard->hexes[oldNote].active = FALSE;
 				
-				/*
-				else 
-				{
-					for (int i = 0; i < keyboard->numVoices; i++)
-					{
-						int thisVoiceNote = keyboard->voices[i];
-						
-						if (tNoteStack_contains(&keyboard->stack, thisVoiceNote) >= 0) continue;
-						else
-						{
-							keyboard->hexes[thisVoiceNote].active = FALSE;
-							keyboard->lastVoiceToChange = i;
-							keyboard->voices[i] = note;
-							keyboard->hexes[note].active = TRUE;
-						}
-					}
-				}
-				*/
+				keyboard->voices[whichVoice] = note;
+				keyboard->hexes[note].active = TRUE;
 				
+				keyboard->lastVoiceToChange = whichVoice;
 			}
 		}
 		
@@ -448,11 +424,11 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 {
 	for (int i = 0; i < 48; i++)
 	{
-		buffer[i*3] = keyboard->hexes[i].pitch >> 8;
-		buffer[(i*3) + 1] = keyboard->hexes[i].pitch & 0xff;
-		buffer[(i*3) + 2] = keyboard->hexes[i].color & 0xff;
+		buffer[i*3] = (keyboard->hexes[i].pitch >> 8);
+		buffer[(i*3) + 1] = (keyboard->hexes[i].pitch & 0xff);
+		buffer[(i*3) + 2] = (keyboard->hexes[i].color & 0xff);
 		
-		buffer[(i*3) + 3] = keyboard->hexes[i].fine >> 8;
+		buffer[(i*3) + 3] = (keyboard->hexes[i].fine >> 8);
 		buffer[(i*3) + 4] = keyboard->hexes[i].fine & 0xff;
 	}
 }
@@ -486,4 +462,5 @@ void tKeyboard_decode(tKeyboard* const keyboard, uint8_t* buffer)
 	keyboard->playMode = buffer[3];
 	keyboard->arpModeType = buffer[4];
 	tKeyboard_hexmapDecode(keyboard, &buffer[5]);
+	
 }
