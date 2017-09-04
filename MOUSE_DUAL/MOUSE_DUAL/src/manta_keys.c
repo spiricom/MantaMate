@@ -67,6 +67,8 @@ void initMantaKeys(int numVoices)
 			
 			tKeyboard* keyboard = &manta[i].keyboard;
 			
+			tKeyboard_setToDefault(keyboard, PianoMap);
+			
 			keyboard->numVoices = 1;
 		}
 	}
@@ -79,6 +81,8 @@ void initMantaKeys(int numVoices)
 		}
 		
 		takeover = TRUE;
+		
+		tKeyboard_setToDefault(&fullKeyboard, PianoMap);
 		
 		takeoverType = KeyboardInstrument;
 		

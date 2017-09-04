@@ -49,6 +49,11 @@ signed int isomap[48] = {
 
 void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 {
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].fine = 2048;
+	}
+		
 	if (which == DefaultMap)
 	{
 		for (int i = 0; i < 48; i++)
@@ -424,12 +429,12 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 {
 	for (int i = 0; i < 48; i++)
 	{
-		buffer[i*3] = (keyboard->hexes[i].pitch >> 8);
-		buffer[(i*3) + 1] = (keyboard->hexes[i].pitch & 0xff);
-		buffer[(i*3) + 2] = (keyboard->hexes[i].color & 0xff);
+		buffer[i*5] = (keyboard->hexes[i].pitch >> 8);
+		buffer[(i*5) + 1] = (keyboard->hexes[i].pitch & 0xff);
+		buffer[(i*5) + 2] = (keyboard->hexes[i].color & 0xff);
 		
-		buffer[(i*3) + 3] = (keyboard->hexes[i].fine >> 8);
-		buffer[(i*3) + 4] = keyboard->hexes[i].fine & 0xff;
+		buffer[(i*5) + 3] = (keyboard->hexes[i].fine >> 8);
+		buffer[(i*5) + 4] = (keyboard->hexes[i].fine & 0xff);
 	}
 }
 
@@ -437,10 +442,10 @@ void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
 {
 	for (int i = 0; i < 48; i++)
 	{
-		keyboard->hexes[i].pitch = (buffer[i*3] << 8) + buffer[(i*3)+1];
-		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*3)+2];
+		keyboard->hexes[i].pitch = (buffer[i*5] << 8) + buffer[(i*5)+1];
+		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*5)+2];
 		
-		keyboard->hexes[i].fine = (buffer[(i*3)+3] << 8) + buffer[(i*3)+4];
+		keyboard->hexes[i].fine = (buffer[(i*5)+3] << 8) + buffer[(i*5)+4];
 	}
 }
 

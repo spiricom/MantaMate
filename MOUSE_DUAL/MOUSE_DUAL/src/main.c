@@ -342,10 +342,7 @@ int main(void){
 	// Initialize the noteOnStack. :D !!!
 	tNoteStack_init(&noteOnStack, 32);
 	
-	loadStartupStateFromExternalMemory();
-	
-	
-	pba_freq = sysclk_get_pba_hz(); 
+	pba_freq = sysclk_get_pba_hz();
 
 	initTimers();
 
@@ -364,7 +361,9 @@ int main(void){
 	
 	tSequencer_init(&manta[InstrumentOne].sequencer, PitchMode, MAX_STEPS);
 	tSequencer_init(&manta[InstrumentTwo].sequencer, PitchMode, MAX_STEPS);
-
+	
+	loadStartupStateFromExternalMemory();
+	
 	while (true) {	
 
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
@@ -2684,10 +2683,16 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_DIRECT;
 		tDirect_decode(&fullDirect, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_DIRECT;
+		
 		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
+	}
+	else
+	{
+		initMantaKeys(1);
+		initMantaLEDState();
 	}
 }
 
