@@ -52,7 +52,6 @@ void initMantaKeys(int numVoices)
 {
 	if (numVoices < 2)
 	{
-		
 		if (takeover && (fullKeyboard.playMode == ArpMode))
 		{
 			manta[currentInstrument].keyboard.playMode = ArpMode;
@@ -68,6 +67,8 @@ void initMantaKeys(int numVoices)
 			tKeyboard* keyboard = &manta[i].keyboard;
 			
 			tKeyboard_setToDefault(keyboard, PianoMap);
+			
+			currentTuningHex = -1;
 			
 			keyboard->numVoices = 1;
 		}

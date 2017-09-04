@@ -2390,6 +2390,9 @@ uint8_t preferencesSwitch(void)
 
 void loadMantaPreset(void)
 {
+	loadTuning(globalTuning);
+	currentTuningHex = -1;
+	
 	if (preset_num < 10) clearDACoutputs();
 	
 	if (preset_num == 0)
