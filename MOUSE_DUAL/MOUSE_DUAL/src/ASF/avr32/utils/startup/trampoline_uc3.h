@@ -53,7 +53,7 @@
 
 
 //change this to 0x0008000 when using the MSC bootloader (final distribution of the firmware)
-//#define PROGRAM_START_OFFSET          0x00008000
-#define PROGRAM_START_OFFSET          0x00002000
+#define PROGRAM_START_OFFSET          0x00008000
+//#define PROGRAM_START_OFFSET          0x00002000
 
 #endif // _TRAMPOLINE_UC3_H_

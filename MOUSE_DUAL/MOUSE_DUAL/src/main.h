@@ -209,6 +209,7 @@ void dacSendPitchMode	(MantaInstrument, uint8_t step);
 void dacSendTriggerMode	(MantaInstrument, uint8_t step);
 
 // LEDs
+int pitchToKbdHex(int pitch);
 void setSequencerLEDs		(void);
 void setKeyboardLEDs		(void);
 void setDirectLEDs			(void);

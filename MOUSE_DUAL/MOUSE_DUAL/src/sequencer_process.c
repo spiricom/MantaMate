@@ -445,6 +445,7 @@ void keyboardStep(MantaInstrument inst)
 	 dacSendKeyboard(inst);
 }
 
+int lastKbdHex;
 
 void sequencerStep(MantaInstrument inst)
 {
@@ -463,6 +464,18 @@ void sequencerStep(MantaInstrument inst)
 			if (sequencer->pitchOrTrigger == PitchMode)
 			{
 				dacSendPitchMode(inst, sequencer->currentStep);
+				
+				
+				int currentKbdHex = pitchToKbdHex(sequencer->step[sequencer->currentStep].pitch);
+				int note = sequencer->step[sequencer->currentStep].note;
+				
+				if (edit_vs_play == PlayToggleMode)
+				{
+					manta_set_LED_hex(lastKbdHex, Amber);
+					manta_set_LED_hex(currentKbdHex, firstEdition ? Off : Red);
+				}
+
+				lastKbdHex = currentKbdHex;
 			}
 			else // TriggerMode
 			{
@@ -1369,7 +1382,7 @@ void touchLowerHex(uint8_t hexagon)
 			tNoteStack_remove(&editStack, prevHexUI);
 			tNoteStack_add(&editStack, currentHexUI);
 			
-			if (sequencer->playMode == ToggleMode) // note ons should toggle sequencer steps in and out of the pattern
+			if (sequencer->playMode == ToggleMode) 
 			{
 				if (tSequencer_toggleStep(sequencer, step))
 				{
@@ -1416,7 +1429,7 @@ void touchLowerHex(uint8_t hexagon)
 		{
 			if (edit_vs_play != TrigToggleMode)
 			{
-				if (editStack.size > 1)
+				if ((edit_vs_play == PlayToggleMode) || (editStack.size > 1))
 				{
 					setKeyboardLEDsFor(currentInstrument, -1);
 				}
@@ -3517,6 +3530,8 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 	{
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now but that would likely cause clicks
+		
+		
 		
 		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(&myGlobalTuningTable,inst,step)); 
 		tIRampSetTime(&out[inst][CVPITCH], glideTime);

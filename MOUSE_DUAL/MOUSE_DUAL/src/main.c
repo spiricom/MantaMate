@@ -284,12 +284,12 @@ int main(void){
 	board_init();
 	
 	//comment this bootloader check in when the firmware is ready for release
-	/*
+	
 	if (downSwitch() > 0) //enter MSC bootloader instead of main program if the down switch is held during startup
 	{
 		usb_msc_bl_start();
 	}
-	*/
+	
 	
 	ui_init();
 
