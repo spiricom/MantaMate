@@ -445,6 +445,14 @@ void keyboardStep(MantaInstrument inst)
 	 dacSendKeyboard(inst);
 }
 
+
+BOOL isShowingInstrument(MantaInstrument inst)
+{
+	BOOL isOnCurrentInstrument = inst == currentInstrument;
+	BOOL isShowingMenu = shiftOption1 || shiftOption2;
+	return isOnCurrentInstrument && !isShowingMenu;
+}
+
 int lastKbdHex;
 
 void sequencerStep(MantaInstrument inst)
@@ -464,18 +472,14 @@ void sequencerStep(MantaInstrument inst)
 			if (sequencer->pitchOrTrigger == PitchMode)
 			{
 				dacSendPitchMode(inst, sequencer->currentStep);
-				
-				
-				int currentKbdHex = pitchToKbdHex(sequencer->step[sequencer->currentStep].pitch);
-				int note = sequencer->step[sequencer->currentStep].note;
-				
-				if (edit_vs_play == PlayToggleMode)
+								
+				if (edit_vs_play == PlayToggleMode && isShowingInstrument(inst))
 				{
+					int currentKbdHex = pitchToKbdHex(sequencer->step[sequencer->currentStep].pitch);
 					manta_set_LED_hex(lastKbdHex, Amber);
 					manta_set_LED_hex(currentKbdHex, firstEdition ? Off : Red);
+					lastKbdHex = currentKbdHex;
 				}
-
-				lastKbdHex = currentKbdHex;
 			}
 			else // TriggerMode
 			{
@@ -716,14 +720,14 @@ void processHexTouch(void)
 	BOOL topLon = FALSE;
 	for (int i = 0; i < 4; i++)
 	{
+		// A round function button was just pressed
 		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
 		{
-			//a round function button was just pressed
 			resetSliderMode();
 			
 			buttonTouched = TRUE;
 			
-			if (i == ButtonBottomLeft)				touchBottomLeftButton();
+			if (i == ButtonBottomLeft)	touchBottomLeftButton();
 			else if (directEditMode)
 			{
 				if (i == ButtonTopLeft)
@@ -749,7 +753,7 @@ void processHexTouch(void)
 					topRon = TRUE;
 					touchTopRightButton();
 				}
-				else if (i == ButtonBottomRight)	touchBottomRightButton();
+				else if (i == ButtonBottomRight) touchBottomRightButton();
 			}	
 			
 		}
@@ -853,7 +857,7 @@ void setHexmapLEDs(void)
 	
 }
 
-void setHexmapConfigureLEDs	(void)
+void setHexmapConfigureLEDs(void)
 {
 	if (!takeover)
 	{
