@@ -473,9 +473,10 @@ void sequencerStep(MantaInstrument inst)
 								
 				if (edit_vs_play == PlayToggleMode && isShowingInstrument(inst))
 				{
+					int isRest = !sequencer->step[sequencer->currentStep].note;
 					int currentKbdHex = pitchToKbdHex(sequencer->step[sequencer->currentStep].pitch);
-					manta_set_LED_hex(lastKbdHex, Amber);
-					manta_set_LED_hex(currentKbdHex, firstEdition ? Off : Red);
+					manta_set_LED_hex(lastKbdHex, Amber); // Rest gets handled in setKeyboardLEDsFor
+					if (!isRest) manta_set_LED_hex(currentKbdHex, firstEdition ? Off : Red);
 					lastKbdHex = currentKbdHex;
 				}
 			}
@@ -3182,7 +3183,9 @@ void setKeyboardLEDsFor(MantaInstrument inst, int note)
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelRest)
 				{
-					manta_set_LED_hex(j+MAX_STEPS, (firstEdition ? Off : Red));
+					// If we're in edit mode, turn all amber, if play mode all red
+					if (edit_vs_play == EditMode) manta_set_LED_hex(j+MAX_STEPS, (firstEdition ? Off : Red));
+					else						  manta_set_LED_hex(j+MAX_STEPS, Amber);
 				}
 				else if (keyboard_pattern[j] == KeyboardPanelGlide)
 				{
