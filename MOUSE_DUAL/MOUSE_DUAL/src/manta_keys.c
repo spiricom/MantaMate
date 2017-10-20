@@ -347,7 +347,11 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 				
 				if (keyboard->numVoices < 4)
 				{
-					int whichGroup = (keyboard->numVoices * 3) / 6;
+					int whichGroup;
+					if (currentInstrument == InstrumentTwo && keyboard->numVoices == 1)
+						whichGroup = 1;
+					else
+						whichGroup = (keyboard->numVoices * 3) / 6;
 					int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
 					
 					tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], globalCVGlide);
