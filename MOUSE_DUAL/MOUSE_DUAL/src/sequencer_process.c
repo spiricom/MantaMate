@@ -1582,10 +1582,7 @@ void releaseUpperHex(uint8_t hexagon)
 			{
 				currentMantaSliderMode = prevMantaSliderModeForOctaveHexDisable;
 				
-				if (currentMantaSliderMode != SliderModeThree)
-				{
-					setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
-				}
+				setSliderLEDsFor(currentInstrument, hexUIToStep(tNoteStack_first(&editStack)));
 			}
 		}
 	}
@@ -2003,38 +2000,31 @@ void touchUpperHex(uint8_t hexagon)
 			{
 				// down an octave
 				tSequencer_downOctave(sequencer);
-				downOctaveForEditStackSteps(currentInstrument);
 				
-				// Temporarily set slider LEDs to display current octave.
-				if (editStack.size > 1) setSliderLEDsFor(currentInstrument, -1);
-				else					manta_set_LED_slider(SliderOne, sequencer->step[hexUIToStep(editStack.notestack[0])].octave + 1);
+				// Temporarily set slider LEDs to display current octave.				
+				manta_set_LED_slider(SliderOne, sequencer->octave + 1);
 				
-				
+				// Allow recall of previous slider mode for flipping between UI displays
 				if (currentMantaSliderMode != SliderModeNil)
 				{
 					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
 					currentMantaSliderMode = SliderModeNil;
-				}
-				
-				// setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
+				}				
 			}
 			else if (upperHexType == KeyboardPanelOctaveUp)
 			{
 				//up an octave
 				tSequencer_upOctave(sequencer);
-				upOctaveForEditStackSteps(currentInstrument);
-				// TODO: Only set this LED if top left function button is red... Unsure how to do that ATM - JSB
 				
 				// Temporarily set slider LEDs to display current octave.
-				if (editStack.size > 1) setSliderLEDsFor(currentInstrument, -1);
-				else					manta_set_LED_slider(SliderOne, sequencer->step[hexUIToStep(editStack.notestack[0])].octave + 1);
+				manta_set_LED_slider(SliderOne, sequencer->octave + 1);
 				
+				// Allow recall of previous slider mode for flipping between UI displays
 				if (currentMantaSliderMode != SliderModeNil) 
 				{
 					prevMantaSliderModeForOctaveHexDisable = currentMantaSliderMode;
 					currentMantaSliderMode = SliderModeNil;
 				}
-				// setParameterForEditStackSteps(currentSequencer,Octave,sequencer[currentSequencer].octave);
 			}
 			else if (upperHexType == KeyboardPanelGlide) 
 			{
