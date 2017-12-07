@@ -132,6 +132,8 @@ int subtleInterval;
 int mantaCompositionSavePending;
 int mantaCompositionLoadPending;
 
+int MPE_mode;
+
 #define NUM_BYTES_PER_PAGE 256
 #define NUM_PAGES_PER_SECTOR 16
 #define NUM_SECTORS_PER_BLOCK 16
@@ -232,7 +234,7 @@ void mantaSliderReleaseAction(int whichSlider);
 
 tIRamp out[2][6];
 
-tIRamp pitchBendRamp;
+tIRamp pitchBendRamp[16];
 
 uint8_t readData;
 

@@ -10,7 +10,7 @@
 #include "main.h"
 uint8_t firstMIDIMessage = 0;
 int32_t wholeStepDACDivider = 7500; // the size of a DAC whole step is 1092.26  --- the size of a full pitch bend in one direction is 8192. 8192/1092.26 is 7.5  -- Multiply pitch bend value by 1000, then divide by 7500 to get in whole tone range.
-
+int32_t fourOctaveDACDivider = 312; // the size of a DAC four octave range is 26214  --- the size of a full pitch bend in one direction is 8192. 8192/1092.26 is 7.5  -- Multiply pitch bend value by 1000, then divide by 7500 to get in whole tone range.
 
 uint16_t parseMIDI(uint16_t howManyNew)
 {
@@ -51,6 +51,8 @@ uint8_t sysexBuffer[1024];
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
 	uint8_t control = ctrlByte & 0xf0;
+	uint8_t channel = ctrlByte & 0x0f;
+	
 	//Write7SegDebug(control >> 4);
 	if (!inSysex)
 	{
@@ -62,7 +64,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 				{
 					if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 					{
-						tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2);
+						tMIDIKeyboard_noteOn(&MIDIKeyboard, msgByte1, msgByte2, channel);
 						if (MIDIKeyboard.playMode != ArpMode)
 						{
 							dacSendMIDIKeyboard();
@@ -79,7 +81,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 				{
 					if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 					{
-						tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
+						tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1, channel);
 						if (MIDIKeyboard.playMode != ArpMode)
 						{
 							dacSendMIDIKeyboard();
@@ -90,7 +92,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 128:
 				if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 				{
-					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1);
+					tMIDIKeyboard_noteOff(&MIDIKeyboard, msgByte1, channel);
 					if (MIDIKeyboard.playMode != ArpMode)
 					{
 						dacSendMIDIKeyboard();
@@ -99,28 +101,33 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			break;
 			
 			case 224:
-			//Write7SegDebug(40);
-			tMIDIKeyboard_pitchBend(&MIDIKeyboard, msgByte1, msgByte2);
-			//dacSendMIDIKeyboard();
+			tMIDIKeyboard_pitchBend(&MIDIKeyboard, msgByte1, msgByte2, channel);
+			break;
+			
+			case 208:
+			channelPressureChange(msgByte1, channel);
 			break;
 			
 			// control change
 			case 176:
 			if (!(tuningOrLearn == MIDILEARN_AND_LENGTH))
 			{
-				controlChange(msgByte1,msgByte2);
+				controlChange(msgByte1,msgByte2, channel);
 			}
 			else
 			{
 				learnMIDICC(msgByte1, msgByte2);
 			}
 			break;
+			
 			// program change
 			case 192:
 			break;
+			
 			case 240:
 			startSysexMessage(msgByte1, msgByte2);
 			break;
+			
 			default:
 			break;
 		}
@@ -159,7 +166,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 }
 
 //For the MIDI keyboards knobs
-void controlChange(uint8_t ctrlNum, uint8_t val)
+void controlChange(uint8_t ctrlNum, uint8_t val, uint8_t channel)
 {
 	MIDIKeyboard.CCs[ctrlNum] = val << 9;
 	MIDIKeyboard.CCsRaw[ctrlNum] = val;
@@ -180,8 +187,16 @@ void controlChange(uint8_t ctrlNum, uint8_t val)
 			MIDIKeyboard.CCs[ctrlNum-64] = ((MIDIKeyboard.CCsRaw[ctrlNum - 64] << 9) + (MIDIKeyboard.CCsRaw[ctrlNum - 32] << 2 ) + (val >> 5));
 		}
 	}
-	
+	if (ctrlNum == 74) //magic MPE number!!!
+	{
+		MPE_data[channel][0] = val;
+	}
 
+}
+
+void channelPressureChange(uint8_t val, uint8_t channel)
+{
+	MPE_data[channel][1] = val;
 }
 
 
@@ -574,21 +589,18 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 
 
 //instead of including in dacsend, should have a separate pitch bend ramp, that is added when the ramps are ticked and sent to DAC
-void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte)
+void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte, uint8_t channel)
 {
 	int32_t tempPitch = (highbyte << 7) +  lowbyte;
-	//Write7SegDebug(tempPitch / 165);
 	tempPitch = (tempPitch - 8192) * 1000;
-	keyboard->pitchBend = (tempPitch / wholeStepDACDivider);
-	tIRampSetDest(&pitchBendRamp, keyboard->pitchBend);
+	keyboard->pitchBend[channel] = (tempPitch / (MPE_mode ? fourOctaveDACDivider : wholeStepDACDivider));
+	tIRampSetDest(&pitchBendRamp[channel], keyboard->pitchBend[channel]);
 }
 
 
-
-
-void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
+void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel, uint8_t channel)
 {
-	// if not in keymap or already on stack, dont do anything. else, add that note.
+	// if not in keymap or already on stack, don't do anything. else, add that note.
 	if (tNoteStack_contains(&keyboard->stack, note) >= 0) return;
 	else
 	{
@@ -606,9 +618,11 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 					
 					keyboard->voices[i][0] = note;
 					keyboard->voices[i][1] = vel;
+					keyboard->voices[i][2] = channel;
 					keyboard->lastVoiceToChange = i;
 					keyboard->notes[note][0] = vel;
 					keyboard->notes[note][1] = 1;
+					keyboard->notes[note][2] = channel;
 					break;
 				}
 			}
@@ -619,16 +633,19 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 				int oldNote = keyboard->voices[whichVoice][0];	
 				keyboard->voices[whichVoice][0] = note;
 				keyboard->voices[whichVoice][1] = vel;
+				keyboard->voices[whichVoice][2] = channel;
 				keyboard->notes[oldNote][1] = 0; //mark the stolen voice as inactive (in the second dimension of the notes array)
 			
 				keyboard->notes[note][0] = vel;
 				keyboard->notes[note][1] = TRUE;
+				keyboard->notes[note][2] = channel;
 			}
 		}
 		else
 		{
 			keyboard->notes[note][0] = vel;
 			keyboard->notes[note][1] = FALSE;
+			keyboard->notes[note][2] = -1;
 		}
 	}
 }
@@ -636,12 +653,13 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel)
 
 int16_t noteToTest = -1;
 
-void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
+void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note, uint8_t channel)
 {
 	tNoteStack_remove(&keyboard->stack, note);
 	tNoteStack_remove(&keyboard->orderStack, note);
 	keyboard->notes[note][0] = 0;
 	keyboard->notes[note][1] = 0;
+	keyboard->notes[note][2] = -1;
 	
 	int deactivatedVoice = -1;
 	for (int i = 0; i < keyboard->numVoices; i++)
@@ -650,6 +668,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 		{
 			keyboard->voices[i][0] = -1;
 			keyboard->voices[i][1] = 0;
+			keyboard->voices[i][2] = -1;
 			keyboard->lastVoiceToChange = i;
 			deactivatedVoice = i;
 			break;
@@ -661,6 +680,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 		int oldNote = tNoteStack_first(&keyboard->stack);
 		keyboard->voices[0][0] = oldNote;
 		keyboard->voices[0][1] = keyboard->notes[oldNote][0];
+		keyboard->voices[0][2] = keyboard->notes[oldNote][2];
 		keyboard->lastVoiceToChange = 0;
 	}
 	
@@ -678,6 +698,7 @@ void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note)
 			{
 				keyboard->voices[deactivatedVoice][0] = noteToTest; //set the newly free voice to use the old stolen note
 				keyboard->voices[deactivatedVoice][1] = keyboard->notes[noteToTest][0]; // set the velocity of the voice to be the velocity of that note
+				keyboard->voices[deactivatedVoice][2] = keyboard->notes[noteToTest][2];
 				keyboard->notes[noteToTest][1] = 1; //mark that it is no longer stolen and is now active
 				keyboard->lastVoiceToChange = deactivatedVoice; // mark the voice that was just changed as the last voice to change
 				break;
@@ -716,6 +737,16 @@ void learnMIDINote(uint8_t note, uint8_t vel)
 		}
 	}
 	
+}
+
+void initMPE_data(void)
+{
+	for (int i = 0; i < 16; i++)
+	{
+		MPE_data[i][0] = 0;
+		MPE_data[i][1] = 0;
+		MPE_data[i][2] = 0;
+	}
 }
 
 void learnMIDICC(uint8_t ctrlnum, uint8_t val)
