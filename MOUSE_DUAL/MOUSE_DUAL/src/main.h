@@ -235,6 +235,8 @@ void mantaSliderReleaseAction(int whichSlider);
 tIRamp out[2][6];
 
 tIRamp pitchBendRamp[16];
+tIRamp pressureRamp[16];
+tIRamp magicRamp[16];
 
 uint8_t readData;
 

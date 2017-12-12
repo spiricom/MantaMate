@@ -190,6 +190,8 @@ void controlChange(uint8_t ctrlNum, uint8_t val, uint8_t channel)
 	if (ctrlNum == 74) //magic MPE number!!!
 	{
 		MPE_data[channel][0] = val;
+		
+		tIRampSetDest(&magicRamp[channel], val << 5);
 	}
 
 }
@@ -197,6 +199,8 @@ void controlChange(uint8_t ctrlNum, uint8_t val, uint8_t channel)
 void channelPressureChange(uint8_t val, uint8_t channel)
 {
 	MPE_data[channel][1] = val;
+	
+	tIRampSetDest(&pressureRamp[channel], val << 5);
 }
 
 
@@ -957,7 +961,7 @@ void dacSendMIDIKeyboard(void)
 					sendDataToOutput((i*3)+CVKGATE, 0, 65535);
 					sendDataToOutput((i*3)+CVKVEL, 3, velocity << 9);
 					//if we are in mono mode, then we have room for a trigger output, too
-					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose)))
 					{
 						sendDataToOutput(3, 0, 65535);
 						keyboard->trigCount[3] = TRIGGER_TIMING;
