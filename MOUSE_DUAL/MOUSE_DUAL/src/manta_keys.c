@@ -31,11 +31,12 @@ unsigned short lookupDACvalue(tTuningTable* myTable, uint16_t noteVal, signed in
 	{
 		uint16_t myOctave = (myNote / myTable->cardinality);
 		uint16_t myPitchClass = (myNote % myTable->cardinality);
-		return (myTable->tuningDACTable[myPitchClass] + (6553 * myOctave));
+		return (myTable->tuningDACTable[myPitchClass] + (6553 * myOctave)); // 65535 / 10 = 6553 (10 octaves in sac range)
 	}
 	else
 	{
-		return myTable->tuningDACTable[myNote];
+		int32_t pitch = (myTable->tuningDACTable[myNote]);
+		return pitch;
 	}
 }
 
@@ -45,14 +46,12 @@ void resetMantaUI(void)
 	for (int i = 0; i < 48; i++) manta_set_LED_hex(i, Off);
 	for (int i = 0; i < 2; i++)  manta_set_LED_slider(i, 0);
 	for (int i = 0; i < 4; i++)  manta_set_LED_button(i, Off);
-	
 }
 
 void initMantaKeys(int numVoices)
 {
 	if (numVoices < 2)
 	{
-		
 		if (takeover && (fullKeyboard.playMode == ArpMode))
 		{
 			manta[currentInstrument].keyboard.playMode = ArpMode;
@@ -67,6 +66,10 @@ void initMantaKeys(int numVoices)
 			
 			tKeyboard* keyboard = &manta[i].keyboard;
 			
+			tKeyboard_setToDefault(keyboard, PianoMap);
+			
+			currentTuningHex = -1;
+			
 			keyboard->numVoices = 1;
 		}
 	}
@@ -79,6 +82,8 @@ void initMantaKeys(int numVoices)
 		}
 		
 		takeover = TRUE;
+		
+		tKeyboard_setToDefault(&fullKeyboard, PianoMap);
 		
 		takeoverType = KeyboardInstrument;
 		
@@ -342,7 +347,11 @@ void processSliderKeys(uint8_t sliderNum, uint16_t val)
 				
 				if (keyboard->numVoices < 4)
 				{
-					int whichGroup = (keyboard->numVoices * 3) / 6;
+					int whichGroup;
+					if (currentInstrument == InstrumentTwo && keyboard->numVoices == 1)
+						whichGroup = 1;
+					else
+						whichGroup = (keyboard->numVoices * 3) / 6;
 					int sliderStartPos = ((keyboard->numVoices * 3) + CVKSLIDEROFFSET) % 6;
 					
 					tIRampSetTime(&out[whichGroup][sliderStartPos + sliderNum], globalCVGlide);
@@ -438,7 +447,9 @@ void dacSendKeyboard(MantaInstrument which)
 			if (note >= 0)
 			{
 				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], globalPitchGlide);
-				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose) + ((keyboard->hexes[note].fine >> 2) - 512));
+				int32_t pitch = lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose);
+				pitch += ((keyboard->hexes[note].fine >> 2) - 512);
+				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], pitch);
 				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
 				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
 				//if we are in mono mode, then we have room for a trigger output, too

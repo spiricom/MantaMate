@@ -50,7 +50,7 @@ void tSequencer_setParameterValue(tSequencer* const seq, uint8_t step, StepParam
 	else if (param == Octave)			seq->step[step].octave = value;
 	else if (param == Note)				seq->step[step].note = value;
 	else if (param == PitchGlide)		seq->step[step].pglide = value;
-	else if (param ==CVGlide)			seq->step[step].cvglide = value;
+	else if (param == CVGlide)			seq->step[step].cvglide = value;
 	else if (param == On1)				seq->step[step].on[PanelOne] = value;
 	else if (param == On2)				seq->step[step].on[PanelTwo] = value;
 	else if (param == On3)				seq->step[step].on[PanelThree] = value;

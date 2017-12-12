@@ -49,6 +49,11 @@ signed int isomap[48] = {
 
 void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 {
+	for (int i = 0; i < 48; i++)
+	{
+		keyboard->hexes[i].fine = 2048;
+	}
+		
 	if (which == DefaultMap)
 	{
 		for (int i = 0; i < 48; i++)
@@ -341,39 +346,15 @@ void tKeyboard_noteOn(tKeyboard* const keyboard, int note, uint8_t vel)
 			
 			if (!found) //steal
 			{
-				//if (keyboard->numVoices == 1)
+				int whichVoice = keyboard->lastVoiceToChange;
 				
-				{
-					int whichVoice = keyboard->lastVoiceToChange;
-					
-					int oldNote = keyboard->voices[whichVoice];
-					keyboard->hexes[oldNote].active = FALSE;
-					
-					keyboard->voices[whichVoice] = note;
-					keyboard->hexes[note].active = TRUE;
-					
-					keyboard->lastVoiceToChange = whichVoice;
-				}
+				int oldNote = keyboard->voices[whichVoice];
+				keyboard->hexes[oldNote].active = FALSE;
 				
-				/*
-				else 
-				{
-					for (int i = 0; i < keyboard->numVoices; i++)
-					{
-						int thisVoiceNote = keyboard->voices[i];
-						
-						if (tNoteStack_contains(&keyboard->stack, thisVoiceNote) >= 0) continue;
-						else
-						{
-							keyboard->hexes[thisVoiceNote].active = FALSE;
-							keyboard->lastVoiceToChange = i;
-							keyboard->voices[i] = note;
-							keyboard->hexes[note].active = TRUE;
-						}
-					}
-				}
-				*/
+				keyboard->voices[whichVoice] = note;
+				keyboard->hexes[note].active = TRUE;
 				
+				keyboard->lastVoiceToChange = whichVoice;
 			}
 		}
 		
@@ -448,12 +429,12 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 {
 	for (int i = 0; i < 48; i++)
 	{
-		buffer[i*3] = keyboard->hexes[i].pitch >> 8;
-		buffer[(i*3) + 1] = keyboard->hexes[i].pitch & 0xff;
-		buffer[(i*3) + 2] = keyboard->hexes[i].color & 0xff;
+		buffer[i*5] = (keyboard->hexes[i].pitch >> 8);
+		buffer[(i*5) + 1] = (keyboard->hexes[i].pitch & 0xff);
+		buffer[(i*5) + 2] = (keyboard->hexes[i].color & 0xff);
 		
-		buffer[(i*3) + 3] = keyboard->hexes[i].fine >> 8;
-		buffer[(i*3) + 4] = keyboard->hexes[i].fine & 0xff;
+		buffer[(i*5) + 3] = (keyboard->hexes[i].fine >> 8);
+		buffer[(i*5) + 4] = (keyboard->hexes[i].fine & 0xff);
 	}
 }
 
@@ -461,10 +442,10 @@ void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
 {
 	for (int i = 0; i < 48; i++)
 	{
-		keyboard->hexes[i].pitch = (buffer[i*3] << 8) + buffer[(i*3)+1];
-		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*3)+2];
+		keyboard->hexes[i].pitch = (buffer[i*5] << 8) + buffer[(i*5)+1];
+		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*5)+2];
 		
-		keyboard->hexes[i].fine = (buffer[(i*3)+3] << 8) + buffer[(i*3)+4];
+		keyboard->hexes[i].fine = (buffer[(i*5)+3] << 8) + buffer[(i*5)+4];
 	}
 }
 
@@ -486,4 +467,5 @@ void tKeyboard_decode(tKeyboard* const keyboard, uint8_t* buffer)
 	keyboard->playMode = buffer[3];
 	keyboard->arpModeType = buffer[4];
 	tKeyboard_hexmapDecode(keyboard, &buffer[5]);
+	
 }

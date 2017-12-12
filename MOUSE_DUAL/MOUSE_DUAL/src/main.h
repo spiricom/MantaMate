@@ -1,48 +1,8 @@
-/**
- * \file
- *
- * \brief Declaration of main function used by example
- *
- * Copyright (C) 2014-2015 Atmel Corporation. All rights reserved.
- *
- * \asf_license_start
- *
- * \page License
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * \asf_license_stop
- *
- */
 /*
- * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
- */
+ MantaMate Version 1.0
+ by Jeff Snyder, Snyderphonics
+ Contributions by Mike Mulshine and Joshua Becker
+*/
 
 #ifndef _MAIN_H_
 #define _MAIN_H_
@@ -172,8 +132,16 @@ int subtleInterval;
 int mantaCompositionSavePending;
 int mantaCompositionLoadPending;
 
-#define NUM_BYTES_PER_MANTA_PRESET (10*256)//(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER))
-#define NUM_PAGES_PER_MANTA_PRESET 10//((NUM_BYTES_PER_PRESET / 256) + 1) 
+int MPE_mode;
+
+#define NUM_BYTES_PER_PAGE 256
+#define NUM_PAGES_PER_SECTOR 16
+#define NUM_SECTORS_PER_BLOCK 16
+#define NUM_BYTES_PER_SECTOR (NUM_PAGES_PER_SECTOR*NUM_BYTES_PER_PAGE)
+#define NUM_BYTES_PER_BLOCK (NUM_SECTORS_PER_BLOCK*NUM_BYTES_PER_SECTOR)
+
+#define NUM_PAGES_PER_MANTA_PRESET 11//((NUM_BYTES_PER_PRESET / 256) + 1) 
+#define NUM_BYTES_PER_MANTA_PRESET (NUM_PAGES_PER_MANTA_PRESET * NUM_BYTES_PER_PAGE) //(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER))
 #define NUM_SECTORS_PER_MANTA_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
 #define NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP (34*256) //there are now 14 possible sequence slots in composition mode, each one is 615 bytes and there are two sets of 14
 #define NUM_PAGES_PER_COMPOSITION_BANK 34
@@ -221,12 +189,6 @@ uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 1945
 #define COMPOSITIONBANK1_BYTE_ADDRESS (SEQUENCER2_BYTE_ADDRESS + NUM_BYTES_PER_SEQUENCER)
 #define COMPOSITIONBANK2_BYTE_ADDRESS (COMPOSITIONBANK1_BYTE_ADDRESS + NUM_BYTES_PER_COMPOSITION_BANK)
 
-#define NUM_BYTES_PER_PAGE 256
-#define NUM_PAGES_PER_SECTOR 16
-#define NUM_SECTORS_PER_BLOCK 16
-#define NUM_BYTES_PER_SECTOR (NUM_PAGES_PER_SECTOR*NUM_BYTES_PER_PAGE)
-#define NUM_BYTES_PER_BLOCK (NUM_SECTORS_PER_BLOCK*NUM_BYTES_PER_SECTOR)
-
 extern uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
 extern uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
 extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP];
@@ -249,6 +211,7 @@ void dacSendPitchMode	(MantaInstrument, uint8_t step);
 void dacSendTriggerMode	(MantaInstrument, uint8_t step);
 
 // LEDs
+int pitchToKbdHex(int pitch);
 void setSequencerLEDs		(void);
 void setKeyboardLEDs		(void);
 void setDirectLEDs			(void);
@@ -271,7 +234,9 @@ void mantaSliderReleaseAction(int whichSlider);
 
 tIRamp out[2][6];
 
-tIRamp pitchBendRamp;
+tIRamp pitchBendRamp[16];
+tIRamp pressureRamp[16];
+tIRamp magicRamp[16];
 
 uint8_t readData;
 

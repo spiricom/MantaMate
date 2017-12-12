@@ -10,6 +10,7 @@
 
 void Write7Seg(uint8_t value)
 {
+	
 	number_for_7Seg = value;
 	
 	if (!blank7Seg)

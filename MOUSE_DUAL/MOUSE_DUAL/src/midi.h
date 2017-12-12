@@ -17,12 +17,13 @@ uint8_t inSysex;
 uint8_t sysexBuffer[1024];
 extern uint8_t firstMIDIMessage;
 
+uint8_t MPE_data[16][3];
+
 uint16_t parseMIDI(uint16_t howManyNew);
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2);
 void parseSysex(void);
 void startSysexMessage(int msgByte1, int msgByte2);
 void sendSysexSaveConfim(void);
-void controlChange(uint8_t ctrlNum, uint8_t val);
 
 void initMIDIArpeggiator(void);
 void initMIDIKeys(int numVoices, BOOL pitchout);
@@ -52,9 +53,9 @@ typedef struct _tMIDIKeyboard
 	
 	int numVoicesActive;
 	
-	int voices[MAX_VOICES][2];
+	int voices[MAX_VOICES][3];
 	
-	int notes[128][2];
+	int notes[128][3];
 	
 	int CCs[128];
 	
@@ -65,7 +66,7 @@ typedef struct _tMIDIKeyboard
 	tNoteStack stack;
 	tNoteStack orderStack;
 	
-	int32_t pitchBend;
+	int32_t pitchBend[16];
 	
 	BOOL pitchOutput;
 	
@@ -80,13 +81,16 @@ typedef struct _tMIDIKeyboard
 	
 } tMIDIKeyboard;
 
-void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte);
+void tMIDIKeyboard_pitchBend(tMIDIKeyboard* keyboard, uint8_t lowbyte, uint8_t highbyte, uint8_t channel);
 
-void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel);
+void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel, uint8_t channel);
 
-void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note);
+void tMIDIKeyboard_noteOff(tMIDIKeyboard* keyboard, uint8_t note, uint8_t channel);
 
 void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchout);
+
+void controlChange(uint8_t ctrlNum, uint8_t val, uint8_t channel);
+void channelPressureChange(uint8_t val, uint8_t channel);
 
 void learnMIDINote(uint8_t msgByte1, uint8_t msgByte2);
 

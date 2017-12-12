@@ -126,12 +126,15 @@ unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
 int prevSentPitch = -1;
 
+int MPE_mode = 0;
+
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
 																													   // 33																												56																				  72								 78				
 BOOL no_device_mode_active = FALSE;
 
 BOOL busyWithUSB = FALSE;
 
+int didSwitchDeviceMode = 0;
 GlobalPreferences preference_num = PRESET_SELECT;
 GlobalPreferences num_preferences = PREFERENCES_COUNT;
 TuningOrLearnType tuningOrLearn = TUNING_SELECT;
@@ -200,7 +203,6 @@ const U8 test_pattern[] =  {
 
 void sendDataToOutput(int which, int ramp, uint16_t data)
 {
-	
 	//now send it out!
 	if (which == 0)			
 	{
@@ -284,12 +286,12 @@ int main(void){
 	board_init();
 	
 	//comment this bootloader check in when the firmware is ready for release
-	/*
+	
 	if (downSwitch() > 0) //enter MSC bootloader instead of main program if the down switch is held during startup
 	{
 		usb_msc_bl_start();
 	}
-	*/
+	
 	
 	ui_init();
 
@@ -327,8 +329,18 @@ int main(void){
 		}
 	}
 	
-	tIRampInit(&pitchBendRamp, 2000, 10);
-	tIRampSetDest(&pitchBendRamp, 0);
+	for (int i = 0; i < 16; i++)
+	{
+		tIRampInit(&pitchBendRamp[i], 2000, 10);
+		tIRampSetDest(&pitchBendRamp[i], 0);
+		
+		tIRampInit(&pressureRamp[i], 2000, 10);
+		tIRampSetDest(&pressureRamp[i], 0);
+		
+		tIRampInit(&magicRamp[i], 2000, 10);
+		tIRampSetDest(&magicRamp[i], 0);
+	}
+
 	takeover = FALSE;
 	hexmapEditMode = FALSE;
 	directEditMode = FALSE;
@@ -342,10 +354,7 @@ int main(void){
 	// Initialize the noteOnStack. :D !!!
 	tNoteStack_init(&noteOnStack, 32);
 	
-	loadStartupStateFromExternalMemory();
-	
-	
-	pba_freq = sysclk_get_pba_hz(); 
+	pba_freq = sysclk_get_pba_hz();
 
 	initTimers();
 
@@ -364,7 +373,9 @@ int main(void){
 	
 	tSequencer_init(&manta[InstrumentOne].sequencer, PitchMode, MAX_STEPS);
 	tSequencer_init(&manta[InstrumentTwo].sequencer, PitchMode, MAX_STEPS);
-
+	
+	loadStartupStateFromExternalMemory();
+	
 	while (true) {	
 
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
@@ -908,15 +919,42 @@ static void tc3_irq(void)
 		//now tick those RAMPs and send the data to the DACs
 		if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 		{
-			int32_t tempPitchBend = tIRampTick(&pitchBendRamp);
+			int32_t tempPitchBend[4];
+			int32_t tempPressure[4];
+			int32_t tempMagic[4];
+			for (int i = 0; i < 4; i++)
+			{
+				tempPitchBend[i]	= MPE_mode ? tIRampTick(&pitchBendRamp[ (MIDIKeyboard.voices[i][2]) ]) : 0;
+				tempPressure[i]		= tIRampTick(&pressureRamp[ (MIDIKeyboard.voices[i][2]) ]);
+				tempMagic[i]		= tIRampTick(&magicRamp[ (MIDIKeyboard.voices[i][2]) ]);
+			}
+
 			if (MIDIKeyboard.numVoices == 1)
 			{
-				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				if (MIDIKeyboard.voices[0][0] >= 0)		
+				{
+					DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend[0]));
+					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				}
+				
 				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-				DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
-				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+			
+				if (MPE_mode)
+				{
+					DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
+					if (MIDIKeyboard.voices[0][0] >= 0)		
+					{
+						dacsend     (1, 0,  (uint16_t)tempPressure[0]);
+						dacsend     (1, 1,  (uint16_t)tempMagic[0]);
+					}
+				}
+				else
+				{
+					DAC16Send	(1, (uint16_t)tIRampTick(&out[0][3]));
+					dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
+					dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				}
+				
 				DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
 				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
 				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
@@ -926,48 +964,133 @@ static void tc3_irq(void)
 			}
 			else if (MIDIKeyboard.numVoices == 2)
 			{
-				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				if (MIDIKeyboard.voices[0][0] >= 0)	
+				{
+					DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend[0]));
+					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));	
+				}
+				
+				if (MIDIKeyboard.voices[1][0] >= 0)
+				{
+					
+					DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend[1]));
+					dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				}
+				
+				// Triggers
 				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
 				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-				DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
-				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-				DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
-				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+				
+				if (MPE_mode)
+				{
+					DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+					
+					if (MIDIKeyboard.voices[0][0] >= 0)	
+					{
+						dacsend     (2, 0,  (uint16_t)tempPressure[0]);
+						dacsend     (2, 1,  (uint16_t)tempMagic[0]);
+					}
+					
+					DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+					
+					if (MIDIKeyboard.voices[1][0] >= 0)	
+					{
+						dacsend     (3, 0, (uint16_t)tempPressure[1]);
+						dacsend     (3, 1,  (uint16_t)tempMagic[1]);
+					}
+				}
+				else
+				{
+					DAC16Send	(2, (uint16_t)tIRampTick(&out[1][0]));
+					dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
+					dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+					DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+					dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+					dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+				}
+				
 			}
 			else if (MIDIKeyboard.numVoices == 3)
 			{
-				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				if (MIDIKeyboard.voices[0][0] >= 0)	
+				{
+					DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend[0]));
+					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				}
+				
+				if (MIDIKeyboard.voices[1][0] >= 0)
+				{
+					DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend[1]));
+					dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				}
+				
+				if (MIDIKeyboard.voices[2][0] >= 0)
+				{
+					DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend[2]));	
+					dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				}
+				
+				// Triggers
 				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
 				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-				DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
 				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-				DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
-				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+				
+				if (MPE_mode)
+				{
+					if (MIDIKeyboard.voices[0][0] >= 0)
+					{
+						DAC16Send	(3, (uint16_t)(tempPressure[0]<<4));
+					}
+					
+					if (MIDIKeyboard.voices[1][0] >= 0)
+					{	
+						dacsend     (3, 0,  (uint16_t)tempPressure[1]);
+					}
+					
+					if (MIDIKeyboard.voices[2][0] >= 0)
+					{
+						dacsend     (3, 1,  (uint16_t)tempPressure[2]);;
+					}
+				}
+				else
+				{
+					DAC16Send	(3, (uint16_t)tIRampTick(&out[1][3]));
+					dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
+					dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+				}
+				
 			}
 			else if (MIDIKeyboard.numVoices == 4)
 			{
-				DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend));
+				if (MIDIKeyboard.voices[0][0] >= 0)
+				{
+					DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0]) + tempPitchBend[0]));
+					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				}
+				
+				if (MIDIKeyboard.voices[1][0] >= 0)
+				{
+					DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend[1]));
+					dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
+				}
+				
+				if (MIDIKeyboard.voices[2][0] >= 0)
+				{
+					DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend[2]));
+					dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
+				}
+				
+				if (MIDIKeyboard.voices[3][0] >= 0)
+				{
+					DAC16Send	(3, (uint16_t)(tIRampTick(&out[1][3]) + tempPitchBend[3]));
+					dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
+				}
+				
+				
 				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
-				dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
-				DAC16Send	(1, (uint16_t)(tIRampTick(&out[0][3]) + tempPitchBend));
 				dacsend     (1, 0,  (uint16_t)tIRampTick(&out[0][4]));
-				dacsend     (1, 1,  (uint16_t)tIRampTick(&out[0][5]));
-				DAC16Send	(2, (uint16_t)(tIRampTick(&out[1][0]) + tempPitchBend));
 				dacsend     (2, 0,  (uint16_t)tIRampTick(&out[1][1]));
-				dacsend     (2, 1,  (uint16_t)tIRampTick(&out[1][2]));
-				DAC16Send	(3, (uint16_t)(tIRampTick(&out[1][3]) + tempPitchBend));
 				dacsend     (3, 0,  (uint16_t)tIRampTick(&out[1][4]));
-				dacsend     (3, 1,  (uint16_t)tIRampTick(&out[1][5]));
 			}
 		}
 		else
@@ -1362,8 +1485,21 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 	}
+	else if (saveSwitch())
+	{
+		if (type_of_device_connected == MIDIKeyboardConnected || type_of_device_connected == MIDIComputerConnected)
+		{
+			
+			MPE_mode = whichSwitch;
+			
+			didSwitchDeviceMode = 1;
+			
+			Write7Seg(MPE_mode);
+		}
+	}
 	else
 	{
+	
 		if (displayState == HexmapSelect)
 		{
 			if (whichSwitch)
@@ -1509,6 +1645,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		}
 		else if (preference_num == PRESET_SELECT)
 		{	
+			Write7Seg(preset_num);
 			//if we are not in Save mode, then we are trying to instantaneously load a preset
 			if (!savingActive)
 			{
@@ -1891,15 +2028,12 @@ void Preferences_Switch_Check(void)
 
 void Save_Switch_Check(void)
 {
-	
 	if (saveSwitch())
 	{
-		if (preference_num == PRESET_SELECT) //we're in normal preset mode, which allows saving
+		if (preference_num == PRESET_SELECT)
 		{
-				savingActive = !savingActive;
-				updateSave();
+			Write7Seg(MPE_mode);
 		}
-		
 		else if (preference_num == INTERNAL_CLOCK)
 		{
 			if (clock_pref == CLOCK_DIVIDER)
@@ -1973,6 +2107,20 @@ void Save_Switch_Check(void)
 				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
 			}
 		}
+	}
+	else
+	{
+		if (!didSwitchDeviceMode && (preference_num == PRESET_SELECT)) //we're in normal preset mode, which allows saving
+		{
+			savingActive = !savingActive;
+			updateSave();
+		}
+		else
+		{
+			Write7Seg(preset_num);
+		}
+	
+		didSwitchDeviceMode = 0;
 	}
 
 }
@@ -2053,6 +2201,8 @@ void updateSave(void)
 	{
 		LED_On(PRESET_SAVE_LED);
 		//jump to the first available user preset slot if you are on the default factory presets
+		preset_to_save_num = preset_num;
+		
 		if (preset_to_save_num <= 10)
 		{
 			preset_to_save_num = 10;
@@ -2074,6 +2224,7 @@ void updateSave(void)
 		{
 			initiateStoringNoDevicePresetToExternalMemory();
 		}		
+		
 		preset_num = preset_to_save_num;
 		Write7Seg(preset_num);
 		normal_7seg_number = preset_num;
@@ -2383,6 +2534,9 @@ uint8_t preferencesSwitch(void)
 
 void loadMantaPreset(void)
 {
+	loadTuning(globalTuning);
+	currentTuningHex = -1;
+	
 	if (preset_num < 10) clearDACoutputs();
 	
 	if (preset_num == 0)
@@ -2549,11 +2703,14 @@ void clearInstrumentDACoutputs(MantaInstrument inst)
 	}
 }
 
+
+
 void mantaPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 1; // MantaMateVersion
+	buffer[indexCounter++] = 2; // MantaMateVersion
+	buffer[indexCounter++] = MPE_mode;
 	
 	buffer[indexCounter++] = takeover;
 	buffer[indexCounter++] = takeoverType;
@@ -2622,6 +2779,7 @@ void mantaPreset_decode(uint8_t* buffer)
 	
 	if (version == 1)
 	{
+		MPE_mode = 0;
 		takeover = buffer[indexCounter++];
 		takeoverType = buffer[indexCounter++];
 		
@@ -2676,10 +2834,80 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_DIRECT;
 		tDirect_decode(&fullDirect, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_DIRECT;
+		
 		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
+	}
+	else if (version == 2)
+	{
+		MPE_mode = buffer[indexCounter++];
+		takeover = buffer[indexCounter++];
+		takeoverType = buffer[indexCounter++];
+		
+		currentInstrument = buffer[indexCounter++];
+		manta[InstrumentOne].type = buffer[indexCounter++];
+		manta[InstrumentTwo].type = buffer[indexCounter++];
+		
+		for (int inst = 0; inst < 2; inst++)
+		{
+			currentComp[inst] = buffer[indexCounter++];
+			for (int i = 0; i < 16; i++)
+			{
+				compositionMap[inst][i] = buffer[indexCounter++];
+			}
+		}
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		
+		globalTuning = buffer[indexCounter++];
+		tuningToUse = buffer[indexCounter++];
+		currentTuningHex = buffer[indexCounter++];
+		currentMantaUITuning = buffer[indexCounter++];
+		for (int i = 0; i < 32; i++)
+		{
+			mantaUITunings[i] = buffer[indexCounter++];
+		}
+		
+		tKeyboard_decode(&manta[InstrumentOne].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&manta[InstrumentTwo].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&fullKeyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		
+		tDirect_decode(&manta[InstrumentOne].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&manta[InstrumentTwo].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&fullDirect, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		
+		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+		
+	}
+	else
+	{
+		initMantaKeys(1);
+		initMantaLEDState();
 	}
 }
 
