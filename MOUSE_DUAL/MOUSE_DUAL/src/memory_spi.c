@@ -451,7 +451,6 @@ void initiateStoringMidiPresetToExternalMemory(void)
 
 void continueStoringMidiPresetToExternalMemory(void)
 {
-
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
 	if (pages_left_to_transfer > 0)
 	{

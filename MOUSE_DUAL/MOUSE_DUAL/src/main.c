@@ -2645,6 +2645,7 @@ void loadJoystickPreset(void)
 void loadMIDIPreset(void)
 {
 	clearDACoutputs();
+	MPE_mode = 0;
 	
 	if (preset_num == 0)
 	{
@@ -2709,8 +2710,7 @@ void mantaPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 2; // MantaMateVersion
-	buffer[indexCounter++] = MPE_mode;
+	buffer[indexCounter++] = 1; // MantaMateVersion
 	
 	buffer[indexCounter++] = takeover;
 	buffer[indexCounter++] = takeoverType;
@@ -2779,7 +2779,6 @@ void mantaPreset_decode(uint8_t* buffer)
 	
 	if (version == 1)
 	{
-		MPE_mode = 0;
 		takeover = buffer[indexCounter++];
 		takeoverType = buffer[indexCounter++];
 		
@@ -2839,70 +2838,6 @@ void mantaPreset_decode(uint8_t* buffer)
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
-	}
-	else if (version == 2)
-	{
-		MPE_mode = buffer[indexCounter++];
-		takeover = buffer[indexCounter++];
-		takeoverType = buffer[indexCounter++];
-		
-		currentInstrument = buffer[indexCounter++];
-		manta[InstrumentOne].type = buffer[indexCounter++];
-		manta[InstrumentTwo].type = buffer[indexCounter++];
-		
-		for (int inst = 0; inst < 2; inst++)
-		{
-			currentComp[inst] = buffer[indexCounter++];
-			for (int i = 0; i < 16; i++)
-			{
-				compositionMap[inst][i] = buffer[indexCounter++];
-			}
-		}
-		
-		highByte = (buffer[indexCounter++] << 8);
-		lowByte = buffer[indexCounter++];
-		globalPitchGlide = highByte + lowByte;
-		
-		highByte = (buffer[indexCounter++] << 8);
-		lowByte = buffer[indexCounter++];
-		globalCVGlide = highByte + lowByte;
-		
-		myGlobalTuningTable.cardinality = buffer[indexCounter++];
-		for (int i = 0; i < 128; i++)
-		{
-			highByte = (buffer[indexCounter++] << 8);
-			lowByte = (buffer[indexCounter++] & 0xff);
-			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
-		}
-		
-		globalTuning = buffer[indexCounter++];
-		tuningToUse = buffer[indexCounter++];
-		currentTuningHex = buffer[indexCounter++];
-		currentMantaUITuning = buffer[indexCounter++];
-		for (int i = 0; i < 32; i++)
-		{
-			mantaUITunings[i] = buffer[indexCounter++];
-		}
-		
-		tKeyboard_decode(&manta[InstrumentOne].keyboard, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_KEYBOARD;
-		tKeyboard_decode(&manta[InstrumentTwo].keyboard, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_KEYBOARD;
-		tKeyboard_decode(&fullKeyboard, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_KEYBOARD;
-		
-		tDirect_decode(&manta[InstrumentOne].direct, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_DIRECT;
-		tDirect_decode(&manta[InstrumentTwo].direct, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_DIRECT;
-		tDirect_decode(&fullDirect, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_DIRECT;
-		
-		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_SEQUENCER;
-		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
-		indexCounter += NUM_BYTES_PER_SEQUENCER;
-		
 	}
 	else
 	{
@@ -2916,7 +2851,8 @@ void midiPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 1; // MantaMateVersion
+	buffer[indexCounter++] = 2; // version
+	buffer[indexCounter++] = MPE_mode;
 	
 	buffer[indexCounter++] = globalPitchGlide >> 8;
 	buffer[indexCounter++] = globalPitchGlide & 0xff;
@@ -2945,6 +2881,8 @@ void midiPreset_decode(uint8_t* buffer)
 	
 	if (version == 1)
 	{
+		MPE_mode = 0;
+		
 		highByte = (buffer[indexCounter++] << 8);
 		lowByte = buffer[indexCounter++];
 		globalPitchGlide = highByte + lowByte;
@@ -2963,6 +2901,34 @@ void midiPreset_decode(uint8_t* buffer)
 		globalTuning = buffer[indexCounter++];
 		
 		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
+	}
+	else if (version == 2)
+	{
+		MPE_mode = buffer[indexCounter++];
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		globalTuning = buffer[indexCounter++];
+		
+		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
+	}
+	else
+	{
+		MPE_mode = 0;
+		initMIDIKeys(1, TRUE);
 	}
 
 }
