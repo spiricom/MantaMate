@@ -1506,14 +1506,14 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (upSwitch())
 				{
-					if (++currentHexmapSelect > 99) currentHexmapSelect = 0;
+					if (++currentHexmapSelect > 49) currentHexmapSelect = 0;
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (--currentHexmapSelect < 0) currentHexmapSelect = 99;
+					if (--currentHexmapSelect < 0) currentHexmapSelect = 49;
 				}
 			}
 			
@@ -1526,14 +1526,14 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (upSwitch())
 				{
-					if (++currentDirectSelect > 99) currentDirectSelect = 0;
+					if (++currentDirectSelect > 49) currentDirectSelect = 0;
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (--currentDirectSelect < 0) currentDirectSelect = 99;
+					if (--currentDirectSelect < 0) currentDirectSelect = 49;
 				}
 			}
 			Write7Seg(currentDirectSelect);
@@ -1655,9 +1655,9 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					{
 						preset_num++;
 					
-						if (preset_num > 99)
+						if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 						{
-							preset_num = 99;
+							preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
 						}
 						if (suspendRetrieve !=DontRetrieve)
 						{
@@ -1704,9 +1704,9 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					if (upSwitch())
 					{
 						preset_to_save_num++;
-						if (preset_to_save_num > 99)
+						if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 						{
-							preset_to_save_num = 99;
+							preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
 						}
 					}
 				}
@@ -2900,6 +2900,7 @@ void midiPreset_decode(uint8_t* buffer)
 		}
 		globalTuning = buffer[indexCounter++];
 		
+		initMIDIKeys(4,TRUE);
 		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
 	}
 	else if (version == 2)
@@ -2923,6 +2924,8 @@ void midiPreset_decode(uint8_t* buffer)
 		}
 		globalTuning = buffer[indexCounter++];
 		
+		
+		initMIDIKeys(4,TRUE);
 		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
 	}
 	else

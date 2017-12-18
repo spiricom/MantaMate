@@ -431,6 +431,8 @@ void continueLoadingMantaCompositionsFromExternalMemory(void)
 
 /// MIDI preset saving and loading
 
+
+
 void initiateStoringMidiPresetToExternalMemory(void)
 {
 	startingSector = preset_to_save_num + MIDI_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will store it in
@@ -473,7 +475,7 @@ void continueStoringMidiPresetToExternalMemory(void)
 
 void initiateLoadingMidiPresetFromExternalMemory(void)
 {
-	startingSector = (preset_num + MIDI_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will load from
+	startingSector = preset_num + MIDI_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will load from
 	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
 	currentPage = 0; //start on the first page
 	
