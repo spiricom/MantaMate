@@ -1435,13 +1435,14 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 		
+		//if no device is plugged in and this is the first up/down button press, then you are just trying to start nodevice mode
 	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{
 		no_device_mode_active = TRUE;
 		return;
 	}
 	
-	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard
+	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard or Manta
 	{
 		if (type_of_device_connected == NoDeviceConnected)
 		{
@@ -1487,15 +1488,11 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	}
 	else if (saveSwitch())
 	{
-		if (type_of_device_connected == MIDIKeyboardConnected || type_of_device_connected == MIDIComputerConnected)
-		{
-			
 			MPE_mode = whichSwitch;
 			
 			didSwitchDeviceMode = 1;
 			
 			Write7Seg(MPE_mode);
-		}
 	}
 	else
 	{
@@ -2032,7 +2029,7 @@ void Save_Switch_Check(void)
 	{
 		if (preference_num == PRESET_SELECT)
 		{
-			Write7Seg(MPE_mode);
+			//Write7Seg(MPE_mode);
 		}
 		else if (preference_num == INTERNAL_CLOCK)
 		{
@@ -2115,7 +2112,7 @@ void Save_Switch_Check(void)
 			savingActive = !savingActive;
 			updateSave();
 		}
-		else
+		else if (didSwitchDeviceMode && (preference_num == PRESET_SELECT)) //we're in normal preset mode, which allows saving
 		{
 			Write7Seg(preset_num);
 		}
