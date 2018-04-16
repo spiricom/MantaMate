@@ -101,6 +101,7 @@ uint8_t dPadOffset;
 BOOL joystickTriggers;
 BOOL joystickIgnoreAxes;
 
+BOOL MidiDeviceFound;
 // Encode this in preset
 MantaInstrument currentInstrument;
 
@@ -405,6 +406,14 @@ uint8_t upSwitch(void);
 uint8_t downSwitch(void);
 uint8_t preferencesSwitch(void);
 uint8_t saveSwitch(void);
+uint8_t USBSwitch(void);
+
+uint8_t upSwitchRead(void);
+uint8_t downSwitchRead(void);
+uint8_t saveSwitchRead(void);
+uint8_t preferencesSwitchRead(void);
+uint8_t USBSwitchRead(void);
+void readAllSwitches(void);
 
 //bootloader related values
 #define ISP_FORCE_VALUE               ('M' << 24 | 'S' << 16 | 'I' << 8 | 'F')

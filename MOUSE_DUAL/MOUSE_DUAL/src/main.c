@@ -53,7 +53,7 @@
 #define DEVICEMODE 2
 #define TWELVEBIT 1
 #define SIXTEENBIT 2
-
+#define NUM_SWITCHES 5
 
 //------------------  C O N F I G U R A T I O N S  -------------------
 
@@ -126,6 +126,8 @@ unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
 int prevSentPitch = -1;
 
+BOOL MidiDeviceFound = FALSE;
+
 int MPE_mode = 0;
 
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
@@ -133,6 +135,10 @@ const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,1
 BOOL no_device_mode_active = FALSE;
 
 BOOL busyWithUSB = FALSE;
+
+uint8_t switchStates[5] = {0,0,0,0,0};
+uint8_t	current_switch_readings[5] = {0,0,0,0,0};
+uint32_t debounce_thresh = 50;
 
 int didSwitchDeviceMode = 0;
 GlobalPreferences preference_num = PRESET_SELECT;
@@ -165,6 +171,7 @@ uint8_t SevSegArpMode = 0;
 uint32_t upHeld = 0;
 uint32_t downHeld = 0;
 uint32_t holdTimeThresh = 8;
+uint32_t debounceCounter[NUM_SWITCHES] = {0,0,0,0};
 static uint32_t clockFrameCounter = 0;
 static uint32_t buttonFrameCounter = 0;
 static uint32_t buttonHoldSpeed = 120;
@@ -287,7 +294,7 @@ int main(void){
 	
 	//comment this bootloader check in when the firmware is ready for release
 	
-	if (downSwitch() > 0) //enter MSC bootloader instead of main program if the down switch is held during startup
+	if (downSwitchRead() > 0) //enter MSC bootloader instead of main program if the down switch is held during startup
 	{
 		usb_msc_bl_start();
 	}
@@ -298,6 +305,7 @@ int main(void){
 	//initialize the SPI bus for DAC
 	initSPIbus();
 	
+	delay_ms(10);
 	//send the messages to the DACs to make them update without software LDAC feature
 	DACsetup();
 	
@@ -314,6 +322,8 @@ int main(void){
 	currentDirectSelect = 0;
 	currentSequencerSelect = -1;
 	currentHexmapSelect = 0;
+	
+	readAllSwitches();
 	// figure out if we're supposed to be in host mode or device mode for the USB
 	USB_Mode_Switch_Check();
 	
@@ -554,6 +564,8 @@ static void tc1_irq(void)
 	}
 }
 
+
+	
 // TC2 timer interrupt.
 __attribute__((__interrupt__))
 static void tc2_irq(void)
@@ -566,9 +578,12 @@ static void tc2_irq(void)
 	
 	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
+		 
+		readAllSwitches();
+		
 		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
 		if (upSwitch())
-		{
+		{	
 			buttonFrameCounter++;
 			if (buttonFrameCounter > buttonHoldSpeed)
 			{
@@ -937,6 +952,11 @@ static void tc3_irq(void)
 					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
 				}
 				
+				if (MIDIKeyboard.pitchOutput == FALSE)
+				{
+					DAC16Send	(0, (uint16_t)(tIRampTick(&out[0][0])));
+					dacsend     (0, 1,  (uint16_t)tIRampTick(&out[0][2]));
+				}
 				dacsend     (0, 0,  (uint16_t)tIRampTick(&out[0][1]));
 			
 				if (MPE_mode)
@@ -1354,15 +1374,20 @@ static void eic_int_handler1(void)
 
 
 // interrupt handler to find the state of the pushbutton switches on the panel and the USB vbus sensing pin
+
+//do better debouncing!!
+
 __attribute__((__interrupt__))
 static void int_handler_switches (void)
 {
-	
+	/*
 	if( gpio_get_pin_interrupt_flag( GPIO_HOST_DEVICE_SWITCH) )
 	{	// PA11 generated the interrupt.
-		delay_us(5000); // to de-bounce
 		
-		USB_Mode_Switch_Check();
+		
+		//delay_us(5000); // to de-bounce
+		
+		//USB_Mode_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_HOST_DEVICE_SWITCH);
 	}
@@ -1370,8 +1395,9 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_DOWN_SWITCH) )
 	{		
 		//down switch
-		delay_us(2000); // to de-bounce
-		Preset_Switch_Check(0);
+		
+		//delay_us(5000); // to de-bounce
+		//Preset_Switch_Check(0);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_DOWN_SWITCH);
 	}
@@ -1379,8 +1405,8 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_PRESET_UP_SWITCH) )
 	{		
 		//up switch
-		delay_us(2000); // to de-bounce
-		Preset_Switch_Check(1);
+		//delay_us(5000); // to de-bounce
+		//Preset_Switch_Check(1);
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PRESET_UP_SWITCH);
 	}
@@ -1388,8 +1414,8 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_PREFERENCES_SWITCH) )
 	{
 		//up switch
-		delay_us(2000); // to de-bounce
-		Preferences_Switch_Check();
+		//delay_us(2000); // to de-bounce
+		//Preferences_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_PREFERENCES_SWITCH);
 	}
@@ -1397,17 +1423,18 @@ static void int_handler_switches (void)
 	else if( gpio_get_pin_interrupt_flag( GPIO_SAVE_SWITCH) )
 	{
 		//up switch
-		delay_us(2000); // to de-bounce
-		Save_Switch_Check();
+		//delay_us(2000); // to de-bounce
+		//Save_Switch_Check();
 		// Clear the interrupt flag of the pin PB2 is mapped to.
 		gpio_clear_pin_interrupt_flag(GPIO_SAVE_SWITCH);
 	}
+	*/
 	
 }
 
 void USB_Mode_Switch_Check(void)
 {	
-		if (gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH))
+		if (USBSwitch())
 		{
 
 			if (myUSBMode == HOSTMODE)
@@ -1442,9 +1469,9 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		return;
 	}
 	
-	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are trying to switch between touch and arpeggiator modes for MIDI Keyboard or Manta
+	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are doing a "Konami Kode"
 	{
-		if (type_of_device_connected == NoDeviceConnected)
+		if (type_of_device_connected == NoDeviceConnected) // if no device is connected, you are trying to randomize the patterns
 		{
 			if(upSwitch())
 			{
@@ -1486,14 +1513,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 	}
-	else if (saveSwitch())
-	{
-			MPE_mode = whichSwitch;
-			
-			didSwitchDeviceMode = 1;
-			
-			Write7Seg(MPE_mode);
-	}
+
 	else
 	{
 	
@@ -2009,6 +2029,8 @@ void Preferences_Switch_Check(void)
 			//turn off save mode but don't store anything
 			savingActive = 0;
 			LED_Off(PRESET_SAVE_LED);
+			normal_7seg_number = preset_num;
+			Write7Seg(normal_7seg_number);
 		}
 
 	}
@@ -2020,6 +2042,15 @@ void Preferences_Switch_Check(void)
 			SevSegArpMode = 0;
 			Write7Seg(normal_7seg_number);
 		}
+		
+		if (didSwitchDeviceMode == 1)
+		{
+			didSwitchDeviceMode = 0;
+			preference_num = 0;
+					
+			updatePreferences();
+			Write7Seg(normal_7seg_number);
+		}
 	}
 }
 
@@ -2027,97 +2058,111 @@ void Save_Switch_Check(void)
 {
 	if (saveSwitch())
 	{
-		if (preference_num == PRESET_SELECT)
+		if (preferencesSwitch())
 		{
-			//Write7Seg(MPE_mode);
+			if (MPE_mode == 0)
+			{
+				MPE_mode = 1;
+				updatePreset();
+			}
+			else
+			{
+				MPE_mode = 0;
+				updatePreset();
+			}
+					
+			didSwitchDeviceMode = 1;
+			preference_num = 0;
+			updatePreferences();
+					
+			Write7Seg(MPE_mode+200); // so that it blanks the left digit
 		}
-		else if (preference_num == INTERNAL_CLOCK)
+		else
 		{
-			if (clock_pref == CLOCK_DIVIDER)
+			
+		
+			if (preference_num == PRESET_SELECT)
 			{
-				//switch to BPM pref
-				clock_pref = BPM;
-				Write7Seg(clock_speed_displayed);
-				normal_7seg_number = clock_speed_displayed;
+				//Write7Seg(MPE_mode);
+			
+				savingActive = !savingActive;
+				updateSave();
+			
 			}
-			else if (clock_pref == BPM)
+			else if (preference_num == INTERNAL_CLOCK)
 			{
-				//switch to Clock Divider pref
-				clock_pref = CLOCK_DIVIDER;
-				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-				normal_7seg_number = 200 + tempoDivider;
+				if (clock_pref == CLOCK_DIVIDER)
+				{
+					//switch to BPM pref
+					clock_pref = BPM;
+					Write7Seg(clock_speed_displayed);
+					normal_7seg_number = clock_speed_displayed;
+				}
+				else if (clock_pref == BPM)
+				{
+					//switch to Clock Divider pref
+					clock_pref = CLOCK_DIVIDER;
+					Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+					normal_7seg_number = 200 + tempoDivider;
+				}
 			}
-		}
 		
 		
-		else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
-		{
-			if (glide_pref == GLOBAL_PITCH_GLIDE)
+			else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
 			{
-				//switch to BPM pref
-				glide_pref = GLOBAL_CV_GLIDE;
-				if (globalCVGlide < 10)
+				if (glide_pref == GLOBAL_PITCH_GLIDE)
 				{
-					Write7Seg(globalCVGlide+200);
+					//switch to BPM pref
+					glide_pref = GLOBAL_CV_GLIDE;
+					if (globalCVGlide < 10)
+					{
+						Write7Seg(globalCVGlide+200);
+					}
+					else
+					{
+						Write7Seg(globalCVGlide);
+					}
+					normal_7seg_number = globalCVGlide;
 				}
-				else
+				else if (glide_pref == GLOBAL_CV_GLIDE)
 				{
-					Write7Seg(globalCVGlide);
+					//switch to Clock Divider pref
+					glide_pref = GLOBAL_PITCH_GLIDE;
+					Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+					normal_7seg_number = globalPitchGlide;
 				}
-				normal_7seg_number = globalCVGlide;
 			}
-			else if (glide_pref == GLOBAL_CV_GLIDE)
-			{
-				//switch to Clock Divider pref
-				glide_pref = GLOBAL_PITCH_GLIDE;
-				Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-				normal_7seg_number = globalPitchGlide;
-			}
-		}
 		
-		else if (preference_num == TUNING_AND_LEARN)
-		{
-			if (tuningOrLearn == TUNING_SELECT)
+			else if (preference_num == TUNING_AND_LEARN)
 			{
-				if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+				if (tuningOrLearn == TUNING_SELECT)
 				{
-					//switch to midilearn
-					tuningOrLearn = MIDILEARN_AND_LENGTH; //midilearn in this case
-					currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
-					Write7Seg(currentNumberToMIDILearn+200);
-					normal_7seg_number = currentNumberToMIDILearn+200;
+					if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+					{
+						//switch to midilearn
+						tuningOrLearn = MIDILEARN_AND_LENGTH; //midilearn in this case
+						currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
+						Write7Seg(currentNumberToMIDILearn+200);
+						normal_7seg_number = currentNumberToMIDILearn+200;
+					}
+					else if (type_of_device_connected == NoDeviceConnected)
+					{
+						tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
+						Write7Seg(noDevicePatterns.patternLength);
+						normal_7seg_number = noDevicePatterns.patternLength;
+						LED_On(PRESET_SAVE_LED); //to give some indication
+					}
 				}
-				else if (type_of_device_connected == NoDeviceConnected)
+				else if (tuningOrLearn == MIDILEARN_AND_LENGTH)
 				{
-					tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
-					Write7Seg(noDevicePatterns.patternLength);
-					normal_7seg_number = noDevicePatterns.patternLength;
-					LED_On(PRESET_SAVE_LED); //to give some indication
+					//switch to Clock Divider pref
+					tuningOrLearn = TUNING_SELECT;
+					Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
+					normal_7seg_number = globalTuning;
+					LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
 				}
 			}
-			else if (tuningOrLearn == MIDILEARN_AND_LENGTH)
-			{
-				//switch to Clock Divider pref
-				tuningOrLearn = TUNING_SELECT;
-				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
-				normal_7seg_number = globalTuning;
-				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
-			}
 		}
-	}
-	else
-	{
-		if (!didSwitchDeviceMode && (preference_num == PRESET_SELECT)) //we're in normal preset mode, which allows saving
-		{
-			savingActive = !savingActive;
-			updateSave();
-		}
-		else if (didSwitchDeviceMode && (preference_num == PRESET_SELECT)) //we're in normal preset mode, which allows saving
-		{
-			Write7Seg(preset_num);
-		}
-	
-		didSwitchDeviceMode = 0;
 	}
 
 }
@@ -2471,20 +2516,20 @@ void setupEIC(void)
 	eic_enable_line(&AVR32_EIC, eic_options[0].eic_line);
 	eic_enable_interrupt_line(&AVR32_EIC, eic_options[0].eic_line);
 	
-	gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT1);
+	//gpio_enable_pin_interrupt(GPIO_HOST_DEVICE_SWITCH , GPIO_PIN_CHANGE);	// PA11
+	//INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_HOST_DEVICE_SWITCH/8), AVR32_INTC_INT1);
 	  
-	gpio_enable_pin_interrupt(GPIO_PRESET_DOWN_SWITCH , GPIO_PIN_CHANGE);	// PB02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT1);
+	//gpio_enable_pin_interrupt(GPIO_PRESET_DOWN_SWITCH , GPIO_PIN_CHANGE);	// PB02
+	//INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_DOWN_SWITCH/8), AVR32_INTC_INT1);
 	
-	gpio_enable_pin_interrupt(GPIO_PRESET_UP_SWITCH , GPIO_PIN_CHANGE);	// PA20
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT1);
+	//gpio_enable_pin_interrupt(GPIO_PRESET_UP_SWITCH , GPIO_PIN_CHANGE);	// PA20
+	//INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PRESET_UP_SWITCH/8), AVR32_INTC_INT1);
 	
-	gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT1);
+	//gpio_enable_pin_interrupt(GPIO_SAVE_SWITCH , GPIO_PIN_CHANGE);	 //PX39
+	//INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_SAVE_SWITCH/8), AVR32_INTC_INT1);
 	
-	gpio_enable_pin_interrupt(GPIO_PREFERENCES_SWITCH , GPIO_PIN_CHANGE);	//PX02
-	INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PREFERENCES_SWITCH/8), AVR32_INTC_INT1);
+	//gpio_enable_pin_interrupt(GPIO_PREFERENCES_SWITCH , GPIO_PIN_CHANGE);	//PX02
+	//INTC_register_interrupt( &int_handler_switches, AVR32_GPIO_IRQ_0 + (GPIO_PREFERENCES_SWITCH/8), AVR32_INTC_INT1);
 	
 	
 	// Register the RTC interrupt handler to the interrupt controller.
@@ -2513,21 +2558,94 @@ void main_sof_action(void)
 
 uint8_t upSwitch(void)
 {
-	return !(gpio_get_pin_value(GPIO_PRESET_UP_SWITCH));
+	return switchStates[0];
 }
 uint8_t downSwitch(void)
 {
-	return !(gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH));
+	return switchStates[1];
 }
 uint8_t saveSwitch(void)
 {
-	return !(gpio_get_pin_value(GPIO_SAVE_SWITCH));
+	return switchStates[3];
 }
 uint8_t preferencesSwitch(void)
 {
-	return !(gpio_get_pin_value(GPIO_PREFERENCES_SWITCH));
+	return switchStates[2];
+}
+uint8_t USBSwitch(void)
+{
+	return switchStates[4];
 }
 
+
+uint8_t upSwitchRead(void)
+{
+	return !(gpio_get_pin_value(GPIO_PRESET_UP_SWITCH));
+}
+uint8_t downSwitchRead(void)
+{
+	return !(gpio_get_pin_value(GPIO_PRESET_DOWN_SWITCH));
+}
+uint8_t saveSwitchRead(void)
+{
+	return !(gpio_get_pin_value(GPIO_SAVE_SWITCH));
+}
+uint8_t preferencesSwitchRead(void)
+{
+	return !(gpio_get_pin_value(GPIO_PREFERENCES_SWITCH));
+}
+uint8_t USBSwitchRead(void)
+{
+	return gpio_get_pin_value(GPIO_HOST_DEVICE_SWITCH);
+}
+
+
+void readAllSwitches(void)
+{
+	current_switch_readings[0] = upSwitchRead();
+	current_switch_readings[1] = downSwitchRead();
+	current_switch_readings[2] = preferencesSwitchRead();
+	current_switch_readings[3] = saveSwitchRead();
+	current_switch_readings[4] = USBSwitchRead();
+	
+	for (int i = 0; i < NUM_SWITCHES; i++)
+	{
+		if(current_switch_readings[i] == switchStates[i] && debounceCounter[i] > 0)
+		{
+			debounceCounter[i]--;
+		}
+		if(current_switch_readings[i] != switchStates[i])
+		{
+			debounceCounter[i]++;
+		}
+		// If the Input has shown the same value for long enough let's switch it
+		if(debounceCounter[i] >= debounce_thresh)
+		{
+			debounceCounter[i] = 0;
+			switchStates[i] = current_switch_readings[i];
+			if (i == 0)
+			{
+				Preset_Switch_Check(1);
+			}
+			else if (i == 1)
+			{
+				Preset_Switch_Check(0);
+			}
+			else if (i == 2)
+			{
+				Preferences_Switch_Check();
+			}
+			else if (i == 3)
+			{
+				Save_Switch_Check();
+			}
+			else if (i == 4)
+			{
+				USB_Mode_Switch_Check();
+			}
+		}
+	}
+}
 
 void loadMantaPreset(void)
 {
@@ -2642,7 +2760,7 @@ void loadJoystickPreset(void)
 void loadMIDIPreset(void)
 {
 	clearDACoutputs();
-	MPE_mode = 0;
+	//MPE_mode = 0;
 	
 	if (preset_num == 0)
 	{

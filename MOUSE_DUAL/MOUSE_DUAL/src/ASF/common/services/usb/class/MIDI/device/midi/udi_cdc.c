@@ -233,7 +233,7 @@ bool udi_midi_enable(void)
 	type_of_device_connected = MIDIComputerConnected;
 	
 	clearDACoutputs();
-
+	updatePreset();
 	return true;
 }
 
@@ -252,7 +252,7 @@ void udi_midi_disable(void)
 	type_of_device_connected = NoDeviceConnected;
 	
 	clearDACoutputs();
-	
+	updatePreset();
 	LED_Off(USB_CONNECTED_LED);
 }
 

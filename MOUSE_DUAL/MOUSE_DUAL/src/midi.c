@@ -559,14 +559,30 @@ void tMIDIKeyboard_init(tMIDIKeyboard* keyboard, int numVoices, int pitchOutput)
 	}
 	else
 	{
-		if (numVoices == 1)
+		if (MPE_mode == 0)
 		{
-			keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
+			if (numVoices == 1)
+			{
+				keyboard->firstFreeOutput = 4; //in this case we add a trigger to the outputs
+			}
+			else
+			{
+				keyboard->firstFreeOutput = (3 * numVoices);
+			}
 		}
 		else
 		{
-			keyboard->firstFreeOutput = (3 * numVoices);
+			if (numVoices == 1)
+			{
+				keyboard->firstFreeOutput = 6; //in this case we add a trigger to the outputs
+			}
+			else
+			{
+				keyboard->firstFreeOutput = (5 * numVoices);
+			}
+			
 		}
+
 	}
 
 	//default learned CCs and notes are just the CCs 1-128 - notes are skipped

@@ -222,7 +222,7 @@ uhc_enum_status_t uhi_midi_install(uhc_device_t* dev)
 	{
 		uhi_midi_dev.b_enabled = false;
 		uhi_midi_dev.dev = dev;
-			
+		MidiDeviceFound = TRUE;
 		return UHC_ENUM_SUCCESS;
 	}
 	
@@ -259,7 +259,7 @@ void uhi_midi_uninstall(uhc_device_t* dev)
 	type_of_device_connected = NoDeviceConnected;
 	
 	clearDACoutputs();
-	
+	updatePreset();
 	uhi_midi_free_device();
 	UHI_MIDI_CHANGE(dev, false);
 	//initNoteStack();

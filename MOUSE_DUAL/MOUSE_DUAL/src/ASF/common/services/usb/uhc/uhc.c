@@ -698,7 +698,7 @@ static void uhc_enumeration_step14(
 				UHC_ENUM_DISCONNECT:UHC_ENUM_FAIL);
 		return;
 	}
-	// Check if unless one USB interface is supported by UHIs
+	// Check if any one USB interface is supported by UHIs
 	for (uint8_t i = 0; i < UHC_NB_UHI; i++) {
 		switch (uhc_uhis[i].install(uhc_dev_enum)) {
 		case UHC_ENUM_SUCCESS:

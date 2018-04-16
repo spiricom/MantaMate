@@ -148,6 +148,10 @@ uhc_enum_status_t uhi_hid_joy_install(uhc_device_t* dev)
 	alreadyFoundEndpoint = 0;
 	alreadyFoundInterface = 0;
 	
+	if (MidiDeviceFound == TRUE)
+	{
+		return UHC_ENUM_UNSUPPORTED;
+	}
 	if (uhi_hid_joy_dev.dev != NULL) {
 		
 		return UHC_ENUM_SOFTWARE_LIMIT; // Device already allocated
@@ -663,7 +667,7 @@ void uhi_hid_joy_uninstall(uhc_device_t* dev)
 	UHI_HID_JOY_CHANGE(dev, false);
 	no_device_mode_active = FALSE;
 	type_of_device_connected = NoDeviceConnected;
-	
+	updatePreset();
 	clearDACoutputs();
 }
 //@}
