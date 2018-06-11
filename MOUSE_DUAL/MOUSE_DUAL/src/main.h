@@ -39,6 +39,54 @@ uint8_t currentHexUI;
 
 void resetEditStack(void);
 
+//=================STATE STUFF=================
+#define NUM_PMENUS 4
+#define NUM_SMENUS 2
+
+typedef enum MantaMateState
+{
+	DefaultMode=0,
+	PreferenceOne,
+	PreferenceTwo,
+	PreferenceThree,
+	SubPreferenceOne,
+	SubPreferenceTwo,
+	SubPreferenceThree,
+	SaveMode,
+	PMode, //not being used
+	SMode, //not being used 
+	MantaMateModeNil
+} MantaMateState;
+
+MantaMateState states[NUM_PMENUS][NUM_SMENUS];
+
+//typedef pnum (unsigned char);
+
+typedef struct _tMantaMateState
+{
+	int P; // 0,1,2,3
+	int S; // 0,1
+	
+	bool pDown, sDown;
+	
+	ConnectedDeviceType device;
+	//pnum preset;
+	
+	MantaMateState state;
+	
+} tMantaMateState;
+
+extern tMantaMateState mm;
+
+void setDeviceType(tMantaMateState* s, ConnectedDeviceType type);
+ConnectedDeviceType getDeviceType(tMantaMateState* s);
+static void updateState(tMantaMateState* s);
+void pButtonPressed(tMantaMateState* s);
+void pButtonReleased(tMantaMateState* s);
+void sButtonPressed(tMantaMateState* s);
+void sButtonReleased(tMantaMateState* s);
+//===================================================
+
 typedef enum MantaMateDeviceType
 {
 	DeviceManta,

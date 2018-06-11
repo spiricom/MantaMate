@@ -67,6 +67,15 @@ static void setDACSPI(spi_options_t spiOptions);
 static void setMemorySPI(spi_options_t spiOptions);
 
 int defaultTuningMap[8] = {0,1,2,3,4,5,6,7};
+	
+MantaMateState states[NUM_PMENUS][NUM_SMENUS] =
+{
+	{DefaultMode,SaveMode},
+	{PreferenceOne,SubPreferenceOne},
+	{PreferenceTwo,SubPreferenceTwo},
+	{PreferenceThree,SubPreferenceThree}
+		
+};
 
 //SPI options for the 16 and 12 bit DACs
 spi_options_t spiOptions16DAC =
@@ -139,6 +148,8 @@ BOOL busyWithUSB = FALSE;
 uint8_t switchStates[5] = {0,0,0,0,0};
 uint8_t	current_switch_readings[5] = {0,0,0,0,0};
 uint32_t debounce_thresh = 50;
+
+tMantaMateState mm;
 
 int didSwitchDeviceMode = 0;
 GlobalPreferences preference_num = PRESET_SELECT;
@@ -643,7 +654,7 @@ static void tc2_irq(void)
 		{
 			blink7SegCounter = 0;
 		
-			if (savingActive)
+			if (mm.state == SaveMode)
 			{
 				blank7Seg = !blank7Seg;
 				Write7Seg(number_for_7Seg);
@@ -1458,8 +1469,32 @@ void USB_Mode_Switch_Check(void)
 		}	
 }
 
+static void updateTempo(void)
+{
+	if (clock_speed_displayed > 0)
+	{
+		if (tempoDivider < 10)
+		{
+			clock_speed = (2400000 / (clock_speed_displayed + 60)) / (1 << tempoDivider); //1,200,000 is the number of clocks per minute if the clock speed is 20,000Hz (which it currently is). multiply that by four to get the length of a measure (whole note), then divide that by the BPM you want to get the right value
+			clock_speed_randomize = FALSE;
+		}
+		else
+		{
+			clock_speed_randomize = TRUE;
+			clock_random_mod = clock_random_mods[tempoDivider-10];
+			clock_speed = ((rand() >> 15) % clock_random_mod) + 1;
+		}
+	}
+	else
+	{
+		clock_speed = 0;
+	}
+}
+
 void Preset_Switch_Check(uint8_t whichSwitch)
 {
+	MantaMateState state = mm.state;
+	
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 		
 		//if no device is plugged in and this is the first up/down button press, then you are just trying to start nodevice mode
@@ -1469,7 +1504,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		return;
 	}
 	
-	else if (preferencesSwitch()) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are doing a "Konami Kode"
+	else if (mm.pDown) //if you are holding down the preferences switch while pressing one of the up/down buttons, you are doing a "Konami Kode"
 	{
 		if (type_of_device_connected == NoDeviceConnected) // if no device is connected, you are trying to randomize the patterns
 		{
@@ -1660,349 +1695,328 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			Write7Seg(currentMantaUITuning);
 			normal_7seg_number = currentMantaUITuning;
 		}
-		else if (preference_num == PRESET_SELECT)
+		else if (mm.state == DefaultMode)
 		{	
 			Write7Seg(preset_num);
 			//if we are not in Save mode, then we are trying to instantaneously load a preset
-			if (!savingActive)
-			{
-				if (whichSwitch)
-				{
-					if (upSwitch())
-					{
-						preset_num++;
-					
-						if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
-						{
-							preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
-						}
-						if (suspendRetrieve !=DontRetrieve)
-						{
-							initiateStoringStartupStateToExternalMemory();
-							updatePreset();
-						}
-						Write7Seg(preset_num);
-						normal_7seg_number = preset_num;
-					}
-				}
-				else 
-				{
-					if (downSwitch())
-					{
-						if (preset_num <= 0)
-						{
-							preset_num = 0;
-						}
-						else
-						{
-							preset_num--;
-						}
-						if (suspendRetrieve != DontRetrieve)
-						{
-							initiateStoringStartupStateToExternalMemory();
-							updatePreset();
-						}
-						Write7Seg(preset_num);
-						normal_7seg_number = preset_num;
-					}
-				}
-				if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
-				{
-					initiateStoringStartupStateToExternalMemory();
-					updatePreset();
-					suspendRetrieve = RetrieveWhenever;
-				}
-			}
-			//otherwise we are currently navigating to save a preset into a slot
-			else
-			{
-				if (whichSwitch)
-				{
-					if (upSwitch())
-					{
-						preset_to_save_num++;
-						if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
-						{
-							preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
-						}
-					}
-				}
-				else
-				{
-					if (downSwitch())
-					{
-						if (preset_to_save_num <= 10)
-						{
-							preset_to_save_num = 10;
-						}
-						else
-						{
-							preset_to_save_num--;
-						}
-					}
-				}
-				//should make it blink for extra clarity
-				Write7Seg(preset_to_save_num);
-				normal_7seg_number = preset_to_save_num;
-			}
-		}
-		else if (preference_num == TUNING_AND_LEARN)
-		{
-			if (tuningOrLearn == TUNING_SELECT)
-			{
-				if (!tuningLoading)
-				{
-					if (whichSwitch)
-					{
-						if (upSwitch())
-						{
-							globalTuning++;
-							if (globalTuning >= 99)
-							{
-								globalTuning = 99;
-							}
-							if (suspendRetrieve != DontRetrieve)
-							{
-								loadTuning(globalTuning);
-							}
-							Write7Seg(globalTuning);
-							normal_7seg_number = globalTuning;
-						}
-					
-					}
-					else
-					{
-						if (downSwitch())
-						{
-							if (globalTuning <= 0)
-							{
-								globalTuning = 0;
-							}
-							else
-							{
-								globalTuning--;
-							}
-							if (suspendRetrieve != DontRetrieve)
-							{
-								loadTuning(globalTuning);
-							}
-							Write7Seg(globalTuning);
-							normal_7seg_number = globalTuning;
-						}
-					}
-					if (suspendRetrieve == RetrieveNow)
-					{
-						loadTuning(globalTuning);
-						suspendRetrieve = RetrieveWhenever;
-					}
-				}
-			}
-			else //otherwise it's MIDI LEARN mode or PATTERN LENGTH mode.  Ignore buttons in MIDI LEARN, in no device mode change length
-			{
-				if (type_of_device_connected == NoDeviceConnected)
-				{
-					if (whichSwitch)
-					{
-						if (upSwitch())
-						{
-							if (noDevicePatterns.patternLength >= 32)
-							{
-								noDevicePatterns.patternLength = 32;
-							}
-							else
-							{
-								noDevicePatterns.patternLength++;
-							}
-							Write7Seg(noDevicePatterns.patternLength);
-							normal_7seg_number = noDevicePatterns.patternLength;
-						}
-					}
-					else
-					{
-						if (downSwitch())
-						{
-							if (noDevicePatterns.patternLength <= 1)
-							{
-								noDevicePatterns.patternLength = 1;
-							}
-							else
-							{
-								noDevicePatterns.patternLength--;
-							}
-							Write7Seg(noDevicePatterns.patternLength);
-							normal_7seg_number = noDevicePatterns.patternLength;
-						}
-					}
-				}
-			}
-		
-		}
-		else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
-		{
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					if (glide_pref == GLOBAL_PITCH_GLIDE)
+					preset_num++;
+					
+					if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 					{
-						globalPitchGlideDisplay++;
-						if (globalPitchGlideDisplay >= globalGlideMax)
-						{
-							globalPitchGlideDisplay = globalGlideMax;
-						}
-						Write7Seg(globalPitchGlideDisplay);
-						normal_7seg_number = globalPitchGlideDisplay;
-						globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
+						preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
 					}
-					else  // otherwise it's global cv glide
+					if (suspendRetrieve !=DontRetrieve)
 					{
-						globalCVGlideDisplay++;
-						if (globalCVGlideDisplay >= globalGlideMax)
-						{
-							globalCVGlideDisplay = globalGlideMax;
-						}
-						if (globalCVGlideDisplay < 10)
-						{
-							Write7Seg(globalCVGlideDisplay+200);
-							normal_7seg_number = (globalCVGlideDisplay + 200);
-						}
-						else
-						{
-							Write7Seg(globalCVGlideDisplay);
-							normal_7seg_number = globalCVGlideDisplay;
-						}
-						globalCVGlide = glide_lookup[globalCVGlideDisplay];
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
 					}
-
+					Write7Seg(preset_num);
+					normal_7seg_number = preset_num;
+				}
+			}
+			else 
+			{
+				if (downSwitch())
+				{
+					if (preset_num <= 0)
+					{
+						preset_num = 0;
+					}
+					else
+					{
+						preset_num--;
+					}
+					if (suspendRetrieve != DontRetrieve)
+					{
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
+					}
+					Write7Seg(preset_num);
+					normal_7seg_number = preset_num;
+				}
+			}
+			if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
+			{
+				initiateStoringStartupStateToExternalMemory();
+				updatePreset();
+				suspendRetrieve = RetrieveWhenever;
+			}
+		}
+		//otherwise we are currently navigating to save a preset into a slot
+		else if (mm.state == SaveMode)
+		{
+			Write7Seg(preset_num);
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					preset_to_save_num++;
+					if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
+					{
+						preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
+					}
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (glide_pref == GLOBAL_PITCH_GLIDE)
+					if (preset_to_save_num <= 10)
 					{
-						if (globalPitchGlideDisplay <= 0)
-						{
-							globalPitchGlideDisplay = 0;
-						}
-						else
-						{
-							globalPitchGlideDisplay--;
-						}
-						Write7Seg(globalPitchGlideDisplay);
-						normal_7seg_number = globalPitchGlideDisplay;
-						globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
+						preset_to_save_num = 10;
 					}
-					else  // otherwise it's global cv glide
+					else
 					{
-						if (globalCVGlideDisplay <= 0)
-						{
-							globalCVGlideDisplay = 0;
-						}
-						else
-						{
-							globalCVGlideDisplay--;
-						}
-						if (globalCVGlideDisplay < 10)
-						{
-							Write7Seg(globalCVGlideDisplay+200);
-							normal_7seg_number = (globalCVGlideDisplay + 200);
-						}
-						else
-						{
-							Write7Seg(globalCVGlideDisplay);
-							normal_7seg_number = globalCVGlideDisplay;
-						}
-						globalCVGlide = glide_lookup[globalCVGlideDisplay];
+						preset_to_save_num--;
 					}
-
 				}
 			}
-
+			//should make it blink for extra clarity
+			Write7Seg(preset_to_save_num);
+			normal_7seg_number = preset_to_save_num;
 		}
-		else if (preference_num == INTERNAL_CLOCK)
+		else if (mm.state == PreferenceOne)
 		{
-
-			if (clock_pref == BPM)
+			if (!tuningLoading)
 			{
 				if (whichSwitch)
 				{
 					if (upSwitch())
 					{
-						clock_speed_displayed++;
-						if (clock_speed_displayed >= clock_speed_max)
+						globalTuning++;
+						if (globalTuning >= 99)
 						{
-							clock_speed_displayed = clock_speed_max;
+							globalTuning = 99;
 						}
+						if (suspendRetrieve != DontRetrieve)
+						{
+							loadTuning(globalTuning);
+						}
+						Write7Seg(globalTuning);
+						normal_7seg_number = globalTuning;
+					}
+					
+				}
+				else
+				{
+					if (downSwitch())
+					{
+						if (globalTuning <= 0)
+						{
+							globalTuning = 0;
+						}
+						else
+						{
+							globalTuning--;
+						}
+						if (suspendRetrieve != DontRetrieve)
+						{
+							loadTuning(globalTuning);
+						}
+						Write7Seg(globalTuning);
+						normal_7seg_number = globalTuning;
+					}
+				}
+				if (suspendRetrieve == RetrieveNow)
+				{
+					loadTuning(globalTuning);
+					suspendRetrieve = RetrieveWhenever;
+				}
+			}
+		}
+		else if (mm.state == SubPreferenceOne) //otherwise it's MIDI LEARN mode or PATTERN LENGTH mode.  Ignore buttons in MIDI LEARN, in no device mode change length
+		{
+			if (type_of_device_connected == NoDeviceConnected)
+			{
+				if (whichSwitch)
+				{
+					if (upSwitch())
+					{
+						if (noDevicePatterns.patternLength >= 32)
+						{
+							noDevicePatterns.patternLength = 32;
+						}
+						else
+						{
+							noDevicePatterns.patternLength++;
+						}
+						Write7Seg(noDevicePatterns.patternLength);
+						normal_7seg_number = noDevicePatterns.patternLength;
 					}
 				}
 				else
 				{
 					if (downSwitch())
 					{
-						if (clock_speed_displayed <= 0)
+						if (noDevicePatterns.patternLength <= 1)
 						{
-							clock_speed_displayed = 0;
+							noDevicePatterns.patternLength = 1;
 						}
 						else
 						{
-							clock_speed_displayed--;
+							noDevicePatterns.patternLength--;
 						}
+						Write7Seg(noDevicePatterns.patternLength);
+						normal_7seg_number = noDevicePatterns.patternLength;
 					}
 				}
-				Write7Seg(clock_speed_displayed);
-				normal_7seg_number = clock_speed_displayed;
 			}
-			else if (clock_pref == CLOCK_DIVIDER)
+		}
+		else if (mm.state == PreferenceTwo)
+		{
+			if (whichSwitch)
 			{
-				if (whichSwitch)
+				if (upSwitch())
 				{
-					if (upSwitch())
+					globalPitchGlideDisplay++;
+					if (globalPitchGlideDisplay >= globalGlideMax)
 					{
-						tempoDivider++;
-						if (tempoDivider >= tempoDividerMax)
-						{
-							tempoDivider = tempoDividerMax;
-						}
+						globalPitchGlideDisplay = globalGlideMax;
 					}
-				}
-				else
-				{
-					if (downSwitch())
-					{
-						if (tempoDivider <= 0)
-						{
-							tempoDivider = 0;
-						}
-						else
-						{
-							tempoDivider--;
-						}
-					}
-				}
-				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
-				normal_7seg_number = 200 + tempoDivider;
-			}
-			if (clock_speed_displayed > 0)
-			{
-				if (tempoDivider < 10)
-				{
-					clock_speed = (2400000 / (clock_speed_displayed + 60)) / (1 << tempoDivider); //1,200,000 is the number of clocks per minute if the clock speed is 20,000Hz (which it currently is). multiply that by four to get the length of a measure (whole note), then divide that by the BPM you want to get the right value
-					clock_speed_randomize = FALSE;
-				}
-				else
-				{
-					clock_speed_randomize = TRUE;
-					clock_random_mod = clock_random_mods[tempoDivider-10];
-					clock_speed = ((rand() >> 15) % clock_random_mod) + 1;
+					Write7Seg(globalPitchGlideDisplay);
+					normal_7seg_number = globalPitchGlideDisplay;
+					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
+					
 				}
 			}
 			else
 			{
-				clock_speed = 0;
+				if (downSwitch())
+				{
+					if (globalPitchGlideDisplay <= 0)
+					{
+						globalPitchGlideDisplay = 0;
+					}
+					else
+					{
+						globalPitchGlideDisplay--;
+					}
+					Write7Seg(globalPitchGlideDisplay);
+					normal_7seg_number = globalPitchGlideDisplay;
+					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
+				}
+			}
+
+		}
+		else if (mm.state == SubPreferenceTwo)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					globalCVGlideDisplay++;
+					if (globalCVGlideDisplay >= globalGlideMax)
+					{
+						globalCVGlideDisplay = globalGlideMax;
+					}
+					if (globalCVGlideDisplay < 10)
+					{
+						Write7Seg(globalCVGlideDisplay+200);
+						normal_7seg_number = (globalCVGlideDisplay + 200);
+					}
+					else
+					{
+						Write7Seg(globalCVGlideDisplay);
+						normal_7seg_number = globalCVGlideDisplay;
+					}
+					globalCVGlide = glide_lookup[globalCVGlideDisplay];
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (globalCVGlideDisplay <= 0)
+					{
+						globalCVGlideDisplay = 0;
+					}
+					else
+					{
+						globalCVGlideDisplay--;
+					}
+					if (globalCVGlideDisplay < 10)
+					{
+						Write7Seg(globalCVGlideDisplay+200);
+						normal_7seg_number = (globalCVGlideDisplay + 200);
+					}
+					else
+					{
+						Write7Seg(globalCVGlideDisplay);
+						normal_7seg_number = globalCVGlideDisplay;
+					}
+					globalCVGlide = glide_lookup[globalCVGlideDisplay];
+				}
 			}
 		}
+		else if (mm.state == PreferenceThree)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					clock_speed_displayed++;
+					if (clock_speed_displayed >= clock_speed_max)
+					{
+						clock_speed_displayed = clock_speed_max;
+					}
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (clock_speed_displayed <= 0)
+					{
+						clock_speed_displayed = 0;
+					}
+					else
+					{
+						clock_speed_displayed--;
+					}
+				}
+			}
+			Write7Seg(clock_speed_displayed);
+			normal_7seg_number = clock_speed_displayed;
+			
+			updateTempo();
+		}
+		else if (mm.state == SubPreferenceThree)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					tempoDivider++;
+					if (tempoDivider >= tempoDividerMax)
+					{
+						tempoDivider = tempoDividerMax;
+					}
+				}
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (tempoDivider <= 0)
+					{
+						tempoDivider = 0;
+					}
+					else
+					{
+						tempoDivider--;
+					}
+				}
+			}
+			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+			normal_7seg_number = 200 + tempoDivider;
+			
+			updateTempo();
+		}
+
 	}
 }
 
@@ -2010,47 +2024,12 @@ void Preferences_Switch_Check(void)
 {
 	if (preferencesSwitch())
 	{
-		
-		tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
-		LED_Off(PRESET_SAVE_LED); //turn this off, in case we were editing the nodevice length
-		//if we aren't in a current save state, act normal and change preferences
-		if (!savingActive)
-		{
-			preference_num++;
-			if (preference_num >= num_preferences)
-			{
-				preference_num = 0;
-			}
-			updatePreferences();
-		}
-		//otherwise the P button acts as a "cancel" button for the save preset state
-		else
-		{
-			//turn off save mode but don't store anything
-			savingActive = 0;
-			LED_Off(PRESET_SAVE_LED);
-			normal_7seg_number = preset_num;
-			Write7Seg(normal_7seg_number);
-		}
-
+		pButtonPressed(&mm);
 	}
-	
 	else
 	{
-		if (SevSegArpMode == 1)
-		{
-			SevSegArpMode = 0;
-			Write7Seg(normal_7seg_number);
-		}
+		pButtonReleased(&mm);
 		
-		if (didSwitchDeviceMode == 1)
-		{
-			didSwitchDeviceMode = 0;
-			preference_num = 0;
-					
-			updatePreferences();
-			Write7Seg(normal_7seg_number);
-		}
 	}
 }
 
@@ -2058,113 +2037,12 @@ void Save_Switch_Check(void)
 {
 	if (saveSwitch())
 	{
-		if (preferencesSwitch())
-		{
-			if (MPE_mode == 0)
-			{
-				MPE_mode = 1;
-				updatePreset();
-			}
-			else
-			{
-				MPE_mode = 0;
-				updatePreset();
-			}
-					
-			didSwitchDeviceMode = 1;
-			preference_num = 0;
-			updatePreferences();
-					
-			Write7Seg(MPE_mode+200); // so that it blanks the left digit
-		}
-		else
-		{
-			
-		
-			if (preference_num == PRESET_SELECT)
-			{
-				//Write7Seg(MPE_mode);
-			
-				savingActive = !savingActive;
-				updateSave();
-			
-			}
-			else if (preference_num == INTERNAL_CLOCK)
-			{
-				if (clock_pref == CLOCK_DIVIDER)
-				{
-					//switch to BPM pref
-					clock_pref = BPM;
-					Write7Seg(clock_speed_displayed);
-					normal_7seg_number = clock_speed_displayed;
-				}
-				else if (clock_pref == BPM)
-				{
-					//switch to Clock Divider pref
-					clock_pref = CLOCK_DIVIDER;
-					Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-					normal_7seg_number = 200 + tempoDivider;
-				}
-			}
-		
-		
-			else if (preference_num == GLOBAL_GLIDE_PREFERENCES)
-			{
-				if (glide_pref == GLOBAL_PITCH_GLIDE)
-				{
-					//switch to BPM pref
-					glide_pref = GLOBAL_CV_GLIDE;
-					if (globalCVGlide < 10)
-					{
-						Write7Seg(globalCVGlide+200);
-					}
-					else
-					{
-						Write7Seg(globalCVGlide);
-					}
-					normal_7seg_number = globalCVGlide;
-				}
-				else if (glide_pref == GLOBAL_CV_GLIDE)
-				{
-					//switch to Clock Divider pref
-					glide_pref = GLOBAL_PITCH_GLIDE;
-					Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-					normal_7seg_number = globalPitchGlide;
-				}
-			}
-		
-			else if (preference_num == TUNING_AND_LEARN)
-			{
-				if (tuningOrLearn == TUNING_SELECT)
-				{
-					if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
-					{
-						//switch to midilearn
-						tuningOrLearn = MIDILEARN_AND_LENGTH; //midilearn in this case
-						currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
-						Write7Seg(currentNumberToMIDILearn+200);
-						normal_7seg_number = currentNumberToMIDILearn+200;
-					}
-					else if (type_of_device_connected == NoDeviceConnected)
-					{
-						tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
-						Write7Seg(noDevicePatterns.patternLength);
-						normal_7seg_number = noDevicePatterns.patternLength;
-						LED_On(PRESET_SAVE_LED); //to give some indication
-					}
-				}
-				else if (tuningOrLearn == MIDILEARN_AND_LENGTH)
-				{
-					//switch to Clock Divider pref
-					tuningOrLearn = TUNING_SELECT;
-					Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
-					normal_7seg_number = globalTuning;
-					LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
-				}
-			}
-		}
+		sButtonPressed(&mm);
 	}
-
+	else
+	{
+		sButtonReleased(&mm);
+	}
 }
 
 
@@ -2198,6 +2076,53 @@ void updatePreset(void)
 
 void updatePreferences(void)
 {
+	switch(mm.state)
+	{
+		// Can never be in SubPreferenceX or SaveMode after pressing P button.
+		case DefaultMode: //PRESET_SELECT:
+		{
+			LED_Off(LEFT_POINT_LED);
+			LED_Off(RIGHT_POINT_LED);
+			LED_Off(PREFERENCES_LED);
+			Write7Seg(preset_num);
+			normal_7seg_number = preset_num;
+			break;
+		}
+		case PreferenceOne: //TUNING_AND_LEARN:
+		{
+			LED_Off(LEFT_POINT_LED);
+			LED_On(RIGHT_POINT_LED);
+			LED_On(PREFERENCES_LED);
+			Write7Seg(globalTuning);
+			normal_7seg_number = globalTuning;
+			break;
+			
+		}
+		case PreferenceTwo: //GLOBAL_GLIDE_PREFERENCES:
+		{
+			LED_On(LEFT_POINT_LED);
+			LED_Off(RIGHT_POINT_LED);
+			LED_On(PREFERENCES_LED);
+			Write7Seg(globalPitchGlide);
+			normal_7seg_number = globalPitchGlide;
+			break;
+		}
+		case PreferenceThree: //INTERNAL_CLOCK:
+		{
+			LED_On(LEFT_POINT_LED);
+			LED_On(RIGHT_POINT_LED);
+			LED_On(PREFERENCES_LED);
+			Write7Seg(clock_speed_displayed);
+			normal_7seg_number = clock_speed_displayed;
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+		
+		/*
 	switch(preference_num)
 	{
 		case PRESET_SELECT:
@@ -2235,11 +2160,12 @@ void updatePreferences(void)
 		default:
 		break;
 	}
+	*/
 }
 
 void updateSave(void)
 {
-	if (savingActive)
+	if (mm.state == SaveMode)
 	{
 		LED_On(PRESET_SAVE_LED);
 		//jump to the first available user preset slot if you are on the default factory presets
@@ -3096,3 +3022,210 @@ void mantaSliderReleaseAction(int whichSlider)
 	// finally saw that commercial btw haha. dad educated me
 }
 
+
+// new stuff
+void setDeviceType(tMantaMateState* s, ConnectedDeviceType type)
+{
+	s->device = type;
+}
+
+ConnectedDeviceType getDeviceType(tMantaMateState* s)
+{
+	return s->device;
+}
+
+static void updateState(tMantaMateState* s)
+{
+	s->state = states[s->P][s->S];
+}
+
+void pButtonPressed(tMantaMateState* s)
+{
+	s->pDown = true;
+	
+	s->P++;
+	
+	s->S = 0;
+	LED_Off(PRESET_SAVE_LED);
+	normal_7seg_number = preset_num;
+	Write7Seg(normal_7seg_number);
+	
+	if (s->P == NUM_PMENUS) s->P = 0;
+	
+	updateState(s);
+	
+	tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
+	LED_Off(PRESET_SAVE_LED); //turn this off, in case we were editing the nodevice length
+
+	updatePreferences();
+	
+	
+}
+
+void pButtonReleased(tMantaMateState* s)
+{
+	s->pDown = false;
+	
+	updateState(s);
+	
+	if (SevSegArpMode == 1)
+	{
+		SevSegArpMode = 0;
+		Write7Seg(normal_7seg_number);
+	}
+	
+	if (didSwitchDeviceMode == 1)
+	{
+		didSwitchDeviceMode = 0;
+		preference_num = 0;
+		
+		updatePreferences();
+		Write7Seg(normal_7seg_number);
+	}
+}
+
+void sButtonPressed(tMantaMateState* s)
+{
+	s->sDown = true;
+	
+	s->S++;
+	
+	if (s->S == NUM_SMENUS) s->S = 0;
+	
+	updateState(s);
+	
+	if (s->pDown)
+	{
+		if (MPE_mode == 0)
+		{
+			MPE_mode = 1;
+			updatePreset();
+		}
+		else
+		{
+			MPE_mode = 0;
+			updatePreset();
+		}
+		
+		didSwitchDeviceMode = 1;
+		//s->P = 0;
+		updatePreferences(); // need to change this
+		
+		Write7Seg(MPE_mode+200); // 200 so that it blanks the left digit
+	}
+	else
+	{
+		switch (s->state)
+		{
+			case SaveMode:
+			{
+				LED_On(PRESET_SAVE_LED);
+				//jump to the first available user preset slot if you are on the default factory presets
+				preset_to_save_num = preset_num;
+				
+				if (preset_to_save_num <= 10)
+				{
+					preset_to_save_num = 10;
+					Write7Seg(preset_to_save_num);
+					normal_7seg_number = preset_to_save_num;
+				}
+				break;
+			}
+			case DefaultMode:
+			{
+				if (type_of_device_connected == MantaConnected)
+				{
+					initiateStoringMantaPresetToExternalMemory();
+				}
+				else if ((type_of_device_connected == MIDIKeyboardConnected)||(type_of_device_connected == MIDIComputerConnected))
+				{
+					initiateStoringMidiPresetToExternalMemory();
+				}
+				else if (type_of_device_connected == NoDeviceConnected)
+				{
+					initiateStoringNoDevicePresetToExternalMemory();
+				}
+				
+				preset_num = preset_to_save_num;
+				Write7Seg(preset_num);
+				normal_7seg_number = preset_num;
+				break;
+			}
+			case PreferenceOne:/*clock_pref == CLOCK_DIVIDER*/
+			{
+				//switch to BPM pref
+				clock_pref = BPM;
+				Write7Seg(clock_speed_displayed);
+				normal_7seg_number = clock_speed_displayed;
+				break;
+			}
+			case SubPreferenceOne:
+			{
+				//switch to Clock Divider pref
+				clock_pref = CLOCK_DIVIDER;
+				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = 200 + tempoDivider;
+				break;
+			}
+			case PreferenceTwo: /*glide_pref == GLOBAL_PITCH_GLIDE*/
+			{
+				//switch to BPM pref
+				glide_pref = GLOBAL_CV_GLIDE;
+				if (globalCVGlide < 10)
+				{
+					Write7Seg(globalCVGlide+200);
+				}
+				else
+				{
+					Write7Seg(globalCVGlide);
+				}
+				normal_7seg_number = globalCVGlide;
+				break;
+			}
+			case SubPreferenceTwo: //(glide_pref == GLOBAL_CV_GLIDE)
+			{
+				//switch to Clock Divider pref
+				glide_pref = GLOBAL_PITCH_GLIDE;
+				Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = globalPitchGlide;
+				break;
+			}
+			case PreferenceThree: //(tuningOrLearn == TUNING_SELECT)
+			{
+				if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
+				{
+					//switch to midilearn
+					tuningOrLearn = MIDILEARN_AND_LENGTH; //midilearn in this case
+					currentNumberToMIDILearn = 0; //reset the MIDI learn counter number whenever you enter MIDI learn mode
+					Write7Seg(currentNumberToMIDILearn+200);
+					normal_7seg_number = currentNumberToMIDILearn+200;
+				}
+				else if (type_of_device_connected == NoDeviceConnected)
+				{
+					tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
+					Write7Seg(noDevicePatterns.patternLength);
+					normal_7seg_number = noDevicePatterns.patternLength;
+					LED_On(PRESET_SAVE_LED); //to give some indication
+				}
+				break;
+			}
+			case SubPreferenceThree: //(tuningOrLearn == MIDILEARN_AND_LENGTH)
+			{
+				//switch to Clock Divider pref
+				tuningOrLearn = TUNING_SELECT;
+				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
+				normal_7seg_number = globalTuning;
+				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
+				break;
+			}
+		}
+	}
+	
+}
+
+void sButtonReleased(tMantaMateState* s)
+{
+	s->sDown =  false;
+	
+	updateState(s);
+}

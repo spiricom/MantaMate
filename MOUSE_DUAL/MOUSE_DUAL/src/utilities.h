@@ -117,7 +117,7 @@ typedef enum MantaInstrument {
 
 typedef enum GlobalPreferences
 {
-	PRESET_SELECT,
+	PRESET_SELECT = 0,
 	TUNING_AND_LEARN,
 	GLOBAL_GLIDE_PREFERENCES,
 	INTERNAL_CLOCK,

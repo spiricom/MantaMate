@@ -2633,7 +2633,7 @@ void touchBottomLeftButton(void)
 			
 				Write7Seg(normal_7seg_number);
 				transpose_indication_active = 0;
-				if (!savingActive)
+				if (!(mm.state == SaveMode))
 				{
 					LED_Off(PRESET_SAVE_LED);
 				}
@@ -2691,7 +2691,7 @@ void releaseBottomLeftButton(void)
 		
 		Write7Seg(normal_7seg_number);
 		transpose_indication_active = 0;
-		if (!savingActive)
+		if (!(mm.state == SaveMode))
 		{
 			LED_Off(PRESET_SAVE_LED);
 		}
@@ -2747,7 +2747,7 @@ void touchBottomRightButton(void)
 			
 			Write7Seg(normal_7seg_number);
 			transpose_indication_active = 0;
-			if (!savingActive)
+			if (!(mm.state == SaveMode))
 			{
 				LED_Off(PRESET_SAVE_LED);
 			}
@@ -2786,7 +2786,7 @@ void touchBottomRightButton(void)
 			
 			Write7Seg(normal_7seg_number);
 			transpose_indication_active = 0;
-			if (!savingActive)
+			if (!(mm.state == SaveMode))
 			{
 				LED_Off(PRESET_SAVE_LED);
 			}
@@ -2812,7 +2812,7 @@ void releaseBottomRightButton(void)
 		
 		Write7Seg(normal_7seg_number);
 		transpose_indication_active = 0;
-		if (!savingActive)
+		if (!(mm.state == SaveMode))
 		{
 			LED_Off(PRESET_SAVE_LED);
 		}
