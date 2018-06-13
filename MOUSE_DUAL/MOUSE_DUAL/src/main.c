@@ -628,7 +628,7 @@ static void tc2_irq(void)
 				downHeld++;
 				if (downHeld > holdTimeThresh)
 				{
-					suspendRetrieve =DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+					suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
 					Preset_Switch_Check(0);
 				}
 				buttonFrameCounter = 0;
@@ -1497,7 +1497,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 	
 	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
 		
-		//if no device is plugged in and this is the first up/down button press, then you are just trying to start nodevice mode
+	//if no device is plugged in and this is the first up/down button press, then you are just trying to start nodevice mode
 	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
 	{
 		no_device_mode_active = TRUE;
@@ -1520,503 +1520,499 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		else //otherwise you are trying to set an arpeggiator mode or touch mode change to Manta or MIDI.
 		{
 			SevSegArpMode = 1;
-
+			
 			if(upSwitch())
 			{
-				MIDIKeyboard.playMode = ArpMode;
-				MIDIKeyboard.arpModeType++;
-				if (MIDIKeyboard.arpModeType >= 8)
+				if (MIDIKeyboard.playMode == TouchMode) 
 				{
-					MIDIKeyboard.arpModeType = 7;
+					MIDIKeyboard.playMode = ArpMode;
+				}
+				else if (MIDIKeyboard.arpModeType < 7) 
+				{
+					MIDIKeyboard.arpModeType++;
 				}
 				Write7Seg(MIDIKeyboard.arpModeType+1);
-			}
+			}				
+			
 			else if(downSwitch())
 			{
-
-				if (MIDIKeyboard.arpModeType > 0)
-				{
-					MIDIKeyboard.arpModeType--;
-					MIDIKeyboard.playMode = ArpMode;
-					Write7Seg(MIDIKeyboard.arpModeType+1);
-				}
-				else if (MIDIKeyboard.arpModeType == 0)
+				if (MIDIKeyboard.arpModeType == 0)
 				{
 					MIDIKeyboard.playMode = TouchMode;
 					Write7Seg(0);
+				}
+				else 
+				{
+					MIDIKeyboard.arpModeType--;
+					Write7Seg(MIDIKeyboard.arpModeType+1);
 				}
 			}
 		}
 	}
 
-	else
+	else if (displayState == HexmapSelect)
 	{
-	
-		if (displayState == HexmapSelect)
+		if (whichSwitch)
 		{
-			if (whichSwitch)
+			if (upSwitch())
 			{
-				if (upSwitch())
-				{
-					if (++currentHexmapSelect > 49) currentHexmapSelect = 0;
-				}
+				if (++currentHexmapSelect > 49) currentHexmapSelect = 0;
 			}
-			else
+		}
+		else
+		{
+			if (downSwitch())
 			{
-				if (downSwitch())
-				{
-					if (--currentHexmapSelect < 0) currentHexmapSelect = 49;
-				}
+				if (--currentHexmapSelect < 0) currentHexmapSelect = 49;
 			}
+		}
 			
-			Write7Seg(currentHexmapSelect);
-			normal_7seg_number = currentHexmapSelect;
-		}
-		else if (displayState == DirectSelect)
+		Write7Seg(currentHexmapSelect);
+		normal_7seg_number = currentHexmapSelect;
+	}
+	else if (displayState == DirectSelect)
+	{
+		if (whichSwitch)
 		{
-			if (whichSwitch)
+			if (upSwitch())
 			{
-				if (upSwitch())
-				{
-					if (++currentDirectSelect > 49) currentDirectSelect = 0;
-				}
+				if (++currentDirectSelect > 49) currentDirectSelect = 0;
 			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (--currentDirectSelect < 0) currentDirectSelect = 49;
-				}
-			}
-			Write7Seg(currentDirectSelect);
-			normal_7seg_number = currentDirectSelect;
 		}
-		else if (displayState == SequencerSelect)
+		else
 		{
-			if (whichSwitch)
+			if (downSwitch())
 			{
-				if (upSwitch())
-				{
-					if (++currentSequencerSelect > 99) currentSequencerSelect = 0;
-				}
+				if (--currentDirectSelect < 0) currentDirectSelect = 49;
 			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (--currentSequencerSelect < 0) currentSequencerSelect = 99;
-				}
-			}
-			Write7Seg(currentSequencerSelect);
-			normal_7seg_number = currentSequencerSelect;
 		}
-		else if (displayState == DirectOutputSelect)
+		Write7Seg(currentDirectSelect);
+		normal_7seg_number = currentDirectSelect;
+	}
+	else if (displayState == SequencerSelect)
+	{
+		if (whichSwitch)
 		{
-			if (whichSwitch)
+			if (upSwitch())
 			{
-				if (upSwitch())
-				{
-					if (++currentDirectEditOutput > (takeover ? 11 : 5)) currentDirectEditOutput = (takeover ? 11 : 5);
-				}
+				if (++currentSequencerSelect > 99) currentSequencerSelect = 0;
 			}
-			else
+		}
+		else
+		{
+			if (downSwitch())
 			{
-				if (downSwitch())
-				{
-					if (currentDirectEditOutput > 0) currentDirectEditOutput--;
-				}
+				if (--currentSequencerSelect < 0) currentSequencerSelect = 99;
 			}
+		}
+		Write7Seg(currentSequencerSelect);
+		normal_7seg_number = currentSequencerSelect;
+	}
+	else if (displayState == DirectOutputSelect)
+	{
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				if (++currentDirectEditOutput > (takeover ? 11 : 5)) currentDirectEditOutput = (takeover ? 11 : 5);
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (currentDirectEditOutput > 0) currentDirectEditOutput--;
+			}
+		}
 			
-			tDirect_setOutput(editDirect, currentDirectEditHex, currentDirectEditOutput);
+		tDirect_setOutput(editDirect, currentDirectEditHex, currentDirectEditOutput);
 			
-			setDirectLEDs();
+		setDirectLEDs();
 			
-			Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
-			normal_7seg_number = (currentDirectEditOutput+1);
-		}	
-		else if (displayState == HexmapPitchSelect)
+		Write7Seg((currentDirectEditOutput < 0) ? -1 : (currentDirectEditOutput+1));
+		normal_7seg_number = (currentDirectEditOutput+1);
+	}	
+	else if (displayState == HexmapPitchSelect)
+	{
+		if (whichSwitch)
 		{
-			if (whichSwitch)
+			if (upSwitch())
 			{
-				if (upSwitch())
-				{
-					if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
-				}
+				if (++currentHexmapEditPitch > 127) currentHexmapEditPitch = 0;
 			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (currentHexmapEditPitch >= 0) currentHexmapEditPitch--;
-				}
-			}
-		
-			tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
-		
-			dacSendKeyboard(hexmapEditInstrument);
-		
-			Write7Seg(currentHexmapEditPitch%100);
-			normal_7seg_number = currentHexmapEditPitch;
 		}
-		else if (displayState == TuningHexSelect)
+		else
 		{
-			if (whichSwitch)
+			if (downSwitch())
 			{
-				if (upSwitch())
-				{
-					currentMantaUITuning++;
-					if (currentMantaUITuning >= 99)
-					{
-						currentMantaUITuning = 99;
-					}
-				}
+				if (currentHexmapEditPitch >= 0) currentHexmapEditPitch--;
 			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (currentMantaUITuning <= 0)
-					{
-						currentMantaUITuning = 0;
-					}
-					else
-					{
-						currentMantaUITuning--;
-					}
-				}
-			}
-			mantaUITunings[currentTuningHex] = currentMantaUITuning;
-		
-			if (suspendRetrieve != DontRetrieve)
-			{
-				loadTuning(currentMantaUITuning);
-			}
-		
-			Write7Seg(currentMantaUITuning);
-			normal_7seg_number = currentMantaUITuning;
 		}
-		else if (mm.state == DefaultMode)
-		{	
-			Write7Seg(preset_num);
-			//if we are not in Save mode, then we are trying to instantaneously load a preset
-			if (whichSwitch)
+		
+		tKeyboard_assignNoteToHex(hexmapEditKeyboard, currentHexmapEditHex, currentHexmapEditPitch);
+		
+		dacSendKeyboard(hexmapEditInstrument);
+		
+		Write7Seg(currentHexmapEditPitch%100);
+		normal_7seg_number = currentHexmapEditPitch;
+	}
+	else if (displayState == TuningHexSelect)
+	{
+		if (whichSwitch)
+		{
+			if (upSwitch())
 			{
-				if (upSwitch())
+				currentMantaUITuning++;
+				if (currentMantaUITuning >= 99)
 				{
-					preset_num++;
+					currentMantaUITuning = 99;
+				}
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (currentMantaUITuning <= 0)
+				{
+					currentMantaUITuning = 0;
+				}
+				else
+				{
+					currentMantaUITuning--;
+				}
+			}
+		}
+		mantaUITunings[currentTuningHex] = currentMantaUITuning;
+		
+		if (suspendRetrieve != DontRetrieve)
+		{
+			loadTuning(currentMantaUITuning);
+		}
+		
+		Write7Seg(currentMantaUITuning);
+		normal_7seg_number = currentMantaUITuning;
+	}
+	else if (mm.state == DefaultMode)
+	{	
+		Write7Seg(preset_num);
+		//if we are not in Save mode, then we are trying to instantaneously load a preset
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				preset_num++;
 					
-					if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
-					{
-						preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
-					}
-					if (suspendRetrieve !=DontRetrieve)
-					{
-						initiateStoringStartupStateToExternalMemory();
-						updatePreset();
-					}
-					Write7Seg(preset_num);
-					normal_7seg_number = preset_num;
+				if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
+				{
+					preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
+				}
+				if (suspendRetrieve != DontRetrieve)
+				{
+					initiateStoringStartupStateToExternalMemory();
+					updatePreset();
+				}
+				Write7Seg(preset_num);
+				normal_7seg_number = preset_num;
+			}
+		}
+		else 
+		{
+			if (downSwitch())
+			{
+				if (preset_num <= 0)
+				{
+					preset_num = 0;
+				}
+				else
+				{
+					preset_num--;
+				}
+				if (suspendRetrieve != DontRetrieve)
+				{
+					initiateStoringStartupStateToExternalMemory();
+					updatePreset();
+				}
+				Write7Seg(preset_num);
+				normal_7seg_number = preset_num;
+			}
+		}
+		if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
+		{
+			initiateStoringStartupStateToExternalMemory();
+			updatePreset();
+			suspendRetrieve = RetrieveWhenever;
+		}
+	}
+	//otherwise we are currently navigating to save a preset into a slot
+	else if (mm.state == SaveMode)
+	{
+		Write7Seg(preset_num);
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				preset_to_save_num++;
+				if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
+				{
+					preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
 				}
 			}
-			else 
+		}
+		else
+		{
+			if (downSwitch())
 			{
-				if (downSwitch())
+				if (preset_to_save_num <= 10)
 				{
-					if (preset_num <= 0)
+					preset_to_save_num = 10;
+				}
+				else
+				{
+					preset_to_save_num--;
+				}
+			}
+		}
+		//should make it blink for extra clarity
+		Write7Seg(preset_to_save_num);
+		normal_7seg_number = preset_to_save_num;
+	}
+	else if (mm.state == PreferenceOne)
+	{
+		if (!tuningLoading)
+		{
+			if (whichSwitch)
+			{
+				if (upSwitch())
+				{
+					globalTuning++;
+					if (globalTuning >= 99)
 					{
-						preset_num = 0;
-					}
-					else
-					{
-						preset_num--;
+						globalTuning = 99;
 					}
 					if (suspendRetrieve != DontRetrieve)
 					{
-						initiateStoringStartupStateToExternalMemory();
-						updatePreset();
+						loadTuning(globalTuning);
 					}
-					Write7Seg(preset_num);
-					normal_7seg_number = preset_num;
+					Write7Seg(globalTuning);
+					normal_7seg_number = globalTuning;
+				}
+					
+			}
+			else
+			{
+				if (downSwitch())
+				{
+					if (globalTuning <= 0)
+					{
+						globalTuning = 0;
+					}
+					else
+					{
+						globalTuning--;
+					}
+					if (suspendRetrieve != DontRetrieve)
+					{
+						loadTuning(globalTuning);
+					}
+					Write7Seg(globalTuning);
+					normal_7seg_number = globalTuning;
 				}
 			}
-			if (suspendRetrieve == RetrieveNow) //this state happens if you have had a button held down and it's in "scan" mode, and then it has been released
+			if (suspendRetrieve == RetrieveNow)
 			{
-				initiateStoringStartupStateToExternalMemory();
-				updatePreset();
+				loadTuning(globalTuning);
 				suspendRetrieve = RetrieveWhenever;
 			}
 		}
-		//otherwise we are currently navigating to save a preset into a slot
-		else if (mm.state == SaveMode)
+	}
+	else if (mm.state == SubPreferenceOne) //otherwise it's MIDI LEARN mode or PATTERN LENGTH mode.  Ignore buttons in MIDI LEARN, in no device mode change length
+	{
+		if (type_of_device_connected == NoDeviceConnected)
 		{
-			Write7Seg(preset_num);
 			if (whichSwitch)
 			{
 				if (upSwitch())
 				{
-					preset_to_save_num++;
-					if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
+					if (noDevicePatterns.patternLength >= 32)
 					{
-						preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
+						noDevicePatterns.patternLength = 32;
 					}
+					else
+					{
+						noDevicePatterns.patternLength++;
+					}
+					Write7Seg(noDevicePatterns.patternLength);
+					normal_7seg_number = noDevicePatterns.patternLength;
 				}
 			}
 			else
 			{
 				if (downSwitch())
 				{
-					if (preset_to_save_num <= 10)
+					if (noDevicePatterns.patternLength <= 1)
 					{
-						preset_to_save_num = 10;
+						noDevicePatterns.patternLength = 1;
 					}
 					else
 					{
-						preset_to_save_num--;
+						noDevicePatterns.patternLength--;
 					}
+					Write7Seg(noDevicePatterns.patternLength);
+					normal_7seg_number = noDevicePatterns.patternLength;
 				}
 			}
-			//should make it blink for extra clarity
-			Write7Seg(preset_to_save_num);
-			normal_7seg_number = preset_to_save_num;
 		}
-		else if (mm.state == PreferenceOne)
+	}
+	else if (mm.state == PreferenceTwo)
+	{
+		if (whichSwitch)
 		{
-			if (!tuningLoading)
+			if (upSwitch())
 			{
-				if (whichSwitch)
+				globalPitchGlideDisplay++;
+				if (globalPitchGlideDisplay >= globalGlideMax)
 				{
-					if (upSwitch())
-					{
-						globalTuning++;
-						if (globalTuning >= 99)
-						{
-							globalTuning = 99;
-						}
-						if (suspendRetrieve != DontRetrieve)
-						{
-							loadTuning(globalTuning);
-						}
-						Write7Seg(globalTuning);
-						normal_7seg_number = globalTuning;
-					}
+					globalPitchGlideDisplay = globalGlideMax;
+				}
+				Write7Seg(globalPitchGlideDisplay);
+				normal_7seg_number = globalPitchGlideDisplay;
+				globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 					
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (globalPitchGlideDisplay <= 0)
+				{
+					globalPitchGlideDisplay = 0;
 				}
 				else
 				{
-					if (downSwitch())
-					{
-						if (globalTuning <= 0)
-						{
-							globalTuning = 0;
-						}
-						else
-						{
-							globalTuning--;
-						}
-						if (suspendRetrieve != DontRetrieve)
-						{
-							loadTuning(globalTuning);
-						}
-						Write7Seg(globalTuning);
-						normal_7seg_number = globalTuning;
-					}
+					globalPitchGlideDisplay--;
 				}
-				if (suspendRetrieve == RetrieveNow)
-				{
-					loadTuning(globalTuning);
-					suspendRetrieve = RetrieveWhenever;
-				}
+				Write7Seg(globalPitchGlideDisplay);
+				normal_7seg_number = globalPitchGlideDisplay;
+				globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
 			}
 		}
-		else if (mm.state == SubPreferenceOne) //otherwise it's MIDI LEARN mode or PATTERN LENGTH mode.  Ignore buttons in MIDI LEARN, in no device mode change length
+
+	}
+	else if (mm.state == SubPreferenceTwo)
+	{
+		if (whichSwitch)
 		{
-			if (type_of_device_connected == NoDeviceConnected)
+			if (upSwitch())
 			{
-				if (whichSwitch)
+				globalCVGlideDisplay++;
+				if (globalCVGlideDisplay >= globalGlideMax)
 				{
-					if (upSwitch())
-					{
-						if (noDevicePatterns.patternLength >= 32)
-						{
-							noDevicePatterns.patternLength = 32;
-						}
-						else
-						{
-							noDevicePatterns.patternLength++;
-						}
-						Write7Seg(noDevicePatterns.patternLength);
-						normal_7seg_number = noDevicePatterns.patternLength;
-					}
+					globalCVGlideDisplay = globalGlideMax;
+				}
+				if (globalCVGlideDisplay < 10)
+				{
+					Write7Seg(globalCVGlideDisplay+200);
+					normal_7seg_number = (globalCVGlideDisplay + 200);
 				}
 				else
 				{
-					if (downSwitch())
-					{
-						if (noDevicePatterns.patternLength <= 1)
-						{
-							noDevicePatterns.patternLength = 1;
-						}
-						else
-						{
-							noDevicePatterns.patternLength--;
-						}
-						Write7Seg(noDevicePatterns.patternLength);
-						normal_7seg_number = noDevicePatterns.patternLength;
-					}
+					Write7Seg(globalCVGlideDisplay);
+					normal_7seg_number = globalCVGlideDisplay;
+				}
+				globalCVGlide = glide_lookup[globalCVGlideDisplay];
+			}
+		}
+		else
+		{
+			if (downSwitch())
+			{
+				if (globalCVGlideDisplay <= 0)
+				{
+					globalCVGlideDisplay = 0;
+				}
+				else
+				{
+					globalCVGlideDisplay--;
+				}
+				if (globalCVGlideDisplay < 10)
+				{
+					Write7Seg(globalCVGlideDisplay+200);
+					normal_7seg_number = (globalCVGlideDisplay + 200);
+				}
+				else
+				{
+					Write7Seg(globalCVGlideDisplay);
+					normal_7seg_number = globalCVGlideDisplay;
+				}
+				globalCVGlide = glide_lookup[globalCVGlideDisplay];
+			}
+		}
+	}
+	else if (mm.state == PreferenceThree)
+	{
+		if (whichSwitch)
+		{
+			if (upSwitch())
+			{
+				clock_speed_displayed++;
+				if (clock_speed_displayed >= clock_speed_max)
+				{
+					clock_speed_displayed = clock_speed_max;
 				}
 			}
 		}
-		else if (mm.state == PreferenceTwo)
+		else
 		{
-			if (whichSwitch)
+			if (downSwitch())
 			{
-				if (upSwitch())
+				if (clock_speed_displayed <= 0)
 				{
-					globalPitchGlideDisplay++;
-					if (globalPitchGlideDisplay >= globalGlideMax)
-					{
-						globalPitchGlideDisplay = globalGlideMax;
-					}
-					Write7Seg(globalPitchGlideDisplay);
-					normal_7seg_number = globalPitchGlideDisplay;
-					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
-					
+					clock_speed_displayed = 0;
 				}
-			}
-			else
-			{
-				if (downSwitch())
+				else
 				{
-					if (globalPitchGlideDisplay <= 0)
-					{
-						globalPitchGlideDisplay = 0;
-					}
-					else
-					{
-						globalPitchGlideDisplay--;
-					}
-					Write7Seg(globalPitchGlideDisplay);
-					normal_7seg_number = globalPitchGlideDisplay;
-					globalPitchGlide = glide_lookup[globalPitchGlideDisplay];
-				}
-			}
-
-		}
-		else if (mm.state == SubPreferenceTwo)
-		{
-			if (whichSwitch)
-			{
-				if (upSwitch())
-				{
-					globalCVGlideDisplay++;
-					if (globalCVGlideDisplay >= globalGlideMax)
-					{
-						globalCVGlideDisplay = globalGlideMax;
-					}
-					if (globalCVGlideDisplay < 10)
-					{
-						Write7Seg(globalCVGlideDisplay+200);
-						normal_7seg_number = (globalCVGlideDisplay + 200);
-					}
-					else
-					{
-						Write7Seg(globalCVGlideDisplay);
-						normal_7seg_number = globalCVGlideDisplay;
-					}
-					globalCVGlide = glide_lookup[globalCVGlideDisplay];
-				}
-			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (globalCVGlideDisplay <= 0)
-					{
-						globalCVGlideDisplay = 0;
-					}
-					else
-					{
-						globalCVGlideDisplay--;
-					}
-					if (globalCVGlideDisplay < 10)
-					{
-						Write7Seg(globalCVGlideDisplay+200);
-						normal_7seg_number = (globalCVGlideDisplay + 200);
-					}
-					else
-					{
-						Write7Seg(globalCVGlideDisplay);
-						normal_7seg_number = globalCVGlideDisplay;
-					}
-					globalCVGlide = glide_lookup[globalCVGlideDisplay];
+					clock_speed_displayed--;
 				}
 			}
 		}
-		else if (mm.state == PreferenceThree)
-		{
-			if (whichSwitch)
-			{
-				if (upSwitch())
-				{
-					clock_speed_displayed++;
-					if (clock_speed_displayed >= clock_speed_max)
-					{
-						clock_speed_displayed = clock_speed_max;
-					}
-				}
-			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (clock_speed_displayed <= 0)
-					{
-						clock_speed_displayed = 0;
-					}
-					else
-					{
-						clock_speed_displayed--;
-					}
-				}
-			}
-			Write7Seg(clock_speed_displayed);
-			normal_7seg_number = clock_speed_displayed;
+		Write7Seg(clock_speed_displayed);
+		normal_7seg_number = clock_speed_displayed;
 			
-			updateTempo();
-		}
-		else if (mm.state == SubPreferenceThree)
+		updateTempo();
+	}
+	else if (mm.state == SubPreferenceThree)
+	{
+		if (whichSwitch)
 		{
-			if (whichSwitch)
+			if (upSwitch())
 			{
-				if (upSwitch())
+				tempoDivider++;
+				if (tempoDivider >= tempoDividerMax)
 				{
-					tempoDivider++;
-					if (tempoDivider >= tempoDividerMax)
-					{
-						tempoDivider = tempoDividerMax;
-					}
+					tempoDivider = tempoDividerMax;
 				}
 			}
-			else
-			{
-				if (downSwitch())
-				{
-					if (tempoDivider <= 0)
-					{
-						tempoDivider = 0;
-					}
-					else
-					{
-						tempoDivider--;
-					}
-				}
-			}
-			Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
-			normal_7seg_number = 200 + tempoDivider;
-			
-			updateTempo();
 		}
-
+		else
+		{
+			if (downSwitch())
+			{
+				if (tempoDivider <= 0)
+				{
+					tempoDivider = 0;
+				}
+				else
+				{
+					tempoDivider--;
+				}
+			}
+		}
+		Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps visually distinguish this mode
+		normal_7seg_number = 200 + tempoDivider;
+			
+		updateTempo();
 	}
 }
 
@@ -2103,8 +2099,8 @@ void updatePreferences(void)
 			LED_On(LEFT_POINT_LED);
 			LED_Off(RIGHT_POINT_LED);
 			LED_On(PREFERENCES_LED);
-			Write7Seg(globalPitchGlide);
-			normal_7seg_number = globalPitchGlide;
+			Write7Seg(globalPitchGlideDisplay);
+			normal_7seg_number = globalPitchGlideDisplay;
 			break;
 		}
 		case PreferenceThree: //INTERNAL_CLOCK:
@@ -2727,6 +2723,10 @@ void loadNoDevicePreset(void)
 {
 	//presets are handled internally by no_device_gate_in
 	clearDACoutputs();
+	if (preset_num > 18)
+	{
+		initiateLoadingNoDevicePresetFromExternalMemory();
+	}
 }
 
 void clearDACoutputs(void)
@@ -3043,12 +3043,16 @@ void pButtonPressed(tMantaMateState* s)
 {
 	s->pDown = true;
 	
-	s->P++;
-	
+	if (s->state != SaveMode)
+	{
+		s->P++;
+	}
+
 	s->S = 0;
 	LED_Off(PRESET_SAVE_LED);
+	
+	Write7Seg(preset_num);
 	normal_7seg_number = preset_num;
-	Write7Seg(normal_7seg_number);
 	
 	if (s->P == NUM_PMENUS) s->P = 0;
 	
@@ -3077,7 +3081,9 @@ void pButtonReleased(tMantaMateState* s)
 	if (didSwitchDeviceMode == 1)
 	{
 		didSwitchDeviceMode = 0;
-		preference_num = 0;
+		s->P = 0;
+		s->S = 0;
+		s->state = DefaultMode;
 		
 		updatePreferences();
 		Write7Seg(normal_7seg_number);
@@ -3123,9 +3129,9 @@ void sButtonPressed(tMantaMateState* s)
 				//jump to the first available user preset slot if you are on the default factory presets
 				preset_to_save_num = preset_num;
 				
-				if (preset_to_save_num <= 10)
+				if (preset_to_save_num <= ((type_of_device_connected == NoDeviceConnected) ? 19 : 10))
 				{
-					preset_to_save_num = 10;
+					preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 19 : 10);
 					Write7Seg(preset_to_save_num);
 					normal_7seg_number = preset_to_save_num;
 				}
@@ -3133,6 +3139,7 @@ void sButtonPressed(tMantaMateState* s)
 			}
 			case DefaultMode:
 			{
+				LED_Off(PRESET_SAVE_LED);
 				if (type_of_device_connected == MantaConnected)
 				{
 					initiateStoringMantaPresetToExternalMemory();
@@ -3151,47 +3158,18 @@ void sButtonPressed(tMantaMateState* s)
 				normal_7seg_number = preset_num;
 				break;
 			}
-			case PreferenceOne:/*clock_pref == CLOCK_DIVIDER*/
-			{
-				//switch to BPM pref
-				clock_pref = BPM;
-				Write7Seg(clock_speed_displayed);
-				normal_7seg_number = clock_speed_displayed;
-				break;
-			}
-			case SubPreferenceOne:
+			case PreferenceOne: //(tuningOrLearn == MIDILEARN_AND_LENGTH)
 			{
 				//switch to Clock Divider pref
-				clock_pref = CLOCK_DIVIDER;
-				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-				normal_7seg_number = 200 + tempoDivider;
+				tuningOrLearn = TUNING_SELECT;
+				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
+				normal_7seg_number = globalTuning;
+				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
 				break;
 			}
-			case PreferenceTwo: /*glide_pref == GLOBAL_PITCH_GLIDE*/
+			case SubPreferenceOne: //(tuningOrLearn == TUNING_SELECT)
 			{
-				//switch to BPM pref
-				glide_pref = GLOBAL_CV_GLIDE;
-				if (globalCVGlide < 10)
-				{
-					Write7Seg(globalCVGlide+200);
-				}
-				else
-				{
-					Write7Seg(globalCVGlide);
-				}
-				normal_7seg_number = globalCVGlide;
-				break;
-			}
-			case SubPreferenceTwo: //(glide_pref == GLOBAL_CV_GLIDE)
-			{
-				//switch to Clock Divider pref
-				glide_pref = GLOBAL_PITCH_GLIDE;
-				Write7Seg(globalPitchGlide); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
-				normal_7seg_number = globalPitchGlide;
-				break;
-			}
-			case PreferenceThree: //(tuningOrLearn == TUNING_SELECT)
-			{
+				LED_On(PRESET_SAVE_LED); //to give some indication
 				if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 				{
 					//switch to midilearn
@@ -3205,19 +3183,55 @@ void sButtonPressed(tMantaMateState* s)
 					tuningOrLearn = MIDILEARN_AND_LENGTH; //length in this case
 					Write7Seg(noDevicePatterns.patternLength);
 					normal_7seg_number = noDevicePatterns.patternLength;
-					LED_On(PRESET_SAVE_LED); //to give some indication
 				}
 				break;
 			}
-			case SubPreferenceThree: //(tuningOrLearn == MIDILEARN_AND_LENGTH)
+			case PreferenceTwo: //(glide_pref == GLOBAL_PITCH_GLIDE)
 			{
+				LED_Off(PRESET_SAVE_LED);
 				//switch to Clock Divider pref
-				tuningOrLearn = TUNING_SELECT;
-				Write7Seg(globalTuning); // writing values from 200-209 leaves the first digit blank, which helps distinguish this mode
-				normal_7seg_number = globalTuning;
-				LED_Off(PRESET_SAVE_LED); //in case it was turned on due to a nodevice length adjustment
+				glide_pref = GLOBAL_PITCH_GLIDE;
+				Write7Seg(globalPitchGlideDisplay); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = globalPitchGlideDisplay;
 				break;
 			}
+			case SubPreferenceTwo: /*glide_pref == GLOBAL_CV_GLIDE*/
+			{
+				LED_On(PRESET_SAVE_LED); //to give some indication
+				//switch to BPM pref
+				glide_pref = GLOBAL_CV_GLIDE;
+				if (globalCVGlideDisplay < 10)
+				{
+					Write7Seg(globalCVGlideDisplay+200);
+					normal_7seg_number = globalCVGlideDisplay;
+				}
+				else
+				{
+					Write7Seg(globalCVGlideDisplay);
+					normal_7seg_number = globalCVGlideDisplay;
+				}
+				
+				break;
+			}
+			case PreferenceThree:/*clock_pref == CLOCK_DIVIDER*/
+			{
+				LED_Off(PRESET_SAVE_LED);
+				//switch to BPM pref
+				clock_pref = BPM;
+				Write7Seg(clock_speed_displayed);
+				normal_7seg_number = clock_speed_displayed;
+				break;
+			}
+			case SubPreferenceThree:
+			{
+				LED_On(PRESET_SAVE_LED); //to give some indication
+				//switch to Clock Divider pref
+				clock_pref = CLOCK_DIVIDER;
+				Write7Seg(200 + tempoDivider); // writing values from 200-209 leaves the first digit blank, which helps distiguish this mode
+				normal_7seg_number = 200 + tempoDivider;
+				break;
+			}
+	
 		}
 	}
 	

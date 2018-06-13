@@ -46,6 +46,7 @@ void resetEditStack(void);
 typedef enum MantaMateState
 {
 	DefaultMode=0,
+	
 	PreferenceOne,
 	PreferenceTwo,
 	PreferenceThree,

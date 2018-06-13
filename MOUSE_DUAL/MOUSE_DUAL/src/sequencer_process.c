@@ -2743,6 +2743,8 @@ void touchBottomRightButton(void)
 			displayState = GlobalDisplayStateNil;
 			
 			shiftOption1 = FALSE;
+			mm.P;
+			mm.S;
 			
 			
 			Write7Seg(normal_7seg_number);
