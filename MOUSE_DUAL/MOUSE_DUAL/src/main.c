@@ -654,7 +654,7 @@ static void tc2_irq(void)
 		{
 			blink7SegCounter = 0;
 		
-			if (mm.state == SaveMode)
+			if (mm.state == SaveMode || (type_of_device_connected == NoDeviceConnected && !no_device_mode_active))
 			{
 				blank7Seg = !blank7Seg;
 				Write7Seg(number_for_7Seg);
