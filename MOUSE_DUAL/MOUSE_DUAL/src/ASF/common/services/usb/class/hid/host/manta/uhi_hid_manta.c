@@ -91,6 +91,8 @@ static uhi_hid_manta_dev_t uhi_hid_manta_dev = {
 	.report = NULL,
 };
 
+
+int8_t manta_input_report[64];
 //@}
 
 
@@ -220,7 +222,7 @@ uhc_enum_status_t uhi_hid_manta_install(uhc_device_t* dev)
 					uhi_hid_manta_dev.ep_in = ((usb_ep_desc_t*)ptr_iface)->bEndpointAddress;
 					uhi_hid_manta_dev.report_size =
 					le16_to_cpu(((usb_ep_desc_t*)ptr_iface)->wMaxPacketSize);
-					uhi_hid_manta_dev.report = malloc(uhi_hid_manta_dev.report_size);
+					uhi_hid_manta_dev.report = manta_input_report;
 					
 				}
 				else
@@ -257,7 +259,7 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	uhi_hid_manta_dev.report_btn_prev = 0;
 	freeze_LED_update = TRUE;
 	
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 16; j++)
 		{
@@ -269,6 +271,8 @@ void uhi_hid_manta_enable(uhc_device_t* dev)
 	UHI_HID_MANTA_CHANGE(dev, true);
 	get_manta_serial_number();
 	new_manta_attached = true;
+	//what if I do this? after change stuff
+
 }
 
 void uhi_hid_manta_uninstall(uhc_device_t* dev)
@@ -279,7 +283,7 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 		return; // Device not enabled in this interface
 
 	freeze_LED_update = TRUE;
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 16; j++)
 		{
@@ -288,10 +292,10 @@ void uhi_hid_manta_uninstall(uhc_device_t* dev)
 	}
 
 	uhi_hid_manta_dev.dev = NULL;
-	Assert(uhi_hid_manta_dev.report!=NULL);
-	free(uhi_hid_manta_dev.report);
+	//Assert(uhi_hid_manta_dev.report!=NULL);
+	//free(uhi_hid_manta_dev.report);
 
-	// Decode hexagon buttons
+	// Clear hexagon buttons
 	for(i=0; i<48; i++)
 	{
 		butt_states[i] = 0;
@@ -408,75 +412,79 @@ static void uhi_hid_manta_report_reception(
 	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 64)) {
 		return; // HID mouse transfer aborted
 	}
-	// Decode hexagon buttons
-	for(i=0; i<48; i++)
+
+	if (!new_manta_attached)
 	{
-		butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
-	}
-	//decode sliders
-	for(i=0; i<4; i++)
-		sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
-	//decode function buttons
-	for(i=0; i<4; i++)
-	{
-		func_button_states[i] = uhi_hid_manta_dev.report[i+49] + 0x80;
-	}
+		// Decode hexagon buttons
+		for(i=0; i<48; i++)
+		{
+			butt_states[i] = uhi_hid_manta_dev.report[i+1] + 0x80;	
+		}
+	
+		//decode sliders
+		for(i=0; i<4; i++)
+			sliders[i] = uhi_hid_manta_dev.report[i+53] + 0x80;
+		//decode function buttons
+		for(i=0; i<4; i++)
+		{
+			func_button_states[i] = uhi_hid_manta_dev.report[i+49] + 0x80;
+		}
 	
 
 	
-	if ((sliders[0] == 255) && (sliders[1] == 255))
-	{
-		slidersTouched[0] = FALSE;
-	}
-	else
-	{
-		slidersTouched[0] = TRUE;
-		if((sliders[0] != pastSliders[0]) || (sliders[1] != pastSliders[1]))
+		if ((sliders[0] == 255) && (sliders[1] == 255))
 		{
-			val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
-			processSliders(0, val);
+			slidersTouched[0] = FALSE;
 		}
-	}
+		else
+		{
+			slidersTouched[0] = TRUE;
+			if((sliders[0] != pastSliders[0]) || (sliders[1] != pastSliders[1]))
+			{
+				val = (sliders[0] + (sliders[1] << 8)) & 0xFFF;
+				processSliders(0, val);
+			}
+		}
 
 	
 	
-	if ((sliders[2] == 255) && (sliders[3] == 255))
-	{
-		slidersTouched[1] = FALSE;
-	}
-	else
-	{
-		slidersTouched[1] = TRUE;
-		if((sliders[2] != pastSliders[2])  || (sliders[3] != pastSliders[3]))
+		if ((sliders[2] == 255) && (sliders[3] == 255))
 		{
-			val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
-			processSliders(1, val);
+			slidersTouched[1] = FALSE;
 		}
-	}
+		else
+		{
+			slidersTouched[1] = TRUE;
+			if((sliders[2] != pastSliders[2])  || (sliders[3] != pastSliders[3]))
+			{
+				val = (sliders[2] + (sliders[3] << 8)) & 0xFFF;
+				processSliders(1, val);
+			}
+		}
 	
-	for (int i = 0; i < 4; i++)
-	{
-		pastSliders[i] = sliders[i];
-	}
-	for (int i = 0; i < 2; i++)
-	{
-		if (slidersTouched[i] != pastSlidersTouched[i])
+		for (int i = 0; i < 4; i++)
 		{
-			if (slidersTouched[i])
-			{
-				mantaSliderTouchAction(i);
-			}
-			else
-			{
-				mantaSliderReleaseAction(i);
-			}
+			pastSliders[i] = sliders[i];
 		}
+		for (int i = 0; i < 2; i++)
+		{
+			if (slidersTouched[i] != pastSlidersTouched[i])
+			{
+				if (slidersTouched[i])
+				{
+					mantaSliderTouchAction(i);
+				}
+				else
+				{
+					mantaSliderReleaseAction(i);
+				}
+			}
 		
-		pastSlidersTouched[i] = slidersTouched[i];
+			pastSlidersTouched[i] = slidersTouched[i];
+		}
+
+		processHexTouch();
 	}
-
-	processHexTouch();
-
 	uhi_hid_manta_start_trans_report(add);
 }
 
