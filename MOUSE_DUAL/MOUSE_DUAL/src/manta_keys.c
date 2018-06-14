@@ -252,12 +252,9 @@ void releaseLingeringKeyboardHex(int hex)
 	{
 		for (int i = 0; i < NUM_INST; i++)
 		{
-			if (manta[i].type == KeyboardInstrument)
-			{
-				tKeyboard_noteOff(&manta[i].keyboard, hex);
-				dacSendKeyboard(i);
-				//manta_set_LED_hex(hex, manta[i].keyboard.hexes[hex].color);
-			}
+			tKeyboard_noteOff(&manta[i].keyboard, hex);
+			dacSendKeyboard(i);
+			//manta_set_LED_hex(hex, manta[i].keyboard.hexes[hex].color);
 		}	
 	}
 	else if (takeoverType == KeyboardInstrument)
