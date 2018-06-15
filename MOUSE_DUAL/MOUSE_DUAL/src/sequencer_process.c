@@ -455,7 +455,10 @@ int lastKbdHex;
 
 void sequencerStep(MantaInstrument inst)
 {
+	int otherInst = 1 - inst;
+	
 	tSequencer* sequencer = &manta[inst].sequencer;
+	tSequencer* otherSequencer = &manta[otherInst].sequencer;
 	
 	if (takeover || (sequencer->playMode == TouchMode)) return;
 	
@@ -482,7 +485,19 @@ void sequencerStep(MantaInstrument inst)
 			}
 			else // TriggerMode
 			{
+				
 				dacSendTriggerMode(inst, sequencer->currentStep);
+				if (edit_vs_play == PlayToggleMode && (isShowingInstrument(inst) || 
+													  (isShowingInstrument(otherInst) && (otherSequencer->pitchOrTrigger == TriggerMode))))
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						int isRest = !sequencer->step[sequencer->currentStep].on[i];
+						int trigHex = MAX_STEPS + i + (inst*12);
+						if (!isRest) manta_set_LED_hex(trigHex, firstEdition ? Off : Red);
+						else manta_set_LED_hex(trigHex, Amber);
+					}
+				}
 			}
 		}
 		sequencer->lengthCounter = 0;
@@ -1343,8 +1358,8 @@ void touchLowerHex(uint8_t hexagon)
 		MantaInstrument instrumentToSet = currentInstrument;
 		if (full_vs_split == SplitMode)
 		{
-			if (hexagon < 16)	setCurrentInstrument(InstrumentOne);
-			else				setCurrentInstrument(InstrumentTwo);
+			if (hexagon < 16)	setCurrentInstrument(InstrumentTwo);
+			else				setCurrentInstrument(InstrumentOne);
 			
 			for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
 			if ((manta[InstrumentOne].type == SequencerInstrument) && 
@@ -1600,7 +1615,7 @@ void releaseUpperHex(uint8_t hexagon)
 	else // TriggerMode
 	{
 		int whichUpperHex = currentUpperHexUI - MAX_STEPS;
-		MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentTwo : InstrumentOne;
+		MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
 
 		if (manta[whichInst].type != SequencerInstrument) return;
 		
@@ -1684,6 +1699,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	currentUpperHexUI = hexagon;
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
+	tSequencer* otherSequencer = &manta[1-currentInstrument].sequencer;
 	tKeyboard* keyboard = takeover ? &fullKeyboard : &manta[currentInstrument].keyboard;
 	tDirect* direct = takeover ? &fullDirect :&manta[currentInstrument].direct;
 	
@@ -1865,6 +1881,21 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionFullSplit)
 	{
 		full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
+		/*
+		if (full_vs_split == SplitMode) 
+		{
+			sequencer->phasor = 0;
+			otherSequencer->phasor = 0;
+			tSequencer_toggleStep(sequencer, );
+		}
+		else 
+		{
+			sequencer->phasor = 0;
+			otherSequencer->phasor = 0;
+			tSequencer_setMaxLength(sequencer, MAX_STEPS);
+			tSequencer_setMaxLength(otherSequencer, MAX_STEPS);
+		}	
+		*/
 	}
 	else if (!takeover && whichOptionType == OptionLeft)
 	{
@@ -2101,7 +2132,7 @@ void touchUpperHex(uint8_t hexagon)
 		else // TriggerMode
 		{
 			int whichUpperHex = currentUpperHexUI - MAX_STEPS;
-			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentTwo : InstrumentOne;
+			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
 
 			if (manta[whichInst].type != SequencerInstrument || (manta[whichInst].sequencer.pitchOrTrigger != TriggerMode)) return;
 			
@@ -2127,7 +2158,7 @@ void touchUpperHex(uint8_t hexagon)
 			}
 			else
 			{
-				sequencer->mute[whichMute] = (sequencer->mute[whichMute] ? FALSE : TRUE);
+				sequencer->mute[whichMute] = !sequencer->mute[whichMute];
 				
 				if (sequencer->mute[whichMute])
 				{
@@ -2141,7 +2172,7 @@ void touchUpperHex(uint8_t hexagon)
 				}
 			}
 		
-			if (whichInst != currentInstrument)
+			if ((whichInst != currentInstrument) && (full_vs_split == SplitMode))
 			{
 				setCurrentInstrument(whichInst);
 				
@@ -2155,27 +2186,25 @@ void touchUpperHex(uint8_t hexagon)
 			int uiOffset = MAX_STEPS;
 			
 			if (whichInst == InstrumentTwo) uiOffset += 12;
-			
-			if (edit_vs_play == EditMode)
+	
+			if (whichTrigPanel != SXTrigPanelNil)
 			{
-				if (whichTrigPanel != SXTrigPanelNil)
-				{
-					int step = hexUIToStep(tNoteStack_first(&editStack));
+				int step = hexUIToStep(tNoteStack_first(&editStack));
 					
-					if (!getParameterFromStep(currentInstrument, step, On1 + whichPanel))
-					{
-						setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 1);
+				if (!getParameterFromStep(currentInstrument, step, On1 + whichPanel))
+				{
+					setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 1);
 						
-						manta_set_LED_hex(whichPanel + uiOffset, Red);
-					}
-					else
-					{
-						setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 0);
-						
-						manta_set_LED_hex(whichPanel + uiOffset, Amber);
-					}
+					manta_set_LED_hex(whichPanel + uiOffset, Red);
 				}
-			}	
+				else
+				{
+					setParameterForEditStackSteps(currentInstrument, On1 + whichPanel, 0);
+						
+					manta_set_LED_hex(whichPanel + uiOffset, Amber);
+				}
+			}
+			
 		}
 			
 	}
@@ -2202,8 +2231,7 @@ void setSequencerLEDs(void)
 		
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
 		
-		if ((full_vs_split == SplitMode) &&
-			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && 
+		if ((manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && 
 			(manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
 		{
 			setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
@@ -3074,7 +3102,7 @@ void uiStep(MantaInstrument inst)
 	}
 }
 
-void setPanelSelectLEDs(void)
+void setPanelSelectLEDs(void) // not being used
 {
 	manta_set_LED_hex(currentPanel[InstrumentOne] + MAX_STEPS, Red);
 	manta_set_LED_hex(currentPanel[InstrumentTwo] + MAX_STEPS + 12, Red);	
@@ -3915,7 +3943,7 @@ uint8_t stepToHexUI(MantaInstrument inst, int step)
 			step = 15;
 		}
 		
-		if (inst == InstrumentTwo)
+		if (inst == InstrumentOne)
 		{
 			step += 16;
 		}

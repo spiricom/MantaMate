@@ -16,6 +16,7 @@
 #define NUM_GLOBAL_OPTIONS 4
 #define NUM_PANEL_MOVES 2
 #define MAX_STEPS 32
+#define SPLIT_MAX_STEPS 16
 
 typedef enum MantaLEDColor
 {
