@@ -870,33 +870,66 @@ void clearSequencer(MantaInstrument inst)
 
 int first, last;
 
-void setHexmapLEDs(void)
+void setLowerOptionHexLEDs(void)
 {
-	
-}
+	freeze_LED_update = 1;
 
-void setHexmapConfigureLEDs(void)
-{
 	if (!takeover)
 	{
-		for (int inst = 0; inst < 2; inst++)
+		for (int inst = 0 ; inst < 2; inst++)
 		{
-			if (manta[inst].type == KeyboardInstrument)
+			int instOffset = 16*(1 - inst);
+			if (manta[inst].type == SequencerInstrument)
 			{
-				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst + i, Off);
-				manta_set_LED_hex(16*inst + 8, (firstEdition ? Amber : Red)); // SAVE
-				manta_set_LED_hex(16*inst + 9, (firstEdition ? Amber : Red)); // LOAD
-				manta_set_LED_hex(16*inst + 11, (firstEdition ? Amber : Red)); // EDIT
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(i+instOffset,Off);
 				
-				manta_set_LED_hex(16*inst + 0, Amber); // Default
-				manta_set_LED_hex(16*inst + 1, Amber); // Piano
-				manta_set_LED_hex(16*inst + 2, Amber); // Harmonic
-				manta_set_LED_hex(16*inst + 3, Amber); // Wicki
-				manta_set_LED_hex(16*inst + 4, Amber); // Isomorphic
-				manta_set_LED_hex(16*inst + 5, Amber); // Free
-				manta_set_LED_hex(16*inst + 7, (firstEdition ? Amber : Red)); // BLANK
+				for (int comp = 0; comp < NUM_COMP; comp++)
+				{
+					if (compositionMap[inst][comp])
+					{
+						if		(shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(instOffset + comp, (currentComp[inst] == comp) ? Red : Amber);
+						else if (shiftOption1SubShift == SubShiftTopRight)	manta_set_LED_hex(instOffset + comp, Red);
+					}
+				}
+				
+				manta_set_LED_hex(13 + instOffset, Amber); // Deviate
+				manta_set_LED_hex(14 + instOffset, Amber); // Random
+				manta_set_LED_hex(15 + instOffset, firstEdition ? Amber : Red); // Blank
 			}
+			else if (manta[inst].type == KeyboardInstrument)
+			{
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(instOffset + i, Off);
+				
+				manta_set_LED_hex(instOffset + 8, (firstEdition ? Amber : Red)); // SAVE
+				manta_set_LED_hex(instOffset + 9, (firstEdition ? Amber : Red)); // LOAD
+				manta_set_LED_hex(instOffset + 11, (firstEdition ? Amber : Red)); // EDIT
+				
+				manta_set_LED_hex(instOffset + 0, Amber); // Default
+				manta_set_LED_hex(instOffset + 1, Amber); // Piano
+				manta_set_LED_hex(instOffset + 2, Amber); // Harmonic
+				manta_set_LED_hex(instOffset + 3, Amber); // Wicki
+				manta_set_LED_hex(instOffset + 4, Amber); // Isomorphic
+				manta_set_LED_hex(instOffset + 5, Amber); // Free
+				manta_set_LED_hex(instOffset + 7, (firstEdition ? Amber : Red)); // BLANK
+			}
+			else if (manta[inst].type == DirectInstrument)
+			{
+				for (int i = 0; i < 16; i++) manta_set_LED_hex(instOffset + i,Off);
+
+				manta_set_LED_hex(instOffset + 8, (firstEdition ? Amber : Red)); // SAVE maybe do this for direct too?
+				manta_set_LED_hex(instOffset + 9, (firstEdition ? Amber : Red)); // LOAD maybe do this for direct too?
+				manta_set_LED_hex(instOffset + 11, (firstEdition ? Amber : Red)); // EDIT
+				
+				manta_set_LED_hex(instOffset + 0, Amber); // Default
+				manta_set_LED_hex(instOffset + 1, Amber); // All Triggers
+				manta_set_LED_hex(instOffset + 2, Amber); // All Gates
+				manta_set_LED_hex(instOffset + 3, Amber); // All CVs
+				manta_set_LED_hex(instOffset + 4, Amber); // Trigger/CV
+				manta_set_LED_hex(instOffset + 7, (firstEdition ? Amber : Red)); // BLANK
+			}
+			
 		}
+
 	}
 	else if (takeoverType == KeyboardInstrument)
 	{
@@ -914,40 +947,21 @@ void setHexmapConfigureLEDs(void)
 		manta_set_LED_hex(5, Amber); // Free
 		manta_set_LED_hex(7, (firstEdition ? Amber : Red)); // BLANK
 	}
-	
-	
-}
-
-void setCompositionLEDs(void)
-{
-	freeze_LED_update = 1;
-
-	if (!takeover)
+	else if (takeoverType == DirectInstrument)
 	{
-		for (int inst = 0 ; inst < 2; inst++)
-		{
-			if (manta[inst].type == SequencerInstrument)
-			{
-				for (int i = 0; i < 16; i++) manta_set_LED_hex(i+16*inst,Off);
-				
-				for (int comp = 0; comp < NUM_COMP; comp++)
-				{
-					if (compositionMap[inst][comp])
-					{
-						if		(shiftOption1SubShift == SubShiftNil)		manta_set_LED_hex(inst * 16 + comp, (currentComp[inst] == comp) ? Red : Amber);
-						else if (shiftOption1SubShift == SubShiftTopRight)	manta_set_LED_hex(inst * 16 + comp, Red);
-					}
-				}
-				
-				manta_set_LED_hex(13 + 16*inst, Amber); // Deviate
-				manta_set_LED_hex(14 + 16*inst, Amber); // Random
-				manta_set_LED_hex(15 + 16*inst, firstEdition ? Amber : Red); // Blank
-			}
-			
-		}
-
+		for (int i = 0; i < 32; i++) manta_set_LED_hex(i,Off);
+		
+		manta_set_LED_hex(8, (firstEdition ? Amber : Red)); // SAVE maybe do this for direct too?
+		manta_set_LED_hex(9, (firstEdition ? Amber : Red)); // LOAD maybe do this for direct too?
+		manta_set_LED_hex(11, (firstEdition ? Amber : Red)); // EDIT
+		
+		manta_set_LED_hex(0, Amber); // Default
+		manta_set_LED_hex(1, Amber); // All Triggers
+		manta_set_LED_hex(2, Amber); // All Gates
+		manta_set_LED_hex(3, Amber); // All CVs
+		manta_set_LED_hex(4, Amber); // Trigger/CV
+		manta_set_LED_hex(7, (firstEdition ? Amber : Red)); // BLANK
 	}
-	
 	roll_LEDs = 1;
 	freeze_LED_update = 0;
 }
@@ -956,7 +970,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 {
 	if (shiftOption1)
 	{
-		MantaInstrument whichInst = (hexagon < 16) ? InstrumentOne : InstrumentTwo;
+		MantaInstrument whichInst = (hexagon < 16) ? InstrumentTwo : InstrumentOne;
 		MantaInstrumentType type = manta[whichInst].type;
 		int whichHex = (hexagon < 16) ? hexagon : (hexagon - 16);
 		
@@ -1145,7 +1159,7 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 					tSequencer_encode(sequencer, encodeBuffer[whichInst]);
 					memoryInternalWriteSequencer(whichInst, whichHex,encodeBuffer[whichInst]);
 					
-					setCompositionLEDs();
+					setLowerOptionHexLEDs();
 				}
 				else if (shiftOption1SubShift == SubShiftTopLeft) //CompositionCopy
 				{
@@ -1212,7 +1226,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 {
     if (shiftOption1)
     {
-		MantaInstrument whichInst = takeover ? InstrumentNil : ((hexagon < 16) ? InstrumentOne : InstrumentTwo);
+		MantaInstrument whichInst = takeover ? InstrumentNil : ((hexagon < 16) ? InstrumentTwo : InstrumentOne);
 		MantaInstrumentType type = takeover ? takeoverType : manta[whichInst].type;
 		int whichHex = (takeover || (hexagon < 16)) ? hexagon : (hexagon - 16);
 		
@@ -1280,10 +1294,7 @@ void releaseLowerHexOptionMode(uint8_t hexagon)
 				}
 			}
 		}
-		
-        setCompositionLEDs();
-		setHexmapConfigureLEDs();
-		setDirectOptionLEDs();
+		setLowerOptionHexLEDs();
     }
     else if (shiftOption2)
     {
@@ -1465,7 +1476,7 @@ void touchLowerHex(uint8_t hexagon)
 		}
 		else
 		{
-			setOptionLEDs();
+			setUpperOptionHexLEDs();
 		}
 		
 		if (editStack.size > 1)
@@ -1589,7 +1600,7 @@ void releaseUpperHex(uint8_t hexagon)
 	else // TriggerMode
 	{
 		int whichUpperHex = currentUpperHexUI - MAX_STEPS;
-		MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
+		MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentTwo : InstrumentOne;
 
 		if (manta[whichInst].type != SequencerInstrument) return;
 		
@@ -1951,13 +1962,11 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 		}
 	}
 	
-	setOptionLEDs();
+	setUpperOptionHexLEDs();
 	
 	if (shiftOption1)
 	{
-		setDirectOptionLEDs();
-		setCompositionLEDs();
-		setHexmapConfigureLEDs();
+		setLowerOptionHexLEDs();
 	}
 	else 
 	{
@@ -2092,7 +2101,7 @@ void touchUpperHex(uint8_t hexagon)
 		else // TriggerMode
 		{
 			int whichUpperHex = currentUpperHexUI - MAX_STEPS;
-			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentOne : InstrumentTwo;
+			MantaInstrument whichInst = ((whichUpperHex < 4) || (whichUpperHex >= 8 && whichUpperHex < 12)) ? InstrumentTwo : InstrumentOne;
 
 			if (manta[whichInst].type != SequencerInstrument || (manta[whichInst].sequencer.pitchOrTrigger != TriggerMode)) return;
 			
@@ -2323,51 +2332,6 @@ void setDirectLEDs(void)
 	
 }
 
-void setDirectOptionLEDs(void)
-{
-	freeze_LED_update = 1;
-	if (!takeover)
-	{
-		for (int inst = 0; inst < 2; inst++)
-		{
-			if (manta[inst].type == DirectInstrument)
-			{
-				for (int i = 0; i < 16; i++) manta_set_LED_hex(16*inst+i,Off);
-
-				manta_set_LED_hex(16*inst + 8, (firstEdition ? Amber : Red)); // SAVE maybe do this for direct too?
-				manta_set_LED_hex(16*inst + 9, (firstEdition ? Amber : Red)); // LOAD maybe do this for direct too?
-				manta_set_LED_hex(16*inst + 11, (firstEdition ? Amber : Red)); // EDIT
-				
-				manta_set_LED_hex(16*inst + 0, Amber); // Default
-				manta_set_LED_hex(16*inst + 1, Amber); // All Triggers
-				manta_set_LED_hex(16*inst + 2, Amber); // All Gates
-				manta_set_LED_hex(16*inst + 3, Amber); // All CVs
-				manta_set_LED_hex(16*inst + 4, Amber); // Trigger/CV
-				manta_set_LED_hex(16*inst + 7, (firstEdition ? Amber : Red)); // BLANK
-			}
-			
-		}
-	}
-	else if (takeoverType == DirectInstrument)
-	{
-		for (int i = 0; i < 32; i++) manta_set_LED_hex(i,Off);
-		
-		manta_set_LED_hex(8, (firstEdition ? Amber : Red)); // SAVE maybe do this for direct too?
-		manta_set_LED_hex(9, (firstEdition ? Amber : Red)); // LOAD maybe do this for direct too?
-		manta_set_LED_hex(11, (firstEdition ? Amber : Red)); // EDIT
-		
-		manta_set_LED_hex(0, Amber); // Default
-		manta_set_LED_hex(1, Amber); // All Triggers
-		manta_set_LED_hex(2, Amber); // All Gates
-		manta_set_LED_hex(3, Amber); // All CVs
-		manta_set_LED_hex(4, Amber); // Trigger/CV
-		manta_set_LED_hex(7, (firstEdition ? Amber : Red)); // BLANK
-	}
-	
-	roll_LEDs = 1;
-	freeze_LED_update = 0;
-}
-
 static void togglePitchSliderMode()
 {
 	if (currentMantaSliderMode == SliderModeOne)
@@ -2594,7 +2558,7 @@ void releaseTopRightButton(void)
 		copyWhichInst = InstrumentNil;
 		copyWhichComp = -1;
 		
-		if (shiftOption1)	setCompositionLEDs();
+		if (shiftOption1)	setLowerOptionHexLEDs();
 		else				setSequencerLEDs();
 	}
 }
@@ -2609,9 +2573,7 @@ void touchBottomLeftButton(void)
 		Write7Seg(preset_num);
 		displayState = GlobalDisplayStateNil;
 		
-		setHexmapConfigureLEDs();
-		setCompositionLEDs();
-		setDirectOptionLEDs();
+		setLowerOptionHexLEDs();
 	}
 	else
 	{
@@ -2657,22 +2619,9 @@ void touchBottomLeftButton(void)
 			
 			shiftOption1 = TRUE;
 		
-			setOptionLEDs();
+			setUpperOptionHexLEDs();
 		
-			if (!takeover)
-			{
-				setCompositionLEDs();
-				setHexmapConfigureLEDs();
-				setDirectOptionLEDs();
-			}
-			else if (takeoverType == KeyboardInstrument)
-			{
-				setHexmapConfigureLEDs();
-			}
-			else if (takeoverType == DirectInstrument)
-			{
-				setDirectOptionLEDs();
-			}
+			setLowerOptionHexLEDs();
 
 			manta_set_LED_button(ButtonBottomLeft, Amber);
 		}
@@ -2771,7 +2720,7 @@ void touchBottomRightButton(void)
 			
 			displayState = UpDownSwitchBlock;
 			
-			setOptionLEDs();
+			setUpperOptionHexLEDs();
 			
 			setTuningLEDs();
 			
@@ -2804,7 +2753,7 @@ void releaseBottomRightButton(void)
 {	
 	if (shiftOption1)	
 	{
-		setCompositionLEDs();
+		setLowerOptionHexLEDs();
 	}	
 	else if (!shiftOption2Lock)
 	{	
@@ -3395,7 +3344,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	freeze_LED_update = 0;
 }
 
-void setOptionLEDs(void)
+void setUpperOptionHexLEDs(void)
 {
 	freeze_LED_update = 1;
 	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;

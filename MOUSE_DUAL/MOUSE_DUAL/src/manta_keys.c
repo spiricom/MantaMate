@@ -422,18 +422,19 @@ void dacSendKeyboard(MantaInstrument which)
 	if (keyboard->playMode == ArpMode)
 	{
 		int newNote = keyboard->currentNote;
-		if (newNote >= 0)
+		
+		
+		if (keyboard->stack.size <= 0) 
+		{
+			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
+		}
+		else if (newNote >= 0)
 		{
 			tIRampSetTime(&out[which][CVKPITCH+3*keyboard->currentVoice], globalPitchGlide);
 			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
 			tIRampSetTime(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
 			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
 			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
-		}
-		
-		if (keyboard->stack.size <= 0) 
-		{
-			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
 		}
 	}
 	else

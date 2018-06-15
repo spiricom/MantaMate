@@ -921,8 +921,8 @@ void continueLoadingDirectFromExternalMemory(void)
 		{
 			takeoverType = DirectInstrument;
 			
-			setOptionLEDs();
-			setDirectOptionLEDs();
+			setUpperOptionHexLEDs();
+			setLowerOptionHexLEDs();
 		}
 		
 	}
@@ -1024,7 +1024,7 @@ void continueLoadingSequencerFromExternalMemory(void)
 		
 		setCurrentInstrument(whichCompositionInstrument);
 		
-		setOptionLEDs();
-		setCompositionLEDs();
+		setUpperOptionHexLEDs();
+		setLowerOptionHexLEDs();
 	}
 }

@@ -270,11 +270,8 @@ void setDirectLEDs			(void);
 void setPanelSelectLEDs		(void);
 void setSliderLEDsFor		(MantaInstrument, int note);
 void setKeyboardLEDsFor		(MantaInstrument, int note);
-void setOptionLEDs			(void);
-void setCompositionLEDs     (void);
-void setHexmapLEDs			(void);
-void setHexmapConfigureLEDs	(void);
-void setDirectOptionLEDs	(void);
+void setUpperOptionHexLEDs			(void);
+void setLowerOptionHexLEDs	(void);
 void setSequencerLEDsFor	(MantaInstrument);
 
 void setTriggerPanelLEDsFor	(MantaInstrument, TriggerPanel panel);
