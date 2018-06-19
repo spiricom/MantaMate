@@ -454,7 +454,7 @@ BOOL isShowingInstrument(MantaInstrument inst)
 int lastKbdHex;
 
 void sequencerStep(MantaInstrument inst)
-{
+{	
 	int otherInst = 1 - inst;
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
@@ -1881,21 +1881,17 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionFullSplit)
 	{
 		full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
-		/*
+		
 		if (full_vs_split == SplitMode) 
 		{
-			sequencer->phasor = 0;
-			otherSequencer->phasor = 0;
-			tSequencer_toggleStep(sequencer, );
+			for (int i = MAX_STEPS; i >= SPLIT_MAX_STEPS; i--)
+			{
+				tNoteStack_remove(&sequencer->notestack,i);
+				tNoteStack_remove(&otherSequencer->notestack,i);
+				sequencer->step[i].toggled = 0;
+				otherSequencer->step[i].toggled = 0;
+			}
 		}
-		else 
-		{
-			sequencer->phasor = 0;
-			otherSequencer->phasor = 0;
-			tSequencer_setMaxLength(sequencer, MAX_STEPS);
-			tSequencer_setMaxLength(otherSequencer, MAX_STEPS);
-		}	
-		*/
 	}
 	else if (!takeover && whichOptionType == OptionLeft)
 	{

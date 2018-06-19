@@ -53,7 +53,9 @@
 #define _SKRHABE010_H_
 
 /**
- * \defgroup group_avr32_components_joystick_skrhabe010 Joystick interface (5-way)
+ * \defgroup group_avr32
+ 
+ onents_joystick_skrhabe010 Joystick interface (5-way)
  *
  * A 5-way joystick (left, right, up, down, press) interface using 5 GPIOs.
  *

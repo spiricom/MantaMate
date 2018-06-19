@@ -635,7 +635,8 @@ usb_iface_desc_t UDC_DESC_STORAGE *udc_get_interface_desc(void);
  * -# Reduce power consumption in suspend mode (max. 2.5mA on Vbus):
  *   - \code void user_callback_suspend_action(void)
 	{
-	turn_off_components();
+	turn_off
+	onents();
 	} \endcode
  */
 

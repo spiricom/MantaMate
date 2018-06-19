@@ -670,12 +670,12 @@ void tMIDIKeyboard_noteOn(tMIDIKeyboard* keyboard, int note, uint8_t vel, uint8_
 					keyboard->voices[i][0] = note;
 					keyboard->voices[i][1] = vel;
 					keyboard->voices[i][2] = channel;
-					keyboard->notes[note][0] = vel;
-					keyboard->notes[note][1] = FALSE;
-					keyboard->notes[note][2] = -1;
 					break;
 				}
 			}
+			keyboard->notes[note][0] = vel;
+			keyboard->notes[note][1] = FALSE;
+			keyboard->notes[note][2] = -1;
 		}
 	}
 }

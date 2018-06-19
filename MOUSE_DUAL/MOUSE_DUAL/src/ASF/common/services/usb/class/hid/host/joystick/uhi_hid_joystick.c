@@ -264,9 +264,9 @@ static void get_report_descriptor()
 		
 		hid_report_parser.reportDesc_size = uhi_hid_joy_dev.DescSize[i];
 		
-		if (hid_report_parser.reportDesc != NULL)
-			hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_joy_dev.DescSize[i]);
-		else hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_joy_dev.DescSize[i]);
+		//if (hid_report_parser.reportDesc != NULL)
+		//	hid_report_parser.reportDesc = (uint8_t *) realloc(hid_report_parser.reportDesc, uhi_hid_joy_dev.DescSize[i]);
+		hid_report_parser.reportDesc = (uint8_t *) malloc(uhi_hid_joy_dev.DescSize[i]);
 
 		// After a USB reset, the reallocation is required
 		if (!uhd_setup_request(1, &req, (uint8_t *) hid_report_parser.reportDesc, 
@@ -617,10 +617,9 @@ void uhi_hid_joy_enable(uhc_device_t* dev)
 	uhi_hid_joy_start_trans_report(dev->address);
 	type_of_device_connected = JoystickConnected;
 	
-	clearDACoutputs();
-	
 	UHI_HID_JOY_CHANGE(dev, true);
 	updatePreset();
+	clearDACoutputs();
 }
 
 
@@ -785,7 +784,7 @@ static void uhi_hid_joy_report_reception(
 		return; // HID mouse transfer restart
 	}
 
-	if ((status != UHD_TRANS_NOERROR) || (nb_transfered < 4)) {
+	if (status != UHD_TRANS_NOERROR) {
 		return; // HID mouse transfer aborted
 	}
 	

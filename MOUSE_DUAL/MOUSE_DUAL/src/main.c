@@ -171,12 +171,12 @@ uint8_t new_manta_attached = false;
 
 uint32_t clock_speed = 0; // this is the speed of the internal sequencer clock 
 uint32_t clock_speed_max = 99; 
-uint32_t clock_speed_displayed = 0;
+uint8_t clock_speed_displayed = 0;
 BOOL clock_speed_randomize = FALSE;
 uint32_t clock_random_mod = 1000;
 uint32_t clock_random_mods[10] = {65000, 24000, 12000, 6000, 3000, 1500, 750, 350, 175, 50};
-uint32_t tempoDivider = 4 ;
-uint32_t tempoDividerMax = 19;
+uint8_t tempoDivider = 4;
+uint8_t tempoDividerMax = 19;
 
 uint8_t SevSegArpMode = 0;
 uint32_t upHeld = 0;
@@ -876,9 +876,9 @@ static void tc3_irq(void)
 				{
 					tMantaInstrument* instrument = &manta[inst];
 	
-					if (instrument->type == KeyboardInstrument) // KeyboardInstrument
+					if (instrument->type == KeyboardInstrument && inst == currentInstrument) // KeyboardInstrument
 					{
-						if (instrument->keyboard.playMode == ArpMode)
+						if (instrument->keyboard.playMode == ArpMode) 
 						{
 							tIRampSetTime    (&out[inst][CV1+3*fullKeyboard.currentVoice], globalCVGlide);
 							tIRampSetDest    (&out[inst][CV1+3*fullKeyboard.currentVoice],  butt_states[instrument->keyboard.currentNote] << 4);
@@ -2051,14 +2051,13 @@ void Save_Switch_Check(void)
 
 void updatePreset(void)
 {	
-	currentHexUI = -1;
-	resetEditStack();
-	
-	// Initialize the noteOnStack. :D !!!
-	tNoteStack_init(&noteOnStack, 32);
-	
 	if (type_of_device_connected == MantaConnected)
 	{
+		currentHexUI = -1;
+		resetEditStack();
+	
+		// Initialize the noteOnStack. :D !!!
+		tNoteStack_init(&noteOnStack, 32);
 		loadMantaPreset();
 	}
 	else if (type_of_device_connected == JoystickConnected)
@@ -2067,6 +2066,11 @@ void updatePreset(void)
 	}
 	else if ((type_of_device_connected == MIDIComputerConnected) || (type_of_device_connected == MIDIKeyboardConnected))
 	{
+		currentHexUI = -1;
+		resetEditStack();
+	
+		// Initialize the noteOnStack. :D !!!
+		tNoteStack_init(&noteOnStack, 32);
 		loadMIDIPreset();
 	}
 	else if (type_of_device_connected == NoDeviceConnected)
@@ -2211,8 +2215,7 @@ void clockHappened(void)
 		
 		if (!takeover)
 		{
-			if (manta[InstrumentOne].type == KeyboardInstrument) keyboardStep(InstrumentOne);
-			if (manta[InstrumentTwo].type == KeyboardInstrument) keyboardStep(InstrumentTwo);
+			if (manta[currentInstrument].type == KeyboardInstrument) keyboardStep(currentInstrument);
 		}
 		else if (takeoverType == KeyboardInstrument)
 		{
@@ -2622,7 +2625,7 @@ void loadMantaPreset(void)
 	{
 		initiateLoadingMantaPresetFromExternalMemory();
 	}
-	//clearDACoutputs();
+	clearDACoutputs();
 }
 
 void initMantaLEDState(void)
@@ -2758,7 +2761,12 @@ void mantaPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 1; // MantaMateVersion
+	buffer[indexCounter++] = 3; // MantaMateVersion
+	
+	buffer[indexCounter++] = full_vs_split;
+	
+	buffer[indexCounter++] = clock_speed_displayed;
+	buffer[indexCounter++] = tempoDivider;
 	
 	buffer[indexCounter++] = takeover;
 	buffer[indexCounter++] = takeoverType;
@@ -2887,6 +2895,74 @@ void mantaPreset_decode(uint8_t* buffer)
 		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
 		indexCounter += NUM_BYTES_PER_SEQUENCER;
 	}
+	else if (version == 3)
+	{
+		full_vs_split = buffer[indexCounter++];
+		
+		clock_speed_displayed = buffer[indexCounter++];
+		tempoDivider = buffer[indexCounter++];
+		updateTempo();
+		
+		takeover = buffer[indexCounter++];
+		takeoverType = buffer[indexCounter++];
+		
+		currentInstrument = buffer[indexCounter++];
+		manta[InstrumentOne].type = buffer[indexCounter++];
+		manta[InstrumentTwo].type = buffer[indexCounter++];
+		
+		for (int inst = 0; inst < 2; inst++)
+		{
+			currentComp[inst] = buffer[indexCounter++];
+			for (int i = 0; i < 16; i++)
+			{
+				compositionMap[inst][i] = buffer[indexCounter++];
+			}
+		}
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		
+		globalTuning = buffer[indexCounter++];
+		tuningToUse = buffer[indexCounter++];
+		currentTuningHex = buffer[indexCounter++];
+		currentMantaUITuning = buffer[indexCounter++];
+		for (int i = 0; i < 32; i++)
+		{
+			mantaUITunings[i] = buffer[indexCounter++];
+		}
+		
+		tKeyboard_decode(&manta[InstrumentOne].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&manta[InstrumentTwo].keyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		tKeyboard_decode(&fullKeyboard, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_KEYBOARD;
+		
+		tDirect_decode(&manta[InstrumentOne].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&manta[InstrumentTwo].direct, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		tDirect_decode(&fullDirect, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_DIRECT;
+		
+		tSequencer_decode(&manta[InstrumentOne].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+		tSequencer_decode(&manta[InstrumentTwo].sequencer, &buffer[indexCounter]);
+		indexCounter += NUM_BYTES_PER_SEQUENCER;
+	}
 	else
 	{
 		initMantaKeys(1);
@@ -2899,8 +2975,12 @@ void midiPreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 2; // version
+	buffer[indexCounter++] = 3; // version
 	buffer[indexCounter++] = MPE_mode;
+	
+	buffer[indexCounter++] = clock_speed_displayed;
+	
+	buffer[indexCounter++] = tempoDivider;
 	
 	buffer[indexCounter++] = globalPitchGlide >> 8;
 	buffer[indexCounter++] = globalPitchGlide & 0xff;
@@ -2976,6 +3056,35 @@ void midiPreset_decode(uint8_t* buffer)
 		initMIDIKeys(4,TRUE);
 		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
 	}
+	else if (version == 3)
+	{
+		MPE_mode = buffer[indexCounter++];
+		
+		clock_speed_displayed = buffer[indexCounter++];
+		tempoDivider = buffer[indexCounter++];
+		updateTempo();
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalPitchGlide = highByte + lowByte;
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		myGlobalTuningTable.cardinality = buffer[indexCounter++];
+		for (int i = 0; i < 128; i++)
+		{
+			highByte = (buffer[indexCounter++] << 8);
+			lowByte = (buffer[indexCounter++] & 0xff);
+			myGlobalTuningTable.tuningDACTable[i] = (highByte + lowByte);
+		}
+		globalTuning = buffer[indexCounter++];
+		
+		
+		initMIDIKeys(4,TRUE);
+		tMIDIKeyboard_decode(&MIDIKeyboard, &buffer[indexCounter]);
+	}
 	else
 	{
 		MPE_mode = 0;
@@ -2989,11 +3098,15 @@ void noDevicePreset_encode(uint8_t* buffer)
 {
 	uint32_t indexCounter = 0;
 	
-	buffer[indexCounter++] = 1; // MantaMateVersion
+	buffer[indexCounter++] = 3; // MantaMateVersion
+	
+	buffer[indexCounter++] = clock_speed_displayed;
+	
+	buffer[indexCounter++] = tempoDivider;
 	
 	buffer[indexCounter++] = globalCVGlide >> 8;
 	buffer[indexCounter++] = globalCVGlide & 0xff;
-	
+
 	tNoDevice_encode(&noDevicePatterns, &buffer[indexCounter]);
 }
 
@@ -3012,6 +3125,18 @@ void noDevicePreset_decode(uint8_t* buffer)
 		globalCVGlide = highByte + lowByte;
 		
 		tNoDevice_decode(&noDevicePatterns, &buffer[indexCounter]);	
+	}
+	if (version == 3)
+	{
+		clock_speed_displayed = buffer[indexCounter++];
+		tempoDivider = buffer[indexCounter++];
+		updateTempo();
+		
+		highByte = (buffer[indexCounter++] << 8);
+		lowByte = buffer[indexCounter++];
+		globalCVGlide = highByte + lowByte;
+		
+		tNoDevice_decode(&noDevicePatterns, &buffer[indexCounter]);
 	}
 
 }

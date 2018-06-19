@@ -37,6 +37,8 @@ tNoteStack noteOnStack; // all notes on at any point during runtime
 
 uint8_t currentHexUI;
 
+extern uint8_t clock_speed_displayed;
+
 void resetEditStack(void);
 
 //=================STATE STUFF=================
@@ -190,21 +192,21 @@ int MPE_mode;
 #define NUM_BYTES_PER_SECTOR (NUM_PAGES_PER_SECTOR*NUM_BYTES_PER_PAGE)
 #define NUM_BYTES_PER_BLOCK (NUM_SECTORS_PER_BLOCK*NUM_BYTES_PER_SECTOR)
 
-#define NUM_PAGES_PER_MANTA_PRESET 11//((NUM_BYTES_PER_PRESET / 256) + 1) 
-#define NUM_BYTES_PER_MANTA_PRESET (NUM_PAGES_PER_MANTA_PRESET * NUM_BYTES_PER_PAGE) //(11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER))
-#define NUM_SECTORS_PER_MANTA_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
+#define NUM_PAGES_PER_MANTA_PRESET 11//(NUM_BYTES_PER_PRESET / 256)
+#define NUM_BYTES_PER_MANTA_PRESET (NUM_PAGES_PER_MANTA_PRESET * NUM_BYTES_PER_PAGE) //(5(clock settings) + 11 + 256 + 4 + 31 + (3*NUM_BYTES_PER_KEYBOARD) + (3*NUM_BYTES_PER_DIRECT) + (2*NUM_BYTES_PER_SEQUENCER))
+#define NUM_SECTORS_PER_MANTA_PRESET 1//(NUM_PAGES_PER_PRESET / 16)
 #define NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP (34*256) //there are now 14 possible sequence slots in composition mode, each one is 615 bytes and there are two sets of 14
 #define NUM_PAGES_PER_COMPOSITION_BANK 34
 #define NUM_SECTORS_PER_COMPOSITION_BANK 3
 #define NUM_SECTORS_BETWEEN_MANTA_PRESETS 16 // leave a bunch of space for manta presets by aligning the presets to block edges
 
-#define NUM_BYTES_PER_MIDI_PRESET (3*256) // 263(num bytes per midi preset besides midikeyboard) + 263(num bytes per midikeyboard) rounded up to multiple of 256 bytes
-#define NUM_PAGES_PER_MIDI_PRESET 3//((NUM_BYTES_PER_PRESET / 256) + 1) 
-#define NUM_SECTORS_PER_MIDI_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1) 
+#define NUM_BYTES_PER_MIDI_PRESET (3*256) // 5(clock settings) + 263(num bytes per midi preset besides midikeyboard) + 263(num bytes per midikeyboard) rounded up to multiple of 256 bytes
+#define NUM_PAGES_PER_MIDI_PRESET 3//(NUM_BYTES_PER_PRESET / 256) 
+#define NUM_SECTORS_PER_MIDI_PRESET 1//(NUM_PAGES_PER_PRESET / 16)
 
-#define NUM_BYTES_PER_NODEVICE_PRESET (2*256) // 3 + NUM_BYTES_PER_NODEVICE_PATTERN (32 steps, 2 bytes per step, * 12 outputs) rounded up to multiple of 256 bytes
-#define NUM_PAGES_PER_NODEVICE_PRESET 2//((NUM_BYTES_PER_PRESET / 256) + 1)
-#define NUM_SECTORS_PER_NODEVICE_PRESET 1//((NUM_PAGES_PER_PRESET / 16) + 1)
+#define NUM_BYTES_PER_NODEVICE_PRESET (4*256) // 5(clock settings) + 3 + NUM_BYTES_PER_NODEVICE_PATTERN (32 steps, 2 bytes per step, * 12 outputs) rounded up to multiple of 256 bytes
+#define NUM_PAGES_PER_NODEVICE_PRESET 4//(NUM_BYTES_PER_PRESET / 256)
+#define NUM_SECTORS_PER_NODEVICE_PRESET 1//(NUM_PAGES_PER_PRESET / 16)
 
 #define NUM_PAGES_PER_TUNING 3
 #define NUM_PAGES_PER_HEXMAP 1
