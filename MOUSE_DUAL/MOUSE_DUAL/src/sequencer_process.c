@@ -2449,13 +2449,17 @@ void touchTopLeftButton(void)
 	{
 		if (shiftOption2)
 		{
-			keyboard->transpose -= 1;
-			indicateTransposition(keyboard->transpose);
+			if (keyboard->transpose > 0)
+			{
+				keyboard->transpose -= 1;
+			}	
 		}
 		else
 		{
-			keyboard->transpose -= myGlobalTuningTable.cardinality; //fix this so it's the current tuning table
-			indicateTransposition(keyboard->transpose);
+			if (keyboard->transpose-myGlobalTuningTable.cardinality >= 0) 
+			{
+				keyboard->transpose -= myGlobalTuningTable.cardinality; //fix this so it's the current tuning table
+			}
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -2545,13 +2549,17 @@ void touchTopRightButton(void)
 		// Tranpose up 
 		if (shiftOption2)
 		{
-			keyboard->transpose += 1;
-			indicateTransposition(keyboard->transpose);
+			if (keyboard->transpose+48+1 > myGlobalTuningTable.cardinality*10) 
+			{
+				keyboard->transpose += 1;
+			}
 		}
 		else
 		{
-			keyboard->transpose += myGlobalTuningTable.cardinality; //fix this so that it's the currently used tuning table instead
-			indicateTransposition(keyboard->transpose);
+			if (keyboard->transpose+48+myGlobalTuningTable.cardinality > myGlobalTuningTable.cardinality*10) 
+			{
+				keyboard->transpose = myGlobalTuningTable.cardinality*8;
+			}
 		}
 		
 		dacSendKeyboard(currentInstrument);
@@ -2565,7 +2573,7 @@ void releaseTopRightButton(void)
 		if (shiftOption1SubShift == SubShiftTopRight)
 		{
 			// Save Sequencer
-			Write7Seg(preset_num);
+			Write7Seg(normal_7seg_number);
 			
 			displayState = GlobalDisplayStateNil;
 			
@@ -4017,7 +4025,7 @@ void indicateTransposition(int number)
 	}
 	else
 	{
-		LED_Off(PRESET_SAVE_LED); // this will double as the negative indicator for transpose
+		LED_Off(PRESET_SAVE_LED); 
 	}
 	transpose_indication_active = 1;
 }

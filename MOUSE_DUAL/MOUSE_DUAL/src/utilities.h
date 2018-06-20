@@ -168,9 +168,9 @@ typedef enum GateVsTriggerType
 }GateVsTriggerType;
 
 typedef enum MantaEditPlayMode {
-	EditMode = 0,
-	PlayToggleMode,
+	PlayToggleMode = 0,
 	TrigToggleMode,
+	EditMode,
 	MantaEditPlayModeNil
 }MantaEditPlayMode;
 

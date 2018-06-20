@@ -595,16 +595,19 @@ static void tc2_irq(void)
 		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
 		if (upSwitch())
 		{	
-			buttonFrameCounter++;
-			if (buttonFrameCounter > buttonHoldSpeed)
+			if (preset_num < ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 			{
-				upHeld++;
-				if (upHeld > holdTimeThresh)
+				buttonFrameCounter++;
+				if (buttonFrameCounter > buttonHoldSpeed)
 				{
-					suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
-					Preset_Switch_Check(1);
-				}
+					upHeld++;
+					if (upHeld > holdTimeThresh)
+					{
+						suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+						Preset_Switch_Check(1);
+					}
 				buttonFrameCounter = 0;
+				}
 			}
 		}
 		else
@@ -622,18 +625,20 @@ static void tc2_irq(void)
 	
 		if (downSwitch())
 		{
-			buttonFrameCounter++;
-			if (buttonFrameCounter > buttonHoldSpeed)
+			if (preset_num > 0)
 			{
-				downHeld++;
-				if (downHeld > holdTimeThresh)
+				buttonFrameCounter++;
+				if (buttonFrameCounter > buttonHoldSpeed)
 				{
-					suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
-					Preset_Switch_Check(0);
-				}
-				buttonFrameCounter = 0;
+					downHeld++;
+					if (downHeld > holdTimeThresh)
+					{
+						suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+						Preset_Switch_Check(0);
+					}
+					buttonFrameCounter = 0;
+				}	
 			}
-
 		}
 		else
 		{
@@ -1613,7 +1618,6 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 		Write7Seg(currentSequencerSelect);
-		normal_7seg_number = currentSequencerSelect;
 	}
 	else if (displayState == DirectOutputSelect)
 	{
@@ -1707,17 +1711,19 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		if (whichSwitch)
 		{
 			if (upSwitch())
-			{
-				preset_num++;
-					
-				if (preset_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
+			{	
+				if (preset_num >= ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 				{
 					preset_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);
 				}
-				if (suspendRetrieve != DontRetrieve)
+				else 
 				{
-					initiateStoringStartupStateToExternalMemory();
-					updatePreset();
+					preset_num++;
+					if (suspendRetrieve != DontRetrieve)
+					{
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
+					}
 				}
 				Write7Seg(preset_num);
 				normal_7seg_number = preset_num;
@@ -1734,11 +1740,11 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 				else
 				{
 					preset_num--;
-				}
-				if (suspendRetrieve != DontRetrieve)
-				{
-					initiateStoringStartupStateToExternalMemory();
-					updatePreset();
+					if (suspendRetrieve != DontRetrieve)
+					{
+						initiateStoringStartupStateToExternalMemory();
+						updatePreset();
+					}
 				}
 				Write7Seg(preset_num);
 				normal_7seg_number = preset_num;
@@ -2057,7 +2063,7 @@ void updatePreset(void)
 		resetEditStack();
 	
 		// Initialize the noteOnStack. :D !!!
-		tNoteStack_init(&noteOnStack, 32);
+		tNoteStack_init(&noteOnStack, 32); 
 		loadMantaPreset();
 	}
 	else if (type_of_device_connected == JoystickConnected)
@@ -2732,7 +2738,7 @@ void loadMIDIPreset(void)
 void loadNoDevicePreset(void)
 {
 	//presets are handled internally by no_device_gate_in
-	clearDACoutputs();
+	//clearDACoutputs();
 	if (preset_num > 18)
 	{
 		initiateLoadingNoDevicePresetFromExternalMemory();

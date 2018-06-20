@@ -31,7 +31,7 @@ unsigned short lookupDACvalue(tTuningTable* myTable, uint16_t noteVal, signed in
 	{
 		uint16_t myOctave = (myNote / myTable->cardinality);
 		uint16_t myPitchClass = (myNote % myTable->cardinality);
-		return (myTable->tuningDACTable[myPitchClass] + (6553 * myOctave)); // 65535 / 10 = 6553 (10 octaves in sac range)
+		return (myTable->tuningDACTable[myPitchClass] + (6553 * myOctave)); // 65535 / 10 = 6553 (10 octaves in dac range)
 	}
 	else
 	{

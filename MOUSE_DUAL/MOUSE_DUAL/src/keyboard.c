@@ -198,7 +198,7 @@ void tKeyboard_init(tKeyboard* const keyboard, int numVoices, MantaLEDColor bkc)
 	keyboard->numVoices = numVoices;
 	keyboard->numVoicesActive = numVoices;
 	keyboard->lastVoiceToChange = 0;
-	keyboard->transpose = 0;
+	keyboard->transpose = 2*myGlobalTuningTable.cardinality;
 	
 	
 	for (int i = 0; i < 4; i ++)
