@@ -2549,16 +2549,16 @@ void touchTopRightButton(void)
 		// Tranpose up 
 		if (shiftOption2)
 		{
-			if (keyboard->transpose+48+1 > myGlobalTuningTable.cardinality*10) 
+			if ((keyboard->transpose+48+1) < (myGlobalTuningTable.cardinality*10)) 
 			{
 				keyboard->transpose += 1;
 			}
 		}
 		else
-		{
-			if (keyboard->transpose+48+myGlobalTuningTable.cardinality > myGlobalTuningTable.cardinality*10) 
+		{			
+			if ((keyboard->transpose+48+myGlobalTuningTable.cardinality) < (myGlobalTuningTable.cardinality*10)) 
 			{
-				keyboard->transpose = myGlobalTuningTable.cardinality*8;
+				keyboard->transpose += myGlobalTuningTable.cardinality;
 			}
 		}
 		
