@@ -38,6 +38,7 @@ typedef struct _tKeyboard
 	// Encode this in preset
 	int numVoices;
 	tHex hexes[48]; // 288 bytes
+	int hexmapSize;
 	signed int transpose;
 	MantaPlayMode playMode;
 	ArpModeType arpModeType;

@@ -19,8 +19,19 @@ extern uint8_t firstMIDIMessage;
 
 uint8_t MPE_data[16][3];
 
+typedef enum sysexDeviceType
+{
+	RequestPreset = 0,
+	TuningPreset,
+	MantaPreset,
+	MidiPreset,
+	NoDevicePreset,
+	NilPreset
+} sysexDeviceType;
+
 uint16_t parseMIDI(uint16_t howManyNew);
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2);
+void sendSysexMessage(sysexDeviceType presetType, uint8_t slot);
 void parseSysex(void);
 void startSysexMessage(int msgByte1, int msgByte2);
 void sendSysexSaveConfim(void);

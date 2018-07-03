@@ -11,52 +11,28 @@
 // a block is 16 sectors (65535 bytes)
 
 
-
+#include "midi.h"
 #include "memory_spi.h"
 #include "main.h"
+
+#define NUM_TRANSFER_TYPES 19
 
 uint8_t whichSequence = 0;
 uint8_t sequencePageNumber = 0;
 
 //external memory variables
-uint32_t sectors_left_to_erase = 0;
-uint32_t sectors_left_to_erase_comp = 0;
-uint16_t currentSector = 0;
-uint16_t currentPage = 0;
-uint16_t startingSector = 0;
-uint16_t currentSectorStoring = 0;
-uint16_t currentPageStoring = 0;
-uint16_t startingSectorStoring = 0;
-uint16_t currentSectorStoringComp = 0;
-uint16_t currentPageStoringComp = 0;
-uint16_t startingSectorStoringComp = 0;
-uint16_t currentSectorLoading = 0;
-uint16_t currentPageLoading = 0;
-uint16_t startingSectorLoading = 0;
-uint16_t currentSectorLoadingComp = 0;
-uint16_t currentPageLoadingComp = 0;
-uint16_t startingSectorLoadingComp = 0;
+uint32_t sectors_left_to_erase[NUM_TRANSFER_TYPES];
+uint16_t currentSector[NUM_TRANSFER_TYPES];
+uint16_t currentPage[NUM_TRANSFER_TYPES];
+uint16_t startingSector[NUM_TRANSFER_TYPES];
+uint16_t bytes_left[NUM_TRANSFER_TYPES];
+uint16_t pages_left[NUM_TRANSFER_TYPES];
+//uint16_t numTuningBytesRemaining_toSend = 0;
+//uint16_t numTuningBytesRemaining_toGet = 0;
+uint16_t whichInstCompositions = 0;
 
-uint16_t numTuningBytesRemaining_toSend = 0;
-uint16_t numTuningBytesRemaining_toGet = 0;
-
-unsigned char mantaSavePending = 0;
-unsigned char mantaLoadPending = 0;
-unsigned char midiSavePending = 0;
-unsigned char midiLoadPending = 0;
-unsigned char noDeviceSavePending = 0;
-unsigned char noDeviceLoadPending = 0;
-unsigned char tuningSavePending = 0;
-unsigned char tuningLoadPending = 0;
-unsigned char startupStateSavePending = 0;
-unsigned char startupStateLoadPending = 0;
-unsigned char hexmapSavePending = 0;
-unsigned char hexmapLoadPending = 0;
-unsigned char directSavePending = 0;
-unsigned char directLoadPending = 0;
-
-unsigned char sequencerSavePending = 0;
-unsigned char sequencerLoadPending = 0;
+unsigned char pending[NUM_TRANSFER_TYPES];
+uint8_t presetToTransfer[NUM_TRANSFER_TYPES];
 
 uint16_t numHexmapBytesRemaining_toSend = 0;
 uint16_t numHexmapBytesRemaining_toGet = 0;
@@ -191,79 +167,69 @@ void memorySPIEraseBlock(uint16_t block)
 
 // sector erase takes 50ms vs 500ms block erase, so it makes sense to only erase the sectors we are using
 
-uint16_t bytes_left_to_transfer;
-uint16_t pages_left_to_transfer;
-uint16_t bytes_left_to_store;
-uint16_t pages_left_to_store;
-uint16_t bytes_left_to_store_comp;
-uint16_t pages_left_to_store_comp;
-uint16_t bytes_left_to_load;
-uint16_t pages_left_to_load;
-uint16_t bytes_left_to_load_comp;
-uint16_t pages_left_to_load_comp;
-
-int whichInstCompositions = 0;
-
 // manta preset saving and loading
 
 void initiateStoringMantaPresetToExternalMemory(void)
 {
-	startingSectorStoring = (preset_to_save_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will store it in
-	currentSectorStoring = startingSectorStoring;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPageStoring = 0; //start on the first page
+	if(!inSysex)
+	{
+		mantaPreset_encode(mantamate_internal_preset_buffer);
+		presetToTransfer[MantaPresetStore] = preset_to_save_num;
+	}
+	startingSector[MantaPresetStore] = (presetToTransfer[MantaPresetStore] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will store it in
+	currentSector[MantaPresetStore] = startingSector[MantaPresetStore];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MantaPresetStore] = 0; //start on the first page
 	
-	mantaPreset_encode(mantamate_internal_preset_buffer);
 	
 	// start by erasing the memory in the location we want to store
-	sectors_left_to_erase = NUM_SECTORS_PER_MANTA_PRESET; // erase 5 sectors because that will give us enough room for a whole preset
-	pages_left_to_store = NUM_PAGES_PER_MANTA_PRESET; // set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_store = NUM_BYTES_PER_MANTA_PRESET;
-	memorySPIEraseSector(currentSectorStoring); 
-	sectors_left_to_erase--;
+	sectors_left_to_erase[MantaPresetStore] = NUM_SECTORS_PER_MANTA_PRESET; // erase 5 sectors because that will give us enough room for a whole preset
+	pages_left[MantaPresetStore] = NUM_PAGES_PER_MANTA_PRESET; // set the variable for the total number of pages to count down from while we store them
+	bytes_left[MantaPresetStore] = NUM_BYTES_PER_MANTA_PRESET;
+	memorySPIEraseSector(currentSector[MantaPresetStore]); 
+	sectors_left_to_erase[MantaPresetStore]--;
 	
-	mantaSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pending[MantaPresetStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 		
 void continueStoringMantaPresetToExternalMemory(void)
 {
 	//if there are still sectors to erase, do those
-	if (sectors_left_to_erase > 0)
+	if (sectors_left_to_erase[MantaPresetStore] > 0)
 	{
-		currentSectorStoring++;
-		memorySPIEraseSector(currentSectorStoring); 
-		sectors_left_to_erase--;
+		currentSector[MantaPresetStore]++;
+		memorySPIEraseSector(currentSector[MantaPresetStore]); 
+		sectors_left_to_erase[MantaPresetStore]--;
 	}
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
-	else if (pages_left_to_store > 0)
+	else if (pages_left[MantaPresetStore] > 0)
 	{
 		//otherwise we are ready to start saving data
 		// store a page
-		if (currentPageStoring == 0)
+		if (currentPage[MantaPresetStore] == 0)
 		{
-			currentSectorStoring = startingSectorStoring; // start back at the beginning of the memory location for this preset (it was incremented to erase)
+			currentSector[MantaPresetStore] = startingSector[MantaPresetStore]; // start back at the beginning of the memory location for this preset (it was incremented to erase)
 			//store global prefs data structure
 		}
 		
-		memorySPIWrite(currentSectorStoring,  (currentPageStoring % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPageStoring*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIWrite(currentSector[MantaPresetStore],  (currentPage[MantaPresetStore] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[MantaPresetStore]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_store -= NUM_BYTES_PER_PAGE;
+		bytes_left[MantaPresetStore] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPageStoring++;
-		pages_left_to_store--;
-		currentSectorStoring = (startingSectorStoring + (uint16_t)(currentPageStoring / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[MantaPresetStore]++;
+		pages_left[MantaPresetStore]--;
+		currentSector[MantaPresetStore] = ((uint16_t)(startingSector[MantaPresetStore]) + (uint16_t)(currentPage[MantaPresetStore] / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished, but start up the composition save procedure on the first of the two composition sets
 		whichInstCompositions = 0;
 		initiateStoringMantaCompositionsToExternalMemory();
-		mantaSavePending = 0;	
+		pending[MantaPresetStore] = 0;	
 	}
 }
 
-uint8_t preset_num_currently_loading;
 uint8_t busy_loading_full_manta_preset = 0;
 uint8_t resetLoader = 0;
 
@@ -274,32 +240,32 @@ void initiateLoadingMantaPresetFromExternalMemory(void)
 		resetLoader = 1;
 	}
 	busy_loading_full_manta_preset = 1;
-	mantaCompositionLoadPending = 0;
-	preset_num_currently_loading = preset_num;
-	startingSectorLoading = (preset_num_currently_loading * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will load from
-	currentSectorLoading = startingSectorLoading;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPageLoading = 0; //start on the first page
+	pending[MantaCompositionLoad] = 0;
+	if (!sysexSend) presetToTransfer[MantaPresetLoad] = preset_num;
+	startingSector[MantaPresetLoad] = (presetToTransfer[MantaPresetLoad] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will load from
+	currentSector[MantaPresetLoad] = startingSector[MantaPresetLoad];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MantaPresetLoad] = 0; //start on the first page
 	
-	pages_left_to_load = NUM_PAGES_PER_MANTA_PRESET; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_load = NUM_BYTES_PER_MANTA_PRESET;
-	mantaLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pages_left[MantaPresetLoad] = NUM_PAGES_PER_MANTA_PRESET; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[MantaPresetLoad] = NUM_BYTES_PER_MANTA_PRESET;
+	pending[MantaPresetLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 
 }
 
 void continueLoadingMantaPresetFromExternalMemory(void)
 {
-	if (pages_left_to_load > 0)
+	if (pages_left[MantaPresetLoad] > 0)
 	{
-		memorySPIRead(currentSectorLoading,  (currentPageLoading % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPageLoading*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIRead(currentSector[MantaPresetLoad],  (currentPage[MantaPresetLoad] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[MantaPresetLoad]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
 		if (!resetLoader)	
 		{
-			bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+			bytes_left[MantaPresetLoad] -= NUM_BYTES_PER_PAGE;
 			
 			//update variables for next round
-			currentPageLoading++;
-			pages_left_to_load--;
-			currentSectorLoading = (startingSectorLoading + (uint16_t)(currentPageLoading / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+			currentPage[MantaPresetLoad]++;
+			pages_left[MantaPresetLoad]--;
+			currentSector[MantaPresetLoad] = startingSector[MantaPresetLoad] + (uint16_t)(currentPage[MantaPresetLoad] / NUM_PAGES_PER_SECTOR); //increment the current Sector whenever currentPage wraps over 16
 		}	
 		else
 		{
@@ -310,32 +276,35 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		mantaLoadPending = 0;
+		pending[MantaPresetLoad] = 0;
 		whichInstCompositions = 0;
 		initiateLoadingMantaCompositionsFromExternalMemory();
-		MantaInstrumentType lastInst1Type = manta[InstrumentOne].type; MantaInstrumentType lastInst2Type = manta[InstrumentTwo].type;
-		MantaInstrumentType lastTakeoverType = takeoverType;
-		BOOL lastTakeover = takeover;
-		uint8_t last_clock_speed_displayed = clock_speed_displayed;
-		
-		mantaPreset_decode(mantamate_internal_preset_buffer);
-		
-		MantaInstrumentType inst1Type = manta[InstrumentOne].type; MantaInstrumentType inst2Type = manta[InstrumentTwo].type;
-		
-		if (takeover) clearDACoutputs();
-		if (last_clock_speed_displayed > 0 && clock_speed_displayed == 0) clearDACoutputs();
-		else 
+		if(!sysexSend)
 		{
-			if (lastInst1Type == SequencerInstrument && inst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
-			
-			if (inst1Type == SequencerInstrument && lastInst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
-			
-			if (lastInst2Type == SequencerInstrument && inst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
-			
-			if (inst2Type == SequencerInstrument && lastInst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
-		}
+			MantaInstrumentType lastInst1Type = manta[InstrumentOne].type; MantaInstrumentType lastInst2Type = manta[InstrumentTwo].type;
+			MantaInstrumentType lastTakeoverType = takeoverType;
+			BOOL lastTakeover = takeover;
+			uint8_t last_clock_speed_displayed = clock_speed_displayed;
+			mantaPreset_decode(mantamate_internal_preset_buffer);
+
 		
-		initMantaLEDState();
+			MantaInstrumentType inst1Type = manta[InstrumentOne].type; MantaInstrumentType inst2Type = manta[InstrumentTwo].type;
+		
+			if (takeover) clearDACoutputs();
+			if (last_clock_speed_displayed > 0 && clock_speed_displayed == 0) clearDACoutputs();
+			else 
+			{
+				if (lastInst1Type == SequencerInstrument && inst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
+			
+				if (inst1Type == SequencerInstrument && lastInst1Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentOne);
+			
+				if (lastInst2Type == SequencerInstrument && inst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
+			
+				if (inst2Type == SequencerInstrument && lastInst2Type != SequencerInstrument) clearInstrumentDACoutputs(InstrumentTwo);
+			}
+		
+			initMantaLEDState();	
+		}
 	}
 }
 
@@ -344,59 +313,58 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 
 void initiateStoringMantaCompositionsToExternalMemory(void)
 {
+	presetToTransfer[MantaCompositionStore] = presetToTransfer[MantaPresetStore];
 	if (whichInstCompositions == 0)
 	{
-		startingSectorStoringComp = (preset_to_save_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET; //after the manta preset info, pop in the composition array
+		startingSector[MantaCompositionStore] = (uint16_t)((presetToTransfer[MantaCompositionStore] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET); //after the manta preset info, pop in the composition array
 	}
 	else
 	{
-		startingSectorStoringComp = (preset_to_save_num * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK; //after the manta preset info, pop in the composition array
+		startingSector[MantaCompositionStore] = (uint16_t)((presetToTransfer[MantaCompositionStore] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK); //after the manta preset info, pop in the composition array
 	}
 	
 	
-	currentSectorStoringComp = startingSectorStoringComp;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPageStoringComp = 0; //start on the first page
+	currentSector[MantaCompositionStore] = startingSector[MantaCompositionStore];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MantaCompositionStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
-	sectors_left_to_erase_comp = NUM_SECTORS_PER_COMPOSITION_BANK; //erase 5 sectors because that will give us enough room for a whole preset
-	pages_left_to_store_comp = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_store_comp = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
-	memorySPIEraseSector(currentSectorStoringComp);
-	sectors_left_to_erase--;
+	sectors_left_to_erase[MantaCompositionStore] = NUM_SECTORS_PER_COMPOSITION_BANK; //erase 5 sectors because that will give us enough room for a whole preset
+	pages_left[MantaCompositionStore] = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[MantaCompositionStore] = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
+	memorySPIEraseSector(currentSector[MantaCompositionStore]);
+	sectors_left_to_erase[MantaCompositionStore]--;
 	
-	mantaCompositionSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pending[MantaCompositionStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
-
-
 
 void continueStoringMantaCompositionsToExternalMemory(void)
 {
 	//if there are still sectors to erase, do those
-	if (sectors_left_to_erase_comp > 0)
+	if (sectors_left_to_erase[MantaCompositionStore] > 0)
 	{
-		currentSectorStoringComp++;
-		memorySPIEraseSector(currentSectorStoringComp); //erase 5 sectors because that will give us enough room for a whole preset
-		sectors_left_to_erase_comp--;
+		currentSector[MantaCompositionStore]++;
+		memorySPIEraseSector(currentSector[MantaCompositionStore]); //erase 5 sectors because that will give us enough room for a whole preset
+		sectors_left_to_erase[MantaCompositionStore]--;
 	}
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
-	else if (pages_left_to_store_comp > 0)
+	else if (pages_left[MantaCompositionStore] > 0)
 	{
 		//otherwise we are ready to start saving data
 		// store a page
-		if (currentPageStoringComp == 0)
+		if (currentPage[MantaCompositionStore] == 0)
 		{
-			currentSectorStoringComp = startingSectorStoringComp; // start back at the beginning of the memory location for this preset (it was incremented to erase)
+			currentSector[MantaCompositionStore] = startingSector[MantaCompositionStore]; // start back at the beginning of the memory location for this preset (it was incremented to erase)
 			//store global prefs data structure
 		}
 		
-		memorySPIWrite(currentSectorStoringComp,  (currentPageStoringComp % NUM_PAGES_PER_SECTOR) ,  &memoryInternalCompositionBuffer[whichInstCompositions][currentPageStoringComp*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIWrite(currentSector[MantaCompositionStore],  (currentPage[MantaCompositionStore] % NUM_PAGES_PER_SECTOR) ,  &memoryInternalCompositionBuffer[whichInstCompositions][currentPage[MantaCompositionStore]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_store_comp -= NUM_BYTES_PER_PAGE;
+		bytes_left[MantaCompositionStore] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPageStoringComp++;
-		pages_left_to_store_comp--;
-		currentSectorStoringComp = (startingSectorStoringComp + (uint16_t)(currentPageStoringComp / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[MantaCompositionStore]++;
+		pages_left[MantaCompositionStore]--;
+		currentSector[MantaCompositionStore] = startingSector[MantaCompositionStore] + (uint16_t)(currentPage[MantaCompositionStore] / NUM_PAGES_PER_SECTOR); //increment the current Sector whenever currentPage wraps over 16
 	}
 	else //otherwise save is done!
 	{
@@ -410,7 +378,8 @@ void continueStoringMantaCompositionsToExternalMemory(void)
 		else
 		{
 			//mark the save procedure as finished
-			mantaCompositionSavePending = 0;
+			if (sysexSend) sysexSend = FALSE;
+			pending[MantaCompositionStore] = 0;
 			LED_Off(PRESET_SAVE_LED);
 		}
 
@@ -420,36 +389,36 @@ void continueStoringMantaCompositionsToExternalMemory(void)
 
 void initiateLoadingMantaCompositionsFromExternalMemory(void)
 {
-	
+	presetToTransfer[MantaCompositionLoad] = presetToTransfer[MantaPresetLoad];
 	if (whichInstCompositions == 0)
 	{
-		startingSectorLoadingComp = (preset_num_currently_loading * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET; //after the manta preset info, pop in the composition array
+		startingSector[MantaCompositionLoad] = (presetToTransfer[MantaCompositionLoad] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET; //after the manta preset info, pop in the composition array
 	}
 	else
 	{
-		startingSectorLoadingComp = (preset_num_currently_loading * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK; //after the manta preset info, pop in the composition array
+		startingSector[MantaCompositionLoad] = (presetToTransfer[MantaCompositionLoad] * NUM_SECTORS_BETWEEN_MANTA_PRESETS) + MANTA_PRESET_STARTING_SECTOR + NUM_SECTORS_PER_MANTA_PRESET + NUM_SECTORS_PER_COMPOSITION_BANK; //after the manta preset info, pop in the composition array
 	}
-	currentSectorLoadingComp = startingSectorLoadingComp;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPageLoadingComp = 0; //start on the first page
+	currentSector[MantaCompositionLoad] = startingSector[MantaCompositionLoad];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MantaCompositionLoad] = 0; //start on the first page
 	
-	pages_left_to_load_comp = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_load_comp = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
-	mantaCompositionLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pages_left[MantaCompositionLoad] = NUM_PAGES_PER_COMPOSITION_BANK; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[MantaCompositionLoad] = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
+	pending[MantaCompositionLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
 void continueLoadingMantaCompositionsFromExternalMemory(void)
 {
-	if (pages_left_to_load_comp > 0)
+	if (pages_left[MantaCompositionLoad] > 0)
 	{
-		memorySPIRead(currentSectorLoadingComp,  (currentPageLoadingComp % NUM_PAGES_PER_SECTOR) , &memoryInternalCompositionBuffer[whichInstCompositions][currentPageLoadingComp*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIRead(currentSector[MantaCompositionLoad],  (currentPage[MantaCompositionLoad] % NUM_PAGES_PER_SECTOR) , &memoryInternalCompositionBuffer[whichInstCompositions][currentPage[MantaCompositionLoad]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		if (!resetLoader)
 		{
-			bytes_left_to_load_comp -= NUM_BYTES_PER_PAGE;
+			bytes_left[MantaCompositionLoad] -= NUM_BYTES_PER_PAGE;
 		
 			//update variables for next round
-			currentPageLoadingComp++;
-			pages_left_to_load_comp--;
-			currentSectorLoadingComp = (startingSectorLoadingComp + (uint16_t)(currentPageLoadingComp / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+			currentPage[MantaCompositionLoad]++;
+			pages_left[MantaCompositionLoad]--;
+			currentSector[MantaCompositionLoad] = startingSector[MantaCompositionLoad] + (currentPage[MantaCompositionLoad] / NUM_PAGES_PER_SECTOR); //increment the current Sector whenever currentPage wraps over 16
 		}
 		else
 		{
@@ -467,8 +436,12 @@ void continueLoadingMantaCompositionsFromExternalMemory(void)
 		else
 		{
 			//mark the load procedure as finished
-			mantaCompositionLoadPending = 0;
-			
+			if (sysexSend) 
+			{
+				sendSysexMessage(MantaPreset, presetToTransfer[MantaPresetLoad]);
+				sysexSend = FALSE;
+			}
+			pending[MantaCompositionLoad] = 0;
 			busy_loading_full_manta_preset = 0;
 		}
 	}
@@ -484,75 +457,88 @@ void continueLoadingMantaCompositionsFromExternalMemory(void)
 
 void initiateStoringMidiPresetToExternalMemory(void)
 {
-	startingSector = preset_to_save_num + MIDI_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will store it in
-	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPage = 0; //start on the first page
-	
-	midiPreset_encode(mantamate_internal_preset_buffer);
+	if(!inSysex)
+	{
+		midiPreset_encode(mantamate_internal_preset_buffer);
+		presetToTransfer[MidiPresetStore] = preset_to_save_num;
+	}
+	startingSector[MidiPresetStore] = (uint16_t)(presetToTransfer[MidiPresetStore] + MIDI_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will store it in
+	currentSector[MidiPresetStore] = startingSector[MidiPresetStore];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MidiPresetStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
 
-	pages_left_to_transfer = NUM_PAGES_PER_MIDI_PRESET; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_transfer = NUM_BYTES_PER_MIDI_PRESET;
-	memorySPIEraseSector(currentSector);
+	pages_left[MidiPresetStore] = NUM_PAGES_PER_MIDI_PRESET; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[MidiPresetStore] = NUM_BYTES_PER_MIDI_PRESET;
+	memorySPIEraseSector(currentSector[MidiPresetStore]);
 	
-	midiSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pending[MidiPresetStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 
 void continueStoringMidiPresetToExternalMemory(void)
 {
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[MidiPresetStore] > 0)
 	{
-		memorySPIWrite(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIWrite(currentSector[MidiPresetStore],  (currentPage[MidiPresetStore] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[MidiPresetStore]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		bytes_left[MidiPresetStore] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[MidiPresetStore]++;
+		pages_left[MidiPresetStore]--;
+		currentSector[MidiPresetStore] = (uint16_t)((startingSector[MidiPresetStore] + (uint16_t)(currentPage[MidiPresetStore] / NUM_PAGES_PER_SECTOR))); //increment the current Sector whenever currentPage[MidiPresetStore] wraps over 16
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		midiSavePending = 0;
+		if (sysexSend) sysexSend = FALSE;
+		pending[MidiPresetStore] = 0;
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
 void initiateLoadingMidiPresetFromExternalMemory(void)
 {
-	startingSector = preset_num + MIDI_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will load from
-	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPage = 0; //start on the first page
+	if (!sysexSend) presetToTransfer[MidiPresetLoad] = preset_num;
+	startingSector[MidiPresetLoad] = (uint16_t)(presetToTransfer[MidiPresetLoad] + MIDI_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will load from
+	currentSector[MidiPresetLoad] = startingSector[MidiPresetLoad];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[MidiPresetLoad] = 0; //start on the first page
 	
-	pages_left_to_transfer = NUM_PAGES_PER_MIDI_PRESET; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_transfer = NUM_BYTES_PER_MIDI_PRESET;
-	midiLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pages_left[MidiPresetLoad] = NUM_PAGES_PER_MIDI_PRESET; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[MidiPresetLoad] = NUM_BYTES_PER_MIDI_PRESET;
+	pending[MidiPresetLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 	
 }
 
 void continueLoadingMidiPresetFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[MidiPresetLoad] > 0)
 	{
-		memorySPIRead(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIRead(currentSector[MidiPresetLoad],  (currentPage[MidiPresetLoad] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[MidiPresetLoad]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		bytes_left[MidiPresetLoad] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[MidiPresetLoad]++;
+		pages_left[MidiPresetLoad]--;
+		currentSector[MidiPresetLoad] = (uint16_t)((startingSector[MidiPresetLoad] + (uint16_t)(currentPage[MidiPresetLoad] / NUM_PAGES_PER_SECTOR))); //increment the current Sector whenever currentPage[MidiPresetLoad] wraps over 16
 	}
 
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		midiLoadPending = 0;
-		midiPreset_decode(mantamate_internal_preset_buffer);
+		pending[MidiPresetLoad] = 0;
+		if (sysexSend)
+		{
+			sendSysexMessage(MidiPreset, presetToTransfer[MidiPresetLoad]);
+			sysexSend = FALSE;
+		}
+		else 
+		{
+			midiPreset_decode(mantamate_internal_preset_buffer);
+		}
 	}
 }
 
@@ -561,19 +547,22 @@ void continueLoadingMidiPresetFromExternalMemory(void)
 
 void initiateStoringNoDevicePresetToExternalMemory(void)
 {
-	startingSector = preset_to_save_num + NODEVICE_PRESET_STARTING_SECTOR;  // * 16 to get the sector number we will store it in
-	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPage = 0; //start on the first page
-	
-	noDevicePreset_encode(mantamate_internal_preset_buffer);
+	if(!inSysex)
+	{
+		noDevicePreset_encode(mantamate_internal_preset_buffer);
+		presetToTransfer[NoDevicePresetStore] = preset_to_save_num;
+	}
+	startingSector[NoDevicePresetStore] = (uint16_t)(presetToTransfer[NoDevicePresetStore] + NODEVICE_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will store it in
+	currentSector[NoDevicePresetStore] = startingSector[NoDevicePresetStore];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[NoDevicePresetStore] = 0; //start on the first page	
 	
 	//start by erasing the memory in the location we want to store
 
-	pages_left_to_transfer = NUM_PAGES_PER_NODEVICE_PRESET; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_transfer = NUM_BYTES_PER_NODEVICE_PRESET;
-	memorySPIEraseSector(currentSector);
+	pages_left[NoDevicePresetStore] = NUM_PAGES_PER_NODEVICE_PRESET; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[NoDevicePresetStore] = NUM_BYTES_PER_NODEVICE_PRESET;
+	memorySPIEraseSector(currentSector[NoDevicePresetStore]);
 	
-	noDeviceSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pending[NoDevicePresetStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 
@@ -581,56 +570,66 @@ void continueStoringNoDevicePresetToExternalMemory(void)
 {
 
 	//if there aren't sectors left to erase, but there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[NoDevicePresetStore] > 0)
 	{
-		memorySPIWrite(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIWrite(currentSector[NoDevicePresetStore],  (currentPage[NoDevicePresetStore] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[NoDevicePresetStore]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		bytes_left[NoDevicePresetStore] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[NoDevicePresetStore]++;
+		pages_left[NoDevicePresetStore]--;
+		currentSector[NoDevicePresetStore] = (uint16_t)((startingSector[NoDevicePresetStore] + (uint16_t)(currentPage[NoDevicePresetStore] / NUM_PAGES_PER_SECTOR))); //increment the current Sector whenever currentPage[NoDevicePresetStore] wraps over 16
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		noDeviceSavePending = 0;
+		if (sysexSend) sysexSend = FALSE;
+		pending[NoDevicePresetStore] = 0;
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
 void initiateLoadingNoDevicePresetFromExternalMemory(void)
 {
-	startingSector = (preset_num + NODEVICE_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will load from
-	currentSector = startingSector;  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
-	currentPage = 0; //start on the first page
+	if (!sysexSend) presetToTransfer[NoDevicePresetLoad] = preset_num;
+	startingSector[NoDevicePresetLoad] = (uint16_t)(presetToTransfer[NoDevicePresetLoad] + NODEVICE_PRESET_STARTING_SECTOR);  // * 16 to get the sector number we will load from
+	currentSector[NoDevicePresetLoad] = startingSector[NoDevicePresetLoad];  // this is the same, but we'll increment it in the erase loop while we want to keep the memory of the original value
+	currentPage[NoDevicePresetLoad] = 0; //start on the first page
 	
-	pages_left_to_transfer = NUM_PAGES_PER_NODEVICE_PRESET; //set the variable for the total number of pages to count down from while we store them
-	bytes_left_to_transfer = NUM_BYTES_PER_NODEVICE_PRESET;
-	noDeviceLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pages_left[NoDevicePresetLoad] = NUM_PAGES_PER_NODEVICE_PRESET; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[NoDevicePresetLoad] = NUM_BYTES_PER_NODEVICE_PRESET;
+	pending[NoDevicePresetLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 	
 }
 
 void continueLoadingNoDevicePresetFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[NoDevicePresetLoad] > 0)
 	{
-		memorySPIRead(currentSector,  (currentPage % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
+		memorySPIRead(currentSector[NoDevicePresetLoad],  (currentPage[NoDevicePresetLoad] % NUM_PAGES_PER_SECTOR) ,  &mantamate_internal_preset_buffer[currentPage[NoDevicePresetLoad]*NUM_BYTES_PER_PAGE], NUM_BYTES_PER_PAGE);
 		
-		bytes_left_to_transfer -= NUM_BYTES_PER_PAGE;
+		bytes_left[NoDevicePresetLoad] -= NUM_BYTES_PER_PAGE;
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		currentSector = (startingSector + (uint16_t)(currentPage / NUM_PAGES_PER_SECTOR)); //increment the current Sector whenever currentPage wraps over 16
+		currentPage[NoDevicePresetLoad]++;
+		pages_left[NoDevicePresetLoad]--;
+		currentSector[NoDevicePresetLoad] = (uint16_t)((startingSector[NoDevicePresetLoad] + (uint16_t)(currentPage[NoDevicePresetLoad] / NUM_PAGES_PER_SECTOR))); //increment the current Sector whenever currentPage[NoDevicePresetLoad] wraps over 16
 	}
 
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		noDeviceLoadPending = 0;
-  		noDevicePreset_decode(mantamate_internal_preset_buffer);
+		pending[NoDevicePresetLoad] = 0;
+		if (sysexSend)
+		{
+			sendSysexMessage(NoDevicePreset, presetToTransfer[NoDevicePresetLoad]);
+			sysexSend = FALSE;
+		}
+		else
+		{
+			noDevicePreset_decode(mantamate_internal_preset_buffer);
+		}
 	}
 }
 
@@ -638,89 +637,89 @@ void continueLoadingNoDevicePresetFromExternalMemory(void)
 
 // tuning saving and loading
 
-void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save)
+void initiateStoringTuningToExternalMemory(void)
 {
-	currentSector = tuning_num_to_save + TUNING_STARTING_SECTOR;  // user tuning 1-99 are sectors 1601-1699
-	currentPage = 0; //start on the first page
+	currentSector[TuningStore] = presetToTransfer[TuningStore] + TUNING_STARTING_SECTOR;  // user tuning 1-99 are sectors 1601-1699
+	currentPage[TuningStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
 	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the tuning data
-	pages_left_to_transfer = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
-	numTuningBytesRemaining_toSend =  TUNING_8BIT_BUFFER_SIZE;
-	memorySPIEraseSector(currentSector); //we only need to erase one sector per tuning
-	tuningSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pages_left[TuningStore] = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[TuningStore] =  TUNING_8BIT_BUFFER_SIZE;
+	memorySPIEraseSector(currentSector[TuningStore]); //we only need to erase one sector per tuning
+	pending[TuningStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 void continueStoringTuningToExternalMemory(void)
 {
 	//if there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[TuningStore] > 0)
 	{
 		uint16_t numTuningBytesToSend;
 		
-		if (numTuningBytesRemaining_toSend > 256)
+		if (bytes_left[TuningStore] > 256)
 		{
 			numTuningBytesToSend = 256;
 		}
 		else
 		{
-			numTuningBytesToSend = numTuningBytesRemaining_toSend;
+			numTuningBytesToSend = bytes_left[TuningStore];
 		}
 		
 		
-		memorySPIWrite(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], numTuningBytesToSend);
+		memorySPIWrite(currentSector[TuningStore], currentPage[TuningStore], &tuning8BitBuffer[currentPage[TuningStore]*256], numTuningBytesToSend);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numTuningBytesRemaining_toSend -= numTuningBytesToSend;
+		currentPage[TuningStore]++;
+		pages_left[TuningStore]--;
+		bytes_left[TuningStore] -= numTuningBytesToSend;
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		tuningSavePending = 0;
+		pending[TuningStore] = 0;
 		sendSysexSaveConfim(); //let the computer know that the save completed correctly
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
-void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load)
+void initiateLoadingTuningFromExternalMemory(void)
 {
-	currentSector = tuning_to_load + TUNING_STARTING_SECTOR;  // set sector to the location of the tuning we want to load
-	currentPage = 0; //start on the first page
-	numTuningBytesRemaining_toGet = TUNING_8BIT_BUFFER_SIZE;
-	pages_left_to_transfer = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	currentSector[TuningLoad] = presetToTransfer[TuningLoad] + TUNING_STARTING_SECTOR;  // set sector to the location of the tuning we want to load
+	currentPage[TuningLoad] = 0; //start on the first page
+	bytes_left[TuningLoad] = TUNING_8BIT_BUFFER_SIZE;
+	pages_left[TuningLoad] = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
 	continueLoadingTuningFromExternalMemory();
-	tuningLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pending[TuningLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
 
 void continueLoadingTuningFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[TuningLoad] > 0)
 	{
 		
 		uint16_t numTuningBytesToGet = 0;
-		if (numTuningBytesRemaining_toGet > 256)
+		if (bytes_left[TuningLoad] > 256)
 		{
 			numTuningBytesToGet = 256;
 		}
 		else
 		{
-			numTuningBytesToGet = numTuningBytesRemaining_toGet;
+			numTuningBytesToGet = bytes_left[TuningLoad];
 		}
 		
-		memorySPIRead(currentSector, currentPage, &tuning8BitBuffer[currentPage*256], numTuningBytesToGet);
+		memorySPIRead(currentSector[TuningLoad], currentPage[TuningLoad], &tuning8BitBuffer[currentPage[TuningLoad]*256], numTuningBytesToGet);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numTuningBytesRemaining_toGet -= numTuningBytesToGet;
+		currentPage[TuningLoad]++;
+		pages_left[TuningLoad]--;
+		bytes_left[TuningLoad] -= numTuningBytesToGet;
 	}
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		tuningLoadPending = 0;
+		pending[TuningLoad] = 0;
 		
 		uint16_t location_in_tuning_array = 0;	
 		uint32_t tempPitch = 0;
@@ -754,11 +753,12 @@ void continueLoadingTuningFromExternalMemory(void)
 
 void initiateStoringStartupStateToExternalMemory(void)
 {
+	presetToTransfer[StartupStateStore] = preset_num;
 	//start by erasing the memory in the location we want to store
-	pages_left_to_transfer = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
+	pages_left[StartupStateStore] = NUM_PAGES_PER_TUNING; //set the variable for the total number of pages to count down from while we store them
 	memorySPIEraseSector(STARTUP_STATE_SECTOR); //we only need to erase one sector per tuning
-	startupStateSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
-	tempPreset[0] = preset_num;
+	pending[StartupStateStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	tempPreset[0] = presetToTransfer[StartupStateStore];
 	tempPreset[1] = 125;
 	tempPreset[2] = 200;
 	tempPreset[3] = 201;
@@ -768,19 +768,19 @@ void continueStoringStartupStateToExternalMemory(void)
 {
 	memorySPIWrite(STARTUP_STATE_SECTOR, 0, tempPreset, 8);
 	//mark the save procedure as finished
-	startupStateSavePending = 0;
+	pending[StartupStateStore] = 0;
 }	
 
 
 void loadStartupStateFromExternalMemory(void)
 {
 	memorySPIRead(STARTUP_STATE_SECTOR, 0, tempPreset, 8);
-	startupStateLoadPending = 1;
+	pending[StartupStateLoad] = 1;
 }
 
 void continueLoadingStartupStateFromExternalMemory(void)
 {
-	startupStateLoadPending = 0;
+	pending[StartupStateLoad] = 0;
 	preset_num = tempPreset[0];
 	updatePreset();
 	Write7Seg(preset_num);
@@ -794,86 +794,86 @@ void continueLoadingStartupStateFromExternalMemory(void)
 
 void initiateStoringHexmapToExternalMemory(uint8_t hexmap_num_to_save)
 {
-	currentSector = hexmap_num_to_save + HEXMAP_STARTING_SECTOR;  // user hexmap 1-99 are sectors 1701-1799
-	currentPage = 0; //start on the first page
+	currentSector[HexmapStore] = hexmap_num_to_save + HEXMAP_STARTING_SECTOR;  // user hexmap 1-99 are sectors 1701-1799
+	currentPage[HexmapStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
 	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the hemxap data
-	pages_left_to_transfer = NUM_PAGES_PER_HEXMAP; //set the variable for the total number of pages to count down from while we store them
-	numHexmapBytesRemaining_toSend =  NUM_BYTES_PER_HEXMAP;
-	memorySPIEraseSector(currentSector); //we only need to erase one sector per hexmap
-	hexmapSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pages_left[HexmapStore] = NUM_PAGES_PER_HEXMAP; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[HexmapStore] =  NUM_BYTES_PER_HEXMAP;
+	memorySPIEraseSector(currentSector[HexmapStore]); //we only need to erase one sector per hexmap
+	pending[HexmapStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 void continueStoringHexmapToExternalMemory(void)
 {
 	//if there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[HexmapStore] > 0)
 	{
 		uint16_t numHexmapBytesToSend;
 		
-		if (numHexmapBytesRemaining_toSend > 256)
+		if (bytes_left[HexmapStore] > 256)
 		{
 			numHexmapBytesToSend = 256;
 		}
 		else
 		{
-			numHexmapBytesToSend = numHexmapBytesRemaining_toSend;
+			numHexmapBytesToSend = bytes_left[HexmapStore];
 		}
 		
 		
-		memorySPIWrite(currentSector, currentPage, &hexmapBuffer[currentPage*256], numHexmapBytesToSend);
+		memorySPIWrite(currentSector[HexmapStore], currentPage[HexmapStore], &hexmapBuffer[currentPage[HexmapStore]*256], numHexmapBytesToSend);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numHexmapBytesRemaining_toSend -= numHexmapBytesToSend;
+		currentPage[HexmapStore]++;
+		pages_left[HexmapStore]--;
+		bytes_left[HexmapStore] -= numHexmapBytesToSend;
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		hexmapSavePending = 0;
+		pending[HexmapStore] = 0;
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
 void initiateLoadingHexmapFromExternalMemory(uint8_t hexmap_to_load)
 {
-	currentSector = hexmap_to_load + HEXMAP_STARTING_SECTOR;  // set sector to the location of the hexmap we want to load
-	currentPage = 0; //start on the first page
-	numHexmapBytesRemaining_toGet = NUM_BYTES_PER_HEXMAP;
-	pages_left_to_transfer = NUM_PAGES_PER_HEXMAP; //set the variable for the total number of pages to count down from while we store them
+	currentSector[HexmapLoad] = hexmap_to_load + HEXMAP_STARTING_SECTOR;  // set sector to the location of the hexmap we want to load
+	currentPage[HexmapLoad] = 0; //start on the first page
+	bytes_left[HexmapLoad] = NUM_BYTES_PER_HEXMAP;
+	pages_left[HexmapLoad] = NUM_PAGES_PER_HEXMAP; //set the variable for the total number of pages to count down from while we store them
 	continueLoadingHexmapFromExternalMemory();
-	hexmapLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pending[HexmapLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
 
 void continueLoadingHexmapFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[HexmapLoad] > 0)
 	{
 		
 		uint16_t numHexmapBytesToGetNow = 0;
-		if (numHexmapBytesRemaining_toGet > 256)
+		if (bytes_left[HexmapLoad] > 256)
 		{
 			numHexmapBytesToGetNow = 256;
 		}
 		else
 		{
-			numHexmapBytesToGetNow = numHexmapBytesRemaining_toGet;
+			numHexmapBytesToGetNow = bytes_left[HexmapLoad];
 		}
 		
-		memorySPIRead(currentSector, currentPage, &hexmapBuffer[currentPage*256], numHexmapBytesToGetNow);
+		memorySPIRead(currentSector[HexmapLoad], currentPage[HexmapLoad], &hexmapBuffer[currentPage[HexmapLoad]*256], numHexmapBytesToGetNow);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numHexmapBytesRemaining_toGet -= numHexmapBytesToGetNow;
+		currentPage[HexmapLoad]++;
+		pages_left[HexmapLoad]--;
+		bytes_left[HexmapLoad] -= numHexmapBytesToGetNow;
 	}
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		hexmapLoadPending = 0;
+		pending[HexmapLoad] = 0;
 		
 		tKeyboard_hexmapDecode(hexmapEditKeyboard, hexmapBuffer);
 	}
@@ -882,86 +882,86 @@ void continueLoadingHexmapFromExternalMemory(void)
 // Direct saving and loading
 void initiateStoringDirectToExternalMemory(uint8_t direct_num_to_save)
 {
-	currentSector = direct_num_to_save + DIRECT_STARTING_SECTOR;  // user direct 1-99 are sectors 1701-1799
-	currentPage = 0; //start on the first page
+	currentSector[DirectStore] = direct_num_to_save + DIRECT_STARTING_SECTOR;  // user direct 1-99 are sectors 1701-1799
+	currentPage[DirectStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
 	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the hemxap data
-	pages_left_to_transfer = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
-	numDirectBytesRemaining_toSend =  NUM_BYTES_PER_DIRECT;
-	memorySPIEraseSector(currentSector); //we only need to erase one sector per direct
-	directSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pages_left[DirectStore] = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[DirectStore] =  NUM_BYTES_PER_DIRECT;
+	memorySPIEraseSector(currentSector[DirectStore]); //we only need to erase one sector per direct
+	pending[DirectStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 void continueStoringDirectToExternalMemory(void)
 {
 	//if there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[DirectStore] > 0)
 	{
 		uint16_t numDirectBytesToSend;
 		
-		if (numDirectBytesRemaining_toSend > 256)
+		if (bytes_left[DirectStore] > 256)
 		{
 			numDirectBytesToSend = 256;
 		}
 		else
 		{
-			numDirectBytesToSend = numDirectBytesRemaining_toSend;
+			numDirectBytesToSend = bytes_left[DirectStore];
 		}
 		
 		
-		memorySPIWrite(currentSector, currentPage, &directBuffer[currentPage*256], numDirectBytesToSend);
+		memorySPIWrite(currentSector[DirectStore], currentPage[DirectStore], &directBuffer[currentPage[DirectStore]*256], numDirectBytesToSend);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numDirectBytesRemaining_toSend -= numDirectBytesToSend;
+		currentPage[DirectStore]++;
+		pages_left[DirectStore]--;
+		bytes_left[DirectStore] -= numDirectBytesToSend;
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		directSavePending = 0;
+		pending[DirectStore] = 0;
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
 void initiateLoadingDirectFromExternalMemory(uint8_t direct_to_load)
 {
-	currentSector = direct_to_load + DIRECT_STARTING_SECTOR;  // set sector to the location of the direct we want to load
-	currentPage = 0; //start on the first page
-	numDirectBytesRemaining_toGet = NUM_BYTES_PER_DIRECT;
-	pages_left_to_transfer = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
+	currentSector[DirectLoad] = direct_to_load + DIRECT_STARTING_SECTOR;  // set sector to the location of the direct we want to load
+	currentPage[DirectLoad] = 0; //start on the first page
+	bytes_left[DirectLoad] = NUM_BYTES_PER_DIRECT;
+	pages_left[DirectLoad] = NUM_PAGES_PER_DIRECT; //set the variable for the total number of pages to count down from while we store them
 	continueLoadingDirectFromExternalMemory();
-	directLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pending[DirectLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
 
 void continueLoadingDirectFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[DirectLoad] > 0)
 	{
 		
 		uint16_t numDirectBytesToGetNow = 0;
-		if (numDirectBytesRemaining_toGet > 256)
+		if (bytes_left[DirectLoad] > 256)
 		{
 			numDirectBytesToGetNow = 256;
 		}
 		else
 		{
-			numDirectBytesToGetNow = numDirectBytesRemaining_toGet;
+			numDirectBytesToGetNow = bytes_left[DirectLoad];
 		}
 		
-		memorySPIRead(currentSector, currentPage, &directBuffer[currentPage*256], numDirectBytesToGetNow);
+		memorySPIRead(currentSector[DirectLoad], currentPage[DirectLoad], &directBuffer[currentPage[DirectLoad]*256], numDirectBytesToGetNow);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numDirectBytesRemaining_toGet -= numDirectBytesToGetNow;
+		currentPage[DirectLoad]++;
+		pages_left[DirectLoad]--;
+		bytes_left[DirectLoad] -= numDirectBytesToGetNow;
 	}
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		directLoadPending = 0;
+		pending[DirectLoad] = 0;
 		
 		tDirect_decode(editDirect, directBuffer);
 		
@@ -980,87 +980,87 @@ void continueLoadingDirectFromExternalMemory(void)
 // Sequencer saving and loading
 void initiateStoringSequencerToExternalMemory(uint8_t sequencer_num_to_save)
 {
-	currentSector = sequencer_num_to_save + SEQUENCER_STARTING_SECTOR;  // user sequencer 1-99 are sectors 1701-1799
-	currentPage = 0; //start on the first page
+	currentSector[SequencerStore] = sequencer_num_to_save + SEQUENCER_STARTING_SECTOR;  // user sequencer 1-99 are sectors 1701-1799
+	currentPage[SequencerStore] = 0; //start on the first page
 	
 	//start by erasing the memory in the location we want to store
 	LED_On(PRESET_SAVE_LED); //make the light momentarily turn red so that there's some physical feedback about the MantaMate receiving the hemxap data
-	pages_left_to_transfer = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
-	numSequencerBytesRemaining_toSend =  NUM_BYTES_PER_SEQUENCER*2;
-	memorySPIEraseSector(currentSector); //we only need to erase one sector per sequencer
-	sequencerSavePending = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
+	pages_left[SequencerStore] = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
+	bytes_left[SequencerStore] =  NUM_BYTES_PER_SEQUENCER*2;
+	memorySPIEraseSector(currentSector[SequencerStore]); //we only need to erase one sector per sequencer
+	pending[SequencerStore] = 1; //tell the rest of the system that we are in the middle of a save, need to keep checking until it's finished.
 }
 
 void continueStoringSequencerToExternalMemory(void)
 {
 	//if there are bytes to store, write those bytes!
-	if (pages_left_to_transfer > 0)
+	if (pages_left[SequencerStore] > 0)
 	{
 		uint16_t numSequencerBytesToSend;
 		
-		if (numSequencerBytesRemaining_toSend > 256)
+		if (bytes_left[SequencerStore] > 256)
 		{
 			numSequencerBytesToSend = 256;
 		}
 		else
 		{
-			numSequencerBytesToSend = numSequencerBytesRemaining_toSend;
+			numSequencerBytesToSend = bytes_left[SequencerStore];
 		}
 		
 		
-		memorySPIWrite(currentSector, currentPage, &sequencerBuffer[currentPage*256], numSequencerBytesToSend);
+		memorySPIWrite(currentSector[SequencerStore], currentPage[SequencerStore], &sequencerBuffer[currentPage[SequencerStore]*256], numSequencerBytesToSend);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numSequencerBytesRemaining_toSend -= numSequencerBytesToSend;
+		currentPage[SequencerStore]++;
+		pages_left[SequencerStore]--;
+		bytes_left[SequencerStore] -= numSequencerBytesToSend;
 	}
 	else //otherwise save is done!
 	{
 		//mark the save procedure as finished
-		sequencerSavePending = 0;
+		pending[SequencerStore] = 0;
 		LED_Off(PRESET_SAVE_LED);
 	}
 }
 
 void initiateLoadingSequencerFromExternalMemory(uint8_t sequencer_to_load)
 {
-	currentSector = sequencer_to_load + SEQUENCER_STARTING_SECTOR;  // set sector to the location of the sequencer we want to load
-	currentPage = 0; //start on the first page
-	numSequencerBytesRemaining_toGet = NUM_BYTES_PER_SEQUENCER*2;
-	pages_left_to_transfer = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
+	currentSector[SequencerLoad] = sequencer_to_load + SEQUENCER_STARTING_SECTOR;  // set sector to the location of the sequencer we want to load
+	currentPage[SequencerLoad] = 0; //start on the first page
+	bytes_left[SequencerLoad] = NUM_BYTES_PER_SEQUENCER*2;
+	pages_left[SequencerLoad] = NUM_PAGES_PER_SEQUENCER*2; //set the variable for the total number of pages to count down from while we store them
 	LED_On(PRESET_SAVE_LED); 
 	continueLoadingSequencerFromExternalMemory();
-	sequencerLoadPending = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
+	pending[SequencerLoad] = 1; //tell the rest of the system that we are in the middle of a load, need to keep checking until it's finished.
 }
 
 
 void continueLoadingSequencerFromExternalMemory(void)
 {
-	if (pages_left_to_transfer > 0)
+	if (pages_left[SequencerLoad] > 0)
 	{
 		
 		uint16_t numSequencerBytesToGetNow = 0;
-		if (numSequencerBytesRemaining_toGet > 256)
+		if (bytes_left[SequencerLoad] > 256)
 		{
 			numSequencerBytesToGetNow = 256;
 		}
 		else
 		{
-			numSequencerBytesToGetNow = numSequencerBytesRemaining_toGet;
+			numSequencerBytesToGetNow = bytes_left[SequencerLoad];
 		}
 		
-		memorySPIRead(currentSector, currentPage, &sequencerBuffer[currentPage*256], numSequencerBytesToGetNow);
+		memorySPIRead(currentSector[SequencerLoad], currentPage[SequencerLoad], &sequencerBuffer[currentPage[SequencerLoad]*256], numSequencerBytesToGetNow);
 		
 		//update variables for next round
-		currentPage++;
-		pages_left_to_transfer--;
-		numSequencerBytesRemaining_toGet -= numSequencerBytesToGetNow;
+		currentPage[SequencerLoad]++;
+		pages_left[SequencerLoad]--;
+		bytes_left[SequencerLoad] -= numSequencerBytesToGetNow;
 	}
 	else //otherwise load is done!
 	{
 		//mark the load procedure as finished
-		sequencerLoadPending = 0;
+		pending[SequencerLoad] = 0;
 		LED_Off(PRESET_SAVE_LED); 
 		
 		tSequencer_decode(&manta[whichCompositionInstrument].sequencer, &sequencerBuffer[whichCompositionInstrument*NUM_BYTES_PER_SEQUENCER]);

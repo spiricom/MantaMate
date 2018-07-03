@@ -183,6 +183,8 @@ void ui_my_midi_receive(void);
 
 void ui_my_midi_send(void);
 
+void ui_my_sysex_send(iram_size_t size);
+
 /*! \brief This process is called each 1ms
  * It is called only if the USB interface is enabled.
  *

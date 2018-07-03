@@ -48,7 +48,6 @@ void resetEditStack(void);
 typedef enum MantaMateState
 {
 	DefaultMode=0,
-	
 	PreferenceOne,
 	PreferenceTwo,
 	PreferenceThree,
@@ -181,9 +180,6 @@ int currentTuningHex;
 
 int subtleInterval;
 
-int mantaCompositionSavePending;
-int mantaCompositionLoadPending;
-
 int MPE_mode;
 
 #define NUM_BYTES_PER_PAGE 256
@@ -224,7 +220,7 @@ int MPE_mode;
 #define STARTUP_STATE_SECTOR 2020
 
 
-uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 19456 //now 2560
+uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 19456 //now 2816
 
 #define GLOBALS_BYTE_ADDRESS 0
 
@@ -242,12 +238,40 @@ uint8_t mantamate_internal_preset_buffer[NUM_BYTES_PER_MANTA_PRESET]; //was 1945
 #define COMPOSITIONBANK1_BYTE_ADDRESS (SEQUENCER2_BYTE_ADDRESS + NUM_BYTES_PER_SEQUENCER)
 #define COMPOSITIONBANK2_BYTE_ADDRESS (COMPOSITIONBANK1_BYTE_ADDRESS + NUM_BYTES_PER_COMPOSITION_BANK)
 
+#define NUM_TRANSFER_TYPES 19
+
 extern uint8_t encodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
 extern uint8_t decodeBuffer[NUM_INST][NUM_BYTES_PER_SEQUENCER];
 extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP];
 
-
 tMantaInstrument manta[NUM_INST];
+
+extern uint8_t presetToTransfer[NUM_TRANSFER_TYPES];
+extern BOOL sysexSend;
+
+typedef enum DataTransferType
+{
+	MantaPresetStore = 0,
+	MantaPresetLoad,
+	MantaCompositionStore,
+	MantaCompositionLoad,
+	MidiPresetStore,
+	MidiPresetLoad,
+	NoDevicePresetStore,
+	NoDevicePresetLoad,
+	StartupStateStore,
+	StartupStateLoad,
+	HexmapStore,
+	HexmapLoad,
+	DirectStore,
+	DirectLoad,
+	SequencerStore,
+	SequencerLoad,
+	TuningStore,
+	TuningLoad,
+	DataTransferTypeNil
+} DataTransferType;
+
 // - - - - - - - - - - - - - - - - - - - - -
 
 void mantaPreset_encode(uint8_t* buffer);
@@ -391,6 +415,8 @@ unsigned char tuningLoading;
 TuningOrLearnType tuningOrLearn;
 uint8_t currentNumberToMIDILearn;
 
+extern BOOL sysexSend;
+
 // UI
 void touchKeyboardHex(int hex, uint8_t weight);
 void releaseKeyboardHex(int hex);
@@ -422,9 +448,8 @@ void releaseBottomRightButton	(void);
 void allUIStepsOff(MantaInstrument inst);
 void uiOff(void);
 
-
+void initMantaInstruments(void);
 void initMantaLEDState(void);
-
 
 void setCurrentInstrument(MantaInstrument inst);
 

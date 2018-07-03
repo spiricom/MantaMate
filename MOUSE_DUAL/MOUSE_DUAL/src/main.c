@@ -62,11 +62,16 @@
 #define VIRTUALMEM_ADDR_START 0x123456    // Address of the virtual memory in the EEPROM
 #define TWI_SPEED             100000       // Speed of TWI  //was 100000 in my later example-JS
 
+#define DIRECT_MODE_STAGGERED_NUM 4
+#define DIRECT_MODE_STAGGERED_NUM_MAX 48 / DIRECT_MODE_STAGGERED_NUM
+
 static void initSPIbus(void);
 static void setDACSPI(spi_options_t spiOptions);
 static void setMemorySPI(spi_options_t spiOptions);
 
 int defaultTuningMap[8] = {0,1,2,3,4,5,6,7};
+uint8_t directModeStaggeredOutCount = 0;
+
 	
 MantaMateState states[NUM_PMENUS][NUM_SMENUS] =
 {
@@ -188,9 +193,6 @@ static uint32_t buttonFrameCounter = 0;
 static uint32_t buttonHoldSpeed = 120;
 static uint32_t blink7SegCounter = 0;
 static uint32_t blinkSpeed7Seg = 500;
-
-int mantaCompositionSavePending = 0;
-int mantaCompositionLoadPending = 0;
 
 DPadStyleType dPadStyle = asButtons;
 
@@ -384,142 +386,133 @@ int main(void){
 	normal_7seg_number = 0;
 	// The USB management is entirely managed by interrupts.
 	
-	tKeyboard_init(&manta[InstrumentOne].keyboard, 1, (firstEdition ? Amber : Red));
-	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
-	tKeyboard_init(&fullKeyboard, 2, (firstEdition ? Amber : Red));
-	
-	tDirect_init(&manta[InstrumentOne].direct, 6);
-	tDirect_init(&manta[InstrumentTwo].direct, 6);
-	tDirect_init(&fullDirect, 12);
-	
-	tSequencer_init(&manta[InstrumentOne].sequencer, PitchMode, MAX_STEPS);
-	tSequencer_init(&manta[InstrumentTwo].sequencer, PitchMode, MAX_STEPS);
+	initMantaInstruments();
 	
 	loadStartupStateFromExternalMemory();
 	
 	while (true) {	
 
 		//currently putting low priority things like this in the main loop, as it should be the most background processes
-		if (mantaSavePending)
+		if (pending[MantaPresetStore])//mantaSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringMantaPresetToExternalMemory();
 			}
 		}
-		else if (mantaCompositionSavePending)
+		else if (pending[MantaCompositionStore])//mantaCompositionSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringMantaCompositionsToExternalMemory();
 			}
 		}
-		else if (midiSavePending)
+		else if (pending[MidiPresetStore])//midiSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringMidiPresetToExternalMemory();
 			}
 		}
-		else if (noDeviceSavePending)
+		else if (pending[NoDevicePresetStore])//noDeviceSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringNoDevicePresetToExternalMemory();
 			}
 		}
-		else if (tuningSavePending)
+		else if (pending[TuningStore])//tuningSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringTuningToExternalMemory();
 			}
 		}
-		else if (hexmapSavePending)
+		else if (pending[HexmapStore])//hexmapSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringHexmapToExternalMemory();
 			}
 		}
-		else if (directSavePending)
+		else if (pending[DirectStore])//directSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringDirectToExternalMemory();
 			}
 		}
-		else if (sequencerSavePending)
+		else if (pending[SequencerStore])//sequencerSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringSequencerToExternalMemory();
 			}
 		}
-		else if (startupStateSavePending)
+		else if (pending[StartupStateStore])//startupStateSavePending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueStoringStartupStateToExternalMemory();
 			}
 		}
-		else if (mantaLoadPending)
+		else if (pending[MantaPresetLoad])//mantaLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingMantaPresetFromExternalMemory();
 			}
 		}
-		else if (mantaCompositionLoadPending)
+		else if (pending[MantaCompositionLoad])//mantaCompositionLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingMantaCompositionsFromExternalMemory();
 			}
 		}
-		else if (midiLoadPending)
+		else if (pending[MidiPresetLoad])//midiLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingMidiPresetFromExternalMemory();
 			}
 		}
-		else if (noDeviceLoadPending)
+		else if (pending[NoDevicePresetLoad])//noDeviceLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingNoDevicePresetFromExternalMemory();
 			}
 		}
-		else if (tuningLoadPending)
+		else if (pending[TuningLoad])//tuningLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingTuningFromExternalMemory();
 			}
 		}
-		else if (hexmapLoadPending)
+		else if (pending[HexmapLoad])//hexmapLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingHexmapFromExternalMemory();
 			}
 		}
-		else if (directLoadPending)
+		else if (pending[DirectLoad])//directLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingDirectFromExternalMemory();
 			}
 		}
-		else if (sequencerLoadPending)
+		else if (pending[SequencerLoad])//sequencerLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
 				continueLoadingSequencerFromExternalMemory();
 			}
 		}
-		else if (startupStateLoadPending)
+		else if (pending[StartupStateLoad])//startupStateLoadPending
 		{
 			if (!memorySPICheckIfBusy()) //if the memory is not busy - ready for new data or a new write routine
 			{
@@ -595,8 +588,8 @@ static void tc2_irq(void)
 		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling
 		if (upSwitch())
 		{	
-			if (preset_num < ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
-			{
+			//if (preset_num < ((type_of_device_connected == NoDeviceConnected) ? 49 : 99) || mm.state != DefaultMode)
+			//{
 				buttonFrameCounter++;
 				if (buttonFrameCounter > buttonHoldSpeed)
 				{
@@ -608,7 +601,7 @@ static void tc2_irq(void)
 					}
 				buttonFrameCounter = 0;
 				}
-			}
+			//}
 		}
 		else
 		{
@@ -625,20 +618,20 @@ static void tc2_irq(void)
 	
 		if (downSwitch())
 		{
-			if (preset_num > 0)
+			//if (preset_num > 0 || mm.state != DefaultMode)   // prevents reloading if scanning down from 0, but causes bugs
+			//{
+			buttonFrameCounter++;
+			if (buttonFrameCounter > buttonHoldSpeed)
 			{
-				buttonFrameCounter++;
-				if (buttonFrameCounter > buttonHoldSpeed)
+				downHeld++;
+				if (downHeld > holdTimeThresh)
 				{
-					downHeld++;
-					if (downHeld > holdTimeThresh)
-					{
-						suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
-						Preset_Switch_Check(0);
-					}
-					buttonFrameCounter = 0;
-				}	
-			}
+					suspendRetrieve = DontRetrieve; //make it so it doesn't actually load the presets it's scrolling through until you release the button
+					Preset_Switch_Check(0);
+				}
+				buttonFrameCounter = 0;
+			}	
+			//}
 		}
 		else
 		{
@@ -728,18 +721,18 @@ static void tc2_irq(void)
 				for (int inst = 0; inst < 2; inst++)
 				{
 					tMantaInstrument* instrument = &manta[inst];
-			
+					int directScanOffset = directModeStaggeredOutCount * DIRECT_MODE_STAGGERED_NUM;
 					if (instrument->type == DirectInstrument) // DirectInstrument
 					{
-						for (int i = 0; i < 48; i++)
+						for (int i = 0; i < DIRECT_MODE_STAGGERED_NUM; i++)
 						{
-							DirectType type = instrument->direct.hexes[i].type;
-							int output = instrument->direct.hexes[i].output;
+							DirectType type = instrument->direct.hexes[i+directScanOffset].type;
+							int output = instrument->direct.hexes[i+directScanOffset].output;
 							if (type == DirectTrigger)
 							{
-								if (instrument->direct.hexes[i].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+								if (instrument->direct.hexes[i+directScanOffset].trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 								{
-									if (--(instrument->direct.hexes[i].trigCount) == 0)
+									if (--(instrument->direct.hexes[i+directScanOffset].trigCount) == 0)
 									{
 										sendDataToOutput(6*inst+output, 0, 0x0);
 									}
@@ -747,11 +740,17 @@ static void tc2_irq(void)
 							}
 							else if (type == DirectCV)
 							{
-								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i] << 8);
+								sendDataToOutput(6*inst+output, globalCVGlide, butt_states[i+directScanOffset] << 8);
+							}
+							directModeStaggeredOutCount++;
+							if(directModeStaggeredOutCount > DIRECT_MODE_STAGGERED_NUM_MAX)
+							{
+								directModeStaggeredOutCount = 0;
 							}
 						}	
 						
 					}
+					
 					else if (instrument->type == KeyboardInstrument)
 					{
 						if (instrument->keyboard.playMode == ArpMode)
@@ -1499,7 +1498,12 @@ static void updateTempo(void)
 	}
 	else
 	{
-		clock_speed = 0;
+		//only clear outputs when the clock is going from nonzero to zero (so it doesn't blip between external clock preset changes)
+		if(clock_speed != 0)
+		{
+			clock_speed = 0;
+			clearDACoutputs();
+		}
 	}
 }
 
@@ -1507,7 +1511,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 {
 	MantaMateState state = mm.state;
 	
-	if ((type_of_device_connected == MantaConnected) && displayState == UpDownSwitchBlock) return;
+	if ((type_of_device_connected == MantaConnected) && (displayState == PresetSwitchBlock && mm.state == DefaultMode)) return;
 		
 	//if no device is plugged in and this is the first up/down button press, then you are just trying to start nodevice mode
 	else if ((type_of_device_connected == NoDeviceConnected) && (no_device_mode_active == FALSE))
@@ -1803,6 +1807,18 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 					{
 						globalTuning = 99;
 					}
+					if (globalTuning <= 30)
+					{
+						currentTuningHex = globalTuning;
+					}
+					else 
+					{
+						currentTuningHex = 0;
+					}
+					if (shiftOption2 || shiftOption2Lock)
+					{
+						setTuningLEDs();
+					}
 					if (suspendRetrieve != DontRetrieve)
 					{
 						loadTuning(globalTuning);
@@ -1816,13 +1832,21 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			{
 				if (downSwitch())
 				{
-					if (globalTuning <= 0)
-					{
-						globalTuning = 0;
-					}
-					else
+					if (globalTuning > 0)
 					{
 						globalTuning--;
+					}
+					if (globalTuning <= 30)
+					{
+						currentTuningHex = globalTuning;
+					}
+					else 
+					{
+						currentTuningHex = 0;
+					}
+					if (shiftOption2 || shiftOption2Lock)
+					{
+						setTuningLEDs();
 					}
 					if (suspendRetrieve != DontRetrieve)
 					{
@@ -2240,7 +2264,7 @@ void clockHappened(void)
 	else if (type_of_device_connected == MIDIComputerConnected)
 	{
 		MIDIKeyboardStep();
-		midi_ext_gate_in();
+		if (!sysexSend) midi_ext_gate_in(); // Prevent clocks from being sent if the manta is trying to send preset data
 	}
 }
 
@@ -2584,11 +2608,24 @@ void readAllSwitches(void)
 		}
 	}
 }
+void initMantaInstruments(void) 
+{
+	tKeyboard_init(&manta[InstrumentOne].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&manta[InstrumentTwo].keyboard, 1, (firstEdition ? Amber : Red));
+	tKeyboard_init(&fullKeyboard, 2, (firstEdition ? Amber : Red));
+	
+	tDirect_init(&manta[InstrumentOne].direct, 6);
+	tDirect_init(&manta[InstrumentTwo].direct, 6);
+	tDirect_init(&fullDirect, 12);
+	
+	tSequencer_init(&manta[InstrumentOne].sequencer, PitchMode, MAX_STEPS);
+	tSequencer_init(&manta[InstrumentTwo].sequencer, PitchMode, MAX_STEPS);
+}
+
 
 void loadMantaPreset(void)
 {
-	loadTuning(globalTuning);
-	currentTuningHex = -1;
+	initMantaInstruments();
 	
 	if (preset_num < 10) clearDACoutputs();
 	
@@ -2632,6 +2669,8 @@ void loadMantaPreset(void)
 		initiateLoadingMantaPresetFromExternalMemory();
 	}
 	clearDACoutputs();
+	loadTuning(globalTuning);
+	currentTuningHex = -1;
 }
 
 void initMantaLEDState(void)
@@ -3232,8 +3271,11 @@ void sButtonPressed(tMantaMateState* s)
 {
 	s->sDown = true;
 	
-	s->S++;
-	
+	if (!(s->state == PreferenceOne && ((type_of_device_connected == MantaConnected) || (type_of_device_connected == JoystickConnected))))
+	{
+		s->S++;
+	}
+
 	if (s->S == NUM_SMENUS) s->S = 0;
 	
 	updateState(s);

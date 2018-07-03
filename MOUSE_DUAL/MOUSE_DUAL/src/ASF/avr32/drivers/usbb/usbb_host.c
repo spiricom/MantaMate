@@ -278,7 +278,8 @@ uint16_t uhd_ctrl_nb_trans;
 static bool uhd_b_suspend_requested;
 
 //! Bit definitions to store setup request state machine
-typedef enum {
+
+typedef enum uhd_ctrl_request_phase_t {
 	//! Wait a SETUP packet
 	UHD_CTRL_REQ_PHASE_SETUP = 0,
 

@@ -139,7 +139,7 @@ typedef enum GlobalDisplayState
 	HexmapSelect,
 	DirectSelect,
 	SequencerSelect,
-	UpDownSwitchBlock,
+	PresetSwitchBlock,
 	GlobalDisplayStateNil
 } GlobalDisplayState;
 

@@ -136,16 +136,22 @@ uint16_t tuningDACTable[128];
 
 void loadTuning(uint8_t whichTuning)
 {
-	tuningToUse = whichTuning;
-	
+	presetToTransfer[TuningLoad] = whichTuning;
 	tuningLoading = 1;
 	if (tuningToUse >= 1)
 	{
-		initiateLoadingTuningFromExternalMemory(tuningToUse);
+		initiateLoadingTuningFromExternalMemory();
 	}
 	else
 	{
 		computeTuningDACTable(&myGlobalTuningTable, Local);
+	}
+	for(int inst = 0; inst < 2; inst++)
+	{
+		if(manta[inst].keyboard.transpose + manta[inst].keyboard.hexmapSize > myGlobalTuningTable.cardinality * 10)
+		{
+			manta[inst].keyboard.transpose = 0;
+		}
 	}
 }
 

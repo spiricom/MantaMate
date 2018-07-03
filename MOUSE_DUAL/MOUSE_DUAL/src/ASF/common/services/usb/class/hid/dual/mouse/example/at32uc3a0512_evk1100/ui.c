@@ -246,6 +246,20 @@ void ui_my_midi_receive(void)
 	}
 }
 
+//same thing as ui_my_midi_send but allows for sending variable sized messages (size 64 for sysex)
+void ui_my_sysex_send(iram_size_t size)
+{
+	ui_midi_tx_start();
+	// Transfer UART RX fifo to CDC TX
+	if (!udi_midi_is_tx_ready()) {
+		// Fifo full
+		;
+		}else{
+		udi_midi_write_buf(mySendBuf, size);
+	}
+	ui_midi_tx_stop();
+}
+
 void ui_my_midi_send(void)
 {
 	ui_midi_tx_start();

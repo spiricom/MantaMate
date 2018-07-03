@@ -8,9 +8,25 @@
 
 #include "midi.h"
 #include "main.h"
+
 uint8_t firstMIDIMessage = 0;
 int32_t wholeStepDACDivider = 7500; // the size of a DAC whole step is 1092.26  --- the size of a full pitch bend in one direction is 8192. 8192/1092.26 is 7.5  -- Multiply pitch bend value by 1000, then divide by 7500 to get in whole tone range.
 int32_t fourOctaveDACDivider = 312; // the size of a DAC four octave range is 26214  --- the size of a full pitch bend in one direction is 8192. 8192/1092.26 is 7.5  -- Multiply pitch bend value by 1000, then divide by 7500 to get in whole tone range.
+
+uint8_t sysexBuffer[1024];
+
+BOOL sysexSend = FALSE;
+uint8_t inSysex = 0;
+sysexDeviceType midSysex = NilPreset;
+BOOL receivingPreset = FALSE;
+
+uint16_t sysexByteCounter = 0;
+uint16_t mantaPresetByteCounter = 0;
+uint16_t mantaCompositionByteCounter = 0;
+uint16_t instToSave = 0;
+uint16_t midiPresetByteCounter = 0;
+uint16_t noDevicePresetByteCounter = 0;
+
 
 uint16_t parseMIDI(uint16_t howManyNew)
 {
@@ -42,11 +58,6 @@ uint16_t parseMIDI(uint16_t howManyNew)
 
 	return i;
 }
-
-
-uint16_t sysexByteCounter = 0;
-uint8_t inSysex = 0;
-uint8_t sysexBuffer[1024];
 
 void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 {
@@ -124,6 +135,7 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 			case 192:
 			break;
 			
+			//label this
 			case 240:
 			startSysexMessage(msgByte1, msgByte2);
 			break;
@@ -135,32 +147,95 @@ void handleMIDIMessage(uint8_t ctrlByte, uint8_t msgByte1, uint8_t msgByte2)
 	
 	else //otherwise, we are in the middle of a sysex message, let's keep pluggin them bytes into the message to parse once it's finished
 	{
-		if (ctrlByte == 0xf7)
+		if(ctrlByte == 0x64)
 		{
-			parseSysex();
+			receivingPreset = TRUE;
+			//reset variables in case of unsuccessful load/save prior to this one
+			midSysex = NilPreset;
+			mantaPresetByteCounter = 0;
+			mantaCompositionByteCounter = 0;
+			instToSave = 0;
+			midiPresetByteCounter = 0;
+			noDevicePresetByteCounter = 0;
+			sysexByteCounter = 0;
+		}
+		else if(ctrlByte == 0x65)
+		{
+ 			receivingPreset = FALSE;
+		}
+		else if (ctrlByte == 0xf7)
+		{
+			if (sysexByteCounter > 0) parseSysex();
+			inSysex = 0;
+			if(!receivingPreset)
+			{
+				midSysex = NilPreset;
+				sysexByteCounter = 0;
+				mantaPresetByteCounter = 0;
+				mantaCompositionByteCounter = 0;
+				instToSave = 0;
+				midiPresetByteCounter = 0;
+				noDevicePresetByteCounter = 0;
+			}
+			return;
 		}
 		else
 		{
 			sysexBuffer[sysexByteCounter] = ctrlByte;
 			sysexByteCounter++;
+			if(sysexByteCounter == 1024)
+			{
+				parseSysex();
+			}
 		}
 		if (msgByte1 == 0xf7)
 		{
-			parseSysex();
+			if (sysexByteCounter > 0) parseSysex();
+			inSysex = 0;
+			if(!receivingPreset)
+			{
+				midSysex = NilPreset;
+				sysexByteCounter = 0;
+				mantaPresetByteCounter = 0;
+				mantaCompositionByteCounter = 0;
+				instToSave = 0;
+				midiPresetByteCounter = 0;
+				noDevicePresetByteCounter = 0;
+			}
+			return;
 		}
 		else
 		{
 			sysexBuffer[sysexByteCounter] = msgByte1;
 			sysexByteCounter++;
+			if(sysexByteCounter == 1024)
+			{
+				parseSysex();
+			}
 		}
 		if (msgByte2 == 0xf7)
 		{
-			parseSysex();
+			if (sysexByteCounter > 0) parseSysex();
+			inSysex = 0;
+			if(!receivingPreset)
+			{
+				midSysex = NilPreset;
+				sysexByteCounter = 0;
+				mantaPresetByteCounter = 0;
+				mantaCompositionByteCounter = 0;
+				instToSave = 0;
+				midiPresetByteCounter = 0;
+				noDevicePresetByteCounter = 0;
+			}
 		}
 		else
 		{
 			sysexBuffer[sysexByteCounter] = msgByte2;
 			sysexByteCounter++;
+			if(sysexByteCounter == 1024)
+			{
+				parseSysex();
+			}
 		}
 	}
 }
@@ -203,15 +278,143 @@ void channelPressureChange(uint8_t val, uint8_t channel)
 	tIRampSetDest(&pressureRamp[channel], val << 5);
 }
 
+//only call this after mantamate_internal_preset_buffer is populated properly (after sysex request message)
+void sendSysexMessage(sysexDeviceType type, uint8_t slot)
+{
+	uint8_t tempBuf[48];
+	tempBuf[0] = 0xf0;
+	tempBuf[1] = 0x7e;
+	tempBuf[2] = 0x49;
+	tempBuf[3] = slot;
+	tempBuf[4] = (uint8_t) type;
+	int i_sys = 5;
+	int tempBufVal = 0;
+	uint8_t lowHalf;
+	uint8_t highHalf;
+	int numBytes = ((type == MantaPreset) ? NUM_BYTES_PER_MANTA_PRESET :
+				   ((type == MidiPreset) ? NUM_BYTES_PER_MIDI_PRESET :
+				   ((type == NoDevicePreset) ? NUM_BYTES_PER_NODEVICE_PRESET : 0)));
+	for(int i = 0; i < numBytes; i++)
+	{
+		//this check is here because of odd num of prepends (the last mySendBuf index at each send holds half of a mantamate_internal_preset_buffer value)
+		if(i_sys == 47)
+		{
+			tempBufVal = mantamate_internal_preset_buffer[i];
+			lowHalf = tempBufVal & 0x0f;
+			highHalf = tempBufVal >> 4;
+			tempBuf[i_sys] = lowHalf;
+			for (int j = 0; j < 16; j++)
+			{
+				mySendBuf[j*4] = 0x04;
+				mySendBuf[(j*4)+1] = tempBuf[j*3];
+				mySendBuf[(j*4)+2] = tempBuf[(j*3)+1];
+				mySendBuf[(j*4)+3] = tempBuf[(j*3)+2];
+			}
+			delay_us(500);
+			ui_my_sysex_send(64);
+			delay_us(500);
+			for (int j = 0; j < 64; j++) mySendBuf[j] = 0;
+			tempBuf[0] = highHalf;
+			i_sys = 1;
+		}
+		else
+		{
+			tempBufVal = mantamate_internal_preset_buffer[i];
+			lowHalf = tempBufVal & 0x0f;
+			highHalf = tempBufVal >> 4;
+			tempBuf[i_sys] = lowHalf;
+			tempBuf[i_sys+1] = highHalf;
+			i_sys+=2;
+		}
+	}
+	if (type == MantaPreset)
+	{
+		numBytes = NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP;
+		for (int inst = 0; inst < 2; inst++)
+		{
+			for (int i = 0; i < numBytes; i++)
+			{
+				if(i_sys == 47)
+				{
+					tempBufVal = memoryInternalCompositionBuffer[inst][i];
+					lowHalf = tempBufVal & 0x0f;
+					highHalf = tempBufVal >> 4;
+					tempBuf[i_sys] = lowHalf;
+					for (int j = 0; j < 16; j++)
+					{
+						mySendBuf[j*4] = 0x04;
+						mySendBuf[(j*4)+1] = tempBuf[j*3];
+						mySendBuf[(j*4)+2] = tempBuf[(j*3)+1];
+						mySendBuf[(j*4)+3] = tempBuf[(j*3)+2];
+					}
+					delay_us(500);
+					ui_my_sysex_send(64);
+					delay_us(500);
+					for (int j = 0; j < 64; j++) mySendBuf[j] = 0;
+					tempBuf[0] = highHalf;
+					i_sys = 1;
+				}
+				else
+				{
+					tempBufVal = memoryInternalCompositionBuffer[inst][i];
+					lowHalf = tempBufVal & 0x0f;
+					highHalf = tempBufVal >> 4;
+					tempBuf[i_sys] = lowHalf;
+					tempBuf[i_sys+1] = highHalf;
+					i_sys+=2;
+				}
+			}
+		}
+	}
+	
+	tempBuf[i_sys] = 0xf7;
+	int lastSet = i_sys / 3;
+	for (int j = 0; j <= lastSet; j++)
+	{
+		//0x05 says next byte is the last, 0x06 next 2 are last, 0x07 next 3 are last
+		if (j == lastSet) mySendBuf[j*4] = 0x05 + (i_sys % 3); 
+		else mySendBuf[j*4] = 0x04;
+		mySendBuf[(j*4)+1] = tempBuf[j*3];
+		mySendBuf[(j*4)+2] = tempBuf[(j*3)+1];
+		mySendBuf[(j*4)+3] = tempBuf[(j*3)+2];
+	}
+	delay_us(500);
+	ui_my_sysex_send(64);
+	delay_us(500);
+}
 
 void parseSysex(void)
 {
-	int tuningPresetToStore = 0;
-	int fullPresetToStore = 0;
-	//check which kind of sysex message it is (tuning or preset storage)
-	if (sysexBuffer[0] == 1) //it's tuning
+	//check which kind of sysex message it is - if sysexBuffer[0] is a 0, then this is a request for a preset
+	if(sysexBuffer[0] == RequestPreset && midSysex == NilPreset) //this is a request for a preset
 	{
-		tuningPresetToStore = sysexBuffer[1];
+		//sysexBuffer[1] is the slot number to load from
+		//sysexBuffer[2] is the type of instrument
+		sysexSend = TRUE;
+		//set preset_num to sysexBuffer[1] (adjusted for the type of instrument) 
+		//call initiateLoadingAppropriateInstrument
+		if (sysexBuffer[2] == 2)
+		{
+			presetToTransfer[MantaPresetLoad] = sysexBuffer[1];
+			initiateLoadingMantaPresetFromExternalMemory();
+		}
+		else if (sysexBuffer[2] == 3)
+		{
+			presetToTransfer[MidiPresetLoad] = sysexBuffer[1];
+			initiateLoadingMidiPresetFromExternalMemory();
+		}
+		else if (sysexBuffer[2] == 4)
+		{
+			presetToTransfer[NoDevicePresetLoad] = sysexBuffer[1];
+			initiateLoadingNoDevicePresetFromExternalMemory();
+		}
+	}
+	//if sysexBuffer[0] is not a 0, then sysexBuffer[1] represents what's being loaded from the computer to the mantamate and sysexBuffer[0] represents which preset number to save this to
+	else if ((sysexBuffer[1] == TuningPreset && midSysex == NilPreset) || midSysex == TuningPreset) //it's tuning
+	{
+		//sysexBuffer[0] is the slot number to save to
+		//sysexBuffer[1] is the type of instrument
+		presetToTransfer[TuningStore] = sysexBuffer[0];
 		
 		//iterate through the sysex array and do what we need to do with the message
 		for (int i = 2; i < sysexByteCounter; i++) //only go up to the element right before the "end" message happened
@@ -221,21 +424,108 @@ void parseSysex(void)
 				tuning8BitBuffer[i -2] = sysexBuffer[i];
 			}
 		}
-		initiateStoringTuningToExternalMemory(tuningPresetToStore);
+		initiateStoringTuningToExternalMemory();
 	}
-	else // it's full preset storage
+	else if ((sysexBuffer[1] == MantaPreset && midSysex == NilPreset) || midSysex == MantaPreset) // it's manta preset storage
 	{
-		fullPresetToStore = sysexBuffer[1];
-		
+		//set preset_to_save_num to the changed above value
+		int lowBufVal;
+		int highBufVal;
 		//iterate through the sysex array and do what we need to do with the message
-		for (int i = 2; i < sysexByteCounter; i++) //only go up to the element right before the "end" message happened
+		for (int i = ((midSysex == NilPreset) ? 2 : 0); i < sysexByteCounter; i+=2) //only go up to the element right before the "end" message happened
 		{
-			
+			if (midSysex == NilPreset)
+			{
+				presetToTransfer[MantaPresetStore] = sysexBuffer[0];
+				midSysex = MantaPreset; 
+			}
+			//this buffer is what all of the encode/decode functions are called with (size 2816)
+			if (mantaPresetByteCounter < NUM_BYTES_PER_MANTA_PRESET)
+			{
+				lowBufVal = sysexBuffer[i];
+				highBufVal = sysexBuffer[i+1] << 4;
+				mantamate_internal_preset_buffer[mantaPresetByteCounter++] = lowBufVal + highBufVal;
+			}
+			//reformat messages before popping them into the mantamate_internal_preset_buffer <-- depends on how they're formatted going out
+			else if (mantaPresetByteCounter >= NUM_BYTES_PER_MANTA_PRESET)
+			{
+				lowBufVal = sysexBuffer[i];
+				highBufVal = sysexBuffer[i+1] << 4;
+				memoryInternalCompositionBuffer[instToSave][mantaCompositionByteCounter++] = lowBufVal + highBufVal;
+			}
+			if (mantaCompositionByteCounter >= NUM_BYTES_PER_COMPOSITION_BANK_ROUNDED_UP)
+			{
+				mantaCompositionByteCounter = 0;
+				if (instToSave == 0)
+				{
+					instToSave = 1;
+				}
+				else
+				{
+					mantaPresetByteCounter = 0;
+					instToSave = 0;
+					initiateStoringMantaPresetToExternalMemory();
+					break;
+					//call initiateSavingMantaPreset -- make sure that the sysexSend flag is on ?
+				}	
+			}
+		}
+	}
+	else if ((sysexBuffer[1] == MidiPreset && midSysex == NilPreset) || midSysex == MidiPreset) //it's midi preset storage
+	{
+		int lowBufVal;
+		int highBufVal;
+		//iterate through the sysex array and do what we need to do with the message
+		for (int i = ((midSysex == NilPreset) ? 2 : 0); i < sysexByteCounter; i+=2) //only go up to the element right before the "end" message happened
+		{
+			if(midSysex == NilPreset)
+			{
+				presetToTransfer[MidiPresetStore] = sysexBuffer[0];
+				midSysex = MidiPreset;
+			}
+			if(midiPresetByteCounter < NUM_BYTES_PER_MIDI_PRESET)
+			{
+				lowBufVal = sysexBuffer[i];
+				highBufVal = sysexBuffer[i+1] << 4;
+				mantamate_internal_preset_buffer[midiPresetByteCounter++] = lowBufVal + highBufVal;
+			}
+		}
+		if(midiPresetByteCounter >= NUM_BYTES_PER_MIDI_PRESET)
+		{
+			midiPresetByteCounter = 0;
+			initiateStoringMidiPresetToExternalMemory();
+		}
+	}
+	else if ((sysexBuffer[1] == NoDevicePreset && midSysex == NilPreset) || midSysex == NoDevicePreset) //it's no device preset storage
+	{
+		int lowBufVal;
+		int highBufVal;
+		//iterate through the sysex array and do what we need to do with the message
+		for (int i = ((midSysex == NilPreset) ? 2 : 0); i < sysexByteCounter; i+=2) //only go up to the element right before the "end" message happened
+		{
+			if(midSysex == NilPreset)
+			{
+				if(sysexBuffer[0] >= 19 && sysexBuffer[0] <= 49)
+				{
+					presetToTransfer[NoDevicePresetStore] = sysexBuffer[0];
+				}
+				midSysex = NoDevicePreset;
+			}
+			if(noDevicePresetByteCounter < NUM_BYTES_PER_NODEVICE_PRESET)
+			{
+				lowBufVal = sysexBuffer[i];
+				highBufVal = sysexBuffer[i+1] << 4;
+				mantamate_internal_preset_buffer[noDevicePresetByteCounter++] = lowBufVal + highBufVal;
+			}
+		}
+		if(noDevicePresetByteCounter >= NUM_BYTES_PER_NODEVICE_PRESET)
+		{
+			noDevicePresetByteCounter = 0;
+			initiateStoringNoDevicePresetToExternalMemory();
 		}
 	}
 
 	//reset the sysex variables
-	inSysex = 0;
 	sysexByteCounter = 0;
 }
 

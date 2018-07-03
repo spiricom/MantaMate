@@ -49,6 +49,8 @@ signed int isomap[48] = {
 
 void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 {
+	keyboard->transpose = 2*myGlobalTuningTable.cardinality;
+	
 	for (int i = 0; i < 48; i++)
 	{
 		keyboard->hexes[i].fine = 2048;
@@ -61,6 +63,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			keyboard->hexes[i].pitch = defaultHexmap[i];
 			keyboard->hexes[i].color = Amber;
 		}
+		keyboard->hexmapSize = 48;
 	}
 	else if (which == PianoMap)
 	{
@@ -104,6 +107,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			keyboard->hexes[i].color = color;
 			
 		}
+		keyboard->hexmapSize = 39;
 	}
 	else if (which == HarmonicMap || which == WickiHaydenMap)
 	{
@@ -122,6 +126,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			keyboard->hexes[i].color = color;
 		}
+		keyboard->hexmapSize = 48;
 	}
 	else if (which == IsomorphicMap || which == FreeMap)
 	{
@@ -139,6 +144,7 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 			
 			keyboard->hexes[i].color = color;
 		}
+		keyboard->hexmapSize = 48;
 	}
 	for (int i = 0; i < 48; i++)
 	{
@@ -149,8 +155,13 @@ void tKeyboard_setToDefault(tKeyboard* const keyboard, MantaMap which)
 
 void tKeyboard_setHexmap(tKeyboard* const keyboard, signed int pitch[48])
 {
+	keyboard->hexmapSize = 48;
 	for (int i = 0; i < 48; i++)
 	{
+		if(pitch[i] == -1)
+		{
+			keyboard->hexmapSize--;
+		}
 		keyboard->hexes[i].pitch = pitch[i];
 	}
 }
@@ -161,14 +172,24 @@ void tKeyboard_blankHexmap(tKeyboard* const keyboard)
 	{
 		keyboard->hexes[i].pitch = -1;
 		keyboard->hexes[i].color = Off;
+		keyboard->hexmapSize = 0;
 	}
 }
 
 void tKeyboard_assignNoteToHex(tKeyboard* const keyboard, int whichHex, int whichNote)
 {
-	keyboard->hexes[whichHex].pitch = whichNote;
+	if(keyboard->hexes[whichHex].pitch < 0 && whichNote >= 0)
+	{
+		keyboard->hexmapSize++;
+	}
 	
-	if (whichNote < 0) keyboard->hexes[whichHex].color = Off;
+	
+	if (keyboard->hexes[whichHex].pitch >= 0 && whichNote < 0)
+	{
+		keyboard->hexmapSize--;
+		keyboard->hexes[whichHex].color = Off;
+	}
+	keyboard->hexes[whichHex].pitch = whichNote;
 }
 
 signed int tKeyboard_getCurrentNoteForHex(tKeyboard* const keyboard, int whichHex)
@@ -440,12 +461,16 @@ void tKeyboard_hexmapEncode(tKeyboard* const keyboard, uint8_t* buffer)
 
 void tKeyboard_hexmapDecode(tKeyboard* const keyboard, uint8_t* buffer)
 {
+	keyboard->hexmapSize = 0;
 	for (int i = 0; i < 48; i++)
 	{
 		keyboard->hexes[i].pitch = (buffer[i*5] << 8) + buffer[(i*5)+1];
 		keyboard->hexes[i].color = (MantaLEDColor)buffer[(i*5)+2];
-		
 		keyboard->hexes[i].fine = (buffer[(i*5)+3] << 8) + buffer[(i*5)+4];
+		if(keyboard->hexes[i].pitch >= 0)
+		{
+			keyboard->hexmapSize++;
+		}
 	}
 }
 

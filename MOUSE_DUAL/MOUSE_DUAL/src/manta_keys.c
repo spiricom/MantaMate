@@ -52,11 +52,13 @@ void initMantaKeys(int numVoices)
 {
 	if (numVoices < 2)
 	{
+		/*
 		if (takeover && (fullKeyboard.playMode == ArpMode))
 		{
 			manta[currentInstrument].keyboard.playMode = ArpMode;
 			manta[currentInstrument].keyboard.arpModeType = fullKeyboard.arpModeType;
 		}
+		*/
 		
 		takeover = FALSE;
 		
@@ -75,11 +77,13 @@ void initMantaKeys(int numVoices)
 	}
 	else // Takeover mode
 	{
+		/*
 		if (!takeover && (manta[currentInstrument].keyboard.playMode == ArpMode))
 		{
 			fullKeyboard.playMode = ArpMode;
 			fullKeyboard.arpModeType = manta[currentInstrument].keyboard.arpModeType;
 		}
+		*/
 		
 		takeover = TRUE;
 		
@@ -141,7 +145,7 @@ void releaseDirectEdit(int hex)
 		lastDirectEditHex = currentDirectEditHex;
 		currentDirectEditHex = -1;
 		Write7Seg(-1);
-		displayState = UpDownSwitchBlock;
+		displayState = PresetSwitchBlock;
 	}
 }
 
@@ -199,7 +203,7 @@ void releaseHexmapEdit(int hex)
 		
 		Write7Seg(255);
 		
-		displayState = UpDownSwitchBlock;
+		displayState = PresetSwitchBlock;
 	}
 }
 

@@ -15,27 +15,14 @@
 #include "main.h"
 #include "midi.h"
 
+#define NUM_TRANSFER_TYPES 19
+
 //variables for the external memory operations -- maybe could be moved to the memory_spi.h
-extern uint32_t sectors_left_to_erase;
-extern uint16_t currentSector;
-extern uint16_t currentPage;
-extern uint16_t startingSector;
-extern unsigned char mantaSavePending;
-extern unsigned char mantaLoadPending;
-extern unsigned char midiSavePending;
-extern unsigned char midiLoadPending;
-extern unsigned char noDeviceSavePending;
-extern unsigned char noDeviceLoadPending;
-extern unsigned char tuningSavePending;
-extern unsigned char tuningLoadPending;
-extern unsigned char startupStateSavePending;
-extern unsigned char startupStateLoadPending;
-extern unsigned char hexmapSavePending;
-extern unsigned char hexmapLoadPending;
-extern unsigned char directSavePending;
-extern unsigned char directLoadPending;
-extern unsigned char sequencerSavePending;
-extern unsigned char sequencerLoadPending;
+extern uint32_t sectors_left_to_erase[NUM_TRANSFER_TYPES];
+extern uint16_t currentSector[NUM_TRANSFER_TYPES];
+extern uint16_t currentPage[NUM_TRANSFER_TYPES];
+extern uint16_t startingSector[NUM_TRANSFER_TYPES];
+extern unsigned char pending[NUM_TRANSFER_TYPES];
 // Memory SPI
 
 int memorySPICheckIfBusy(void);
@@ -64,9 +51,9 @@ void continueStoringNoDevicePresetToExternalMemory(void);
 void initiateLoadingNoDevicePresetFromExternalMemory(void);
 void continueLoadingNoDevicePresetFromExternalMemory(void);
 
-void initiateStoringTuningToExternalMemory(uint8_t tuning_num_to_save);
+void initiateStoringTuningToExternalMemory(void);
 void continueStoringTuningToExternalMemory(void);
-void initiateLoadingTuningFromExternalMemory(uint8_t tuning_to_load);
+void initiateLoadingTuningFromExternalMemory(void);
 void continueLoadingTuningFromExternalMemory(void);
 
 void initiateStoringStartupStateToExternalMemory(void);
