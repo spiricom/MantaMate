@@ -1769,7 +1769,7 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 		{
 			if (upSwitch())
 			{
-				preset_to_save_num++;
+ 				preset_to_save_num++;
 				if (preset_to_save_num > ((type_of_device_connected == NoDeviceConnected) ? 49 : 99))
 				{
 					preset_to_save_num = ((type_of_device_connected == NoDeviceConnected) ? 49 : 99);

@@ -137,6 +137,7 @@ uint16_t tuningDACTable[128];
 void loadTuning(uint8_t whichTuning)
 {
 	presetToTransfer[TuningLoad] = whichTuning;
+	tuningToUse = whichTuning;
 	tuningLoading = 1;
 	if (tuningToUse >= 1)
 	{
