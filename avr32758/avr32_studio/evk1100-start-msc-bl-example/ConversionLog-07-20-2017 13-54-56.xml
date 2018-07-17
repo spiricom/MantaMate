@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<?xml-stylesheet type='text/xsl' href='AVRStudioConversionLog.xslt'?>
+<ConversionLog BrandName="Atmel Studio 7.0 Project ConversionLog">
+  <Project name="evk1100-start-msc-bl-example" id="evk1100-start-msc-bl-example" status="Success">
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Source Project Path: C:\Users\Jeff Snyder\Downloads\avr32758\avr32_studio\evk1100-start-msc-bl-example\evk1100-start-msc-bl-example</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Studio5 Project Path: C:\Users\Jeff Snyder\Downloads\avr32758\avr32_studio\evk1100-start-msc-bl-example\evk1100-start-msc-bl-example\evk1100-start-msc-bl-example.avrgccproj</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Studio5 Solution Path: C:\Users\Jeff Snyder\Downloads\avr32758\avr32_studio\evk1100-start-msc-bl-example\evk1100-start-msc-bl-example.atsln</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing General settings from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Completed : Processing General settings from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing Project files information from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Completed : Processing Project files information from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing Build Dependency settings from the source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Completed : Processing Build Dependency settings from the source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing ProjectLevel Toolchain settings from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Warning</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Skipped reading ProjectLevelToolchainSettings from source project. It is either invalid or not provided.</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Completed : Processing ProjectLevel Toolchain settings from source project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing Toolchain settings from source project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Completed : Processing Toolchain settings from source project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Started : Processing external makefile settings [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Warning</Type>
+      <DateTime>7/20/2017 1:54:52 PM</DateTime>
+      <Message>Skipped reading Memory settings from source project. It is either invalid or not provided.</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing external makefile settings [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing File level Toolchain settings from Source Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing File level Toolchain settings from Source Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing Pre/Post Build event settings from source project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Warning</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Skipped reading Pre/Post build event settings from source project. It is either invalid or not provided.</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing Pre/Post Build event settings from source project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing Toolchain settings from source project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing Toolchain settings from source project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing external makefile settings [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Warning</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Skipped reading Memory settings from source project. It is either invalid or not provided.</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing external makefile settings [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing File level Toolchain settings from Source Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing File level Toolchain settings from Source Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Processing Pre/Post Build event settings from source project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Warning</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Skipped reading Pre/Post build event settings from source project. It is either invalid or not provided.</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Processing Pre/Post Build event settings from source project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Create Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Create Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Updating Atmel Studio 7.0 GeneralSettings</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Updating Atmel Studio 7.0 GeneralSettings</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Updating Atmel Studio 7.0 FileInformation</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Updating Atmel Studio 7.0 FileInformation</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Copying Files</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Completed : Copying Files</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:53 PM</DateTime>
+      <Message>Started : Saving Atmel Studio 7.0 Solution</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Completed : Saving Atmel Studio 7.0 Solution</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Started : Updating Configurations In Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Completed : Updating Configurations In Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Started : Updating Build Dependencies in Atmel Studio 7.0 Solution for the project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Completed : Updating Build Dependencies in Atmel Studio 7.0 Solution for the project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Started : Updating ProjectLevelToolchainSettings In Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Completed : Updating ProjectLevelToolchainSettings In Atmel Studio 7.0 Project</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:54 PM</DateTime>
+      <Message>Started : Updating ToolChainSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating ToolChainSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating FileLevelSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating FileLevelSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating ExternalMakeFileSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating ExternalMakeFileSettings In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating BuildEvents In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating BuildEvents In Atmel Studio 7.0 Project [Configuration Debug]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating ToolChainSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating ToolChainSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating FileLevelSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating FileLevelSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating ExternalMakeFileSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating ExternalMakeFileSettings In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Started : Updating BuildEvents In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Info</Type>
+      <DateTime>7/20/2017 1:54:55 PM</DateTime>
+      <Message>Completed : Updating BuildEvents In Atmel Studio 7.0 Project [Configuration Release]</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+    <LogEntry>
+      <Type>Success</Type>
+      <DateTime>7/20/2017 1:54:56 PM</DateTime>
+      <Message>Atmel Studio 7.0 Project Created Successfully</Message>
+      <Exception>
+      </Exception>
+    </LogEntry>
+  </Project>
+</ConversionLog>

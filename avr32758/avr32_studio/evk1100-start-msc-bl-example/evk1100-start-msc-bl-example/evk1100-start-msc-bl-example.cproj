@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>7.0</ProjectVersion>
+    <ToolchainName>com.Atmel.AVRGCC32.C</ToolchainName>
+    <ProjectGuid>5b2ec30e-bbdc-4928-9f54-d4e65e808482</ProjectGuid>
+    <Name>evk1100-start-msc-bl-example</Name>
+    <avrdevice>AT32uc3a0512</avrdevice>
+    <avrdeviceseries>none</avrdeviceseries>
+    <AvrProjectType>Importer</AvrProjectType>
+    <OutputType>Executable</OutputType>
+    <Language>C</Language>
+    <OutputFileName>evk1100-start-msc-bl-example</OutputFileName>
+    <OutputFileExtension>.elf</OutputFileExtension>
+    <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
+    <ToolchainFlavour>Native</ToolchainFlavour>
+    <avrtool />
+    <KeepTimersRunning>true</KeepTimersRunning>
+    <OverrideVtor>false</OverrideVtor>
+    <CacheFlash>true</CacheFlash>
+    <ProgFlashFromRam>true</ProgFlashFromRam>
+    <RamSnippetAddress />
+    <UncachedRange />
+    <preserveEEPROM>true</preserveEEPROM>
+    <OverrideVtorValue />
+    <BootSegment>2</BootSegment>
+    <eraseonlaunchrule>0</eraseonlaunchrule>
+    <AsfFrameworkConfig>
+      <framework-data xmlns="">
+  <options />
+  <configurations />
+  <files />
+  <documentation help="" />
+  <offline-documentation help="" />
+  <dependencies>
+    <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.32.0" />
+  </dependencies>
+</framework-data>
+    </AsfFrameworkConfig>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <ToolchainSettings>
+      <Avr32Gcc>
+  <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+  <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+  <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+  <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+  <avr32gcc.compiler.preprocessor.DoNotSearchSystemDirectories>false</avr32gcc.compiler.preprocessor.DoNotSearchSystemDirectories>
+  <avr32gcc.compiler.preprocessor.PreprocessOnly>false</avr32gcc.compiler.preprocessor.PreprocessOnly>
+  <avr32gcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>BOARD=EVK1100</Value>
+    </ListValues>
+  </avr32gcc.compiler.symbols.DefSymbols>
+  <avr32gcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/WDT</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/GPIO</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/FLASHC</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.compiler.directories.IncludePaths>
+  <avr32gcc.compiler.optimization.OtherFlags>-fdata-sections</avr32gcc.compiler.optimization.OtherFlags>
+  <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>true</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+  <avr32gcc.compiler.optimization.EnableFastFloatingPointLibrary>false</avr32gcc.compiler.optimization.EnableFastFloatingPointLibrary>
+  <avr32gcc.compiler.optimization.EnableUnsafeMatchOptimizations>false</avr32gcc.compiler.optimization.EnableUnsafeMatchOptimizations>
+  <avr32gcc.compiler.optimization.EnableFastMath>false</avr32gcc.compiler.optimization.EnableFastMath>
+  <avr32gcc.compiler.optimization.GeneratePositionIndependentCode>false</avr32gcc.compiler.optimization.GeneratePositionIndependentCode>
+  <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>true</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+  <avr32gcc.compiler.optimization.ForceDoubleWordAlignment>false</avr32gcc.compiler.optimization.ForceDoubleWordAlignment>
+  <avr32gcc.compiler.optimization.PutLargeImmediatesInConstPool>false</avr32gcc.compiler.optimization.PutLargeImmediatesInConstPool>
+  <avr32gcc.compiler.optimization.DoNotInitializeGotRegisterBeforeUsing>false</avr32gcc.compiler.optimization.DoNotInitializeGotRegisterBeforeUsing>
+  <avr32gcc.compiler.optimization.UseSectionRoDataForReadOnlyData>false</avr32gcc.compiler.optimization.UseSectionRoDataForReadOnlyData>
+  <avr32gcc.compiler.optimization.GenerateGprofInformation>false</avr32gcc.compiler.optimization.GenerateGprofInformation>
+  <avr32gcc.compiler.optimization.GenerateProfInformation>false</avr32gcc.compiler.optimization.GenerateProfInformation>
+  <avr32gcc.compiler.warnings.AllWarnings>true</avr32gcc.compiler.warnings.AllWarnings>
+  <avr32gcc.compiler.warnings.CheckSyntaxOnly>false</avr32gcc.compiler.warnings.CheckSyntaxOnly>
+  <avr32gcc.compiler.warnings.Pedantic>false</avr32gcc.compiler.warnings.Pedantic>
+  <avr32gcc.compiler.warnings.PedanticWarningsAsErrors>false</avr32gcc.compiler.warnings.PedanticWarningsAsErrors>
+  <avr32gcc.compiler.warnings.InhibitAllWarnings>false</avr32gcc.compiler.warnings.InhibitAllWarnings>
+  <avr32gcc.compiler.miscellaneous.OtherFlags>-c -fmessage-length=0 -march=ucr2</avr32gcc.compiler.miscellaneous.OtherFlags>
+  <avr32gcc.compiler.miscellaneous.SupportAnsiPrograms>false</avr32gcc.compiler.miscellaneous.SupportAnsiPrograms>
+  <avr32gcc.linker.general.DoNotUseStandardStartFiles>false</avr32gcc.linker.general.DoNotUseStandardStartFiles>
+  <avr32gcc.linker.general.DoNotUseDefaultLibraries>false</avr32gcc.linker.general.DoNotUseDefaultLibraries>
+  <avr32gcc.linker.general.NoStartupOrDefaultLibs>false</avr32gcc.linker.general.NoStartupOrDefaultLibs>
+  <avr32gcc.linker.general.OmitAllSymbolInformation>false</avr32gcc.linker.general.OmitAllSymbolInformation>
+  <avr32gcc.linker.general.NoSharedLibraries>false</avr32gcc.linker.general.NoSharedLibraries>
+  <avr32gcc.linker.optimization.GarbageCollectUnusedSections>true</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+  <avr32gcc.linker.optimization.EnableFastFloatingPointLibrary>false</avr32gcc.linker.optimization.EnableFastFloatingPointLibrary>
+  <avr32gcc.linker.optimization.EnableUnsafeMatchOptimizations>false</avr32gcc.linker.optimization.EnableUnsafeMatchOptimizations>
+  <avr32gcc.linker.optimization.EnableFastMath>false</avr32gcc.linker.optimization.EnableFastMath>
+  <avr32gcc.linker.optimization.GeneratePositionIndependentCode>false</avr32gcc.linker.optimization.GeneratePositionIndependentCode>
+  <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>true</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+  <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>true</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+  <avr32gcc.assembler.general.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.assembler.general.IncludePaths>
+  <avr32gcc.assembler.general.AnounceVersion>false</avr32gcc.assembler.general.AnounceVersion>
+  <avr32gcc.preprocessingassembler.general.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/WDT</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/GPIO</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/FLASHC</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.preprocessingassembler.general.IncludePaths>
+  <avr32gcc.preprocessingassembler.general.SuppressWarnings>false</avr32gcc.preprocessingassembler.general.SuppressWarnings>
+  <avr32gcc.preprocessingassembler.general.AnounceVersion>false</avr32gcc.preprocessingassembler.general.AnounceVersion>
+</Avr32Gcc>
+    </ToolchainSettings>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <ToolchainSettings>
+      <Avr32Gcc>
+  <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+  <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+  <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+  <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+  <avr32gcc.compiler.preprocessor.DoNotSearchSystemDirectories>false</avr32gcc.compiler.preprocessor.DoNotSearchSystemDirectories>
+  <avr32gcc.compiler.preprocessor.PreprocessOnly>false</avr32gcc.compiler.preprocessor.PreprocessOnly>
+  <avr32gcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>BOARD=EVK1100</Value>
+    </ListValues>
+  </avr32gcc.compiler.symbols.DefSymbols>
+  <avr32gcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/WDT</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/GPIO</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/FLASHC</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.compiler.directories.IncludePaths>
+  <avr32gcc.compiler.optimization.OtherFlags>-fdata-sections</avr32gcc.compiler.optimization.OtherFlags>
+  <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>true</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+  <avr32gcc.compiler.optimization.EnableFastFloatingPointLibrary>false</avr32gcc.compiler.optimization.EnableFastFloatingPointLibrary>
+  <avr32gcc.compiler.optimization.EnableUnsafeMatchOptimizations>false</avr32gcc.compiler.optimization.EnableUnsafeMatchOptimizations>
+  <avr32gcc.compiler.optimization.EnableFastMath>false</avr32gcc.compiler.optimization.EnableFastMath>
+  <avr32gcc.compiler.optimization.GeneratePositionIndependentCode>false</avr32gcc.compiler.optimization.GeneratePositionIndependentCode>
+  <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>true</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+  <avr32gcc.compiler.optimization.ForceDoubleWordAlignment>false</avr32gcc.compiler.optimization.ForceDoubleWordAlignment>
+  <avr32gcc.compiler.optimization.PutLargeImmediatesInConstPool>false</avr32gcc.compiler.optimization.PutLargeImmediatesInConstPool>
+  <avr32gcc.compiler.optimization.DoNotInitializeGotRegisterBeforeUsing>false</avr32gcc.compiler.optimization.DoNotInitializeGotRegisterBeforeUsing>
+  <avr32gcc.compiler.optimization.UseSectionRoDataForReadOnlyData>false</avr32gcc.compiler.optimization.UseSectionRoDataForReadOnlyData>
+  <avr32gcc.compiler.optimization.DebugLevel>Maximum (-g3)</avr32gcc.compiler.optimization.DebugLevel>
+  <avr32gcc.compiler.optimization.GenerateGprofInformation>false</avr32gcc.compiler.optimization.GenerateGprofInformation>
+  <avr32gcc.compiler.optimization.GenerateProfInformation>false</avr32gcc.compiler.optimization.GenerateProfInformation>
+  <avr32gcc.compiler.warnings.AllWarnings>true</avr32gcc.compiler.warnings.AllWarnings>
+  <avr32gcc.compiler.warnings.CheckSyntaxOnly>false</avr32gcc.compiler.warnings.CheckSyntaxOnly>
+  <avr32gcc.compiler.warnings.Pedantic>false</avr32gcc.compiler.warnings.Pedantic>
+  <avr32gcc.compiler.warnings.PedanticWarningsAsErrors>false</avr32gcc.compiler.warnings.PedanticWarningsAsErrors>
+  <avr32gcc.compiler.warnings.InhibitAllWarnings>false</avr32gcc.compiler.warnings.InhibitAllWarnings>
+  <avr32gcc.compiler.miscellaneous.OtherFlags>-c -fmessage-length=0 -march=ucr2</avr32gcc.compiler.miscellaneous.OtherFlags>
+  <avr32gcc.compiler.miscellaneous.SupportAnsiPrograms>false</avr32gcc.compiler.miscellaneous.SupportAnsiPrograms>
+  <avr32gcc.linker.general.DoNotUseStandardStartFiles>false</avr32gcc.linker.general.DoNotUseStandardStartFiles>
+  <avr32gcc.linker.general.DoNotUseDefaultLibraries>false</avr32gcc.linker.general.DoNotUseDefaultLibraries>
+  <avr32gcc.linker.general.NoStartupOrDefaultLibs>false</avr32gcc.linker.general.NoStartupOrDefaultLibs>
+  <avr32gcc.linker.general.OmitAllSymbolInformation>false</avr32gcc.linker.general.OmitAllSymbolInformation>
+  <avr32gcc.linker.general.NoSharedLibraries>false</avr32gcc.linker.general.NoSharedLibraries>
+  <avr32gcc.linker.optimization.GarbageCollectUnusedSections>true</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+  <avr32gcc.linker.optimization.EnableFastFloatingPointLibrary>false</avr32gcc.linker.optimization.EnableFastFloatingPointLibrary>
+  <avr32gcc.linker.optimization.EnableUnsafeMatchOptimizations>false</avr32gcc.linker.optimization.EnableUnsafeMatchOptimizations>
+  <avr32gcc.linker.optimization.EnableFastMath>false</avr32gcc.linker.optimization.EnableFastMath>
+  <avr32gcc.linker.optimization.GeneratePositionIndependentCode>false</avr32gcc.linker.optimization.GeneratePositionIndependentCode>
+  <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>true</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+  <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>true</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+  <avr32gcc.assembler.general.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.assembler.general.IncludePaths>
+  <avr32gcc.assembler.general.AnounceVersion>false</avr32gcc.assembler.general.AnounceVersion>
+  <avr32gcc.assembler.debugging.DebugLevel>Default (-g)</avr32gcc.assembler.debugging.DebugLevel>
+  <avr32gcc.preprocessingassembler.general.IncludePaths>
+    <ListValues>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/WDT</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/GPIO</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/DRIVERS/FLASHC</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/UTILS/PREPROCESSOR</Value>
+      <Value>../src/SOFTWARE_FRAMEWORK/BOARDS</Value>
+      <Value>%24(PackRepoDir)\atmel\UC3A_DFP\1.0.53\include\AT32UC3A0512</Value>
+    </ListValues>
+  </avr32gcc.preprocessingassembler.general.IncludePaths>
+  <avr32gcc.preprocessingassembler.general.SuppressWarnings>false</avr32gcc.preprocessingassembler.general.SuppressWarnings>
+  <avr32gcc.preprocessingassembler.general.AnounceVersion>false</avr32gcc.preprocessingassembler.general.AnounceVersion>
+  <avr32gcc.preprocessingassembler.debugging.DebugLevel>Default (-Wa,-g)</avr32gcc.preprocessingassembler.debugging.DebugLevel>
+</Avr32Gcc>
+    </ToolchainSettings>
+  </PropertyGroup>
+  <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
+  <ItemGroup>
+    <Folder Include="src" />
+    <Compile Include="src\main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK" />
+    <Folder Include="src\SOFTWARE_FRAMEWORK\ASM" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\ASM\trampoline.x">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\BOARDS" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\BOARDS\board.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\BOARDS\EVK1100" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\BOARDS\EVK1100\evk1100.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\BOARDS\EVK1100\led.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\BOARDS\EVK1100\led.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\DRIVERS" />
+    <Folder Include="src\SOFTWARE_FRAMEWORK\DRIVERS\FLASHC" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\FLASHC\flashc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\FLASHC\flashc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\DRIVERS\GPIO" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\GPIO\gpio.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\GPIO\gpio.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\DRIVERS\WDT" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\WDT\wdt.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\DRIVERS\WDT\wdt.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\UTILS" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\compiler.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\conf_isp.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Folder Include="src\SOFTWARE_FRAMEWORK\UTILS\PREPROCESSOR" />
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\PREPROCESSOR\mrepeat.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\PREPROCESSOR\preprocessor.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\PREPROCESSOR\stringz.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\SOFTWARE_FRAMEWORK\UTILS\PREPROCESSOR\tpaste.h">
+      <SubType>compile</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
