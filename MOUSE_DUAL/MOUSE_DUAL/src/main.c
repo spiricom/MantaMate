@@ -2120,7 +2120,7 @@ void updatePreferences(void)
 		{
 			LED_Off(LEFT_POINT_LED);
 			LED_Off(RIGHT_POINT_LED);
-			LED_Off(PREFERENCES_LED);
+			//LED_Off(PREFERENCES_LED);
 			Write7Seg(preset_num);
 			normal_7seg_number = preset_num;
 			break;
@@ -2129,7 +2129,7 @@ void updatePreferences(void)
 		{
 			LED_Off(LEFT_POINT_LED);
 			LED_On(RIGHT_POINT_LED);
-			LED_On(PREFERENCES_LED);
+			//LED_On(PREFERENCES_LED);
 			Write7Seg(globalTuning);
 			normal_7seg_number = globalTuning;
 			break;
@@ -2139,7 +2139,7 @@ void updatePreferences(void)
 		{
 			LED_On(LEFT_POINT_LED);
 			LED_Off(RIGHT_POINT_LED);
-			LED_On(PREFERENCES_LED);
+			//LED_On(PREFERENCES_LED);
 			Write7Seg(globalPitchGlideDisplay);
 			normal_7seg_number = globalPitchGlideDisplay;
 			break;
@@ -2148,7 +2148,7 @@ void updatePreferences(void)
 		{
 			LED_On(LEFT_POINT_LED);
 			LED_On(RIGHT_POINT_LED);
-			LED_On(PREFERENCES_LED);
+			//LED_On(PREFERENCES_LED);
 			Write7Seg(clock_speed_displayed);
 			normal_7seg_number = clock_speed_displayed;
 			break;
@@ -2567,6 +2567,14 @@ void readAllSwitches(void)
 	current_switch_readings[0] = upSwitchRead();
 	current_switch_readings[1] = downSwitchRead();
 	current_switch_readings[2] = preferencesSwitchRead();
+	if (current_switch_readings[2])
+	{
+		LED_On(PREFERENCES_LED);
+	}
+	else
+	{
+		LED_Off(PREFERENCES_LED);
+	}
 	current_switch_readings[3] = saveSwitchRead();
 	current_switch_readings[4] = USBSwitchRead();
 	
