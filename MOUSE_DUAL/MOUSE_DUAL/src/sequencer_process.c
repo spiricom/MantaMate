@@ -1433,7 +1433,7 @@ void touchLowerHex(uint8_t hexagon)
 		}
 		else if (edit_vs_play == PlayToggleMode)
 		{
-			tNoteStack_remove(&editStack, prevHexUI);
+			tNoteStack_clear(&editStack);
 			tNoteStack_add(&editStack, currentHexUI);
 			
 			if (sequencer->playMode == ToggleMode) 
@@ -3795,7 +3795,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 					(editType == SubtleEdit) ? pitch :
 					value;
 			
-			if (amberHexes[currentInstrument][hexUIToStep(editStack.notestack[i])] || edit_vs_play == EditMode)
+			if (amberHexes[currentInstrument][editStack.notestack[i]] || edit_vs_play == EditMode)
 			{
 				sequencer->step[hexUIToStep(editStack.notestack[i])].pitch = value;
 			}
@@ -3862,7 +3862,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 		{
 			value = (editType == RandomEdit || editType == SubtleEdit) ? (((rand() % 0xffff) > 0x8000) ? 1 : 0) : value;
 			
-			if (amberHexes[currentInstrument][hexUIToStep(editStack.notestack[i])] || edit_vs_play == EditMode)
+			if (amberHexes[currentInstrument][editStack.notestack[i]] || edit_vs_play == EditMode)
 			{
 				sequencer->step[hexUIToStep(editStack.notestack[i])].on[PanelOne] =	value;
 			}
@@ -3874,7 +3874,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 		{
 			value = (editType == RandomEdit || editType == SubtleEdit) ? (((rand() % 0xffff) > 0x8000) ? 1 : 0) : value;
 			
-			if (amberHexes[currentInstrument][hexUIToStep(editStack.notestack[i])] || edit_vs_play == EditMode)
+			if (amberHexes[currentInstrument][editStack.notestack[i]] || edit_vs_play == EditMode)
 			{
 				sequencer->step[hexUIToStep(editStack.notestack[i])].on[PanelTwo] =	value;
 			}
@@ -3886,7 +3886,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 		{
 			value = (editType == RandomEdit || editType == SubtleEdit) ? (((rand() % 0xffff) > 0x8000) ? 1 : 0) : value;
 			
-			if (amberHexes[currentInstrument][hexUIToStep(editStack.notestack[i])] || edit_vs_play == EditMode)
+			if (amberHexes[currentInstrument][editStack.notestack[i]] || edit_vs_play == EditMode)
 			{
 				sequencer->step[hexUIToStep(editStack.notestack[i])].on[PanelThree] = value;
 			}
@@ -3898,7 +3898,7 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 		{
 			value = (editType == RandomEdit || editType == SubtleEdit) ? (((rand() % 0xffff) > 0x8000) ? 1 : 0) : value;
 			
-			if (amberHexes[currentInstrument][hexUIToStep(editStack.notestack[i])] || edit_vs_play == EditMode)
+			if (amberHexes[currentInstrument][editStack.notestack[i]] || edit_vs_play == EditMode)
 			{
 				sequencer->step[hexUIToStep(editStack.notestack[i])].on[PanelFour] = value;
 			}
@@ -4004,11 +4004,13 @@ void resetEditStack(void)
 {
 	tNoteStack_clear(&editStack);
 	editNoteOn = -1;
+	
 	if (currentHexUI >= 0 && currentHexUI < MAX_STEPS)	tNoteStack_add(&editStack,currentHexUI);
 	else												
 	{
 		tNoteStack_add(&editStack,0);
 	}
+	
 }
 
 void seqwait(void)
