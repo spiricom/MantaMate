@@ -2567,6 +2567,7 @@ void readAllSwitches(void)
 	current_switch_readings[0] = upSwitchRead();
 	current_switch_readings[1] = downSwitchRead();
 	current_switch_readings[2] = preferencesSwitchRead();
+	/*
 	if (current_switch_readings[2])
 	{
 		LED_On(PREFERENCES_LED);
@@ -2575,6 +2576,7 @@ void readAllSwitches(void)
 	{
 		LED_Off(PREFERENCES_LED);
 	}
+	*/
 	current_switch_readings[3] = saveSwitchRead();
 	current_switch_readings[4] = USBSwitchRead();
 	
@@ -3231,6 +3233,7 @@ void pButtonPressed(tMantaMateState* s)
 	if (s->state != SaveMode)
 	{
 		s->P++;
+
 	}
 
 	s->S = 0;
@@ -3239,8 +3242,16 @@ void pButtonPressed(tMantaMateState* s)
 	Write7Seg(preset_num);
 	normal_7seg_number = preset_num;
 	
-	if (s->P == NUM_PMENUS) s->P = 0;
-	
+	if (s->P == NUM_PMENUS) 
+	{
+		s->P = 0;
+		LED_Off(PREFERENCES_LED);
+	}
+	else
+	{
+		LED_On(PREFERENCES_LED);
+	}
+
 	updateState(s);
 	
 	tuningOrLearn = TUNING_SELECT; //leave MIDI learn mode if the preferences buttons is pressed
