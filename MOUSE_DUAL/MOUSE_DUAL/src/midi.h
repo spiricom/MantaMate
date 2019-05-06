@@ -83,6 +83,7 @@ typedef struct _tMIDIKeyboard
 	
 	BOOL outputStates[12];
 	int trigCount[12];
+	int gateCount[3];
 	int currentNote;
 	int currentVoice;
 	int currentVelocity;

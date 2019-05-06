@@ -167,7 +167,7 @@ tMIDIKeyboard MIDIKeyboard;
 tTuningTable myGlobalTuningTable;
 tNoDevicePattern noDevicePatterns;
 
-int prevSentPitch;
+int prevSentPitch[4];
 
 wdt_opt_t myWDT;
 

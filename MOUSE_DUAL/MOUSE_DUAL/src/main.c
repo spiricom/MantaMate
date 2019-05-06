@@ -138,7 +138,7 @@ unsigned char blank7Seg = 0;
 unsigned char tuningLoading = 0;
 unsigned char transpose_indication_active = 0;
 unsigned char normal_7seg_number = 0;
-int prevSentPitch = -1;
+int prevSentPitch[4] = {-1,-1,-1,-1};
 
 BOOL MidiDeviceFound = FALSE;
 
@@ -698,6 +698,23 @@ static void tc2_irq(void)
 					}
 				}
 			}
+			
+			for (int i = 0; i < keyboard->numVoices; i++)
+			{	
+				if (keyboard->gateCount[i] > 0)
+				{
+					if (--(keyboard->gateCount[i]) == 0)
+					{
+						int note = keyboard->voices[i][0];
+						
+						if (note >= 0)
+						{
+							sendDataToOutput(i*3 + CVKGATE, 0, 65535);
+						}
+						
+					}
+				}
+			}
 		}
 		
 		else if (type_of_device_connected == JoystickConnected)
@@ -755,7 +772,7 @@ static void tc2_irq(void)
 					{
 						if (instrument->keyboard.playMode == ArpMode)
 						{
-							if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							if (instrument->keyboard.trigCount[fullKeyboard.currentVoice] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 							{
 								if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 								{
@@ -763,15 +780,33 @@ static void tc2_irq(void)
 								}
 							}
 						}
-						else if (instrument->keyboard.numVoices == 1)
+						else 
 						{
-							if (instrument->keyboard.trigCount > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							for (int i = 0; i < instrument->keyboard.numVoices; i++)
 							{
-								if (--(instrument->keyboard.trigCount[0]) == 0)
+								if (instrument->keyboard.trigCount[i] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 								{
-									tIRampSetDest(&out[inst][CVKTRIGGER], 0);
+									if (--(instrument->keyboard.trigCount[i]) == 0)
+									{
+										if (instrument->keyboard.numVoices == 1)
+										{
+											tIRampSetTime(&out[inst][((i*3) % 6)+CVKTRIGGER], 0);
+											tIRampSetDest(&out[inst][((i*3) % 6)+CVKTRIGGER], 0);
+										}
+										
+										int note = instrument->keyboard.voices[i];
+										
+										if (note >= 0)
+										{
+											// set gate cv high for gate retrigger
+											tIRampSetTime(&out[inst][((i*3) % 6)+CVKGATE], 0);
+											tIRampSetDest(&out[inst][((i*3) % 6)+CVKGATE], 65535);
+											//sendDataToOutput(i*3+CVKGATE, 0, 65535);
+										}										
+									}
 								}
 							}
+							
 						}
 					}
 					else if (instrument->type == SequencerInstrument)
@@ -782,7 +817,8 @@ static void tc2_irq(void)
 							{
 								if (--(instrument->sequencer.trigCount[0]) == 0)
 								{
-									tIRampSetDest(&out[inst][CVTRIGGER], 0);
+									tIRampSetTime(&out[inst][CVKGATE], 0.0);
+									tIRampSetDest(&out[inst][CVKGATE], 4095);
 								}
 							}
 						}
@@ -830,6 +866,33 @@ static void tc2_irq(void)
 						if (--(fullKeyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 						{
 							tIRampSetDest(&out[0][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
+						}
+					}
+				}
+				else 
+				{
+					for (int i = 0; i < fullKeyboard.numVoices; i++)
+					{
+						if (fullKeyboard.trigCount[i] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+						{
+							if (--(fullKeyboard.trigCount[i]) == 0)
+							{
+								if (fullKeyboard.numVoices == 1)
+								{
+									tIRampSetTime(&out[(int)i/2][((i*3) % 6)+CVKTRIGGER], 0);
+									tIRampSetDest(&out[(int)i/2][((i*3) % 6)+CVKTRIGGER], 0);
+								}
+										
+								int note = fullKeyboard.voices[i];
+										
+								if (note >= 0)
+								{
+									// set gate cv high for gate retrigger
+									tIRampSetTime(&out[(int)i/2][((i*3) % 6)+CVKGATE], 0);
+									tIRampSetDest(&out[(int)i/2][((i*3) % 6)+CVKGATE], 65535);
+									//sendDataToOutput(i*3+CVKGATE, 0, 65535);
+								}										
+							}
 						}
 					}
 				}

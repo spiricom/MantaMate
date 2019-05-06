@@ -1274,22 +1274,34 @@ void dacSendMIDIKeyboard(void)
 				{
 					int32_t tempDACPitch = (int32_t)(lookupDACvalue(&myGlobalTuningTable, note, keyboard->transpose));
 					sendDataToOutput((i*3)+CVKPITCH, globalPitchGlide, tempDACPitch);
-					sendDataToOutput((i*3)+CVKGATE, 0, 65535);
+					// TODO make sure this matches manta keyboard functionality
+					
 					sendDataToOutput((i*3)+CVKVEL, 3, velocity << 9);
-					//if we are in mono mode, then we have room for a trigger output, too
-					if ((keyboard->numVoices == 1) && (prevSentPitch != (note + keyboard->transpose)))
+					
+					if (prevSentPitch[i] != (note + keyboard->transpose))
 					{
-						sendDataToOutput(3, 0, 65535);
-						keyboard->trigCount[3] = TRIGGER_TIMING;
+						//if we are in mono mode, then we have room for a trigger output, too
+						if ((keyboard->numVoices == 1))
+						{
+							sendDataToOutput(3, 0, 65535);
+							keyboard->trigCount[3] = TRIGGER_TIMING;
+						
+						}
+
+						sendDataToOutput((i*3)+CVKGATE, 0, 0); // was 65535
+						keyboard->gateCount[i] = TRIGGER_TIMING;
+						
+						//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+						prevSentPitch[i] = note + keyboard->transpose;
 					}
-					//this is to avoid retriggers on the same note when other notes are released in monophonic mode
-					prevSentPitch = note + keyboard->transpose;
+					
+					
 				}
 				else
 				{
 					sendDataToOutput((i*3)+CVKGATE, 0, 0);
 					//let the monophonic trigger handling know there has been a note-off event
-					prevSentPitch = -1;
+					prevSentPitch[i] = -1;
 				}
 			}
 		}

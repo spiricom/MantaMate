@@ -339,8 +339,11 @@ void setCurrentInstrument(MantaInstrument inst)
 		(manta[inst].type == KeyboardInstrument) ? KeyboardOptionMode :
 		(manta[inst].type == DirectInstrument) ? DirectOptionMode :
 		OptionModeNil;
+		
+		// ensure in NormalEdit mode when instrument switches
+		manta[InstrumentOne].sequencer.editType = NormalEdit;
+		manta[InstrumentTwo].sequencer.editType = NormalEdit;
 	}
-	
 }
 
 bool blinkToggle;
@@ -656,7 +659,7 @@ void processHexTouch(void)
 				if (i < MAX_STEPS)	releaseLowerHexOptionMode(i);
 				else				releaseUpperHexOptionMode(i);
 				
-				releaseLingeringKeyboardHex(i);
+				// releaseLingeringKeyboardHex(i);
 				// may need releaseLingeringDirectHex(i);
 			}
 			else
@@ -680,7 +683,8 @@ void processHexTouch(void)
 						releaseUpperHex(newUpperHexUI);
 					}  
 					
-					releaseLingeringKeyboardHex(i);
+					// this was causing gate releases.
+					//releaseLingeringKeyboardHex(i);
 				}
 				else if (type == KeyboardInstrument)
 				{
@@ -688,7 +692,7 @@ void processHexTouch(void)
 				}
 				else if (type == DirectInstrument)
 				{
-					releaseLingeringKeyboardHex(i);
+					//releaseLingeringKeyboardHex(i);
 					releaseDirectHex(i);
 				}
 			}
@@ -852,11 +856,8 @@ void releaseLowerHex(uint8_t hexagon)
 {
 	if (edit_vs_play == EditMode)
 	{
-
 		if (noteOnStack.size > 0)		editNoteOn = editStack.notestack[0];
 		else							editNoteOn = -1;
-			
-	
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
@@ -3566,8 +3567,6 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		uint16_t glideTime =  sequencer->step[step].pglide >> 3;
 		if (glideTime < 1) glideTime = 1; //let's make it faster - was 5 - could be zero now but that would likely cause clicks
 		
-		
-		
 		tIRampSetDest(&out[inst][CVPITCH], get16BitPitch(&myGlobalTuningTable,inst,step)); 
 		tIRampSetTime(&out[inst][CVPITCH], glideTime);
 
@@ -3588,8 +3587,8 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		tIRampSetDest(&out[inst][CV4P], sequencer->step[step].cv4);
 		
 		// Send Trigger
-		tIRampSetTime(&out[inst][CVTRIGGER],0);
-		tIRampSetDest(&out[inst][CVTRIGGER], 4095);
+		tIRampSetTime(&out[inst][CVKGATE],0);
+		tIRampSetDest(&out[inst][CVKGATE], 0);
 		sequencer->trigCount[0] = TRIGGER_TIMING; //start counting down for the trigger to turn off
 	}
 }
@@ -3612,7 +3611,7 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
 	if (!sequencer->mute[0]) 
 	{
-		tIRampSetDest(&out[inst][CVTRIG1],sequencer->step[step].on[0] * 4095);
+		tIRampSetDest(&out[inst][CVTRIG1] ,sequencer->step[step].on[0] * 4095);
 		sequencer->trigCount[1] = sequencer->step[step].on[0] * TRIGGER_TIMING;
 	}
 	
@@ -3907,6 +3906,12 @@ void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param
 	else
 	{
 		
+	}
+	
+	// Only allow one random or subtle edit 
+	if (editType == RandomEdit || editType == SubtleEdit)
+	{
+		sequencer->editType = NormalEdit;
 	}
 }
 

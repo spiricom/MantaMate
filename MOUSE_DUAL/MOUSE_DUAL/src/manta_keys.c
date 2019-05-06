@@ -446,29 +446,38 @@ void dacSendKeyboard(MantaInstrument which)
 		for (int i = 0; i < keyboard->numVoices; i++)
 		{
 			int note = keyboard->voices[i];
+			int thing = takeover ? (int)(i/2) : which;
+			
 			if (note >= 0)
 			{
-				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], globalPitchGlide);
+				tIRampSetTime(&out[thing][((i*3) % 6)+CVKPITCH], globalPitchGlide);
 				int32_t pitch = lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[note].pitch, keyboard->transpose);
 				pitch += ((keyboard->hexes[note].fine >> 2) - 512);
-				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKPITCH], pitch);
-				tIRampSetTime(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
-				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 4095);
-				//if we are in mono mode, then we have room for a trigger output, too
-				if ((keyboard->numVoices == 1) && (prevSentPitch != (keyboard->hexes[note].pitch + keyboard->transpose))) //if we are in mono mode, then we have room for a trigger output, too
+				tIRampSetDest(&out[thing][((i*3) % 6)+CVKPITCH], pitch);
+				
+				if (prevSentPitch[i] != (keyboard->hexes[note].pitch + keyboard->transpose))
 				{
-					tIRampSetTime(&out[which][CVKTRIGGER], 0);
-					tIRampSetDest(&out[which][CVKTRIGGER], 65535);
-					keyboard->trigCount[0] = TRIGGER_TIMING;
+					//if we are in mono mode, then we have room for a trigger output, too
+					if ((keyboard->numVoices == 1)) //if we are in mono mode, then we have room for a trigger output, too
+					{
+						tIRampSetTime(&out[thing][CVKTRIGGER], 0);
+						tIRampSetDest(&out[thing][CVKTRIGGER], 65535);
+					}
+				
+					// set gate cv low for gate retrigger
+					tIRampSetTime(&out[thing][((i*3) % 6)+CVKGATE], 0);
+					tIRampSetDest(&out[thing][((i*3) % 6)+CVKGATE], 0);
+					keyboard->trigCount[i] = TRIGGER_TIMING;
+					
+					//this is to avoid retriggers on the same note when other notes are released in monophonic mode
+					prevSentPitch[i] = keyboard->hexes[note].pitch + keyboard->transpose;
 				}
-				//this is to avoid retriggers on the same note when other notes are released in monophonic mode
-				prevSentPitch = keyboard->hexes[note].pitch + keyboard->transpose;
 			}
 			else
 			{
-				tIRampSetDest(&out[takeover ? (int)(i/2) : which][((i*3) % 6)+CVKGATE], 0);
+				tIRampSetDest(&out[thing][((i*3) % 6)+CVKGATE], 0);
 				//let the monophonic trigger handling know there has been a note-off event
-				prevSentPitch = -1;
+				prevSentPitch[i] = -1;
 			}
 		}
 	}
