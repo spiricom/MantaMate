@@ -776,7 +776,13 @@ static void tc2_irq(void)
 							{
 								if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 								{
-									tIRampSetDest(&out[inst][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
+									int note = instrument->keyboard.voices[fullKeyboard.currentVoice];
+									
+									if (note >= 0)
+									{
+										tIRampSetTime(&out[inst][CVKGATE+3*fullKeyboard.currentVoice], 0);
+										tIRampSetDest(&out[inst][CVKGATE+3*fullKeyboard.currentVoice], 65535);
+									}
 								}
 							}
 						}

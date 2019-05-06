@@ -427,7 +427,6 @@ void dacSendKeyboard(MantaInstrument which)
 	{
 		int newNote = keyboard->currentNote;
 		
-		
 		if (keyboard->stack.size <= 0) 
 		{
 			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
@@ -436,8 +435,8 @@ void dacSendKeyboard(MantaInstrument which)
 		{
 			tIRampSetTime(&out[which][CVKPITCH+3*keyboard->currentVoice], globalPitchGlide);
 			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
-			tIRampSetTime(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
-			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 65535);
+			tIRampSetTime(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
+			tIRampSetDest(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
 			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
 		}
 	}
