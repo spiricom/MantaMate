@@ -825,6 +825,9 @@ static void tc2_irq(void)
 								{
 									tIRampSetTime(&out[inst][CVKGATE], 0.0);
 									tIRampSetDest(&out[inst][CVKGATE], 4095);
+									
+									//tIRampSetTime(&out[inst][CVKTRIGGER], 0.0);
+									//tIRampSetDest(&out[inst][CVKTRIGGER], 0);
 								}
 							}
 						}

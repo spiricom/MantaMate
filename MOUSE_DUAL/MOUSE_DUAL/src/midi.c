@@ -1243,7 +1243,7 @@ void dacSendMIDIKeyboard(void)
 			if ((newNote >= 0) && (keyboard->stack.size > 0))
 			{
 				sendDataToOutput(CVKPITCH+3*keyboard->currentVoice, globalPitchGlide, lookupDACvalue(&myGlobalTuningTable, newNote, keyboard->transpose));
-				sendDataToOutput(CVKTRIGGER-2+(3*keyboard->currentVoice), 0, 65535);
+				
 				sendDataToOutput(CVKVEL+(3*keyboard->currentVoice), 0, (keyboard->currentVelocity << 9));
 				
 				if (keyboard->numVoices < 2) //then it's mono with the extra trigger output
@@ -1252,15 +1252,14 @@ void dacSendMIDIKeyboard(void)
 					keyboard->trigCount[3] = TRIGGER_TIMING;
 				}
 				
-				if (keyboard->gatesOrTriggers == TRIGGERS)
-				{				
-					keyboard->trigCount[CVKTRIGGER-2+(3*keyboard->currentVoice)] = TRIGGER_TIMING;
-				}
+				sendDataToOutput((keyboard->currentVoice*3)+CVKGATE, 0, 0); // was 65535
+				keyboard->gateCount[keyboard->currentVoice] = TRIGGER_TIMING;
+			
 			}
 			
 			if (keyboard->stack.size <= 0)
 			{
-				sendDataToOutput(CVKTRIGGER-2+(3*keyboard->currentVoice), 0, 0);
+				sendDataToOutput((3*keyboard->currentVoice)+CVKGATE, 0, 0);
 			}
 		}
 		else

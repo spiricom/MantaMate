@@ -3586,10 +3586,20 @@ void dacSendPitchMode(MantaInstrument inst, uint8_t step)
 		tIRampSetTime(&out[inst][CV4P], glideTime);
 		tIRampSetDest(&out[inst][CV4P], sequencer->step[step].cv4);
 		
-		// Send Trigger
-		tIRampSetTime(&out[inst][CVKGATE],0);
+		// Send GATE RE-Trigger
+		tIRampSetTime(&out[inst][CVKGATE], 0);
 		tIRampSetDest(&out[inst][CVKGATE], 0);
+		
+		// Send Trigger
+		//tIRampSetTime(&out[inst][CVKTRIGGER], 0);
+		//tIRampSetDest(&out[inst][CVKTRIGGER], 65535);
 		sequencer->trigCount[0] = TRIGGER_TIMING; //start counting down for the trigger to turn off
+	}
+	else
+	{  
+		// REST
+		tIRampSetTime(&out[inst][CVKGATE], 0);
+		tIRampSetDest(&out[inst][CVKGATE], 0);
 	}
 }
 
