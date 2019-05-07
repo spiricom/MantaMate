@@ -854,28 +854,48 @@ void processHexTouch(void)
 
 void releaseLowerHex(uint8_t hexagon)
 {
+	tSequencer* sequencer = &manta[currentInstrument].sequencer;
+
 	if (edit_vs_play == EditMode)
 	{
 		if (noteOnStack.size > 0)		editNoteOn = editStack.notestack[0];
 		else							editNoteOn = -1;
+		
+		if (sequencer->playMode == TouchMode && hexagon == sequencer->currentStep)
+		{
+			tIRampSetTime(&out[currentInstrument][CVKGATE], 0);
+			tIRampSetDest(&out[currentInstrument][CVKGATE], 0);
+		}
 	}
 	else if (edit_vs_play == PlayToggleMode)
 	{
 		int step = hexUIToStep(hexagon);
 		
-		tSequencer* sequencer = &manta[currentInstrument].sequencer;
+		
 		
 		if (sequencer->playMode == ArpMode)
 		{
 			tSequencer_toggleStep(sequencer,step);
+			
+			if (sequencer->notestack.size <= 0)
+			{
+				tIRampSetTime(&out[currentInstrument][CVKGATE], 0);
+				tIRampSetDest(&out[currentInstrument][CVKGATE], 0);			
+			}
+				
 				
 			manta_set_LED_hex(hexagon, Off);
 		} 
-		else // SeqMode or TouchMode, ignore
+		else if (sequencer->playMode == TouchMode) // SeqMode or TouchMode, ignore
 		{
+			manta_set_LED_hex(hexagon, Off);
 			
+			if (hexagon == sequencer->currentStep)
+			{
+				tIRampSetTime(&out[currentInstrument][CVKGATE], 0);
+				tIRampSetDest(&out[currentInstrument][CVKGATE], 0);
+			}
 		}
-		
 	}
 	newReleaseLowerHexSeq = 0;
 }
@@ -1971,16 +1991,19 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionToggle)
 	{
 		sequencer->playMode = ToggleMode;
+		clearDACoutputs();
 	}
 	else if (whichOptionType == OptionArp)
 	{
 		sequencer->playMode = ArpMode;
 		clearSequencer(currentInstrument);
+		clearDACoutputs();
 	}
 	else if (whichOptionType == OptionTouch)
 	{
 		sequencer->playMode = TouchMode;
 		clearSequencer(currentInstrument);
+		clearDACoutputs();
 	}
 	else if (whichOptionType == OptionKeyArp)
 	{
