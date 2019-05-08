@@ -772,16 +772,16 @@ static void tc2_irq(void)
 					{
 						if (instrument->keyboard.playMode == ArpMode)
 						{
-							if (instrument->keyboard.trigCount[fullKeyboard.currentVoice] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
+							if (instrument->keyboard.trigCount[0] > 0) //added to avoid rollover issues if the counter keeps decrementing past 0 -JS
 							{
-								if (--(instrument->keyboard.trigCount[fullKeyboard.currentVoice]) == 0)
+								if (--(instrument->keyboard.trigCount[0]) == 0)
 								{
-									int note = instrument->keyboard.voices[fullKeyboard.currentVoice];
+									int note = instrument->keyboard.currentNote;
 									
 									if (note >= 0)
 									{
-										tIRampSetTime(&out[inst][CVKGATE+3*fullKeyboard.currentVoice], 0);
-										tIRampSetDest(&out[inst][CVKGATE+3*fullKeyboard.currentVoice], 65535);
+										tIRampSetTime(&out[inst][CVKGATE+3*instrument->keyboard.currentVoice], 0);
+										tIRampSetDest(&out[inst][CVKGATE+3*instrument->keyboard.currentVoice], 65535);
 									}
 								}
 							}
@@ -874,7 +874,13 @@ static void tc2_irq(void)
 					{
 						if (--(fullKeyboard.trigCount[fullKeyboard.currentVoice]) == 0)
 						{
-							tIRampSetDest(&out[0][CVKTRIGGER-2+3*fullKeyboard.currentVoice], 0);
+							int note = fullKeyboard.currentNote;
+							
+							if (note >= 0)
+							{
+								tIRampSetTime(&out[0][CVKGATE+3*fullKeyboard.currentVoice], 0);
+								tIRampSetDest(&out[0][CVKGATE+3*fullKeyboard.currentVoice], 65535);
+							}
 						}
 					}
 				}

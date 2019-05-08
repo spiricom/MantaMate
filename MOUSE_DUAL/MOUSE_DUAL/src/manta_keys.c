@@ -238,7 +238,18 @@ void releaseKeyboardHex(int hex)
 			tKeyboard_noteOff(&manta[currentInstrument].keyboard, hex);
 			manta_set_LED_hex(hex, manta[currentInstrument].keyboard.hexes[hex].color);
 			
-			if (manta[currentInstrument].keyboard.playMode == TouchMode) dacSendKeyboard(currentInstrument);
+			if (manta[currentInstrument].keyboard.playMode == TouchMode)
+			{
+				dacSendKeyboard(currentInstrument);
+			}
+			else if (manta[currentInstrument].keyboard.playMode == ArpMode)
+			{
+				if (manta[currentInstrument].keyboard.stack.size <= 0)
+				{
+					tIRampSetDest(&out[currentInstrument][CVKGATE+3*manta[currentInstrument].keyboard.currentVoice], 0);
+				}
+			}
+			
 		}
 	}
 	else if (takeoverType == KeyboardInstrument)
@@ -247,6 +258,18 @@ void releaseKeyboardHex(int hex)
 		manta_set_LED_hex(hex, fullKeyboard.hexes[hex].color);
 
 		if (fullKeyboard.playMode == TouchMode) dacSendKeyboard(InstrumentNil);
+		
+		if (fullKeyboard.playMode == TouchMode)
+		{
+			dacSendKeyboard(InstrumentNil);
+		}
+		else if (fullKeyboard.playMode == ArpMode)
+		{
+			if (fullKeyboard.stack.size <= 0)
+			{
+				tIRampSetDest(&out[0][CVKGATE+3*fullKeyboard.currentVoice], 0);
+			}
+		}
 	}
 }
 
@@ -427,18 +450,22 @@ void dacSendKeyboard(MantaInstrument which)
 	{
 		int newNote = keyboard->currentNote;
 		
-		if (keyboard->stack.size <= 0) 
+		if (keyboard->stack.size > 0) 
 		{
-			tIRampSetDest(&out[which][CVKTRIGGER-2+3*keyboard->currentVoice], 0);
+			if (newNote >= 0)
+			{
+				tIRampSetTime(&out[which][CVKPITCH+3*keyboard->currentVoice], globalPitchGlide);
+				tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
+				tIRampSetTime(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
+				tIRampSetDest(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
+				keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
+			}
 		}
-		else if (newNote >= 0)
-		{
-			tIRampSetTime(&out[which][CVKPITCH+3*keyboard->currentVoice], globalPitchGlide);
-			tIRampSetDest(&out[which][CVKPITCH+3*keyboard->currentVoice], lookupDACvalue(&myGlobalTuningTable, keyboard->hexes[newNote].pitch, keyboard->transpose) + ((keyboard->hexes[newNote].fine >> 2) - 512));
-			tIRampSetTime(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
+		else
+		{	
 			tIRampSetDest(&out[which][CVKGATE+3*keyboard->currentVoice], 0);
-			keyboard->trigCount[keyboard->currentVoice] = TRIGGER_TIMING;
 		}
+		
 	}
 	else
 	{

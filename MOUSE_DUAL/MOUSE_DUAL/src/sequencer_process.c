@@ -882,8 +882,7 @@ void releaseLowerHex(uint8_t hexagon)
 				tIRampSetTime(&out[currentInstrument][CVKGATE], 0);
 				tIRampSetDest(&out[currentInstrument][CVKGATE], 0);			
 			}
-				
-				
+					
 			manta_set_LED_hex(hexagon, Off);
 		} 
 		else if (sequencer->playMode == TouchMode) // SeqMode or TouchMode, ignore
@@ -1527,6 +1526,8 @@ void touchLowerHex(uint8_t hexagon)
 		{
 			setSliderLEDsFor(currentInstrument, hexUIToStep(hexagon));
 		}
+		
+		if (sequencer->notestack.size <= 0) tIRampSetDest(&out[currentInstrument][CVKGATE], 0);
 	}
 
 	newLowerHexSeq = 0;
@@ -1718,8 +1719,17 @@ void resetSliderMode()
 
 void touchUpperHexOptionMode(uint8_t hexagon)
 {
+	OptionType* options = (currentOptionMode == SequencerOptionMode) ? sequencerOptionMode :
+	(currentOptionMode == KeyboardOptionMode) ? keyboardOptionMode :
+	(currentOptionMode == DirectOptionMode) ? directOptionMode :
+	(currentOptionMode == RightOptionMode) ? rightOptionMode :
+	defaultOptionMode; 
+	
+	uint8_t whichHex = hexagon - MAX_STEPS;
+	OptionType whichOptionType = options[whichHex];	
+	
 	currentHexUI = 0;
-	resetEditStack();
+	if (whichOptionType != OptionEditType) resetEditStack();
 	prevUpperHexUI = currentUpperHexUI;
 	currentUpperHexUI = hexagon;
 	
@@ -1729,16 +1739,7 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	tDirect* direct = takeover ? &fullDirect :&manta[currentInstrument].direct;
 	
 	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
-	
-	uint8_t whichHex = hexagon - MAX_STEPS;
-	
-	OptionType* options = (currentOptionMode == SequencerOptionMode) ? sequencerOptionMode :
-	(currentOptionMode == KeyboardOptionMode) ? keyboardOptionMode :
-	(currentOptionMode == DirectOptionMode) ? directOptionMode :
-	(currentOptionMode == RightOptionMode) ? rightOptionMode :
-	defaultOptionMode;
-	
-	OptionType whichOptionType = options[whichHex];							
+							
 	if (whichOptionType <= OptionPatternEight)
 	{
 		if (type == SequencerInstrument)		
