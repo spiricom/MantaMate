@@ -632,224 +632,273 @@ static void updateSliderModeAndUI(void)
 	}
 }
 
-void processHexTouch(void)
+void processHexTouchRelease(uint8_t i, MantaInstrumentType type) 
 {
-	uint8_t newHexUIOn = 0;
-	uint8_t newHexUIOff = 0;
-	uint8_t newUpperHexUI = 0;
-	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
+	if (hexmapEditMode)
+	{
+		releaseHexmapEdit(i);
+	}
+	else if (directEditMode)
+	{
+		releaseDirectEdit(i);
+		releaseDirectHex(i);
+	}
+	else if (shiftOption1 || shiftOption2)
+	{
+		if (i < MAX_STEPS)	releaseLowerHexOptionMode(i);
+		else				releaseUpperHexOptionMode(i);
+					
+		// releaseLingeringKeyboardHex(i);
+		// may need releaseLingeringDirectHex(i);
+	}
+	else
+	{
+		if (type == SequencerInstrument)
+		{
+			if (i < MAX_STEPS) //Lower hex
+			{
+				newReleaseLowerHexSeq = 1;
+							
+				tNoteStack_remove(&noteOnStack, i);
+							
+				releaseLowerHex(i);
+			}
+			else // Upper hex
+			{
+				newReleaseUpperHexSeq = 1;
+				releaseUpperHex(i);
+			}
+						
+			// this was causing gate releases.
+			//releaseLingeringKeyboardHex(i);
+		}
+		else if (type == KeyboardInstrument)
+		{
+			releaseKeyboardHex(i);
+		}
+		else if (type == DirectInstrument)
+		{
+			//releaseLingeringKeyboardHex(i);
+			releaseDirectHex(i);
+		}
+	}	
+}
 
-	//check the sequencer step hexagons
+void processHexTouchPress(uint8_t i, MantaInstrumentType type) 
+{
+	if (hexmapEditMode)
+	{
+		touchHexmapEdit(i, butt_states[i]);
+	}
+	else if (directEditMode)
+	{
+		touchDirectEdit(i);
+		touchDirectHex(i);
+	}
+	else if (shiftOption1 || shiftOption2)
+	{
+		if (i < MAX_STEPS)	touchLowerHexOptionMode(i);
+		else				touchUpperHexOptionMode(i);
+	}
+	else
+	{
+		if (type == SequencerInstrument)
+		{
+			if (i < MAX_STEPS) //Lower hex
+			{
+				newLowerHexSeq = 1;
+				tNoteStack_add(&noteOnStack, i);
+				touchLowerHex(i);
+			}
+			else // Upper hex
+			{
+				newUpperHexSeq = 1;
+				touchUpperHex(i);
+			}
+		}
+		else if (type == KeyboardInstrument)
+		{
+			touchKeyboardHex(i, butt_states[i]);
+		}
+		else if (type == DirectInstrument)
+		{
+			touchDirectHex(i);
+		}
+	}
+}
+
+BOOL isHexPressed(uint8_t i) 
+{
+	return ((butt_states[i] <= 0) && (pastbutt_states[i] > 0));
+}
+
+BOOL isHexReleased(uint8_t i) 
+{
+	return ((butt_states[i] > 0) && (pastbutt_states[i] <= 0));
+}
+
+BOOL isCirclePressed(uint8_t i) 
+{
+	return ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0));
+}
+
+BOOL isCircleReleased(uint8_t i) 
+{
+	return ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0));
+}
+
+void processSequencerHexTouches() 
+{
+	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 	for (int i = 0; i < 48; i++)
 	{
-		// RELEASE
-		if ((butt_states[i] <= 0) && (pastbutt_states[i] > 0))
+		if (isHexPressed(i))
 		{
-			if (hexmapEditMode)
-			{
-				releaseHexmapEdit(i);
-			}
-			else if (directEditMode)
-			{
-				releaseDirectEdit(i);
-				releaseDirectHex(i);
-			}
-			else if (shiftOption1 || shiftOption2) 
-			{
-				if (i < MAX_STEPS)	releaseLowerHexOptionMode(i);
-				else				releaseUpperHexOptionMode(i);
-				
-				// releaseLingeringKeyboardHex(i);
-				// may need releaseLingeringDirectHex(i);
-			}
-			else
-			{
-				if (type == SequencerInstrument)
-				{
-					if (i < MAX_STEPS) //Lower hex
-					{
-						newHexUIOff = i;
-						newReleaseLowerHexSeq = 1;
-					
-						tNoteStack_remove(&noteOnStack, i);
-					
-						releaseLowerHex(newHexUIOff);
-					}
-					else // Upper hex
-					{
-						newUpperHexUI = i;
-						newReleaseUpperHexSeq = 1;
-					
-						releaseUpperHex(newUpperHexUI);
-					}  
-					
-					// this was causing gate releases.
-					//releaseLingeringKeyboardHex(i);
-				}
-				else if (type == KeyboardInstrument)
-				{
-					releaseKeyboardHex(i);
-				}
-				else if (type == DirectInstrument)
-				{
-					//releaseLingeringKeyboardHex(i);
-					releaseDirectHex(i);
-				}
-			}
-			
+			processHexTouchRelease(i, type);
 		}
 		
-		// TOUCH
-		if ((butt_states[i] > 0) && (pastbutt_states[i] <= 0)) // TOUCH
+		if (isHexReleased(i))
 		{
-			if (hexmapEditMode)
-			{
-				touchHexmapEdit(i, butt_states[i]);
-			}
-			else if (directEditMode)
-			{
-				touchDirectEdit(i);
-				touchDirectHex(i);
-			}
-			else if (shiftOption1 || shiftOption2) 
-			{
-				if (i < MAX_STEPS)	touchLowerHexOptionMode(i);
-				else				touchUpperHexOptionMode(i);
-			}
-			else
-			{
-				if (type == SequencerInstrument)
-				{
-					if (i < MAX_STEPS) //Lower hex
-					{
-						newHexUIOn = i;
-						newLowerHexSeq = 1;
-						
-						tNoteStack_add(&noteOnStack, i);
-						
-						touchLowerHex(newHexUIOn);
-					}
-					else // Upper hex
-					{
-						//an upper hexagon was just pressed
-						newUpperHexUI = i;
-						newUpperHexSeq = 1;
-						
-						touchUpperHex(newUpperHexUI);
-					}
-				}
-				else if (type == KeyboardInstrument)
-				{
-					touchKeyboardHex(i, butt_states[i]);
-				}
-				else if (type == DirectInstrument)
-				{
-					touchDirectHex(i);
-				}
-			}
+			processHexTouchPress(i, type);
 		}
 		
 		pastbutt_states[i] = butt_states[i];
 	}
+}
+
+void processCircleButtonTopLeftTouch() 
+{
+	if (directEditMode) touchDirectEdit(48); // SliderOne
+	else if (!(hexmapEditMode || directEditMode)) touchTopLeftButton();
+}
+
+void processCircleButtonTopRightTouch()
+{
+	if (directEditMode) touchDirectEdit(49); // SliderTwo
+	else if (!(hexmapEditMode || directEditMode)) touchTopRightButton();
+
+}
+
+void processCircleButtonBottomLeftTouch()
+{
+	touchBottomLeftButton();
+}
+
+void processCircleButtonBottomRightTouch()
+{
+	if (!(hexmapEditMode || directEditMode)) touchBottomRightButton();
 	
-	BOOL buttonTouched = FALSE;
-	BOOL topRightOn = FALSE;
-	BOOL topLeftOn = FALSE;
-	// Circle button presses
-	for (int i = 0; i < 4; i++)
+}
+
+void processCircleButtonTopLeftRelease() 
+{
+	if (directEditMode) releaseDirectEdit(48); // SLIDER ONE
+	else if (!(hexmapEditMode || directEditMode)) releaseTopLeftButton();
+}
+
+void processCircleButtonTopRightRelease()
+{
+	if (directEditMode) releaseDirectEdit(49); // SLIDER TWO
+	else if (!(hexmapEditMode || directEditMode)) releaseTopRightButton();
+}
+
+void processCircleButtonBottomLeftRelease() 
+{
+	if (!(hexmapEditMode || directEditMode)) releaseBottomLeftButton();
+}
+
+void processCircleButtonBottomRightRelease() 
+{
+	if (!(hexmapEditMode || directEditMode)) releaseBottomRightButton();
+}
+
+void setCircleButtonLEDs(BOOL buttonTouched, BOOL topLeftOn, BOOL topRightOn)
+{
+	if (buttonTouched && !(hexmapEditMode || directEditMode))
 	{
-		// A round function button was just pressed
-		if ((func_button_states[i] > 0) && (past_func_button_states[i] <= 0))
+		if (manta[currentInstrument].type == SequencerInstrument)
 		{
-			//a round function button was just pressed
-			updateSliderModeAndUI();
-			
-			buttonTouched = TRUE;
-			
-			if (i == ButtonBottomLeft)	touchBottomLeftButton();
-			else if (directEditMode)
-			{
-				if (i == ButtonTopLeft)
-				{
-					topLeftOn = TRUE;
-					touchDirectEdit(48); // SliderOne
-				}
-				else if (i == ButtonTopRight)
-				{
-					topRightOn = TRUE;
-					touchDirectEdit(49); // SliderTwo
-				}
-			}
-			else if (!(hexmapEditMode || directEditMode))
-			{
-				if (i == ButtonTopLeft)
-				{
-					topLeftOn = TRUE;
-					touchTopLeftButton();
-				}
-				else if (i == ButtonTopRight)			
-				{
-					topRightOn = TRUE;
-					touchTopRightButton();
-				}
-				else if (i == ButtonBottomRight) touchBottomRightButton();
-			}	
-			
+			manta_set_LED_button(ButtonTopLeft, (shiftOption1 || shiftOption2) ? (topLeftOn ? Amber : Off) :
+			(currentMantaSliderMode == SliderModeOne) ? Off :
+			(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
+			manta_set_LED_button(ButtonTopRight, (shiftOption1 || shiftOption2) ? (topRightOn ? Amber : Off) :
+			(edit_vs_play == EditMode) ? Red : Amber);
+			manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+			manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 		}
-		
-		if ((func_button_states[i] <= 0) && (past_func_button_states[i] > 0))
-		{		
-			buttonTouched = TRUE;
-			
-			if (directEditMode)
-			{
-				if (i == ButtonTopLeft)
-				{
-					releaseDirectEdit(48); // SliderOne
-				}
-				else if (i == ButtonTopRight)
-				{
-					releaseDirectEdit(49); // SliderTwo
-				}
-			}
-			else if (!(hexmapEditMode || directEditMode))
-			{
-				if (i == ButtonBottomLeft)			releaseBottomLeftButton();
-				else if (i == ButtonTopRight)		releaseTopRightButton();
-				else if (i == ButtonTopLeft)		releaseTopLeftButton();
-				else if (i == ButtonBottomRight)	releaseBottomRightButton();
-			}
-		}
-		
-		if (buttonTouched && !(hexmapEditMode || directEditMode))
+		else if (manta[currentInstrument].type == KeyboardInstrument)
 		{
-			if (manta[currentInstrument].type == SequencerInstrument)
-			{
-				manta_set_LED_button(ButtonTopLeft, (shiftOption1 || shiftOption2) ? (topLeftOn ? Amber : Off) :
-				(currentMantaSliderMode == SliderModeOne) ? Off :
-				(currentMantaSliderMode == SliderModeTwo) ? Amber : Red);
-				manta_set_LED_button(ButtonTopRight, (shiftOption1 || shiftOption2) ? (topRightOn ? Amber : Off) :
-				(edit_vs_play == EditMode) ? Red : Amber);
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
-			}
-			else if (manta[currentInstrument].type == KeyboardInstrument)
-			{
-				manta_set_LED_button(ButtonTopLeft, (topLeftOn  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off) );
-				manta_set_LED_button(ButtonTopRight, (topRightOn  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off));
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
-			}
-			else if (manta[currentInstrument].type == DirectInstrument)
-			{
-				manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
-				manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
-			}
+			manta_set_LED_button(ButtonTopLeft, (topLeftOn  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off) );
+			manta_set_LED_button(ButtonTopRight, (topRightOn  ? ((shiftOption1 || shiftOption2) ? Amber : Red) : Off));
+			manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+			manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
 		}
-		
-		past_func_button_states[i] = func_button_states[i];
-	}		
+		else if (manta[currentInstrument].type == DirectInstrument)
+		{
+			manta_set_LED_button(ButtonBottomLeft, (shiftOption1 ? Amber : (shiftOption2Lock ? Red : Off)));
+			manta_set_LED_button(ButtonBottomRight, (shiftOption2 ? Amber : (shiftOption1Lock ? Red : Off)));
+		}
+	}	
+}
+
+void processCircleButtonTouches() 
+{
+	BOOL buttonTouchedOrReleased = FALSE;
+	BOOL topLeftOn = FALSE;
+	BOOL topRightOn = FALSE;
+
+	if (isCirclePressed(ButtonTopLeft))	 
+	{
+		processCircleButtonTopLeftTouch(); 
+		topLeftOn = TRUE; 
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCirclePressed(ButtonTopRight)) 
+	{
+		processCircleButtonTopRightTouch(); 
+		topRightOn = TRUE; 
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCirclePressed(ButtonBottomLeft)) 
+	{
+		processCircleButtonBottomLeftTouch();
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCirclePressed(ButtonBottomRight)) 
+	{
+		processCircleButtonBottomRightTouch(); 
+		buttonTouchedOrReleased = TRUE;
+	}
 	
+	if (isCircleReleased(ButtonTopLeft)) 
+	{
+		processCircleButtonTopLeftRelease(); 
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCircleReleased(ButtonTopRight)) 
+	{
+		processCircleButtonTopRightRelease(); 
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCircleReleased(ButtonBottomLeft)) 
+	{
+		processCircleButtonBottomLeftRelease(); 
+		buttonTouchedOrReleased = TRUE;
+	}
+	if (isCircleReleased(ButtonBottomRight))
+	{
+		processCircleButtonBottomRightRelease(); 
+		buttonTouchedOrReleased = TRUE;
+	}
+	
+	setCircleButtonLEDs(buttonTouchedOrReleased, topLeftOn, topRightOn);
+	for (int i = 0; i < 4; i++) past_func_button_states[i] = func_button_states[i];
+}
+
+void processHexTouch(void)
+{
+	processSequencerHexTouches();
+	processCircleButtonTouches();
 }
 
 void releaseLowerHex(uint8_t hexagon)
