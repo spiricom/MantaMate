@@ -282,8 +282,6 @@ void continueLoadingMantaPresetFromExternalMemory(void)
 		if(!sysexSend)
 		{
 			MantaInstrumentType lastInst1Type = manta[InstrumentOne].type; MantaInstrumentType lastInst2Type = manta[InstrumentTwo].type;
-			MantaInstrumentType lastTakeoverType = takeoverType;
-			BOOL lastTakeover = takeover;
 			uint8_t last_clock_speed_displayed = clock_speed_displayed;
 			mantaPreset_decode(mantamate_internal_preset_buffer);
 

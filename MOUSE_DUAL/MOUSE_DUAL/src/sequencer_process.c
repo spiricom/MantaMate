@@ -25,9 +25,6 @@ PanelSwitch panelSwitch[NUM_PANEL_MOVES] =
 	PanelRight
 };
 
-
-
-
 // UTILITIES
 void seqwait(void);
 uint32_t get16BitPitch(tTuningTable* myTable, MantaInstrument, uint8_t step);
@@ -40,6 +37,28 @@ uint8_t hexUIToStep(uint8_t hexagon);
 uint8_t stepToHexUI(MantaInstrument, int step);
 void downOctaveForEditStackSteps(MantaInstrument);
 void upOctaveForEditStackSteps(MantaInstrument);
+BOOL isShowingInstrument(MantaInstrument inst);
+BOOL isHexReleased(uint8_t i);
+BOOL isHexPressed(uint8_t i);
+BOOL isCirclePressed(uint8_t i);
+BOOL isCircleReleased(uint8_t i);
+void processHexTouchPress(uint8_t i, MantaInstrumentType type);
+void processHexTouchRelease(uint8_t i, MantaInstrumentType type);
+void setCircleButtonLEDs(BOOL buttonTouched, BOOL topLeftOn, BOOL topRightOn);
+void processSequencerHexTouches(void);
+void processSequencerCircleTouches(void);
+void processCircleButtonTopLeftTouch(void);
+void processCircleButtonTopRightTouch(void);
+void processCircleButtonBottomLeftTouch(void);
+void processCircleButtonBottomRightTouch(void);
+void processCircleButtonTopLeftRelease(void);
+void processCircleButtonTopRightRelease(void);
+void processCircleButtonBottomLeftRelease(void);
+void processCircleButtonBottomRightRelease(void);
+void processCircleButtonTouches(void);
+static void setSliderLEDs(void);
+static void togglePitchSliderMode(void);
+static void toggleTriggerSliderMode(void);
 
 
 /* - - - - - - KEY PATTERNS - - - - - - - -*/
@@ -919,9 +938,7 @@ void releaseLowerHex(uint8_t hexagon)
 	else if (edit_vs_play == PlayToggleMode)
 	{
 		int step = hexUIToStep(hexagon);
-		
-		
-		
+				
 		if (sequencer->playMode == ArpMode)
 		{
 			tSequencer_toggleStep(sequencer,step);
@@ -1698,7 +1715,6 @@ void releaseUpperHex(uint8_t hexagon)
 		
 		int whichTrigPanel = trigger_pattern[whichUpperHex];
 		int whichMute = (whichUpperHex%4);
-		int whichPanel = (whichUpperHex%4);
 
 		if (edit_vs_play == TrigToggleMode)
 		{
@@ -1785,7 +1801,6 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
 	tSequencer* otherSequencer = &manta[1-currentInstrument].sequencer;
 	tKeyboard* keyboard = takeover ? &fullKeyboard : &manta[currentInstrument].keyboard;
-	tDirect* direct = takeover ? &fullDirect :&manta[currentInstrument].direct;
 	
 	MantaInstrumentType type = takeover ? takeoverType : manta[currentInstrument].type;
 							
@@ -2088,10 +2103,6 @@ void touchUpperHex(uint8_t hexagon)
 	currentUpperHexUI = hexagon;
 	
 	tSequencer* sequencer = &manta[currentInstrument].sequencer;
-	tKeyboard* keyboard = &manta[currentInstrument].keyboard;
-	
-	EditModeType editType = sequencer->editType;
-	int random; 
 	
 	if (!shiftOption1)
 	{
@@ -2795,9 +2806,6 @@ void touchBottomRightButton(void)
 			displayState = GlobalDisplayStateNil;
 			
 			shiftOption1 = FALSE;
-			mm.P;
-			mm.S;
-			
 			
 			Write7Seg(normal_7seg_number);
 			transpose_indication_active = 0;
@@ -3770,7 +3778,6 @@ void setParameterForStep(MantaInstrument inst, uint8_t step, StepParameterType p
 void setParameterForEditStackSteps(MantaInstrument inst, StepParameterType param, uint16_t value)
 {
 	tSequencer* sequencer = &manta[inst].sequencer;
-	
 	EditModeType editType = sequencer->editType;
 	
 	int size = editStack.size;

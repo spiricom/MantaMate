@@ -82,7 +82,6 @@ extern tMantaMateState mm;
 
 void setDeviceType(tMantaMateState* s, ConnectedDeviceType type);
 ConnectedDeviceType getDeviceType(tMantaMateState* s);
-static void updateState(tMantaMateState* s);
 void pButtonPressed(tMantaMateState* s);
 void pButtonReleased(tMantaMateState* s);
 void sButtonPressed(tMantaMateState* s);
