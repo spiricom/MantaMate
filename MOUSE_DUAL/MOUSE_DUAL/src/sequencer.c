@@ -390,9 +390,7 @@ void tSequencer_randomizeTrigger(tSequencer* const seq)
 
 void tSequencer_randomizeAll(tSequencer* const seq)
 {	
-	seq->reverse = (rand() >> 15) & 1;
 	seq->transpose = 0;
-	seq->pattern = (rand() >> 15) % 8;
 	seq->octave = (rand() >> 15) % 8;
 		
 	for (int i = 0; i < 4; i++) seq->mute[i] = FALSE;
@@ -454,16 +452,7 @@ void tSequencer_deviate(tSequencer* const seq)
 {	
 	
 	int CVProb = 8;
-	
-	if (coinToss(20))
-	{
-		seq->reverse = (rand() >> 15) & 1;
-	}
-	if (coinToss(8))
-	{
-		seq->pattern = (rand() >> 15) % 8;;
-	}
-	
+		
 	for (int i = 0; i < 32; i++)
 	{
 	
@@ -690,8 +679,8 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 
 
 /*
-[ //these are packed into a single byte since they are 1-bit values
-Toggled,
+these are packed into a single byte since they are 1-bit values
+[Toggled,
 note,
 On1,
 On2,
