@@ -3599,13 +3599,17 @@ void dacSendTriggerMode(MantaInstrument inst, uint8_t step)
 	
 	// Configure CVGlide
 	uint16_t glideTime =  sequencer->step[step].cvglide >> 3;
-	if (glideTime < 5) glideTime = 5;
 
 	tIRampSetTime(&out[inst][CV1T], glideTime);
 	tIRampSetDest(&out[inst][CV1T], sequencer->step[step].cv1 << 4);
 		
 	tIRampSetTime(&out[inst][CV2T], glideTime);
 	tIRampSetDest(&out[inst][CV2T], sequencer->step[step].cv2 << 4);
+
+	// Delay to get CV set before trigger hits. This likely won't be perfect for every device interaction but works for
+	// my setup of using the CV output to change the sample on my Erica Synths Sample Drum before the trigger hits.
+	// This makes TriggerMode unresponsive at very high clock rates (>400 bpm). 
+	delay_ms(1);
 
 	// Trigger 1, Trigger 2, Trigger 3, Trigger 4
 	if (!sequencer->mute[0]) 
