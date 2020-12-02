@@ -532,9 +532,7 @@ int main(void){
 		}
 		
 		sleepmgr_enter_sleep();
-		
 	}
-	
 }
 
 
@@ -578,7 +576,6 @@ static void tc2_irq(void)
 	
 	if (!busyWithUSB) //this is so that interrupts and clocks don't screw up Manta USB enumeration
 	{
-		 
 		readAllSwitches();
 		
 		//watch the up and down buttons to catch the "hold down" action and speed up the preset scrolling

@@ -78,7 +78,6 @@ typedef struct _tSequencer
 	signed int transpose;
 	MantaPlayMode playMode;
 	// - - - - - - - - - - -
-	
 	EditModeType editType;
 	
 	BOOL reverse;
@@ -95,11 +94,11 @@ typedef struct _tSequencer
 	int maxLength;
 	
 	int lastTouch;
-	
 } tSequencer;
 
 int			tSequencer_init				(tSequencer* const, GlobalOptionType type, uint8_t maxLength);
-int			tSequencer_clear(tSequencer* const seq);
+int			tSequencer_clear            (tSequencer* const seq);
+void		tSequencer_restartSequence  (tSequencer* const seq);
 void		tSequencer_next				(tSequencer* const);
 int			tSequencer_toggleStep		(tSequencer* const, uint8_t step);
 int			tSequencer_addStep			(tSequencer* const, uint8_t step);

@@ -90,10 +90,9 @@ typedef enum BOOL
 //------------------  S T R U C T U R E S  -------------------
 typedef enum GlobalOptionType
 {
-	FullMode = 0,
-	SplitMode,
-	PitchMode,
-	TriggerMode
+	// Removed the notion of Full/Split mode in josh-version, so 1 and 2 are deprecated
+	PitchMode = 3,
+	TriggerMode = 4,
 } GlobalOptionType;
 // Typedef versions of Manta modes.
 

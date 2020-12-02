@@ -152,7 +152,7 @@ typedef enum OptionType
 	OptionDirect,
 	OptionPitch,
 	OptionTrigger,
-	OptionFullSplit,
+	OptionPause,
 	OptionToggle,
 	OptionArp,
 	OptionTouch,
@@ -196,7 +196,7 @@ OptionType sequencerOptionMode[16] =	{
 	OptionKeyboard,
 	OptionDirect,
 	OptionNil, 
-	OptionFullSplit,
+	OptionPause,
 	OptionNil,
 	OptionLeft, 
 	OptionRight
@@ -216,7 +216,7 @@ OptionType keyboardOptionMode[16] =	{
 	OptionKeyboard,
 	OptionDirect,
 	OptionNil,
-	OptionFullSplit,
+	OptionNil,
 	OptionNil,
 	OptionLeft,
 	OptionRight
@@ -236,7 +236,7 @@ OptionType rightOptionMode[16] = {
 	OptionKeyboard,
 	OptionDirect,
 	OptionNil,
-	OptionFullSplit,
+	OptionNil,
 	OptionNil,
 	OptionLeft,
 	OptionRight
@@ -281,7 +281,7 @@ OptionType defaultOptionMode[16] = {
 	OptionKeyboard,
 	OptionDirect,
 	OptionNil,
-	OptionFullSplit,
+	OptionPause,
 	OptionNil,
 	OptionLeft,
 	OptionRight
@@ -379,6 +379,7 @@ void initMantaSequencer(void)
 	shiftOption2 =				FALSE;
 	shiftOption1Lock =			FALSE;
 	shiftOption2Lock =			FALSE;
+	is_paused =					FALSE;
 	
 	
 	currentHexUI = 0;
@@ -458,6 +459,7 @@ void sequencerStep(MantaInstrument inst)
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	if (takeover || (sequencer->playMode == TouchMode)) return;
+	if (is_paused) return;
 	
 	sequencer->lengthCounter += 1;
 		
@@ -1134,8 +1136,6 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 						
 						setCurrentInstrument(whichInst);
 					}
-					
-
 				}
 				else if (shiftOption1SubShift == SubShiftTopRight) // CompositionWrite
 				{
@@ -1317,54 +1317,13 @@ void touchLowerHex(uint8_t hexagon)
 			if (edit_vs_play == PlayToggleMode) return;	
 		}
 		
-		if ((full_vs_split == SplitMode) && (edit_vs_play == TrigToggleMode) && ((hexagon < 16 && trigSelectOn >= 12) || (hexagon >= 16 && trigSelectOn < 4)))
-		{
-			newLowerHexSeq = 0;
-			return;
-		}
-		
 		if (tNoteStack_contains(&editStack,hexagon) < 0) updateSliderModeAndUI();
 
 		// Set hexUIs for this processing frame.
 		prevHexUI = currentHexUI;
 		currentHexUI = hexagon;
 
-		MantaInstrument instrumentToSet = currentInstrument;
-		if (full_vs_split == SplitMode)
-		{
-			if (hexagon < 16)	setCurrentInstrument(InstrumentOne);
-			else				setCurrentInstrument(InstrumentTwo);
-			
-			for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-			if ((manta[InstrumentOne].type == SequencerInstrument) && 
-				(manta[InstrumentTwo].type == SequencerInstrument) &&
-				(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && 
-				(manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
-			{
-				setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-				setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-			}
-			else
-			{
-				setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-			}
-			
-			if (instrumentToSet != currentInstrument)
-			{
-				resetEditStack();
-				if (edit_vs_play != TrigToggleMode)
-				{
-					setSequencerLEDsFor(InstrumentOne);
-					setSequencerLEDsFor(InstrumentTwo);
-				}
-				else
-				{
-					setTriggerPanelLEDsFor(InstrumentOne,currentPanel[InstrumentOne]);
-					setTriggerPanelLEDsFor(InstrumentTwo,currentPanel[InstrumentTwo]);
-				}
-			}
-		}
-		
+		MantaInstrument instrumentToSet = currentInstrument;		
 		sequencer = &manta[currentInstrument].sequencer;
 		
 		uint8_t uiHexCurrentStep = stepToHexUI(currentInstrument, manta[currentInstrument].sequencer.currentStep);
@@ -1487,30 +1446,11 @@ void switchToMode(MantaEditPlayMode mode)
 	
 	if (mode == TrigToggleMode)
 	{
-		if (full_vs_split == SplitMode)
-		{
-			if (trigSelectOn < 4)	setTriggerPanelLEDsFor(InstrumentOne,currentPanel[InstrumentOne]);
-			else					setTriggerPanelLEDsFor(InstrumentTwo,currentPanel[InstrumentTwo]);
-		}
-		else // FullMode
-		{
-			setTriggerPanelLEDsFor(currentInstrument,currentPanel[currentInstrument]);
-		}
-		
+		setTriggerPanelLEDsFor(currentInstrument,currentPanel[currentInstrument]);		
 	}
 	else if (mode == PlayToggleMode)
 	{
-		if (full_vs_split == SplitMode)
-		{
-			setSequencerLEDsFor(InstrumentOne);
-			setSequencerLEDsFor(InstrumentTwo);
-			
-			setKeyboardLEDsFor(currentInstrument, -1);
-		}
-		else // FullMode
-		{
-			setSequencerLEDsFor(currentInstrument);
-		}
+		setSequencerLEDsFor(currentInstrument);
 		manta_set_LED_button(ButtonTopRight, Amber);
 	}
 	else // EditMode
@@ -1735,8 +1675,6 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	{
 		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
 		
-		full_vs_split = FALSE;
-		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
 		
@@ -1759,8 +1697,6 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 	else if (whichOptionType == OptionDirect)
 	{
 		for (int i = 0; i < 6; i++) sendDataToOutput(i+currentInstrument*6,5,0);
-		
-		full_vs_split = FALSE;
 		
 		prev_option_hex = current_option_hex;
 		current_option_hex = whichHex;
@@ -1851,9 +1787,21 @@ void touchUpperHexOptionMode(uint8_t hexagon)
 				
 		sequencer->editType = type;
 	}
-	else if (whichOptionType == OptionFullSplit)
+	else if (whichOptionType == OptionPause)
 	{
-		full_vs_split = (full_vs_split == FullMode) ? SplitMode : FullMode;
+		if (is_paused == TRUE) 
+		{
+			is_paused = FALSE;
+			// Start back from the beginning of each sequence. Part of me thinks I should have two buttons "start" and "pause/restart". 
+			// I want to play with just single button for now to see if I really want the two distinct buttons
+			tSequencer_restartSequence(&manta[InstrumentOne].sequencer);
+			tSequencer_restartSequence(&manta[InstrumentTwo].sequencer);
+		}
+		else 
+		{
+			is_paused = TRUE;
+			clearDACoutputs();
+		}
 	}
 	else if (!takeover && whichOptionType == OptionLeft)
 	{
@@ -2181,30 +2129,10 @@ void setSequencerLEDs(void)
 	{
 		freeze_LED_update = 1;
 	
-		if (full_vs_split == FullMode)
-		{
-			setSequencerLEDsFor(currentInstrument);
-		}
-		else
-		{
-			setSequencerLEDsFor(InstrumentOne);
-			setSequencerLEDsFor(InstrumentTwo);
-		}
+		setSequencerLEDsFor(currentInstrument);
 		
 		for (int i = 0; i < 16; i++) manta_set_LED_hex(i+MAX_STEPS, Off);
-		
-		if ((full_vs_split == SplitMode) &&
-			(manta[InstrumentOne].sequencer.pitchOrTrigger == TriggerMode) && 
-			(manta[InstrumentTwo].sequencer.pitchOrTrigger == TriggerMode))
-		{
-			setKeyboardLEDsFor(InstrumentOne, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-			setKeyboardLEDsFor(InstrumentTwo, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-		}
-		else 
-		{
-			setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
-		}
-
+		setKeyboardLEDsFor(currentInstrument, ((edit_vs_play == TrigToggleMode) ? 0 : -1));
 		roll_LEDs = 1;
 		freeze_LED_update = 0;
 	}
@@ -2530,16 +2458,7 @@ void touchTopRightButton(void)
 		}
 		else
 		{
-			if (full_vs_split == SplitMode)
-			{
-				setSequencerLEDsFor(InstrumentOne);
-				setSequencerLEDsFor(InstrumentTwo);
-			}
-			else
-			{
-				setSequencerLEDsFor(currentInstrument);
-			}
-			
+			setSequencerLEDsFor(currentInstrument);
 			if (edit_vs_play == PlayToggleMode)
 			{
 				switchToMode(EditMode);
@@ -2554,7 +2473,7 @@ void touchTopRightButton(void)
 	}
 	else
 	{
-		// Tranpose up 
+		// Transpose up 
 		if (shiftOption2)
 		{
 			keyboard->transpose += 1;
@@ -3020,8 +2939,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 void uiStep(MantaInstrument inst)
 {
 	if (shiftOption1 || shiftOption2) return;
-	
-	if (full_vs_split == FullMode && inst != currentInstrument) return;
+	if (inst != currentInstrument) return;
 	
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
@@ -3319,15 +3237,9 @@ void setSliderLEDsFor(MantaInstrument inst, int note)
 			else // TriggerMode
 			{
 				manta_set_LED_slider((inst == InstrumentOne) ? SliderOne : SliderTwo, (sequencer->step[note].cvglide >> 9) + 1);
-				
-			}
-			
-		}
-		
-	}
-	
-	
-	
+			}	
+		}	
+	}	
 }
 
 void setTriggerPanelLEDsFor(MantaInstrument inst, TriggerPanel panel)
@@ -3361,8 +3273,7 @@ void setSequencerLEDsFor(MantaInstrument inst)
 	tSequencer* sequencer = &manta[inst].sequencer;
 	
 	int hexUI = 0;
-
-	for (int i = 0; i < ((full_vs_split == FullMode) ? 32 : 16); i++)
+	for (int i = 0; i < 32; i++)
 	{
 		hexUI = stepToHexUI(inst, i);
 
@@ -3451,12 +3362,10 @@ void setOptionLEDs(void)
 			if (sequencer->pitchOrTrigger == TriggerMode)	manta_set_LED_hex(hex, Red);
 			else											manta_set_LED_hex(hex, Amber);
 		}
-		else if (option == OptionFullSplit)
+		else if (option == OptionPause) 
 		{
-			if ((type1 == SequencerInstrument || type1 == DirectInstrument) && (type2 == SequencerInstrument || type2 == DirectInstrument))
-				manta_set_LED_hex(hex, (full_vs_split == FullMode) ? Amber : Red);
-			else
-				manta_set_LED_hex(hex, Off);
+			if (is_paused)	manta_set_LED_hex(hex, Red);
+			else			manta_set_LED_hex(hex, Amber);
 		}
 		else if (option <= OptionPatternEight)
 		{
@@ -3922,64 +3831,27 @@ void downOctaveForEditStackSteps(MantaInstrument inst)
 }
 uint8_t hexUIToStep(uint8_t hexagon)
 {
-	int hex = 0;
 	if (hexagon < 0)
 	{
-		hex = 0;
+		return 0;
 	}
-	else if (hexagon < 32)
+	else if (hexagon >= 32)
 	{
-		hex = hexagon;
+		return 31;
 	}
-	else
-	{
-		hex = 31;
-	}
-	
-	int step = 0;
-	
-	if (full_vs_split == SplitMode)
-	{
-		if (hex < 16)
-		{
-			step = hex;
-		}
-		else
-		{
-			step = hex - 16;
-		}
-	}
-	else
-	{
-		step = hex;
-	}
-	
-	return step;
+	return hexagon;
 }
 
 uint8_t stepToHexUI(MantaInstrument inst, int step)
 {
-	step = (step < 0) ? 0 : step;
-	
-	if (full_vs_split == SplitMode)
+	if (step < 0) 
 	{
-		if (step >= 16)
-		{
-			step = 15;
-		}
-		
-		if (inst == InstrumentTwo)
-		{
-			step += 16;
-		}
-		
+		return 0;
 	}
-	else
+	
+	if (step >= 32)
 	{
-		 if (step >= 32)
-		{
-			step = 31;
-		}
+		return 31;
 	}
 	
 	return step;

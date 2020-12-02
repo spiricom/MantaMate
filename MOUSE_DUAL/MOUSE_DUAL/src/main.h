@@ -197,6 +197,7 @@ extern uint8_t memoryInternalCompositionBuffer[NUM_INST][NUM_BYTES_PER_COMPOSITI
 
 
 tMantaInstrument manta[NUM_INST];
+BOOL is_paused;
 // - - - - - - - - - - - - - - - - - - - - -
 
 void mantaPreset_encode(uint8_t* buffer);

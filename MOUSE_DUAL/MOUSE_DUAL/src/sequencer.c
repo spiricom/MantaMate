@@ -614,6 +614,14 @@ int tSequencer_clear(tSequencer* const seq)
 	return 0;
 }
 
+void tSequencer_restartSequence(tSequencer* const seq) 
+{
+	seq->currentStep = 0;
+	seq->prevStep = 0;
+	seq->lengthCounter = 0;
+	seq->phasor = -1; // This is a hack to make sure the first step triggers.
+}
+
 int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLength) 
 {
 	if (maxLength < 1)
@@ -670,13 +678,8 @@ int tSequencer_init(tSequencer* const seq, GlobalOptionType type, uint8_t maxLen
 	
 	tNoteStack_init(&seq->notestack, maxLength);
 
-
 	return 0;
 }
-
-
-
-
 
 /*
 these are packed into a single byte since they are 1-bit values
