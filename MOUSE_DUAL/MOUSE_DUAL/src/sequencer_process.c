@@ -2984,7 +2984,6 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			uint16_t newGlide = val;
 			
-			if (newGlide < 5) newGlide = 5;
 			
 			if (sequencer->pitchOrTrigger == PitchMode) 
 				setParameterForEditStackSteps(currentInstrument, PitchGlide, newGlide);
@@ -3006,7 +3005,7 @@ void processSliderSequencer(uint8_t sliderNum, uint16_t val)
 			}
 			uint16_t newGlide = val;
 			
-			if (newGlide < 5) newGlide = 5;
+
 			
 			if (sequencer->pitchOrTrigger == PitchMode)
 				setParameterForEditStackSteps(currentInstrument, CVGlide, newGlide);
