@@ -21,7 +21,8 @@ extern uint64_t scaledoctaveDACvalue;
 
 const uint32_t factoryTunings[100][50];	
 
-
+extern uint32_t scaledSemitoneDACvalue;
+extern uint32_t scaledOctaveDACvalue;
 #define TUNING_8BIT_BUFFER_SIZE 520
 
 extern uint32_t externalTuning[129];

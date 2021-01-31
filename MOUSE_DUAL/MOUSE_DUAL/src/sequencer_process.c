@@ -1154,18 +1154,18 @@ void touchLowerHexOptionMode(uint8_t hexagon)
 			if (whichHex == 13)
 			{
 				tSequencer_deviate(sequencer);
-				manta_set_LED_hex(whichInst * 16 + 13, Red);
+				manta_set_LED_hex((1 - whichInst) * 16 + 13, Red);
 			}
 			else if (whichHex == 14)
 			{
 				tSequencer_randomizeAll(sequencer);
-				manta_set_LED_hex(whichInst * 16 + 14, Red);
+				manta_set_LED_hex((1 - whichInst) * 16 + 14, Red);
 			}
 			else if (whichHex == 15)
 			{
 				tSequencer_clear(sequencer); // EFFECTIVELY BLANK
 				
-				manta_set_LED_hex(whichInst * 16 + 15, Amber);
+				manta_set_LED_hex((1-whichInst) * 16 + 15, Amber);
 			}
 			else
 			{

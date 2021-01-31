@@ -46,7 +46,7 @@
 
 #include <asf.h>
 #include "main.h"
-
+#include "tuning.h"
 #define TARGET_PBACLK_FREQ_HZ 32000000 // master clock divided by 2 (64MHZ/2 = 32MHz)
 #define UNCONFIGUREDMODE 0
 #define HOSTMODE 1
@@ -143,6 +143,8 @@ int prevSentPitch[4] = {-1,-1,-1,-1};
 BOOL MidiDeviceFound = FALSE;
 
 int MPE_mode = 0;
+
+int VperO_mode = 0;
 
 const uint16_t glide_lookup[81] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,27,30,33,37,45,53,60,68,78,90,110,120, 130, 140, 150, 160, 170, 180, 195, 110, 125, 140, 155, 170, 185, 200, 220, 240, 260, 280, 300, 330, 360, 390, 420, 450, 480, 510, 550, 590, 630, 670, 710, 760, 810, 860, 910, 970, 1030, 1100, 1200, 1300, 1400, 1500, 1700, 1900, 2400, 2900, 3600};
 																													   // 33																												56																				  72								 78				
@@ -1643,7 +1645,27 @@ void Preset_Switch_Check(uint8_t whichSwitch)
 			}
 		}
 	}
-
+	else if (mm.sDown) //if you are holding down the s switch while pressing one of the up/down buttons, you are trying to switch between 1.2 and 1v per octave modes
+	{
+		if(upSwitch())
+		{
+			VperO_mode = 1;
+			scaledSemitoneDACvalue = 65535;
+			scaledOctaveDACvalue = 786420;
+		}
+		if(downSwitch())
+		{
+			VperO_mode = 0;
+			scaledSemitoneDACvalue = 54613;
+			scaledOctaveDACvalue = 655350;
+		}
+		didSwitchDeviceMode = 1;
+		//s->P = 0;
+		//updatePreferences(); // need to change this
+				
+		Write7Seg(VperO_mode+200); // 200 so that it blanks the left digit
+	}
+	
 	else if (displayState == HexmapSelect)
 	{
 		if (whichSwitch)
@@ -3517,6 +3539,18 @@ void sButtonPressed(tMantaMateState* s)
 void sButtonReleased(tMantaMateState* s)
 {
 	s->sDown =  false;
+	
+	
+	if (didSwitchDeviceMode == 1)
+	{
+		didSwitchDeviceMode = 0;
+		s->P = 0;
+		s->S = 0;
+		s->state = DefaultMode;
+		
+		updatePreferences();
+		Write7Seg(normal_7seg_number);
+	}
 	
 	updateState(s);
 }
